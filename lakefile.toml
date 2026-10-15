@@ -4,12 +4,108 @@ defaultTargets = ["specifications", "pbt", "example-samples"]
 
 [[lean_lib]]
 name = "specifications"
-globs = ["specifications.+"]
+globs = ["specifications.Example"]
 
 [[lean_lib]]
 name = "pbt"
-globs = ["pbt.+"]
+globs = ["pbt.CorrectGen", "pbt.GoalTools", "pbt.example.+"]
 
 [[lean_exe]]
 name = "example-samples"
 root = "pbt.example.Emit"
+
+[[lean_lib]]
+name = "P4Spec"
+srcDir = "specifications/p4"
+roots = [
+  "SpecTecAll", "SpecTecCases", "SpecTecCore", "SpecTecDecl0000", "SpecTecDecl0001",
+  "SpecTecDecl0002", "SpecTecDecl0003", "SpecTecDecl0004", "SpecTecDecl0005", "SpecTecDecl0006",
+  "SpecTecDecl0007", "SpecTecDecl0008", "SpecTecDecl0009", "SpecTecDecl0010", "SpecTecDecl0011",
+  "SpecTecDecl0012", "SpecTecDecl0013", "SpecTecDecl0014", "SpecTecDecl0015", "SpecTecDecl0016",
+  "SpecTecDecl0017", "SpecTecDecl0018", "SpecTecDecl0019", "SpecTecDecl0020", "SpecTecDecl0021",
+  "SpecTecDecl0022", "SpecTecDecl0023", "SpecTecDecl0024", "SpecTecDecl0025", "SpecTecDecl0026",
+  "SpecTecDecl0027", "SpecTecDecl0028", "SpecTecDecl0029", "SpecTecDecl0030", "SpecTecDecl0031",
+  "SpecTecDecl0032", "SpecTecDecl0033", "SpecTecDecl0034", "SpecTecDecl0035", "SpecTecDecl0036",
+  "SpecTecDecl0037", "SpecTecDecl0038", "SpecTecDecl0039", "SpecTecDecl0040", "SpecTecDecl0041",
+  "SpecTecDecl0042", "SpecTecDecl0043", "SpecTecDecl0044", "SpecTecDecl0045", "SpecTecDecl0046",
+  "SpecTecDecl0047", "SpecTecDecl0048", "SpecTecDecl0049", "SpecTecDecl0050", "SpecTecDecl0051",
+  "SpecTecDecl0052", "SpecTecDecl0053", "SpecTecDecl0054", "SpecTecDecl0055", "SpecTecDecl0056",
+  "SpecTecDecl0057", "SpecTecDecl0058", "SpecTecDecl0059", "SpecTecDecl0060", "SpecTecDecl0061",
+  "SpecTecDecl0062", "SpecTecDecl0063", "SpecTecDecl0064", "SpecTecDecl0065", "SpecTecDecl0066",
+  "SpecTecDecl0067", "SpecTecDecl0068", "SpecTecDecl0069", "SpecTecDecl0070", "SpecTecDecl0071",
+  "SpecTecDecl0072", "SpecTecDecl0073", "SpecTecDecl0074", "SpecTecDecl0075", "SpecTecDecl0076",
+  "SpecTecDecl0077", "SpecTecDecl0078", "SpecTecDecl0079", "SpecTecDecl0080", "SpecTecDecl0081",
+  "SpecTecDecl0082", "SpecTecDecl0083", "SpecTecDecl0084", "SpecTecDecl0085", "SpecTecDecl0086",
+  "SpecTecDecl0087", "SpecTecDecl0088", "SpecTecDecl0089", "SpecTecDecl0090", "SpecTecDecl0091",
+  "SpecTecDecl0092", "SpecTecDecl0093", "SpecTecDecl0094", "SpecTecDecl0095", "SpecTecDecl0096",
+  "SpecTecDecl0097", "SpecTecDecl0098", "SpecTecDecl0099", "SpecTecDecl0100", "SpecTecDecl0101",
+  "SpecTecDecl0102", "SpecTecDecl0103", "SpecTecDecl0104", "SpecTecDecl0105", "SpecTecDecl0106",
+  "SpecTecDecl0107", "SpecTecDecl0108", "SpecTecDecl0109", "SpecTecDecl0110", "SpecTecDecl0111",
+  "SpecTecDecl0112", "SpecTecDecl0113", "SpecTecDecl0114", "SpecTecDecl0115", "SpecTecDecl0116",
+  "SpecTecDecl0117", "SpecTecDecl0118", "SpecTecDecl0119", "SpecTecDecl0120", "SpecTecDecl0121",
+  "SpecTecDecl0122", "SpecTecDecl0123", "SpecTecDecl0124", "SpecTecDecl0125", "SpecTecDecl0126",
+  "SpecTecDecl0127", "SpecTecDecl0128", "SpecTecDecl0129", "SpecTecDecl0130", "SpecTecDecl0131",
+  "SpecTecDecl0132", "SpecTecDecl0133", "SpecTecDecl0134", "SpecTecDecl0135", "SpecTecDecl0136",
+  "SpecTecDecl0137", "SpecTecDecl0138", "SpecTecDecl0139", "SpecTecDecl0140", "SpecTecDecl0141",
+  "SpecTecDecl0142", "SpecTecDecl0143", "SpecTecDecl0144", "SpecTecDecl0145", "SpecTecDecl0146",
+  "SpecTecDecl0147", "SpecTecDecl0148", "SpecTecDecl0149", "SpecTecDecl0150", "SpecTecDecl0151",
+  "SpecTecDecl0152", "SpecTecDecl0153", "SpecTecDecl0154", "SpecTecDecl0155", "SpecTecDecl0156",
+  "SpecTecDecl0157", "SpecTecDecl0158", "SpecTecDecl0159", "SpecTecDecl0160", "SpecTecDecl0161",
+  "SpecTecDecl0162", "SpecTecDecl0163", "SpecTecDecl0164", "SpecTecDecl0165", "SpecTecDecl0166",
+  "SpecTecDecl0167", "SpecTecDecl0168", "SpecTecDecl0169", "SpecTecDecl0170", "SpecTecDecl0171",
+  "SpecTecDecl0172", "SpecTecDecl0173", "SpecTecDecl0174", "SpecTecDecl0175", "SpecTecDecl0176",
+  "SpecTecDecl0177", "SpecTecDecl0178", "SpecTecDecl0179", "SpecTecDecl0180", "SpecTecDecl0181",
+  "SpecTecDecl0182", "SpecTecDecl0183", "SpecTecDecl0184", "SpecTecDecl0185", "SpecTecDecl0186",
+  "SpecTecDecl0187", "SpecTecDecl0188", "SpecTecDecl0189", "SpecTecDecl0190", "SpecTecDecl0191",
+  "SpecTecDecl0192", "SpecTecDecl0193", "SpecTecDecl0194", "SpecTecDecl0195", "SpecTecDecl0196",
+  "SpecTecDecl0197", "SpecTecDecl0198", "SpecTecDecl0199", "SpecTecDecl0200", "SpecTecDecl0201",
+  "SpecTecDecl0202", "SpecTecDecl0203", "SpecTecDecl0204", "SpecTecDecl0205", "SpecTecDecl0206",
+  "SpecTecDecl0207", "SpecTecDecl0208", "SpecTecDecl0209", "SpecTecDecl0210", "SpecTecDecl0211",
+  "SpecTecDecl0212", "SpecTecDecl0213", "SpecTecDecl0214", "SpecTecDecl0215", "SpecTecDecl0216",
+  "SpecTecDecl0217", "SpecTecDecl0218", "SpecTecDecl0219", "SpecTecDecl0220", "SpecTecDecl0221",
+  "SpecTecDecl0222", "SpecTecDecl0223", "SpecTecDecl0224", "SpecTecDecl0225", "SpecTecDecl0226",
+  "SpecTecDecl0227", "SpecTecDecl0228", "SpecTecDecl0229", "SpecTecDecl0230", "SpecTecDecl0231",
+  "SpecTecDecl0232", "SpecTecDecl0233", "SpecTecDecl0234", "SpecTecDecl0235", "SpecTecDecl0236",
+  "SpecTecDecl0237", "SpecTecDecl0238", "SpecTecDecl0239", "SpecTecDecl0240", "SpecTecDecl0241",
+  "SpecTecDecl0242", "SpecTecDecl0243", "SpecTecDecl0244", "SpecTecDecl0245", "SpecTecDecl0246",
+  "SpecTecDecl0247", "SpecTecDecl0248", "SpecTecDecl0249", "SpecTecDecl0250", "SpecTecDecl0251",
+  "SpecTecDecl0252", "SpecTecDecl0253", "SpecTecDecl0254", "SpecTecDecl0255", "SpecTecDecl0256",
+  "SpecTecDecl0257", "SpecTecDecl0258", "SpecTecDecl0259", "SpecTecDecl0260", "SpecTecDecl0261",
+  "SpecTecDecl0262", "SpecTecDecl0263", "SpecTecDecl0264", "SpecTecDecl0265", "SpecTecDecl0266",
+  "SpecTecDecl0267", "SpecTecDecl0268", "SpecTecDecl0269", "SpecTecDecl0270", "SpecTecDecl0271",
+  "SpecTecDecl0272", "SpecTecDecl0273", "SpecTecDecl0274", "SpecTecDecl0275", "SpecTecDecl0276",
+  "SpecTecDecl0277", "SpecTecDecl0278", "SpecTecDecl0279", "SpecTecDecl0280", "SpecTecDecl0281",
+  "SpecTecDecl0282", "SpecTecDecl0283", "SpecTecDecl0284", "SpecTecDecl0285", "SpecTecDecl0286",
+  "SpecTecDecl0287", "SpecTecDecl0288", "SpecTecDecl0289", "SpecTecDecl0290", "SpecTecDecl0291",
+  "SpecTecDecl0292", "SpecTecDecl0293", "SpecTecDecl0294", "SpecTecDecl0295", "SpecTecDecl0296",
+  "SpecTecDecl0297", "SpecTecDecl0298", "SpecTecDecl0299", "SpecTecDecl0300", "SpecTecDecl0301",
+  "SpecTecDecl0302", "SpecTecDecl0303", "SpecTecDecl0304", "SpecTecDecl0305", "SpecTecDecl0306",
+  "SpecTecDecl0307", "SpecTecDecl0308", "SpecTecDecl0309", "SpecTecDecl0310", "SpecTecDecl0311",
+  "SpecTecDecl0312", "SpecTecDecl0313", "SpecTecDecl0314", "SpecTecDecl0315", "SpecTecDecl0316",
+  "SpecTecDecl0317", "SpecTecDecl0318", "SpecTecDecl0319", "SpecTecDecl0320", "SpecTecDecl0321",
+  "SpecTecDecl0322", "SpecTecDecl0323", "SpecTecDecl0324", "SpecTecDecl0325", "SpecTecDecl0326",
+  "SpecTecDecl0327", "SpecTecDecl0328", "SpecTecDecl0329", "SpecTecDecl0330", "SpecTecDecl0331",
+  "SpecTecDecl0332", "SpecTecDecl0333", "SpecTecDecl0334", "SpecTecDecl0335", "SpecTecDecl0336",
+  "SpecTecDecl0337", "SpecTecDecl0338", "SpecTecDecl0339", "SpecTecDecl0340", "SpecTecDecl0341",
+  "SpecTecDecl0342", "SpecTecDecl0343", "SpecTecDecl0344", "SpecTecDecl0345", "SpecTecDecl0346",
+  "SpecTecDecl0347", "SpecTecDecl0348", "SpecTecDecl0349", "SpecTecDecl0350", "SpecTecDecl0351",
+  "SpecTecDecl0352", "SpecTecDecl0353", "SpecTecDecl0354", "SpecTecDecl0355", "SpecTecDecl0356",
+  "SpecTecDecl0357", "SpecTecDecl0358", "SpecTecDecl0359", "SpecTecDecl0360", "SpecTecDecl0361",
+  "SpecTecDecl0362", "SpecTecDecl0363", "SpecTecDecl0364", "SpecTecDecl0365", "SpecTecDecl0366",
+  "SpecTecDecl0367", "SpecTecDecl0368", "SpecTecDecl0369", "SpecTecDecl0370", "SpecTecDecl0371",
+  "SpecTecDecl0372", "SpecTecDecl0373", "SpecTecDecl0374", "SpecTecDecl0375", "SpecTecDecl0376",
+  "SpecTecDecl0377", "SpecTecDecl0378", "SpecTecDecl0379", "SpecTecDecl0380", "SpecTecDecl0381",
+  "SpecTecDecl0382", "SpecTecDecl0383", "SpecTecDecl0384", "SpecTecDecl0385", "SpecTecDecl0386",
+  "SpecTecDecl0387", "SpecTecDecl0388", "SpecTecDecl0389", "SpecTecDecl0390", "SpecTecDecl0391",
+  "SpecTecDecl0392", "SpecTecDecl0393", "SpecTecDecl0394", "SpecTecDecl0395", "SpecTecDecl0396",
+  "SpecTecDecl0397", "SpecTecDecl0398", "SpecTecDecl0399", "SpecTecDecl0400", "SpecTecDecl0401",
+  "SpecTecDecl0402", "SpecTecDecl0403", "SpecTecDecl0404", "SpecTecDecl0405", "SpecTecDecl0406",
+  "SpecTecDecl0407", "SpecTecDecl0408", "SpecTecDecl0409", "SpecTecDecl0410", "SpecTecDecl0411",
+  "SpecTecDecl0412", "SpecTecDecl0413", "SpecTecDecl0414", "SpecTecDecl0415", "SpecTecDecl0416",
+  "SpecTecDecl0417", "SpecTecDecl0418", "SpecTecDecl0419", "SpecTecDecl0420", "SpecTecDecl0421",
+  "SpecTecDecl0422", "SpecTecDecl0423", "SpecTecDecl0424", "SpecTecDecl0425", "SpecTecDecl0426",
+  "SpecTecDecl0427", "SpecTecDecl0428", "SpecTecDecl0429", "SpecTecDecl0430", "SpecTecDecl0431",
+  "SpecTecDecl0432", "SpecTecDecl0433", "SpecTecDecl0434", "SpecTecDecl0435", "SpecTecDecl0436",
+  "SpecTecDecl0437", "SpecTecDecl0438", "SpecTecDecl0439", "SpecTecDecl0440", "SpecTecProofs",
+  "SpecTecSupport"]
+moreLeanArgs = ["-j", "1", "-M", "7000"]

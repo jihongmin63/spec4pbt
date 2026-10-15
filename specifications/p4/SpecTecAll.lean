@@ -1,0 +1,1 @@
+import SpecTecDecl0440

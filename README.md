@@ -201,5 +201,5 @@ the common goal tools and groups property-specific code in folders such as
 except for their tracked `.gitkeep` files.
 
 The `main` branch supplies the common structure and a runnable example. Each
-specification branch starts from `main`; `P4` carries the P4 specification and
-existing generators.
+specification branch starts from `main`; `P4` carries the pinned P4 SpecTec
+translation. `SpecTecCases.lean` currently defines no P4 test case propositions.
