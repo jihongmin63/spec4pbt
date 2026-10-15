@@ -1,0 +1,15 @@
+name = "spec4pbt"
+version = "0.1.0"
+defaultTargets = ["specifications", "pbt", "example-samples"]
+
+[[lean_lib]]
+name = "specifications"
+globs = ["specifications.+"]
+
+[[lean_lib]]
+name = "pbt"
+globs = ["pbt.+"]
+
+[[lean_exe]]
+name = "example-samples"
+root = "pbt.example.Emit"

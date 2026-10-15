@@ -1,0 +1,8 @@
+.lake/
+.venv/
+__pycache__/
+*.pyc
+/implementations/*
+!/implementations/.gitkeep
+/test_cases/*
+!/test_cases/.gitkeep
