@@ -1,0 +1,3 @@
+(executable
+ (name reference)
+ (libraries spectec.pass spectec.lang spectec.interp.eval_il spectec.diagnostic yojson))

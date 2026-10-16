@@ -1,0 +1,3 @@
+var n : int
+relation Call: int ==> int hint(input %0)
+rule Call/value: n ==> n

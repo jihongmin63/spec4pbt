@@ -1,0 +1,3 @@
+var b : bool
+relation Check: bool ==> bool hint(input %0)
+rule Check/value: b ==> (b <: bool)

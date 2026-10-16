@@ -1,0 +1,5 @@
+syntax Int = nat
+var n : int
+var m : int
+relation Difference: int ',' int ==> int hint(input %0 %1)
+rule Difference/value: n ',' m ==> $(n - m)

@@ -1,0 +1,4 @@
+syntax box = BOX int
+var n : int
+relation Eval: box ==> int hint(input %0)
+rule Eval/value: (BOX n) ==> n

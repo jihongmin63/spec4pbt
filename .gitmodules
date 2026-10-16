@@ -1,0 +1,3 @@
+[submodule "external/spectecx"]
+	path = external/spectecx
+	url = https://github.com/kaist-plrg/spectecx.git

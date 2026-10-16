@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Install the exact official submodule revision into an existing opam switch.
+set -euo pipefail
+task_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+task_switch=${1:-spectecx}
+task_source="$task_root/external/spectecx"
+git -C "$task_root" submodule update --init -- external/spectecx
+task_revision=$(git -C "$task_root" ls-files --stage -- external/spectecx | awk '{print $2}')
+test -n "$task_revision"
+test "$(git -C "$task_source" rev-parse HEAD)" = "$task_revision"
+if test -n "$(git -C "$task_source" status --porcelain)"; then
+  echo 'SpecTecX checkout must be clean; keep translator changes outside upstream.' >&2
+  exit 1
+fi
+opam pin add --switch="$task_switch" --yes --no-action --kind=git \
+  spectec "git+file://$task_source#$task_revision"
+if test -n "$(opam list --switch="$task_switch" --installed --short spectec)"; then
+  opam reinstall --switch="$task_switch" --yes spectec
+else
+  opam install --switch="$task_switch" --yes spectec
+fi
+python3 "$task_root/scripts/spectecx-state.py" record --switch "$task_switch"

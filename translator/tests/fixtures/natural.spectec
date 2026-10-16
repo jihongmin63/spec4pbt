@@ -1,0 +1,3 @@
+var n : nat
+relation Negate: nat ==> int hint(input %0)
+rule Negate/value: n ==> $(-n)

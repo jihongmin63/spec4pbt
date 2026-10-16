@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+task_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+task_switch=${1:-spectecx}
+python3 "$task_root/scripts/spectecx-state.py" check --switch "$task_switch"
+opam exec --switch="$task_switch" -- dune build --root "$task_root/translator"

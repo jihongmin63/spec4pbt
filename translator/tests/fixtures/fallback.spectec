@@ -1,0 +1,23 @@
+var n : int
+relation Choose: int ==> int hint(input %0)
+rule Choose/default:
+  n ==> 99
+  -- otherwise
+rule Choose/positive:
+  n ==> 1
+  -- if $(n > 0)
+rule Choose/overlap:
+  n ==> 2
+  -- if $(n >= 0)
+relation Positive: int ==> int hint(input %0)
+rule Positive/yes:
+  n ==> n
+  -- if $(n > 0)
+var m : int
+relation Try: int ==> int hint(input %0)
+rule Try/default:
+  n ==> 77
+  -- otherwise
+rule Try/recursive:
+  n ==> m
+  -- Positive: n ==> m

@@ -1,0 +1,5 @@
+syntax result = { VALUE int, TRACE int }
+var n : int
+var m : int
+relation Eval: result ==> int hint(input %0)
+rule Eval/value: { VALUE n, TRACE m } ==> n
