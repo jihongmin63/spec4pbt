@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "namespace": "AeSpec",
+  "types": {
+    "bool": { "kind": "primitive", "lean": "Bool" },
+    "nat": { "kind": "primitive", "lean": "Nat" },
+    "int": { "kind": "primitive", "lean": "Int" },
+    "text": { "kind": "primitive", "lean": "String" },
+    "expr": { "lean": "AeSpec.expr", "kind": "variant" }
+  },
+  "relations": {
+    "Eval_expr": {
+      "lean": "AeSpec.Eval_expr",
+      "inputs": [ 0 ],
+      "arguments": [ { "type": "expr" }, { "type": "int" } ]
+    }
+  }
+}

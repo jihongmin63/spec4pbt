@@ -5,6 +5,167 @@ Property-based testing from a supplied specification and Lean proposition.
 Use the Lean version pinned in `lean-toolchain` and Python 3.12 or later. The
 Python tools use only the standard library. Run commands from the repository root.
 
+## SpecTec specifications and observable properties
+
+The `spectec-based` branch adds a complete path from native SpecTecX source to
+testing a supplied property on an implementation's actual observations:
+
+```text
+SpecTecX parser/typechecker → independent Lean translator → typed observation view
+                                                                ↓
+certified input generator → implementation adapter → certified property checker
+```
+
+`external/spectecx` is the official [SpecTecX repository](https://github.com/kaist-plrg/spectecx)
+as a submodule, pinned at `d5dd1382143f3ea300bf7997d3098b03120556ec`.
+We maintain the adapter and emitter in `translator/`; upstream source stays clean.
+The Lean execution runtime comes from p4-spectec, with its license and commit
+recorded in [PROVENANCE.md](pbt/SpectecRuntime/PROVENANCE.md).
+
+Use an existing OCaml >= 5.1 opam switch, or create one once. This checkout was
+verified with OCaml 5.1.1:
+
+```sh
+opam switch create spectecx 5.1.1  # only when the switch does not exist
+scripts/bootstrap-spectecx
+scripts/build-translator
+lake build
+scripts/check-spectec-examples
+```
+
+Bootstrap installs exactly the submodule revision, including on subsequent runs.
+The build script verifies the checkout and installed library fingerprint. An
+upstream update is deliberate: checkout and stage the new submodule commit,
+bootstrap again, update the translator if necessary, then run the tests. This
+does not track the moving upstream branch automatically. Scripts accept an
+alternative opam switch as their first argument.
+
+The translator uses the current upstream typed IL and a tested fragment of the
+donor execution machinery. It supports recursive arithmetic relations, records,
+aliases, guards and ordered fallback. Unsupported syntax fails explicitly;
+full P4, iteration and partial arithmetic operators are not supported yet.
+[The translator documentation](translator/README.md) lists the exact boundary.
+Execution soundness of emitted plans is proved in Lean; correctness of the
+OCaml translation itself is checked by comparisons with the upstream interpreter,
+and is not a formal compiler correctness theorem.
+
+### Declare what an implementation can observe
+
+Keep an observation TOML beside the specification:
+
+```toml
+schema_version = 1
+[[observations]]
+id = "value"
+relation = "Eval_expr"
+observe = ["%1"]
+```
+
+Slots are zero-based positions in the original relation. Input roles come from
+SpecTecX's elaboration of `hint(input ...)`. Use `%1.VALUE` to select one record
+field. Inputs cannot be selected as outputs; missing, duplicate or overlapping
+selectors are errors. The generated view exposes `Input`, `Observation`,
+`FullOutput`, `project`, `Specification`, frozen JSON codecs and `profileId`.
+Multiple selected values use right-associated products in selector order.
+`Specification` expresses existence of a full specification result with the
+selected observation; it is available to the user but never replaces `Target`.
+
+For a new translation, choose fresh output paths:
+
+```sh
+translator/_build/default/main.exe --namespace MySpec \
+  --output specifications/MySpec.lean --manifest specifications/my-spec.json \
+  external/spectecx/spectec/specs/itpl/ae/spec.spectec
+python3 -m pbt.observations \
+  --manifest specifications/my-spec.json --config specifications/ae/observations.toml \
+  --observation value --spec-module specifications.MySpec \
+  --namespace MyView --output pbt/MyView.lean
+```
+
+Generated files are never overwritten by these commands. Source modules use the
+Lake project's root directory convention. A view binds the validated manifest,
+selected configuration, source import closure and Lean/build configuration.
+The runner checks its complete generated source, not just its stored profile ID.
+
+### Supply the property and generator
+
+The property module defines the following declarations, with no extra assumptions:
+
+```lean
+Premise : View.Input → Prop
+Target : View.Input → View.Observation → Prop
+check : View.Input → View.Observation → Bool
+check_correct : ∀ i o, Premise i → (check i o = true ↔ Target i o)
+```
+
+Declare `Premise` as `fun _ => True` when no input restriction is needed. Supply
+a `Spec4Pbt.CorrectGen Premise` in a separate generator module. The runner rebuilds
+and audits the exact declarations, including module ownership, transitive
+axioms and executable implementations. Unsafe/partial checkers, unproved claims,
+additional hypotheses, and custom runtime replacements cannot certify a run.
+The first version also rejects custom `csimp` compiler rewrites and imported
+project declarations containing axioms, `sorry`, or unsafe proofs, including
+unused declarations. This prevents compiler changes from bypassing the audited
+checker or generator body.
+The proof establishes agreement of the checker and the user's property; it does
+not prove that the implementation satisfies that property.
+
+JSON codecs are fixed when the view is generated, so later property instances
+cannot reinterpret observations or forge Boolean verdicts. The Lean toolchain,
+generated codecs, translator and implementation adapter remain trusted parts of
+the integration. There is no generic proof that an arbitrary adapter faithfully
+observes an arbitrary external implementation. The adapter must obtain selected
+values from the actual result; it must not substitute a specification witness.
+
+### Run the examples
+
+The arithmetic example translates upstream's native AE specification. Its
+certified input domain contains natural literals, `n + 2` and `n - 2`; it does
+not claim to sample every arithmetic tree. Its user property compares the
+observed value with a separately defined recursive evaluator:
+
+```sh
+python3 -m pbt.run_observable \
+  --manifest specifications/ae/manifest.json --config specifications/ae/observations.toml \
+  --observation-id value --spec-module specifications.ae.Spec \
+  --view-module pbt.ae.View --view-namespace AeView \
+  --property-module pbt.ae.Property --premise AeProperty.Premise \
+  --target AeProperty.Target --check AeProperty.check --check-correct AeProperty.check_correct \
+  --generator-module pbt.ae.Generator --generator AeProperty.correctGenerator \
+  --adapter-command '["python3", "pbt/ae/adapter.py"]' \
+  --output test_cases/ae-run --count 8 --size 5 --seed 0
+```
+
+The adapter receives `{"input": ...}` on stdin and must return exactly
+`{"observation": ...}` on stdout. Its arguments are passed directly, without a
+shell. Add `"--wrong"` to the arithmetic adapter command and choose another fresh
+run folder to see a counterexample. The record example in `specifications/record`
+and `pbt/record` observes only `VALUE` and checks the user property `VALUE > input`.
+It accepts an implementation with a different hidden `TRACE`, while detecting an
+observed violation. Its generator covers all nonnegative integer inputs.
+
+A run saves metadata/configuration snapshots, sampler/checker fingerprints,
+samples, exact requests, actual observations, process stdout/stderr and verdicts.
+Replay the implementation portion of a saved arithmetic case with:
+
+```sh
+python3 pbt/ae/adapter.py < test_cases/ae-run/case-000000/request.json
+```
+
+Exit codes are `0` for passed, `1` for a counterexample, and `2` for an error.
+Timeouts, malformed or ill-typed observations and implementation failures never
+pass. `count` must be positive, and each generator call produces an input. The
+result JSON retains `skipped` with value `0` for compatibility. Runs stop on the
+first failed case or execution error. Source changes invalidate the ephemeral
+certificate. An empty premise cannot have a certified total generator.
+
+```sh
+python3 -m unittest discover -s translator/tests -v
+python3 -m unittest discover -s pbt -p 'test_*.py' -v
+```
+
+## Existing proposition example
+
 The common example supplies an even-natural-number specification, the proposition
 `∀ n, Valid n → n + 0 = n`, and a generator with proved soundness and completeness.
 Its `size` bounds inputs by `2 * size`; each sample uses `seed + index`. The
@@ -176,8 +337,9 @@ holding an input together with a premise proof. For bundled inputs, proofs
 packed into `Input` still have to be constructed by the user. Exact support
 guarantees a valid sample at every size and seed, but not a uniform distribution. Accepting a proposition does not imply that an executable
 generator or decision procedure exists, and a two-natural-number sampler cannot
-cover uncountable input domains. Serialization and executable checking remain
-specific to the even-natural-number example. The generated contract does not
+cover uncountable input domains. The original `pbt.run` serialization and executable
+checking remain specific to this example; the SpecTec path above uses typed views
+and supplied checkers. The generated contract does not
 prove `Property` or `Target`. `pick` and `bind` decode seeds by structural
 recursion; very large seeds can exhaust the Lean interpreter's recursion limit,
 so use a compiled executable for large sampling runs.

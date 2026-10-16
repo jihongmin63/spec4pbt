@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""Check that committed example translations and views regenerate identically."""
+
+from pathlib import Path
+import argparse
+import subprocess
+import sys
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from pbt.observations import generate_view
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("switch", nargs="?", default="spectecx")
+    args = parser.parse_args()
+    subprocess.run([str(ROOT / "scripts/build-translator"), args.switch], cwd=ROOT, check=True)
+    for example, namespace, view, source in [
+        ("ae", "AeSpec", "AeView", "external/spectecx/spectec/specs/itpl/ae/spec.spectec"),
+        ("record", "PartialSpec", "PartialView", "specifications/record/spec.spectec"),
+    ]:
+        specification = ROOT / "specifications" / example
+        with tempfile.TemporaryDirectory() as directory:
+            generated = Path(directory)
+            subprocess.run([str(ROOT / "translator/_build/default/main.exe"), "--namespace", namespace,
+                "--output", str(generated / "Spec.lean"), "--manifest", str(generated / "manifest.json"),
+                str(ROOT / source)], cwd=ROOT, check=True)
+            generate_view(ROOT, generated / "manifest.json", specification / "observations.toml",
+                "value", f"specifications.{example}.Spec", view, generated / "View.lean")
+            for fresh, committed in [(generated / "Spec.lean", specification / "Spec.lean"),
+                                     (generated / "manifest.json", specification / "manifest.json"),
+                                     (generated / "View.lean", ROOT / "pbt" / example / "View.lean")]:
+                if fresh.read_bytes() != committed.read_bytes():
+                    raise SystemExit(f"Generated example differs: {committed}")
+            print(f"Verified {example} translation and observation view")
+
+
+if __name__ == "__main__":
+    main()
