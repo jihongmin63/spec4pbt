@@ -1,0 +1,10 @@
+var n : int
+var m : int
+relation CopyOption: int? ==> int? hint(input %0)
+rule CopyOption: n? ==> n?
+relation Swap: (int, bool) ==> (bool, int) hint(input %0)
+rule Swap: (n, bool) ==> (bool, n)
+relation Append: int* ',' int* ==> int* hint(input %0 %1)
+rule Append: n* ',' m* ==> n* ++ m*
+relation Length: int* ==> nat hint(input %0)
+rule Length: n* ==> |n*|

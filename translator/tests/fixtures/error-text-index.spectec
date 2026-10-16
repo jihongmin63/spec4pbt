@@ -1,0 +1,4 @@
+var s : text
+var k : nat
+relation FirstByteLength: text; nat ==> nat hint(input %0 %1)
+rule FirstByteLength: s; k ==> |s[k]|

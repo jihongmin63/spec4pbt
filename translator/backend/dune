@@ -1,0 +1,4 @@
+(library
+ (name lean_backend)
+ (libraries spectec.common spectec.lang.xl yojson)
+ (flags (:standard -w -30-39)))

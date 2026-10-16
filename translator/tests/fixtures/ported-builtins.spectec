@@ -1,0 +1,7 @@
+var n : int
+builtin dec $sum_int(int*) : int
+builtin dec $rev_<T>(T*) : T*
+relation Sum: int* ==> int hint(input %0)
+rule Sum: n* ==> $sum_int(n*)
+relation Reverse: int* ==> int* hint(input %0)
+rule Reverse: n* ==> $rev_<int>(n*)

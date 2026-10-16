@@ -1,0 +1,12 @@
+;; This form also appears in the pinned upstream interpreter's iteration tests.
+var x : nat
+var y : nat
+var z : nat
+relation Add: nat; nat |- nat hint(input %0 %1)
+rule Add: x; y |- $(x + y)
+relation Add_each: nat*; nat* |- nat* hint(input %0 %1)
+rule Add_each: x*; y* |- z*
+  -- (Add: x; y |- z)*
+relation Add_opt: nat?; nat? |- nat? hint(input %0 %1)
+rule Add_opt: x?; y? |- z?
+  -- (Add: x; y |- z)?

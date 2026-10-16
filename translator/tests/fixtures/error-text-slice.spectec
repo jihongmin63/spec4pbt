@@ -1,0 +1,5 @@
+var s : text
+var k : nat
+var length : nat
+relation ByteSliceLength: text; nat; nat ==> nat hint(input %0 %1 %2)
+rule ByteSliceLength: s; k; length ==> |s[k:length]|

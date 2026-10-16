@@ -1,0 +1,15 @@
+var n : int
+var k : nat
+var length : nat
+relation ListIndex: int*; nat ==> int hint(input %0 %1)
+rule ListIndex/value: n*; k ==> (n*)[k]
+rule ListIndex/fallback: n*; k ==> 99
+  -- otherwise
+relation ListSlice: int*; nat; nat ==> int* hint(input %0 %1 %2)
+rule ListSlice/value: n*; k; length ==> (n*)[k:length]
+rule ListSlice/fallback: n*; k; length ==> [99]
+  -- otherwise
+relation ListUpdate: int*; nat; int ==> int* hint(input %0 %1 %2)
+rule ListUpdate/value: n*; k; n_1 ==> (n*)[[k] = n_1]
+rule ListUpdate/fallback: n*; k; n_1 ==> [99]
+  -- otherwise

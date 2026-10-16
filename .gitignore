@@ -7,3 +7,6 @@ _build/
 !/implementations/.gitkeep
 /test_cases/*
 !/test_cases/.gitkeep
+
+/docs/superpowers/
+.superpowers/

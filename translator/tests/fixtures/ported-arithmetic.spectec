@@ -1,0 +1,7 @@
+var n : int
+var m : int
+var b : bool
+relation Compute: int ',' int ==> int hint(input %0 %1)
+rule Compute: n ',' m ==> $((n + m) * (n - m))
+relation Logic: int ',' int ',' bool ==> bool hint(input %0 %1 %2)
+rule Logic: n ',' m ',' b ==> $((n < m) /\ ~b)

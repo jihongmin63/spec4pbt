@@ -18,9 +18,11 @@ certified input generator → implementation adapter → certified property chec
 
 `external/spectecx` is the official [SpecTecX repository](https://github.com/kaist-plrg/spectecx)
 as a submodule, pinned at `d5dd1382143f3ea300bf7997d3098b03120556ec`.
-We maintain the adapter and emitter in `translator/`; upstream source stays clean.
-The Lean execution runtime comes from p4-spectec, with its license and commit
-recorded in [PROVENANCE.md](pbt/SpectecRuntime/PROVENANCE.md).
+We maintain the adapter and Lean backends in `translator/`; upstream source stays clean.
+The broader `--backend ported` path reuses the p4-spectec backend's translation,
+declaration ordering and printer, adapted to native SpecTecX IL. Its provenance
+is recorded in [backend/PROVENANCE.md](translator/backend/PROVENANCE.md); the shared
+Lean runtime is documented in [runtime provenance](pbt/SpectecRuntime/PROVENANCE.md).
 
 Use an existing OCaml >= 5.1 opam switch, or create one once. This checkout was
 verified with OCaml 5.1.1:
@@ -40,11 +42,13 @@ bootstrap again, update the translator if necessary, then run the tests. This
 does not track the moving upstream branch automatically. Scripts accept an
 alternative opam switch as their first argument.
 
-The translator uses the current upstream typed IL and a tested fragment of the
-donor execution machinery. It supports recursive arithmetic relations, records,
-aliases, guards and ordered fallback. Unsupported syntax fails explicitly;
-full P4, iteration and partial arithmetic operators are not supported yet.
-[The translator documentation](translator/README.md) lists the exact boundary.
+The default `observation` backend supports recursive arithmetic relations,
+records, aliases, guards and ordered fallback with manifests and JSON codecs.
+The separate `--backend ported` path adds collections, polymorphism, functions,
+iteration, subtype checks, mutually recursive types and partial arithmetic.
+Its broader output is not yet connected to observation manifests. Builtin meanings
+require an explicit donor profile. P4 source-dialect support is outside this work.
+[The translator documentation](translator/README.md) gives commands and exact limits.
 Execution soundness of emitted plans is proved in Lean; correctness of the
 OCaml translation itself is checked by comparisons with the upstream interpreter,
 and is not a formal compiler correctness theorem.

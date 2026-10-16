@@ -1,0 +1,5 @@
+var s : text
+var replacement : text
+var k : nat
+relation UpdatedByteLength: text; nat; text ==> nat hint(input %0 %1 %2)
+rule UpdatedByteLength: s; k; replacement ==> |s[[k] = replacement]|

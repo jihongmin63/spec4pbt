@@ -10,3 +10,8 @@ in `RunEval.lean`. The accompanying Apache-2.0 LICENSE is copied from the donor.
 The independent translator uses the donor's typed executable plans, ordered
 fallback, semantic outcomes, fuel-bounded interpreter and proved soundness
 refinement. It does not use the donor's P4 parser or its obsolete AL adapter.
+
+`Printing.lean` is extracted from the donor backend's `printer.ml` prelude.
+It provides the shared `SpecTecPrint` instances, concrete rendering helpers,
+and string-set primitives. Generated modules import this module instead of
+redeclaring its global definitions, so separate generated namespaces coexist.

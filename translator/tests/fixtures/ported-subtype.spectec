@@ -1,0 +1,35 @@
+var n : int
+var k : nat
+syntax animal = DOG nat | CAT nat
+syntax dog = DOG nat
+relation Natural: int ==> bool hint(input %0)
+rule Natural: n ==> (n <: nat)
+relation Narrow: int ==> nat hint(input %0)
+rule Narrow/yes: n ==> k
+  -- if k = n
+rule Narrow/no: n ==> 99
+  -- otherwise
+relation IsDog: animal ==> bool hint(input %0)
+rule IsDog: animal ==> (animal <: dog)
+relation DogNumber: animal ==> nat hint(input %0)
+rule DogNumber/dog: animal ==> k
+  -- if dog = animal
+  -- if DOG k = dog
+rule DogNumber/other: animal ==> 0
+  -- otherwise
+relation ListDogs: animal* ==> nat hint(input %0)
+rule ListDogs/all: animal* ==> |dog*|
+  -- if dog* = animal*
+rule ListDogs/other: animal* ==> 99
+  -- otherwise
+relation TupleDog: (int, animal) ==> nat hint(input %0)
+rule TupleDog/dog: (n, animal) ==> $(k + k_1)
+  -- if (k, dog) = (n, animal)
+  -- if DOG k_1 = dog
+rule TupleDog/other: (n, animal) ==> 99
+  -- otherwise
+relation OptionDog: animal? ==> dog? hint(input %0)
+rule OptionDog/dog: animal? ==> dog?
+  -- if dog? = animal?
+rule OptionDog/other: animal? ==> eps
+  -- otherwise

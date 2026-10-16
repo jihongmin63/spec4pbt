@@ -1,0 +1,12 @@
+var n : nat
+var m : nat
+var i : int
+var j : int
+relation Subtract: nat ',' nat ==> nat hint(input %0 %1)
+rule Subtract/default: n ',' m ==> 99
+  -- otherwise
+rule Subtract/value: n ',' m ==> $(n - m)
+relation Divide: int ',' int ==> int hint(input %0 %1)
+rule Divide/default: i ',' j ==> 99
+  -- otherwise
+rule Divide/value: i ',' j ==> $(i / j)

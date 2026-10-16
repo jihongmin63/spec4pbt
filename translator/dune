@@ -1,3 +1,3 @@
 (executable
  (name main)
- (libraries spectec.pass spectec.lang spectec.diagnostic yojson))
+ (libraries spectec.pass spectec.lang spectec.diagnostic yojson lean_backend))

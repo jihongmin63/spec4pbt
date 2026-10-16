@@ -1,0 +1,14 @@
+var n : nat
+relation Positive: |- nat hint(input %0)
+rule Positive: |- n
+  -- if $(n > 0)
+relation Check: nat ==> bool hint(input %0)
+rule Check/positive: n ==> true
+  -- Positive: |- n
+rule Check/other: n ==> false
+  -- otherwise
+relation NotPositive: nat ==> bool hint(input %0)
+rule NotPositive/zero: n ==> true
+  -- Positive:/ |- n
+rule NotPositive/other: n ==> false
+  -- otherwise

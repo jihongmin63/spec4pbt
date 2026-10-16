@@ -1,0 +1,19 @@
+syntax box<T> = BOX T
+var n : int
+var b : box<int>
+dec $identity<T>(T) : T
+dec $later(int) : int
+dec $earlier(int) : int
+def $earlier(n) = $later($identity<int>(n))
+relation Compute: int ==> int hint(input %0)
+rule Compute: n ==> $earlier(n)
+relation Box: int ==> box<int> hint(input %0)
+rule Box: n ==> BOX $identity<int>(n)
+relation Unbox: box<int> ==> int hint(input %0)
+rule Unbox: BOX n ==> n
+def $identity<T>(T) = T
+def $later(n) = $(n + 1)
+dec $apply(def $f(int) : int, int) : int
+def $apply(def $f, n) = $f(n)
+relation Apply: int ==> int hint(input %0)
+rule Apply: n ==> $apply(def $later, n)

@@ -1,0 +1,9 @@
+syntax tree
+syntax branch
+syntax tree = LEAF int | NODE branch
+syntax branch = BRANCH tree
+var n : int
+relation Leaf: tree ==> int hint(input %0)
+rule Leaf/leaf: LEAF n ==> n
+rule Leaf/node: NODE (BRANCH tree) ==> n
+  -- Leaf: tree ==> n
