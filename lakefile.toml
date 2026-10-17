@@ -8,7 +8,8 @@ globs = ["specifications.Example"]
 
 [[lean_lib]]
 name = "pbt"
-globs = ["pbt.CorrectGen", "pbt.GoalTools", "pbt.example.+"]
+globs = ["pbt.CorrectGen", "pbt.GoalTools", "pbt.example.+",
+  "pbt.p4.Unparse", "pbt.p4.UnparseGenerated", "pbt.p4.UnparseTests"]
 
 [[lean_exe]]
 name = "example-samples"

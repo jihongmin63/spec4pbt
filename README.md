@@ -203,3 +203,28 @@ except for their tracked `.gitkeep` files.
 The `main` branch supplies the common structure and a runnable example. Each
 specification branch starts from `main`; `P4` carries the pinned P4 SpecTec
 translation. `SpecTecCases.lean` currently defines no P4 test case propositions.
+
+## P4 AST to source
+
+On the `P4` branch, `Spec4Pbt.P4.unparseProgram` renders a
+`SpecTec.p4program` as P4 source:
+
+```lean
+import pbt.p4.Unparse
+
+#eval Spec4Pbt.P4.unparseProgram SpecTec.p4program._EMPTY
+-- Except.ok ""
+```
+
+The result type is `Except String String`. It reports malformed identifier
+payloads, strings that cannot be emitted unchanged as safe source bytes, and
+syntax constructors whose SpecTec AST omitted a source identifier. It adds
+parentheses and blocks where needed to preserve expression and `if`/`else`
+grouping.
+The renderer has a case for every syntax constructor reachable from
+`p4program`; some cases return an error because the AST lacks enough source
+information. Its output is a source rendering, not a proof that a separate P4
+parser accepts it.
+The checked-in P4 specification is not modified. Regenerate the renderer after
+a specification update with `python3 pbt/p4/tools/unparse_codegen.py`, then run
+`lake build pbt.p4.UnparseTests`.
