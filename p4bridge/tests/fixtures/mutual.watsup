@@ -1,0 +1,8 @@
+syntax node
+syntax branch
+syntax node = LEAF nat | NEXT branch
+syntax branch = BRANCH node
+var n : node
+relation Copy : node ~> node
+  hint(input %0)
+rule Copy/value : n ~> n

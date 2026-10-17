@@ -1,0 +1,7 @@
+syntax inner = { VALUE nat, KEEP nat }
+syntax innerAlias = inner
+syntax outer = { INNER innerAlias, TRACE text }
+var n : nat
+relation Get : nat ~> outer
+  hint(input %0)
+rule Get/value : n ~> { INNER { VALUE n, KEEP n }, TRACE "hidden" }

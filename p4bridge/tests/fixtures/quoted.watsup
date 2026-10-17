@@ -1,0 +1,5 @@
+syntax Type = BOX nat
+var t : Type
+relation Prop : Type ~> Type
+  hint(input %0)
+rule Prop/value : t ~> t

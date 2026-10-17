@@ -1,0 +1,5 @@
+syntax tree = LEAF nat | NODE tree tree
+var t : tree
+relation Copy : tree ~> tree
+  hint(input %0)
+rule Copy/value : t ~> t

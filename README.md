@@ -1,9 +1,143 @@
-# spec4pbt
+# spec4pbt — P4-spectec-based
 
-Property-based testing from a supplied specification and Lean proposition.
+This branch uses the P4-SpecTec translator already present in the dev Docker
+image and connects its generated relations to certified observable properties.
+It reuses the observation layer, checker certification and actual-implementation
+runner from `spectec-based`.
 
-Use the Lean version pinned in `lean-toolchain` and Python 3.12 or later. The
-Python tools use only the standard library. Run commands from the repository root.
+## P4-SpecTec dependency and direct translation
+
+`external/p4-spectec` is a submodule of the official
+[kaist-plrg/p4-spectec](https://github.com/kaist-plrg/p4-spectec), pinned to
+`2730cfd9e74048bb5439da0f8afcef124079a064`. Bootstrap fetches this public upstream
+revision; `--source PATH` optionally uses a local Git cache containing it.
+
+The Lean translator is independently pinned to the dev Docker revision
+`d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0`. Its `spec/` tree is identical to the
+official pin's specification. The official repository does not contain this
+Lean translator, so reproducing translation still requires the prebuilt dev
+Docker donor or an equivalent checkout and build of that exact donor revision.
+The public submodule alone is insufficient to regenerate Lean output.
+
+```sh
+scripts/bootstrap-p4-spectec
+scripts/build-translator
+lake build
+```
+
+The build command compiles the metadata helper against the prebuilt translator
+and libraries in `/home/p4-spectec`, after checking its donor revision and clean
+tracked source. `--donor-root PATH` or `P4_SPECTEC_ROOT` selects another prebuilt
+checkout explicitly. The image's OCaml 5.1.1 switch is named `spectecx`; that
+switch name does not introduce a SpecTecX frontend dependency. Use `--switch NAME`
+to select another compatible installed switch. The official submodule cannot
+supply or build the Lean translator.
+
+No translator implementation is copied into this branch. The original executable
+`p4spec/lib/lean-skeleton/main.exe` generates `Spec.lean`, byte for byte. Our small
+`p4bridge/metadata.ml` links the donor's `Pass.elab` library to extract type names,
+record fields and relation input slots. It generates a separate `Transport.lean`
+with JSON instances and manifest aliases. The original `SpecTec` namespace and
+embedded execution library are preserved.
+
+The previous AE/record generated examples and their runtime are retained as
+reference examples. The new P4 modules do not import that runtime. The independent
+SpecTecX translator and submodule belong to the separate `spectec-based` branch.
+
+## Declare external observations
+
+Keep the observation scope beside the donor-dialect `.watsup` specification:
+
+```toml
+schema_version = 1
+
+[[observations]]
+id = "value"
+relation = "Eval"
+observe = ["%1.VALUE"]
+```
+
+Input slots come from the relation's `hint(input ...)`; the sidecar cannot change
+them. `%1.VALUE` selects one field of output slot 1. Whole outputs, nested record
+fields and multiple projections use the same selectors as `spectec-based`.
+Only the selected observation is passed to the final property checker.
+
+Generate a fresh bundle (use a destination that does not exist):
+
+```sh
+python3 -m p4bridge.translate \
+  --config specifications/p4record/observations.toml \
+  --output-dir specifications/MyP4/Generated \
+  specifications/p4record/spec.watsup
+
+python3 -m pbt.observations \
+  --manifest specifications/MyP4/Generated/manifest.json \
+  --config specifications/p4record/observations.toml --observation value \
+  --spec-module specifications.MyP4.Generated.Transport \
+  --namespace MyP4View --output pbt/MyP4View.lean
+```
+
+The bundle contains the unmodified translation, transport, manifest, a copy of
+the observation config and provenance hashes. Generation checks the Lean
+translation, transport and all selected projections before publishing the bundle.
+Existing destinations are never overwritten. `--executable` opts into the donor's
+fuel evaluator; the default is ordered logical semantics, which is sufficient
+for checking properties against outputs of an actual implementation.
+
+Full P4 uses abstract external types such as architecture state. Supply the
+chosen representation and instances with `--transport-model Model.lean` when
+using such a specification. These are Lean declarations inserted inside the
+transport namespace, not imports or a standalone module. No default external
+model is invented. [The bridge guide](p4bridge/README.md) describes the exact
+boundary and how to run the original translator on the entire P4 specification.
+
+## Certified properties and actual implementation output
+
+The typed view exposes `Input`, `Observation`, `FullOutput`, `project`, and the
+existential observable relation `Specification`. User properties have:
+
+```lean
+Premise : Input → Prop
+Target : Input → Observation → Prop
+check : Input → Observation → Bool
+check_correct : ∀ i o, Premise i → (check i o = true ↔ Target i o)
+correctGenerator : Spec4Pbt.CorrectGen Premise
+```
+
+`check_correct` certifies the checker against the user's property; it does not
+assume the implementation satisfies that property. The implementation adapter
+receives `{"input": ...}` and returns exactly `{"observation": ...}`. Diagnostics
+may go to stderr. The runner certifies the exact checker and generator, verifies
+profile identity and dependency freshness, then tests actual adapter outputs.
+
+The committed P4-SpecTec record example observes `VALUE`, hides `TRACE`, and
+checks `VALUE > input`:
+
+```sh
+python3 -m pbt.run_observable \
+  --manifest specifications/p4record/Generated/manifest.json \
+  --config specifications/p4record/observations.toml \
+  --observation-id value --spec-module specifications.p4record.Generated.Transport \
+  --view-module pbt.p4record.View --view-namespace P4View \
+  --property-module pbt.p4record.Property --premise P4Property.Premise \
+  --target P4Property.Target --check P4Property.check --check-correct P4Property.check_correct \
+  --generator-module pbt.p4record.Generator --generator P4Property.correctGenerator \
+  --adapter-command '["python3", "pbt/p4record/adapter.py", "correct"]' \
+  --output test_cases/p4-observable --count 4 --size 5 --seed 0
+```
+
+Changing the adapter mode to `hidden-change` changes only TRACE and should pass.
+Mode `wrong` returns an invalid observed VALUE and should produce a counterexample.
+Choose a fresh output directory for each run. The adapter remains the trusted
+boundary between an implementation's native result and the declared observation.
+
+```sh
+python3 -m unittest discover -s p4bridge/tests -v
+python3 -m unittest discover -s pbt -v
+scripts/check-p4-examples
+```
+
+## Existing proposition example
 
 The common example supplies an even-natural-number specification, the proposition
 `∀ n, Valid n → n + 0 = n`, and a generator with proved soundness and completeness.
@@ -176,8 +310,9 @@ holding an input together with a premise proof. For bundled inputs, proofs
 packed into `Input` still have to be constructed by the user. Exact support
 guarantees a valid sample at every size and seed, but not a uniform distribution. Accepting a proposition does not imply that an executable
 generator or decision procedure exists, and a two-natural-number sampler cannot
-cover uncountable input domains. Serialization and executable checking remain
-specific to the even-natural-number example. The generated contract does not
+cover uncountable input domains. The original `pbt.run` serialization and executable
+checking remain specific to this example; the SpecTec path above uses typed views
+and supplied checkers. The generated contract does not
 prove `Property` or `Target`. `pick` and `bind` decode seeds by structural
 recursion; very large seeds can exhaust the Lean interpreter's recursion limit,
 so use a compiled executable for large sampling runs.
@@ -200,6 +335,6 @@ the common goal tools and groups property-specific code in folders such as
 `test_cases/` holds generated cases. Contents of these two directories are ignored
 except for their tracked `.gitkeep` files.
 
-The `main` branch supplies the common structure and a runnable example. Each
-specification branch starts from `main`; `P4` carries the P4 specification and
-existing generators.
+The `main` branch supplies the common structure and a runnable example. `P4`
+carries the P4 specification and existing generators. `P4-spectec-based` branches
+from `main` with a single integration commit.

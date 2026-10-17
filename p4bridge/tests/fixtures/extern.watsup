@@ -1,0 +1,5 @@
+extern syntax archState
+var s : archState
+relation Copy : archState ~> archState
+  hint(input %0)
+rule Copy/value : s ~> s

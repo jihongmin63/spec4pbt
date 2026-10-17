@@ -1,0 +1,6 @@
+syntax box<T> = BOX T
+syntax packed = box<(nat*, nat?)>
+var p : packed
+relation Copy : packed ~> packed
+  hint(input %0)
+rule Copy/value : p ~> p

@@ -1,0 +1,2 @@
+extern relation Native : nat ~> nat
+  hint(input %0)

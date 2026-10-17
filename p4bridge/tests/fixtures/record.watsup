@@ -1,0 +1,8 @@
+syntax hidden = HIDDEN nat
+syntax result = { VALUE nat, TRACE hidden }
+syntax resultAlias = result
+var n : nat
+var m : nat
+relation Eval : nat ~> resultAlias |- nat ~> nat
+  hint(input %0 %2)
+rule Eval/value : n ~> { VALUE $(n + m), TRACE (HIDDEN n) } |- m ~> n

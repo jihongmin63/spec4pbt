@@ -1,0 +1,30 @@
+{
+  "toolchain": {
+    "revision": "d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0",
+    "donor_root": "/home/p4-spectec",
+    "translator_sha256": "787c8daa8b304320d98e4cf817a3665adaf9dbb355e65c90695a759b58849551",
+    "switch": "spectecx"
+  },
+  "p4_spectec": {
+    "url": "https://github.com/kaist-plrg/p4-spectec.git",
+    "revision": "2730cfd9e74048bb5439da0f8afcef124079a064"
+  },
+  "sources": {
+    "/tmp/spec4pbt-P4-spectec-based/specifications/p4record/spec.watsup": "70867675da8613f3f91948449d06ad1fb91dbc6644cf035a2f6f562740ac7593"
+  },
+  "config_sha256": "bd66da56f5a132a0f3fcd0d5c634e1a7de9f401fb91dbef0e7948387b507d416",
+  "metadata_sha256": "67a11a01669414b20c1fbb5521bd8677bd7d5585670ce9d4e6e138084eee5ad5",
+  "lean_toolchain_sha256": "d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b",
+  "schema_version": 1,
+  "source_paths": [
+    "/tmp/spec4pbt-P4-spectec-based/specifications/p4record/spec.watsup"
+  ],
+  "mode": "ordered",
+  "spec_module": "specifications.p4record.Generated.Spec",
+  "transport_module": "specifications.p4record.Generated.Transport",
+  "namespace": "P4Observation",
+  "spec_sha256": "49e77e39c0013f153df40cb4468ead7dfa55467b4ece2996b70a8762160fa2aa",
+  "transport_sha256": "8551c01681e96e8e032d5519853e2c6ac5cbccab78781760b58d21de649fcd64",
+  "manifest_sha256": "99087268b9cdd6e3dd21e13f5a4bfe33f2b137054fa474ad4753642e5d505e2d",
+  "donor_diagnostics": ""
+}

@@ -1,0 +1,6 @@
+extern syntax archState
+syntax payload = { STATE archState, VALUE nat }
+var p : payload
+relation Copy : payload ~> payload
+  hint(input %0)
+rule Copy/value : p ~> p

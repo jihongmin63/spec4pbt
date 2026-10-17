@@ -2,10 +2,12 @@
 .venv/
 __pycache__/
 *.pyc
+_build/
 /implementations/*
 !/implementations/.gitkeep
 /test_cases/*
 !/test_cases/.gitkeep
 
-/docs/superpowers/
 .superpowers/
+
+/docs/superpowers/
