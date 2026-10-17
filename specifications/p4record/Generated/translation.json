@@ -1,9 +1,12 @@
 {
   "toolchain": {
-    "revision": "d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0",
-    "donor_root": "/home/p4-spectec",
-    "translator_sha256": "787c8daa8b304320d98e4cf817a3665adaf9dbb355e65c90695a759b58849551",
-    "switch": "spectecx"
+    "upstream_url": "https://github.com/kaist-plrg/p4-spectec.git",
+    "upstream_revision": "2730cfd9e74048bb5439da0f8afcef124079a064",
+    "backend_origin_revision": "d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0",
+    "sources_sha256": "154f8326ca5c7b3836d884b322719f67146a1837734e745c19aeaff35f8adf1f",
+    "switch": "spectecx",
+    "translator_sha256": "0b071f25769f8792faeb0e8db41145828c6c777ea816e7699a7d65fc46940e3b",
+    "metadata_executable_sha256": "d51ab6adff42e20ec0c1d1a778485f539773302b4361c0895232688e67024e78"
   },
   "p4_spectec": {
     "url": "https://github.com/kaist-plrg/p4-spectec.git",
@@ -13,7 +16,7 @@
     "/tmp/spec4pbt-P4-spectec-based/specifications/p4record/spec.watsup": "70867675da8613f3f91948449d06ad1fb91dbc6644cf035a2f6f562740ac7593"
   },
   "config_sha256": "bd66da56f5a132a0f3fcd0d5c634e1a7de9f401fb91dbef0e7948387b507d416",
-  "metadata_sha256": "67a11a01669414b20c1fbb5521bd8677bd7d5585670ce9d4e6e138084eee5ad5",
+  "metadata_sha256": "d51ab6adff42e20ec0c1d1a778485f539773302b4361c0895232688e67024e78",
   "lean_toolchain_sha256": "d5edba4e4b8faad9c1baeadb265716d20d03be4d1a2647dc5e35b0c0325bea7b",
   "schema_version": 1,
   "source_paths": [

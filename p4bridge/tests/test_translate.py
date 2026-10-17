@@ -1,10 +1,12 @@
 """The direct pipeline preserves donor bytes and publishes complete checked bundles."""
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from p4bridge.translate import generate, _publish, source_identity
 from p4bridge.toolchain import UPSTREAM, pinned_revision, resolve_toolchain
@@ -26,7 +28,7 @@ class TranslationTests(unittest.TestCase):
     def test_bundle_keeps_exact_noncomputable_donor_output_and_metadata_roles(self):
         generate(self.project, self.output, self.config, [self.source])
         tool = resolve_toolchain(ROOT)
-        expected = subprocess.check_output([str(tool.executable), str(self.source)])
+        expected = subprocess.check_output([str(ROOT / 'scripts/translate-spec'), str(self.source)])
         self.assertEqual((self.output / 'Spec.lean').read_bytes(), expected)
         manifest = json.loads((self.output / 'manifest.json').read_text())
         self.assertEqual(manifest['relations']['Eval']['inputs'], [0])
@@ -38,8 +40,14 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(provenance['transport_module'], 'Generated.Transport')
         self.assertEqual(provenance['p4_spectec'],
                          {'url': UPSTREAM, 'revision': pinned_revision(ROOT)})
-        self.assertEqual(provenance['toolchain']['revision'], tool.revision)
-        self.assertNotEqual(provenance['p4_spectec']['revision'], tool.revision)
+        self.assertEqual(provenance['toolchain'], tool.identity())
+        self.assertEqual(provenance['toolchain']['upstream_revision'], pinned_revision(ROOT))
+        self.assertTrue(tool.executable.is_relative_to(ROOT / 'translator/_build'))
+
+    def test_generation_does_not_depend_on_external_docker_checkout(self):
+        with patch.dict(os.environ, {'P4_SPECTEC_ROOT': str(self.project / 'missing-docker')}):
+            generate(self.project, self.output, self.config, [self.source])
+        self.assertTrue((self.output / 'Spec.lean').is_file())
 
     def test_executable_opt_in_passes_real_donor_flag(self):
         generate(self.project, self.output, self.config, [self.source], executable=True)

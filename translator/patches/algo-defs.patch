@@ -1,0 +1,35 @@
+diff --git a/p4spec/lib/pass/algo/algo.ml b/p4spec/lib/pass/algo/algo.ml
+index 9f833f73..cde6d22a 100644
+--- a/p4spec/lib/pass/algo/algo.ml
++++ b/p4spec/lib/pass/algo/algo.ml
+@@ -9,3 +9,10 @@ let algo_spec (spec : spec) : (Al.spec, error) result =
+   try
+     Ok (spec |> Binding.Analyze.analyze_spec |> Sidecondition.Guard.insert_spec)
+   with Error.AlgoError d -> Error d
++
++(* Preserve independent definitions when one directional conversion fails. *)
++let algo_defs (spec : spec) : (Al.def, error) result list =
++  let ctx = Binding.Ctx.(load_spec (init ()) spec) in
++  List.map (fun def ->
++    try Ok (Binding.Analyze.analyze_def ctx def |> Sidecondition.Guard.insert_def)
++    with Error.AlgoError d -> Error d) spec
+diff --git a/p4spec/lib/pass/pass.ml b/p4spec/lib/pass/pass.ml
+index 3af0cfa7..0a8b8faa 100644
+--- a/p4spec/lib/pass/pass.ml
++++ b/p4spec/lib/pass/pass.ml
+@@ -59,3 +59,5 @@ let structure ~(final : bool) paths_spec =
+ let annotate paths_spec =
+   let* spec_sl = structure ~final:false paths_spec in
+   annotate_spec spec_sl
++
++let algo_defs = Algo.algo_defs
+diff --git a/p4spec/lib/pass/pass.mli b/p4spec/lib/pass/pass.mli
+index 58204e7a..0a5f2268 100644
+--- a/p4spec/lib/pass/pass.mli
++++ b/p4spec/lib/pass/pass.mli
+@@ -15,3 +15,5 @@ val elab : string list -> (Lang.Il.spec, error) result
+ val algo : string list -> (Lang.Al.spec, error) result
+ val structure : final:bool -> string list -> (Lang.Sl.spec, error) result
+ val annotate : string list -> (Lang.Pl.spec, error) result
++
++val algo_defs : Lang.Il.spec -> (Lang.Al.def, error) result list

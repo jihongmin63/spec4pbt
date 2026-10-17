@@ -1,4 +1,4 @@
-"""Check revision/dirty-source boundaries against real disposable Git repos."""
+"""Exercise local translator freshness and official submodule isolation."""
 import os
 from pathlib import Path
 import subprocess
@@ -6,7 +6,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from p4bridge.toolchain import resolve_toolchain, bootstrap, UPSTREAM
+from p4bridge import toolchain
+from p4bridge.toolchain import build, resolve_toolchain, metadata_executable, bootstrap, UPSTREAM
 
 
 def git(root, *args):
@@ -18,19 +19,18 @@ class ToolchainTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.project = Path(self.temp.name) / 'project'
-        self.donor = Path(self.temp.name) / 'donor'
         self.upstream = Path(self.temp.name) / 'official'
-        for path in [self.project, self.donor, self.upstream]:
+        for path in [self.project, self.upstream]:
             path.mkdir()
             git(path, 'init', '-q')
             git(path, 'config', 'user.name', 'Test')
             git(path, 'config', 'user.email', 'test@example.invalid')
-        (self.donor / 'source.ml').write_text('let value = 1\n')
-        git(self.donor, 'add', 'source.ml')
-        git(self.donor, 'commit', '-qm', 'source')
-        self.revision = git(self.donor, 'rev-parse', 'HEAD')
+        self.original_pass = 'let algo_spec = Algo.algo_spec\n'
+        source = self.upstream / 'p4spec/lib/pass/pass.ml'
+        source.parent.mkdir(parents=True)
+        source.write_text(self.original_pass)
         (self.upstream / 'spec.watsup').write_text('syntax number = int\n')
-        git(self.upstream, 'add', 'spec.watsup')
+        git(self.upstream, 'add', '.')
         git(self.upstream, 'commit', '-qm', 'official specification')
         self.upstream_revision = git(self.upstream, 'rev-parse', 'HEAD')
         git(self.project, 'update-index', '--add', '--cacheinfo',
@@ -38,52 +38,163 @@ class ToolchainTests(unittest.TestCase):
         (self.project / '.gitmodules').write_text(
             '[submodule "external/p4-spectec"]\n'
             '\tpath = external/p4-spectec\n\turl = ' + UPSTREAM + '\n')
-        donor_pin = patch('p4bridge.toolchain.DONOR_REVISION', self.revision, create=True)
-        donor_pin.start()
-        self.addCleanup(donor_pin.stop)
-        binary = self.donor / '_build/default/p4spec/lib/lean-skeleton/main.exe'
-        binary.parent.mkdir(parents=True)
-        binary.write_text('#!/bin/sh\nexit 0\n')
-        binary.chmod(0o755)
-        (self.donor / '_build/install/default/lib').mkdir(parents=True)
+        self.backend = self.project / 'translator/src'
+        self.backend.mkdir(parents=True)
+        (self.backend / 'main.ml').write_text('let () = print_endline "translation"\n')
+        (self.backend / 'dune').write_text('(executable (name main))\n')
+        patches = self.project / 'translator/patches'
+        patches.mkdir()
+        self.compatibility_patch = patches / 'algo-defs.patch'
+        self.compatibility_patch.write_text(
+            'diff --git a/p4spec/lib/pass/pass.ml b/p4spec/lib/pass/pass.ml\n'
+            '--- a/p4spec/lib/pass/pass.ml\n'
+            '+++ b/p4spec/lib/pass/pass.ml\n'
+            '@@ -1 +1,2 @@\n'
+            ' let algo_spec = Algo.algo_spec\n'
+            '+let algo_defs = Algo.algo_defs\n')
+        bridge = self.project / 'p4bridge'
+        bridge.mkdir()
+        (bridge / 'metadata.ml').write_text('let () = print_endline "metadata"\n')
+        (bridge / 'toolchain.py').write_text(Path(toolchain.__file__).read_text())
+        self.real_command = toolchain.command
+        self.compiler = patch('p4bridge.toolchain.command', side_effect=self.command)
+        self.compiler.start()
+        self.addCleanup(self.compiler.stop)
+        self.on_compile = None
 
-    def test_clean_pinned_source_resolves_actual_donor_executable(self):
-        tool = resolve_toolchain(self.project, self.donor)
-        self.assertNotEqual(self.revision, self.upstream_revision)
-        self.assertEqual(tool.revision, self.revision)
-        self.assertEqual(tool.executable.parent.name, 'lean-skeleton')
-        self.assertEqual(tool.root, self.donor)
+    def command(self, args, cwd, **kwargs):
+        # Keep archive/patch/submodule operations real; stub only the expensive
+        # OCaml compiler. Full translator tests exercise the actual compiler.
+        if str(args[0]) != 'opam':
+            return self.real_command(args, cwd, **kwargs)
+        if list(args[1:]) == ['switch', 'show']:
+            return 'active-test-switch'
+        self.assertIn('dune', args)
+        self.assertIn('build', args)
+        overlay = Path(cwd)
+        for target in [
+            'p4spec/lib/lean-skeleton/main.exe',
+            'p4spec/lib/spec4pbt-metadata/metadata.exe',
+        ]:
+            executable = overlay / '_build/default' / target
+            executable.parent.mkdir(parents=True, exist_ok=True)
+            executable.write_text('#!/bin/sh\nprintf "local compiler output\\n"\n')
+            executable.chmod(0o755)
+        if self.on_compile is not None:
+            self.on_compile()
+        return ''
 
-    def test_environment_donor_resolves_independently_of_official_submodule(self):
-        with patch.dict(os.environ, {'P4_SPECTEC_ROOT': str(self.donor)}):
-            tool = resolve_toolchain(self.project)
-        self.assertEqual(tool.root, self.donor)
-        self.assertEqual(tool.identity()['revision'], self.revision)
+    def built(self, *, switch='test-switch'):
+        bootstrap(self.project, self.upstream)
+        return build(self.project, switch=switch)
 
-    def test_official_checkout_cannot_be_used_as_the_lean_donor(self):
-        with self.assertRaisesRegex(ValueError, 'revision'):
-            resolve_toolchain(self.project, self.upstream, require_built=False)
+    def test_build_uses_local_sources_without_changing_official_submodule(self):
+        tool = self.built()
+        official = self.project / 'external/p4-spectec'
+        self.assertEqual(tool.root, self.project / 'translator/_build/p4-spectec')
+        self.assertEqual(tool.revision, self.upstream_revision)
+        self.assertEqual((tool.root / 'p4spec/lib/lean-skeleton/main.ml').read_bytes(),
+                         (self.backend / 'main.ml').read_bytes())
+        self.assertIn('let algo_defs', (tool.root / 'p4spec/lib/pass/pass.ml').read_text())
+        self.assertEqual((official / 'p4spec/lib/pass/pass.ml').read_text(), self.original_pass)
+        self.assertEqual(git(official, 'status', '--porcelain'), '')
+        self.assertTrue(metadata_executable(self.project, tool).is_file())
+        identity = tool.identity()
+        self.assertEqual(identity['upstream_revision'], self.upstream_revision)
+        self.assertEqual(identity['switch'], 'test-switch')
+        self.assertNotIn('donor_root', identity)
 
-    def test_changed_tracked_source_is_rejected(self):
-        (self.donor / 'source.ml').write_text('let value = 2\n')
-        with self.assertRaisesRegex(ValueError, 'tracked|dirty'):
-            resolve_toolchain(self.project, self.donor)
+    def test_external_docker_environment_is_ignored(self):
+        tool = self.built()
+        with patch.dict(os.environ, {'P4_SPECTEC_ROOT': '/does/not/exist'}):
+            self.assertEqual(resolve_toolchain(self.project).executable, tool.executable)
 
-    def test_wrong_revision_is_rejected_even_if_binary_exists(self):
-        git(self.donor, 'commit', '--allow-empty', '-qm', 'different')
-        with self.assertRaisesRegex(ValueError, 'revision'):
-            resolve_toolchain(self.project, self.donor)
+    def test_missing_local_build_does_not_fall_back_to_external_donor(self):
+        bootstrap(self.project, self.upstream)
+        with patch.dict(os.environ, {'P4_SPECTEC_ROOT': str(self.upstream)}):
+            with self.assertRaisesRegex(ValueError, 'build-translator'):
+                resolve_toolchain(self.project)
 
-    def test_non_repository_directory_cannot_inherit_parent_git_identity(self):
-        nested = self.donor / 'nested'
-        nested.mkdir()
-        with self.assertRaisesRegex(ValueError, 'root|checkout'):
-            resolve_toolchain(self.project, nested)
+    def test_default_build_uses_active_switch_and_resolution_remembers_it(self):
+        tool = self.built(switch=None)
+        self.assertEqual(tool.switch, 'active-test-switch')
+        self.assertEqual(resolve_toolchain(self.project).switch, tool.switch)
+        with self.assertRaisesRegex(ValueError, 'stale|switch'):
+            resolve_toolchain(self.project, switch='different-switch')
 
-    def test_missing_binary_explains_the_donor_build_is_unavailable(self):
-        (self.donor / '_build/default/p4spec/lib/lean-skeleton/main.exe').unlink()
-        with self.assertRaisesRegex(ValueError, 'build'):
-            resolve_toolchain(self.project, self.donor)
+    def test_backend_source_change_requires_rebuild(self):
+        tool = self.built()
+        (self.backend / 'main.ml').write_text('let () = ()\n')
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            tool.identity()
+
+    def test_patch_change_requires_rebuild(self):
+        self.built()
+        with self.compatibility_patch.open('a') as stream:
+            stream.write('\n')
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            resolve_toolchain(self.project)
+
+    def test_helper_and_build_recipe_changes_require_rebuild(self):
+        for path in ['p4bridge/metadata.ml', 'p4bridge/toolchain.py']:
+            with self.subTest(path=path):
+                tool = self.built()
+                file = self.project / path
+                original = file.read_bytes()
+                file.write_bytes(original + b'\n')
+                with self.assertRaisesRegex(ValueError, 'stale'):
+                    metadata_executable(self.project, tool)
+                file.write_bytes(original)
+
+    def test_binary_changes_require_rebuild(self):
+        for artifact in ['translator', 'metadata']:
+            with self.subTest(artifact=artifact):
+                tool = self.built()
+                binary = tool.executable if artifact == 'translator' else metadata_executable(self.project, tool)
+                binary.write_text('#!/bin/sh\nexit 42\n')
+                with self.assertRaisesRegex(ValueError, 'stale'):
+                    resolve_toolchain(self.project)
+
+    def test_dirty_official_source_is_rejected(self):
+        tool = self.built()
+        (self.project / 'external/p4-spectec/spec.watsup').write_text('changed\n')
+        with self.assertRaisesRegex(ValueError, 'dirty|tracked'):
+            tool.identity()
+
+    def test_changed_upstream_pin_is_rejected(self):
+        self.built()
+        official = self.project / 'external/p4-spectec'
+        git(official, '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+            'commit', '--allow-empty', '-qm', 'new official revision')
+        revision = git(official, 'rev-parse', 'HEAD')
+        git(self.project, 'update-index', '--cacheinfo', '160000,' + revision + ',external/p4-spectec')
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            resolve_toolchain(self.project)
+
+    def test_rebuild_discards_manual_overlay_changes(self):
+        tool = self.built()
+        copied = tool.root / 'p4spec/lib/lean-skeleton/main.ml'
+        copied.write_text('corrupted copied source\n')
+        build(self.project, switch='test-switch')
+        self.assertEqual(copied.read_bytes(), (self.backend / 'main.ml').read_bytes())
+
+    def test_failed_build_invalidates_previous_success(self):
+        self.built()
+        def fail():
+            raise ValueError('compiler failed')
+        self.on_compile = fail
+        with self.assertRaisesRegex(ValueError, 'compiler failed'):
+            build(self.project, switch='test-switch')
+        with self.assertRaisesRegex(ValueError, 'build-translator'):
+            resolve_toolchain(self.project)
+
+    def test_sources_changed_during_build_are_not_certified(self):
+        bootstrap(self.project, self.upstream)
+        self.on_compile = lambda: (self.backend / 'main.ml').write_text('changed while compiling\n')
+        with self.assertRaisesRegex(ValueError, 'changed during'):
+            build(self.project, switch='test-switch')
+        with self.assertRaisesRegex(ValueError, 'build-translator'):
+            resolve_toolchain(self.project)
 
     def test_local_bootstrap_initializes_the_pinned_submodule_with_upstream_origin(self):
         destination = bootstrap(self.project, self.upstream)

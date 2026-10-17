@@ -1,4 +1,4 @@
-"""Keep the official specification and the Docker Lean translator independently pinned."""
+"""Build the vendored Lean translator against the pinned official P4-SpecTec."""
 import argparse
 from dataclasses import dataclass
 import hashlib
@@ -8,12 +8,17 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import tarfile
 
 PROJECT = Path(__file__).resolve().parents[1]
 SUBMODULE = 'external/p4-spectec'
 UPSTREAM = 'https://github.com/kaist-plrg/p4-spectec.git'
-DONOR_REVISION = 'd150aa6e53e3f572bc4b02299c05d6d6cee9d6c0'
-EXECUTABLE = '_build/default/p4spec/lib/lean-skeleton/main.exe'
+BACKEND_ORIGIN_REVISION = 'd150aa6e53e3f572bc4b02299c05d6d6cee9d6c0'
+BUILD_DIRECTORY = 'translator/_build'
+TRANSLATOR_TARGET = 'p4spec/lib/lean-skeleton/main.exe'
+METADATA_TARGET = 'p4spec/lib/spec4pbt-metadata/metadata.exe'
+EXECUTABLE = '_build/default/' + TRANSLATOR_TARGET
+METADATA_EXECUTABLE = '_build/default/' + METADATA_TARGET
 
 
 def command(args, cwd, *, env=None, timeout=300):
@@ -35,10 +40,10 @@ def pinned_revision(project):
     return entry[1]
 
 
-def check_checkout(root, revision, *, label='Donor'):
+def check_checkout(root, revision, *, label='Official submodule'):
     root = Path(root).resolve()
     if not root.is_dir():
-        raise ValueError(f'{label} checkout missing: {root}')
+        raise ValueError(f'{label} checkout missing: {root}; run scripts/bootstrap-p4-spectec')
     actual_root = Path(command(['git', 'rev-parse', '--show-toplevel'], root)).resolve()
     if actual_root != root:
         raise ValueError(f'Expected a {label.lower()} checkout root, received {root}')
@@ -50,39 +55,68 @@ def check_checkout(root, revision, *, label='Donor'):
     return root
 
 
+def _source_identity(project):
+    revision = pinned_revision(project)
+    check_checkout(project / SUBMODULE, revision)
+    sources = project / 'translator/src'
+    patches = project / 'translator/patches'
+    for required in [sources / 'main.ml', sources / 'dune', patches / 'algo-defs.patch']:
+        if not required.is_file():
+            raise ValueError(f'Vendored translator source missing: {required}')
+    files = [project / 'p4bridge/metadata.ml', project / 'p4bridge/toolchain.py']
+    for directory in [sources, patches]:
+        files.extend(path for path in sorted(directory.rglob('*')) if path.is_file())
+    hashes = {path.relative_to(project).as_posix(): digest(path) for path in sorted(files)}
+    return {'upstream_url': UPSTREAM, 'upstream_revision': revision,
+            'backend_origin_revision': BACKEND_ORIGIN_REVISION,
+            'sources_sha256': hashlib.sha256(
+                json.dumps(hashes, sort_keys=True, separators=(',', ':')).encode()).hexdigest()}
+
+
+def _binary_identity(root):
+    paths = {'translator_sha256': root / EXECUTABLE,
+             'metadata_executable_sha256': root / METADATA_EXECUTABLE}
+    for path in paths.values():
+        if not path.is_file() or not os.access(path, os.X_OK):
+            raise ValueError(f'Local translator build is unavailable: {path}; run scripts/build-translator')
+    return {name: digest(path) for name, path in paths.items()}
+
+
+def _checked_identity(project, switch=None):
+    stamp = project / BUILD_DIRECTORY / 'toolchain.json'
+    try:
+        recorded = json.loads(stamp.read_text())
+    except (OSError, ValueError) as error:
+        raise ValueError('Local translator build is unavailable; run scripts/build-translator') from error
+    if not isinstance(recorded, dict) or not isinstance(recorded.get('switch'), str):
+        raise ValueError('Local translator build is invalid; run scripts/build-translator')
+    chosen_switch = recorded['switch'] if switch is None else switch
+    actual = {**_source_identity(project), 'switch': chosen_switch,
+              **_binary_identity(project / BUILD_DIRECTORY / 'p4-spectec')}
+    if actual != recorded:
+        raise ValueError('Local translator build is stale or uses a different switch; run scripts/build-translator')
+    return actual
+
+
 @dataclass(frozen=True)
 class Toolchain:
+    project: Path
     root: Path
     revision: str
     executable: Path
-    libraries: Path
+    helper: Path
     switch: str
 
-    def environment(self):
-        env = os.environ.copy()
-        # Restrict lookup to this checkout's package, then ordinary switch libraries.
-        env['OCAMLPATH'] = str(self.libraries)
-        return env
-
     def identity(self):
-        check_checkout(self.root, self.revision)
-        return {'revision': self.revision, 'donor_root': str(self.root),
-                'translator_sha256': digest(self.executable), 'switch': self.switch}
+        return _checked_identity(self.project, self.switch)
 
 
-def resolve_toolchain(project=PROJECT, donor_root=None, switch='spectecx', *, require_built=True):
-    # The official specification submodule does not contain the Docker Lean backend.
-    revision = DONOR_REVISION
-    selected = donor_root or os.environ.get('P4_SPECTEC_ROOT') or '/home/p4-spectec'
-    root = check_checkout(selected, revision)
-    tool = Toolchain(root, revision, root / EXECUTABLE,
-                     root / '_build/install/default/lib', switch)
-    if require_built and (not tool.executable.is_file() or not os.access(tool.executable, os.X_OK)
-                          or not tool.libraries.is_dir()):
-        raise ValueError(f'Donor build missing at {root}; provide the existing dev Docker translator '
-                         f'at revision {revision} with --donor-root or P4_SPECTEC_ROOT. '
-                         'The official specification submodule has no Lean backend.')
-    return tool
+def resolve_toolchain(project=PROJECT, switch=None):
+    project = Path(project).resolve()
+    identity = _checked_identity(project, switch)
+    root = project / BUILD_DIRECTORY / 'p4-spectec'
+    return Toolchain(project, root, identity['upstream_revision'], root / EXECUTABLE,
+                     root / METADATA_EXECUTABLE, identity['switch'])
 
 
 def bootstrap(project=PROJECT, source=None):
@@ -115,33 +149,63 @@ def bootstrap(project=PROJECT, source=None):
     return destination
 
 
-def build(project=PROJECT, donor_root=None, switch='spectecx'):
+
+def build(project=PROJECT, switch=None):
     project = Path(project).resolve()
-    tool = resolve_toolchain(project, donor_root, switch)
-    directory = project / 'p4bridge/_build'
+    directory = project / BUILD_DIRECTORY
     directory.mkdir(parents=True, exist_ok=True)
-    source = project / 'p4bridge/metadata.ml'
-    shutil.copyfile(source, directory / 'metadata.ml')
-    command(['opam', 'exec', '--switch=' + switch, '--', 'ocamlfind', 'ocamlopt',
-             '-linkpkg', '-package', 'p4spectec.pass,yojson', 'metadata.ml', '-o', 'metadata.exe'],
-            directory, env=tool.environment())
-    identity = {**tool.identity(), 'metadata_source_sha256': digest(source),
-                'metadata_executable_sha256': digest(directory / 'metadata.exe')}
-    (directory / 'toolchain.json').write_text(json.dumps(identity, indent=2) + '\n')
-    return tool
+    stamp = directory / 'toolchain.json'
+    # A failed or interrupted rebuild must not retain an earlier success stamp.
+    stamp.unlink(missing_ok=True)
+    before = _source_identity(project)
+    chosen_switch = switch if switch is not None else command(['opam', 'switch', 'show'], project)
+    if not chosen_switch:
+        raise ValueError('No active opam switch; select one with --switch')
+    root = directory / 'p4-spectec'
+    if root.is_symlink():
+        root.unlink()
+    elif root.exists():
+        shutil.rmtree(root)
+    root.mkdir()
+    archive = directory / 'upstream.tar'
+    try:
+        command(['git', 'archive', '--format=tar', '--output=' + str(archive),
+                 before['upstream_revision']], project / SUBMODULE)
+        with tarfile.open(archive) as source:
+            source.extractall(root, filter='data')
+    finally:
+        archive.unlink(missing_ok=True)
+    # Stop Git discovery before it reaches the surrounding project. git apply
+    # then edits only this disposable archive, without a repository or index.
+    patch_environment = os.environ.copy()
+    for key in ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']:
+        patch_environment.pop(key, None)
+    patch_environment['GIT_CEILING_DIRECTORIES'] = str(directory)
+    for patch in sorted((project / 'translator/patches').glob('*.patch')):
+        command(['git', 'apply', '--check', patch], root, env=patch_environment)
+        command(['git', 'apply', patch], root, env=patch_environment)
+    shutil.copytree(project / 'translator/src', root / 'p4spec/lib/lean-skeleton')
+    helper_source = root / 'p4spec/lib/spec4pbt-metadata'
+    helper_source.mkdir()
+    shutil.copyfile(project / 'p4bridge/metadata.ml', helper_source / 'metadata.ml')
+    (helper_source / 'dune').write_text(
+        '(executable\n (name metadata)\n (libraries pass yojson))\n')
+    command(['opam', 'exec', '--switch=' + chosen_switch, '--', 'dune', 'build',
+             '--root', root, TRANSLATOR_TARGET, METADATA_TARGET], root, timeout=1800)
+    if before != _source_identity(project):
+        raise ValueError('Translator inputs changed during build; run scripts/build-translator again')
+    identity = {**before, 'switch': chosen_switch, **_binary_identity(root)}
+    temporary_stamp = stamp.with_suffix('.json.tmp')
+    temporary_stamp.write_text(json.dumps(identity, indent=2) + '\n')
+    temporary_stamp.replace(stamp)
+    return resolve_toolchain(project, chosen_switch)
 
 
 def metadata_executable(project, tool):
-    directory = Path(project) / 'p4bridge/_build'
-    try:
-        recorded = json.loads((directory / 'toolchain.json').read_text())
-        actual = {**tool.identity(), 'metadata_source_sha256': digest(Path(project) / 'p4bridge/metadata.ml'),
-                  'metadata_executable_sha256': digest(directory / 'metadata.exe')}
-    except (OSError, ValueError) as error:
-        raise ValueError('Metadata build is unavailable; run scripts/build-translator') from error
-    if recorded != actual:
-        raise ValueError('Metadata build is stale or uses a different donor; run scripts/build-translator')
-    return directory / 'metadata.exe'
+    if Path(project).resolve() != tool.project:
+        raise ValueError('Metadata helper belongs to another project; run scripts/build-translator')
+    tool.identity()
+    return tool.helper
 
 
 def main():
@@ -149,14 +213,12 @@ def main():
     parser.add_argument('action', choices=['bootstrap', 'build', 'check'])
     parser.add_argument('--project', type=Path, default=PROJECT)
     parser.add_argument('--source', type=Path)
-    parser.add_argument('--donor-root', type=Path)
-    parser.add_argument('--switch', default='spectecx')
+    parser.add_argument('--switch', help='opam switch (build defaults to the active switch)')
     args = parser.parse_args()
     if args.action == 'bootstrap':
         print(bootstrap(args.project, args.source))
     else:
-        tool = (build if args.action == 'build' else resolve_toolchain)(
-            args.project, args.donor_root, args.switch)
+        tool = (build if args.action == 'build' else resolve_toolchain)(args.project, args.switch)
         if args.action == 'check':
             metadata_executable(args.project, tool)
         print(json.dumps(tool.identity(), indent=2))

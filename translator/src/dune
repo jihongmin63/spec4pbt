@@ -1,0 +1,37 @@
+(executable
+ (name main)
+ (modules
+  ast
+  traversal
+  builtin
+  builtin_relation
+  extern_model
+  identifier
+  translator
+  order
+  printer
+  module_writer
+  execution_support
+  execution_ir
+  execution_translate
+  pipeline
+  case_manifest
+  case_value
+  case_obligation
+  case_export
+  main)
+ (libraries lang domain util pass diagnostic runtime p4 p4spectec interface unix))
+
+; Embed the independently checked Lean library as an OCaml string.
+(rule
+ (target execution_support.ml)
+ (deps lean/SpecTecExecution.lean lean/SpecTecRunEval.lean)
+ (action
+  (with-stdout-to
+   %{target}
+   (progn
+    (echo "let source = {spectec_exec|")
+    (cat %{dep:lean/SpecTecExecution.lean})
+    (echo "\n")
+    (cat %{dep:lean/SpecTecRunEval.lean})
+    (echo "|spectec_exec}\n")))))

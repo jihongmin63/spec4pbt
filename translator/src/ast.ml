@@ -1,0 +1,221 @@
+module SpecTec = Lang.Il
+
+module Lean = struct
+  type type_ref =
+    | Name of string
+    | TypeParameter of string
+    | BuiltinType of string * type_ref list
+    | Applied of string * type_ref list
+    | TupleType of type_ref list
+    | RelationType of type_ref list * type_ref
+
+  type print_format =
+    | PrintAbsent
+    | PrintLiteral of string
+    | PrintHole of int
+    | PrintFilteredJoin of print_format list
+    | PrintSequence of print_format list
+    | PrintFuse of print_format * print_format
+
+  let rec print_format_holes (format : print_format) : int list =
+    match format with
+    | PrintAbsent | PrintLiteral _ -> []
+    | PrintHole index -> [ index ]
+    | PrintFilteredJoin parts | PrintSequence parts ->
+        List.concat_map print_format_holes parts
+    | PrintFuse (left, right) ->
+        print_format_holes left @ print_format_holes right
+
+  type constructor_ref = {
+    type_name : string;
+    constructor_name : string;
+    type_arguments : type_ref list;
+  }
+
+  type reference = Global of string | Local of string
+
+  type term =
+    | Variable of string * type_ref
+    | Constructor of constructor_ref * term list
+    | Boolean of bool
+    | Number of string * type_ref
+    | Text of string
+    | FunctionReference of reference
+    | Apply of application
+    | Coerce of string * type_ref * type_ref * term
+    | MembershipTest of string * type_ref * type_ref * (string * int) list * bool * term
+    | Lambda of string * type_ref * term
+    | Native of string * term list
+    | Unary of string * term
+    | Binary of string * term * term
+    | Typed of term * type_ref
+    | Tuple of term * term
+    | ListLiteral of term list
+    | StructureLiteral of type_ref * (string * term) list
+    | StructureUpdate of type_ref * term * string * term
+    | Projection of string * string * term
+    | Index of term * term
+    | Decide of type_ref list * prop
+
+  and comparison = Eq | Ne | Lt | Le | Gt | Ge
+
+  and prop =
+    | Comparison of comparison * term * term
+    | Membership of term * term
+    | IsTrue of term
+    | Predicate of term
+    | And of prop * prop
+    | Or of prop * prop
+    | Not of prop
+    | Implies of prop * prop
+    | Iff of prop * prop
+    | Forall of string * type_ref * prop
+
+  and application = {
+    target : reference;
+    type_arguments : type_ref list;
+    instance_arguments : type_ref list;
+    print_instance_arguments : type_ref list;
+    arguments : term list;
+  }
+
+  type premise =
+    | Holds of application
+    | NotHolds of application * Util.Source.region
+    | Prop of prop
+    | RuntimeCheck of prop * string
+
+  type notation_part = Hole | Literal of string
+
+  type rule = {
+    name : string;
+    binders : (string * type_ref) list;
+    premises : premise list;
+    conclusion : application;
+  }
+
+  type constructor = {
+    name : string;
+    arguments : type_ref list;
+    result : type_ref;
+    print_origin : string;
+    print_format : print_format;
+  }
+
+  type builtin = {
+    name : string;
+    type_parameters : string list;
+    equality_parameters : string list;
+    print_parameters : string list;
+    parameters : type_ref list;
+    result : type_ref;
+    body : string;
+  }
+
+  type selector_pattern =
+    | Wildcard
+    | ConstructorPattern of constructor_ref * int
+
+  type selector = {
+    name : string;
+    parameters : type_ref list;
+    arms : (selector_pattern list * int) list;
+  }
+
+  type datatype = {
+    name : string;
+    type_parameters : string list;
+    constructors : constructor list;
+  }
+
+  type type_alias = {
+    name : string;
+    type_parameters : string list;
+    body : type_ref;
+  }
+
+  type declaration =
+    | Datatype of datatype
+    | ExternType of string
+    | TypeAlias of type_alias
+    | Structure of { name : string; fields : (string * type_ref) list }
+    | Relation of {
+        name : string;
+        type_parameters : string list;
+        equality_parameters : string list;
+        print_parameters : string list;
+        argument_types : type_ref list;
+        rules : rule list;
+        notation : notation_part list option;
+      }
+    | Builtin of builtin
+    | Selector of selector
+    | Coercion of {
+        name : string;
+        source : type_ref;
+        target : type_ref;
+        type_parameters : string list;
+        cases : (string * string * int) list;
+      }
+    | Membership of {
+        name : string;
+        source : type_ref;
+        target : type_ref;
+        type_parameters : string list;
+        cases : (string * int) list;
+        exhaustive : bool;
+      }
+
+  type located_declaration = {
+    declaration : declaration;
+    at : Util.Source.region;
+  }
+
+  type equality_shape_kind =
+    | EqualityDatatype of constructor list
+    | EqualityStructure of (string * type_ref) list
+    | EqualityList of type_ref
+    | EqualityOption of type_ref
+    | EqualityTuple of type_ref list
+
+  type equality_shape = {
+    equality_name : string;
+    equality_type : type_ref;
+    equality_kind : equality_shape_kind;
+  }
+
+  type manual_equality = {
+    equality_type_parameters : string list;
+    equality_shapes : equality_shape list;
+    equality_instances : (type_ref * string) list;
+  }
+
+  type print_shape_kind =
+    | PrintDatatype of constructor list
+    | PrintStructure
+    | PrintList of type_ref
+    | PrintOption of type_ref
+    | PrintTuple of type_ref list
+    | PrintFailure
+
+  type print_shape = {
+    print_name : string;
+    print_type : type_ref;
+    print_kind : print_shape_kind;
+  }
+
+  type manual_printer = {
+    printer_type_parameters : string list;
+    printer_shapes : print_shape list;
+    printer_instances : (type_ref * string) list;
+  }
+
+  type declaration_group =
+    | Single of declaration
+    | Mutual of declaration list
+    | DerivingDecidableEq of declaration_group
+    | ManualDecidableEq of manual_equality
+    | ManualPrinter of manual_printer
+
+  type program = declaration_group list
+end

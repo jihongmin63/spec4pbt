@@ -1,0 +1,501 @@
+"""Check the default ordered API, compatibility mode and independent pruning."""
+import argparse
+import os
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--exe', required=True)
+args = parser.parse_args()
+EXE = str(Path(args.exe).resolve())
+FIXTURES = Path(__file__).resolve().parent
+
+class OrderedRelations(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+
+    def translate(self, text, *flags):
+        source = self.root / 'input.watsup'
+        source.write_text(text)
+        return subprocess.run([EXE, *flags, str(source)], capture_output=True, text=True)
+
+    def lean(self, text):
+        source = self.root / 'Proof.lean'
+        source.write_text(text)
+        result = subprocess.run(['lean', str(source)], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def modules(self, text, *flags):
+        directory = self.root / 'modules'
+        result = self.translate(text, '--emit-modules', str(directory), '--module-split-bytes', '1000', *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        files = ['SpecTecCore.lean', 'SpecTecSupport.lean']
+        files += [p.name for p in sorted(directory.glob('SpecTecDecl*.lean'))]
+        files += ['SpecTecAll.lean', 'SpecTecProofs.lean', 'SpecTecCases.lean']
+        env = os.environ | {'LEAN_PATH': str(directory)}
+        for name in files:
+            source = directory / name
+            result = subprocess.run(['lean', '-o', str(source.with_suffix('.olean')), str(source)],
+                                    env=env, cwd=directory, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, name + '\n' + result.stdout + result.stderr)
+        self.assertEqual((directory / 'SpecTecCore.lean').read_text().count('inductive Eval'), 1)
+        return directory
+
+    def test_choice_default_and_operational_proofs(self):
+        result = self.translate((FIXTURES / 'ordered-choice.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.count('inductive Eval'), 1)
+        self.assertNotIn('runFuel', result.stdout)
+        self.assertNotIn('inductive Choose', result.stdout)
+        self.lean(result.stdout + (FIXTURES / 'ordered-choice-proof.lean').read_text())
+
+    def test_fresh_shared_supply_and_public_api(self):
+        result = self.translate((FIXTURES / 'ordered-fresh.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-fresh-proof.lean').read_text())
+
+    def test_executable_choice_and_soundness(self):
+        result = self.translate((FIXTURES / 'ordered-choice.watsup').read_text(), '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-choice-proof.lean').read_text()
+                  + (FIXTURES / 'run-eval-generated-proof.lean').read_text())
+
+    def test_executable_modules_and_soundness(self):
+        directory = self.modules((FIXTURES / 'ordered-choice.watsup').read_text(), '--executable')
+        proof = directory / 'RunClient.lean'
+        proof.write_text('import SpecTecAll\n' + (FIXTURES / 'run-eval-generated-proof.lean').read_text())
+        result = subprocess.run(['lean', str(proof)], env=os.environ | {'LEAN_PATH': str(directory)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_executable_fresh_recursion_and_existing_proofs(self):
+        result = self.translate((FIXTURES / 'ordered-fresh.watsup').read_text(), '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-fresh-proof.lean').read_text() + '''
+namespace SpecTec
+open SpecTecExecution
+def noPrimitives : PrimitiveRunner specTecExecutableProgram := .unavailable _
+#guard (runEval specTecExecutableProgram noPrimitives 100
+  (.call (SpecTecCall.«$fresh_typeIds» 3)) 4 ==
+    .done (.success ["FRESH__4", "FRESH__5", "FRESH__6"]) 7)
+#guard (runEval specTecExecutableProgram noPrimitives 100
+  (.call (SpecTecCall.FreshMismatch 7)) 4 == .done (.success "FRESH__4") 5)
+example : «$fresh_typeIds» 3 ["FRESH__0", "FRESH__1", "FRESH__2"] :=
+  ⟨3, runEval_sound specTecExecutableProgram noPrimitives 100
+    (.call (SpecTecCall.«$fresh_typeIds» 3)) 0
+    (.success ["FRESH__0", "FRESH__1", "FRESH__2"]) 3 rfl⟩
+end SpecTec
+''')
+
+    def test_executable_primitive_certification(self):
+        result = self.translate('''extern dec $external(nat) : nat
+var n : nat
+dec $caller(nat) : nat
+def $caller(n) = $external(n)
+''', '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+open SpecTecExecution
+def primitives : PrimitiveRunner specTecExecutableProgram where
+  run := fun request => match request with
+    | .«$external» n => some (.success (n + 1))
+    | _ => none
+  sound := by
+    intro α request outcome h
+    cases request <;> simp only [Option.some.injEq] at h <;> cases h
+    exact ⟨_, rfl, .allowed _ _⟩
+#guard (runEval specTecExecutableProgram primitives 20
+  (.call (SpecTecCall.«$caller» 4)) 0 == .done (.success 5) 0)
+example : «$caller» 4 5 :=
+  ⟨0, runEval_sound specTecExecutableProgram primitives 20
+    (.call (SpecTecCall.«$caller» 4)) 0 (.success 5) 0 rfl⟩
+end SpecTec
+''')
+
+    def test_executable_existing_expression_and_function_fixtures(self):
+        for name in ['tuple', 'update', 'slice', 'set', 'table', 'notation',
+                     'decidable-eq', 'decidable-eq-shadow', 'print',
+                     'ordered-functions', 'ordered-errors', 'ordered-downcast',
+                     'ordered-extern', 'extern-model', 'extern-syntax-only']:
+            with self.subTest(name=name):
+                result = self.translate((FIXTURES / (name + '.watsup')).read_text(), '--executable')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                proof = (FIXTURES / (name + '-proof.lean')).read_text() if name.startswith('ordered-') else ''
+                self.lean(result.stdout + proof)
+
+    def test_executable_functions_native_execution(self):
+        result = self.translate((FIXTURES / 'ordered-functions.watsup').read_text(), '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+open SpecTecExecution
+def noPrimitives : PrimitiveRunner specTecExecutableProgram := .unavailable _
+#guard (runEval specTecExecutableProgram noPrimitives 100
+  (.call (SpecTecCall.Count 5)) 0 == .done (.success 5) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 100
+  (.call (SpecTecCall.«$left» 3)) 0 == .done (.success 0) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 40
+  (.call (SpecTecCall.«$via_apply» 7)) 0 == .done (.success 7) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.Nonzero 0)) 0 == .done (.success false) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.Nonzero 1)) 0 == .done (.success true) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.Multi 3 4)) 0 == .done (.success (7, 12)) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$parse_or_default» "bad")) 0 == .done (.abort "builtin $text_to_int failed") 0)
+end SpecTec
+''')
+
+    def test_executable_empty_and_polymorphic_extern_calls(self):
+        result = self.translate('var n : nat\n', '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout)
+        result = self.translate('extern dec $identity<X>(X) : X\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout)
+        result = self.translate('extern dec $identity<X>(X) : X\n', '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+open SpecTecExecution
+def identityRunner : PrimitiveRunner specTecExecutableProgram where
+  run := fun request => match request with
+    | .«$identity» _ x => some (.success x)
+  sound := by
+    intro α request outcome h
+    cases request
+    simp only [Option.some.injEq] at h
+    cases h
+    exact ⟨_, rfl, .allowed _ _⟩
+#guard (runEval specTecExecutableProgram identityRunner 2
+  (.call (SpecTecCall.«$identity» Nat 9)) 0 == .done (.success 9) 0)
+end SpecTec
+''')
+
+    def test_executable_rejects_incompatible_modes(self):
+        for flags in [('--relation-semantics', 'declarative'), ('--obligations-only',),
+                      ('--dump-output', 'unused.p4'), ('--emit-cases', str(self.root / 'cases'))]:
+            with self.subTest(flags=flags):
+                result = self.translate('var n : nat\n', '--executable', *flags)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn('--executable', result.stderr)
+
+    def test_executable_finite_builtin_guards(self):
+        result = self.translate('''syntax set<K> = `{ K* `}
+builtin dec $sub_set<K>(set<K>, set<K>) : bool
+builtin dec $eq_set<K>(set<K>, set<K>) : bool
+builtin dec $distinct_<K>(K*) : bool
+dec $allDistinct<X>(X*) : bool
+def $allDistinct<X>(X*) = $distinct_<X>(X*)
+dec $same<X>(X, X) : bool
+def $same<X>(X, X) = true
+def $same<X>(X, X') = false -- otherwise
+''', '--executable')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+open SpecTecExecution
+def noPrimitives : PrimitiveRunner specTecExecutableProgram := .unavailable _
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$sub_set» Nat (.«`{ % `}» [1, 1]) (.«`{ % `}» [1, 2]))) 0 ==
+    .done (.success true) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$eq_set» Nat (.«`{ % `}» [1]) (.«`{ % `}» [1, 2]))) 0 ==
+    .done (.success false) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$distinct_» Nat [1, 2, 1])) 0 == .done (.success false) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 30
+  (.call (SpecTecCall.«$allDistinct» Nat [1, 2, 3])) 0 == .done (.success true) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$same» Nat 4 4)) 0 == .done (.success true) 0)
+#guard (runEval specTecExecutableProgram noPrimitives 20
+  (.call (SpecTecCall.«$same» Nat 4 5)) 0 == .done (.success false) 0)
+end SpecTec
+''')
+
+    def test_fresh_modules_share_supply(self):
+        directory = self.modules((FIXTURES / 'ordered-fresh.watsup').read_text())
+        proof = directory / 'FreshClient.lean'
+        proof.write_text('import SpecTecAll\n' + (FIXTURES / 'ordered-fresh-proof.lean').read_text())
+        result = subprocess.run(['lean', str(proof)], env=os.environ | {'LEAN_PATH': str(directory)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_fresh_rejects_invalid_signature_and_declarative_mode(self):
+        for declaration in ['builtin dec $fresh_typeId() : nat',
+                            'builtin dec $fresh_typeId(nat) : text',
+                            'builtin dec $fresh_typeId<X>() : text']:
+            with self.subTest(declaration=declaration):
+                result = self.translate(declaration)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn('fresh_typeId', result.stderr)
+                self.assertEqual(result.stdout, '')
+        result = self.translate('builtin dec $fresh_typeId() : text',
+                                '--relation-semantics', 'declarative')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('fresh_typeId', result.stderr)
+
+    def test_ordinary_function_named_fresh_is_not_effectful_builtin(self):
+        result = self.translate('dec $fresh_typeId() : text\ndef $fresh_typeId() = "ordinary"\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''\nnamespace SpecTec
+example : «$fresh_typeId» "ordinary" := ⟨0, .call (.orElse_success (.pure _))⟩
+end SpecTec\n''')
+
+    def test_fresh_builtin_callback_remains_explicitly_unsupported(self):
+        result = self.translate('''builtin dec $fresh_typeId() : text
+dec $use(def $f() : text) : text
+def $use(def $f) = $f()
+dec $bad() : text
+def $bad() = $use(def $fresh_typeId)
+''')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('function argument $fresh_typeId', result.stderr)
+
+    def test_existing_expression_and_type_fixtures(self):
+        for name in ['tuple', 'update', 'slice', 'set', 'table', 'notation',
+                     'decidable-eq', 'decidable-eq-shadow', 'print', 'extern-model', 'extern-syntax-only']:
+            with self.subTest(name=name):
+                result = self.translate((FIXTURES / (name + '.watsup')).read_text())
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.lean(result.stdout)
+
+    def test_module_order_and_shared_runtime(self):
+        directory = self.modules((FIXTURES / 'ordered-choice.watsup').read_text())
+        proof = directory / 'Client.lean'
+        proof.write_text('import SpecTecAll\n' + (FIXTURES / 'ordered-choice-proof.lean').read_text())
+        result = subprocess.run(['lean', str(proof)], env=os.environ | {'LEAN_PATH': str(directory)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_extern_admits_every_output_without_execution_model(self):
+        result = self.translate((FIXTURES / 'ordered-extern.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue('inductive «$init_archState»' in result.stdout,
+                        'extern must expose a direct inductive relation')
+        self.assertTrue('SpecTecExternExecution' not in result.stdout,
+                        'extern must not require an execution model')
+        self.assertTrue('specTecPrimitiveValid' not in result.stdout,
+                        'extern must not restrict outputs with old validity predicates')
+        self.assertTrue('validArchState' not in result.stdout and 'validObjectState' not in result.stdout,
+                        'ordered extern types must not require unused validity fields')
+        self.lean(result.stdout + (FIXTURES / 'ordered-extern-proof.lean').read_text())
+
+    def test_modules_preserve_unconditional_extern(self):
+        directory = self.modules((FIXTURES / 'ordered-extern.watsup').read_text())
+        proof = directory / 'Client.lean'
+        proof.write_text('import SpecTecAll\n' + (FIXTURES / 'ordered-extern-proof.lean').read_text())
+        result = subprocess.run(['lean', str(proof)], env=os.environ | {'LEAN_PATH': str(directory)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_extern_multiple_zero_and_polymorphic_outputs(self):
+        source = '''extern relation Any: nat ~> nat ':' nat ~> bool hint(input %0 %2)
+extern relation AnyPredicate: |- nat hint(input %0)
+extern dec $arbitrary<X>(X) : X
+var n : nat
+var m : nat
+var b : bool
+relation ViaAny: nat ~> nat ':' bool hint(input %0)
+rule ViaAny/call: n ~> m ':' b -- Any: n ~> m ':' n ~> b
+relation ViaPredicate: |- nat hint(input %0)
+rule ViaPredicate/call: |- n -- AnyPredicate: |- n
+dec $via_arbitrary(nat) : nat
+def $via_arbitrary(n) = $arbitrary<nat>(n)
+'''
+        result = self.translate(source)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+example : Any 1 99 2 true := .allowed 1 99 2 true
+example : AnyPredicate 10 := .allowed 10
+example : «$arbitrary» (7 : Nat) 8 := .allowed 7 8
+example : ViaAny 1 99 true := by
+  refine ⟨0, ?_⟩
+  exact .call (.orElse_success (.bind_success
+    (.call (.primitive ⟨99, true, rfl, .allowed 1 99 1 true⟩)) (.pure (99, true))))
+example : ViaPredicate 10 := by
+  refine ⟨0, ?_⟩
+  exact .call (.orElse_success (.bind_success
+    (.call (.primitive ⟨rfl, .allowed 10⟩)) (.pure ())))
+example : «$via_arbitrary» 7 8 := by
+  refine ⟨0, ?_⟩
+  exact .call (.orElse_success (.bind_success
+    (.call (.primitive ⟨8, rfl, .allowed 7 8⟩)) (.pure 8)))
+end SpecTec
+''')
+
+    def test_pruned_callee_cannot_open_otherwise(self):
+        text = '''var n : nat
+builtin dec $fresh_typeId() : nat
+dec $bad(nat) : nat
+def $bad(n) = $fresh_typeId()
+def $bad(n) = 99 -- otherwise
+dec $caller(nat) : nat
+def $caller(n) = $bad(n)
+def $caller(n) = 100 -- otherwise
+relation Copy: nat ~> nat hint(input %0)
+rule Copy/copy: n ~> n
+'''
+        result = self.translate(text, '--keep-going')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('fresh_typeId', result.stderr)
+        self.assertNotIn('def «$bad»', result.stdout)
+        self.assertNotIn('def «$caller»', result.stdout)
+        self.lean(result.stdout + '\nnamespace SpecTec\nexample : Copy 7 7 := ⟨0, .call (.orElse_success (.pure 7))⟩\nend SpecTec\n')
+
+    def test_ordered_case_propositions_and_failure_proof(self):
+        flags = ('--case', str(FIXTURES / 'case-empty.p4'), str(FIXTURES / 'case-oracle.lean'),
+                 '--reject-case', str(FIXTURES / 'case-semicolon.p4'))
+        directory = self.modules((FIXTURES / 'case-obligation.watsup').read_text(), *flags)
+        proof = directory / 'Client.lean'
+        proof.write_text('''import SpecTecCases
+namespace SpecTec
+open SpecTecExecution
+theorem primitiveDet : PrimitiveDeterministic specTecProgram := by
+  intro _ _ _ h; exact False.elim h
+example : case_0 := by
+  have success : Program_ok case_0_input case_0_expected :=
+    ⟨0, .call (.orElse_success (.bind_success (.guard_true rfl) (.pure _)))⟩
+  refine ⟨success, ?_⟩
+  rintro output ⟨final, h⟩
+  simpa [Value.of.injEq] using (eval_deterministic primitiveDet h success.choose_spec).1
+example : case_1 := by
+  have failure : Eval specTecProgram
+      (.call ⟨p4programIR, SpecTecCall.Program_ok case_1_input⟩) 0 .unmatch 0 :=
+    .call (.orElse_unmatch (.bind_unmatch (.guard_false (by decide))) .unmatch)
+  rintro ⟨output, final, h⟩
+  cases (eval_deterministic primitiveDet failure h).1
+end SpecTec
+''')
+        result = subprocess.run(['lean', str(proof)], env=os.environ | {'LEAN_PATH': str(directory)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_case_propositions_use_unconditional_extern(self):
+        source = ((FIXTURES / 'extern-model.watsup').read_text() +
+                  '\nvar nm : nameIR\nvar result : value\n' +
+                  (FIXTURES / 'case-obligation.watsup').read_text().rstrip() +
+                  '\n  -- ExternFunctionCall_eval_lctk: TC |- (NAME "test") `(eps`) ~> result\n')
+        flags = ('--case', str(FIXTURES / 'case-empty.p4'), str(FIXTURES / 'case-oracle.lean'))
+        result = self.translate(source, *flags)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue('SpecTecP4ExternModel' not in result.stdout,
+                        'ordered extern must not require a P4 validity model')
+        self.assertTrue('SpecTecExternExecution' not in result.stdout,
+                        'ordered extern must not require an execution model')
+        self.lean(result.stdout)
+        self.modules(source, *flags)
+
+    def test_pruned_dependency_removes_whole_definition(self):
+        text = '''var n : nat
+builtin dec $fresh_typeId() : nat
+dec $bad(nat) : nat
+def $bad(n) = $fresh_typeId()
+dec $caller(nat*) : nat
+def $caller(n*) = $bad(0)
+  -- (if $(n > 0))*
+relation Copy: nat ~> nat hint(input %0)
+rule Copy/copy: n ~> n
+'''
+        result = self.translate(text, '--keep-going')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('depends on untranslated declaration $fresh_typeId', result.stderr)
+        self.assertIn('transitive dependency via removed declaration $bad', result.stderr)
+        self.assertNotIn('execution call', result.stderr)
+        self.assertNotIn('$caller', result.stdout, 'iteration helpers must not outlive their caller')
+        self.lean(result.stdout + '\nnamespace SpecTec\nexample : Copy 7 7 := ⟨0, .call (.orElse_success (.pure 7))⟩\nend SpecTec\n')
+
+    def test_downcast_to_variant_with_compound_type_argument(self):
+        result = self.translate('''var n : nat
+var ns : nat*
+syntax wrap<X> = _CONT X
+syntax stop = STOP
+syntax listResult = wrap<nat*> | stop
+relation Produce: nat ~> listResult
+  hint(input %0)
+rule Produce/zero: 0 ~> _CONT ([1, 2])
+rule Produce/other: n ~> STOP
+  -- otherwise
+relation Consume: nat ~> nat*
+  hint(input %0)
+rule Consume/cont: n ~> ns
+  -- Produce: n ~> _CONT ns
+rule Consume/stop: n ~> eps
+  -- otherwise
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + '''
+namespace SpecTec
+open SpecTecExecution
+syntax "prove_downcast" : tactic
+macro_rules
+  | `(tactic| prove_downcast) => `(tactic|
+      first
+        | refine ⟨0, ?_⟩; prove_downcast
+        | exact Eval.pure _
+        | exact Eval.unmatch
+        | apply Eval.guard_true; decide
+        | apply Eval.guard_false; decide
+        | apply Eval.call; prove_downcast
+        | apply Eval.orElse_success; prove_downcast
+        | apply Eval.orElse_unmatch; prove_downcast; prove_downcast
+        | apply Eval.bind_success; prove_downcast; prove_downcast
+        | apply Eval.bind_unmatch; prove_downcast)
+example : Consume 0 [1, 2] := by prove_downcast
+example : Consume 1 [] := by prove_downcast
+end SpecTec
+''')
+
+    def test_structural_downcasts(self):
+        result = self.translate((FIXTURES / 'ordered-downcast.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-downcast-proof.lean').read_text())
+
+    def test_empty_supported_call_set(self):
+        result = self.translate('builtin dec $fresh_typeId() : nat\n', '--keep-going')
+        self.assertEqual(result.returncode, 1)
+        self.lean(result.stdout)
+
+    def test_recursive_negative_calls_remain_rejected(self):
+        result = self.translate('''relation NegativeLoop: |- nat hint(input %0)
+rule NegativeLoop/negative: |- 0
+  -- NegativeLoop:/ |- 0
+''')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('IfNotHoldPr', result.stderr)
+        self.assertEqual(result.stdout, '')
+
+    def test_operation_errors_and_utf8_limit_cannot_open_fallback(self):
+        result = self.translate((FIXTURES / 'ordered-errors.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-errors-proof.lean').read_text())
+
+    def test_declarative_compatibility_and_otherwise_diagnostic(self):
+        result = self.translate((FIXTURES / 'ordered-choice.watsup').read_text(), '--relation-semantics', 'declarative')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('otherwise of relation Choose', result.stderr)
+        result = self.translate('var n : nat\nrelation Copy: nat ~> nat hint(input %0)\nrule Copy/copy: n ~> n\n',
+                                '--relation-semantics', 'declarative')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('inductive Copy', result.stdout)
+        self.lean(result.stdout + '\nnamespace SpecTec\nexample : Copy 7 7 := Copy.copy 7\nend SpecTec\n')
+
+    def test_higher_order_result_type_is_enforced(self):
+        result = self.translate((FIXTURES / 'ordered-functions.watsup').read_text())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.lean(result.stdout + (FIXTURES / 'ordered-functions-proof.lean').read_text())
+        source = self.root / 'Bad.lean'
+        source.write_text(result.stdout + '\nnamespace SpecTec\ndef bad := SpecTecCall.«$apply» (fun n => SpecTecCall.EqualPair n n) 0\nend SpecTec\n')
+        result = subprocess.run(['lean', str(source)], capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('type mismatch', result.stdout.lower())
+
+if __name__ == '__main__':
+    unittest.main(argv=['check_ordered_relations'], verbosity=2)

@@ -1,44 +1,58 @@
 # spec4pbt — P4-spectec-based
 
-This branch uses the P4-SpecTec translator already present in the dev Docker
-image and connects its generated relations to certified observable properties.
-It reuses the observation layer, checker certification and actual-implementation
-runner from `spectec-based`.
+This branch contains the SpecTec-to-Lean translator in `translator/src/` and
+connects its generated relations to certified observable properties. It reuses
+the observation layer, checker certification and actual-implementation runner
+from `spectec-based`.
 
-## P4-SpecTec dependency and direct translation
+## P4-SpecTec dependency and local translation
 
 `external/p4-spectec` is a submodule of the official
 [kaist-plrg/p4-spectec](https://github.com/kaist-plrg/p4-spectec), pinned to
-`2730cfd9e74048bb5439da0f8afcef124079a064`. Bootstrap fetches this public upstream
-revision; `--source PATH` optionally uses a local Git cache containing it.
+`2730cfd9e74048bb5439da0f8afcef124079a064`. It supplies the frontend and P4
+specification. The complete Lean backend and its execution support libraries are
+tracked under `translator/src/`, imported from Docker revision
+`d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0`. See
+[translator provenance](translator/PROVENANCE.md) for its source and license.
 
-The Lean translator is independently pinned to the dev Docker revision
-`d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0`. Its `spec/` tree is identical to the
-official pin's specification. The official repository does not contain this
-Lean translator, so reproducing translation still requires the prebuilt dev
-Docker donor or an equivalent checkout and build of that exact donor revision.
-The public submodule alone is insufficient to regenerate Lean output.
+A fresh clone needs Git, Python 3.12 or later, opam with a C build toolchain,
+and Lean's `elan`/`lake`. The checked-in `lean-toolchain` selects Lean. Initialize
+the public dependency and install the OCaml packages:
 
 ```sh
 scripts/bootstrap-p4-spectec
-scripts/build-translator
+opam switch create spec4pbt 5.1.1
+opam install --switch=spec4pbt --deps-only ./external/p4-spectec/p4spectec.opam
+opam install --switch=spec4pbt yojson
+scripts/build-translator --switch spec4pbt
 lake build
 ```
 
-The build command compiles the metadata helper against the prebuilt translator
-and libraries in `/home/p4-spectec`, after checking its donor revision and clean
-tracked source. `--donor-root PATH` or `P4_SPECTEC_ROOT` selects another prebuilt
-checkout explicitly. The image's OCaml 5.1.1 switch is named `spectecx`; that
-switch name does not introduce a SpecTecX frontend dependency. Use `--switch NAME`
-to select another compatible installed switch. The official submodule cannot
-supply or build the Lean translator.
+An existing compatible switch can be selected with `--switch NAME`; omitting it
+uses the active opam switch when building. Subsequent translation uses the
+recorded local build. `scripts/bootstrap-p4-spectec --source PATH` optionally
+uses a local Git cache containing the official pin.
 
-No translator implementation is copied into this branch. The original executable
-`p4spec/lib/lean-skeleton/main.exe` generates `Spec.lean`, byte for byte. Our small
-`p4bridge/metadata.ml` links the donor's `Pass.elab` library to extract type names,
-record fields and relation input slots. It generates a separate `Transport.lean`
-with JSON instances and manifest aliases. The original `SpecTec` namespace and
-embedded execution library are preserved.
+The build command compiles both the actual translator and the observation
+metadata helper. It creates an ignored workspace at
+`translator/_build/p4-spectec`, combines the pinned official source with the
+tracked backend, and applies the small tracked `algo_defs` compatibility patch
+there. The official submodule stays unchanged. All source needed beyond the
+public submodule is in this repository; no external Docker checkout or prebuilt
+translator is used.
+
+Use the backend's original CLI through `scripts/translate-spec`:
+
+```sh
+scripts/translate-spec specifications/p4record/spec.watsup > /tmp/Record.lean
+```
+
+The original backend generates `Spec.lean` unchanged. The separate
+`p4bridge/metadata.ml` uses the same frontend's `Pass.elab` to extract type names,
+record fields and relation input slots. It generates `Transport.lean` with JSON
+instances and manifest aliases. The `SpecTec` namespace and embedded execution
+library are preserved. `p4bridge` handles observation integration; `translator`
+contains the semantic translator.
 
 The previous AE/record generated examples and their runtime are retained as
 reference examples. The new P4 modules do not import that runtime. The independent
@@ -337,4 +351,4 @@ except for their tracked `.gitkeep` files.
 
 The `main` branch supplies the common structure and a runnable example. `P4`
 carries the P4 specification and existing generators. `P4-spectec-based` branches
-from `main` with a single integration commit.
+from `main` and keeps its integration work in subsequent commits.

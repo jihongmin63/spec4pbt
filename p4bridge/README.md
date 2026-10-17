@@ -1,46 +1,45 @@
-# Direct P4-SpecTec observation bridge
+# P4-SpecTec observation bridge
 
-The semantic translator is the dev Docker donor's original executable, pinned
-independently from the official P4-SpecTec specification submodule. This folder
-contains dependency checks, a typed metadata helper, and a bundle orchestrator.
-It contains no copied frontend, execution lowering, or Lean emitter for relation
-semantics.
+The semantic translator is tracked in [`translator/src/`](../translator/src).
+This folder contains the local build driver, a typed metadata helper, and the
+observation bundle orchestrator. The official frontend remains a submodule;
+the Lean backend and its support libraries are maintained by this repository.
 
 ## Build and dependency provenance
 
+After installing the OCaml dependencies described in the [root README](../README.md):
+
 ```sh
 scripts/bootstrap-p4-spectec
-scripts/build-translator
+scripts/build-translator --switch spec4pbt
 python3 -m p4bridge.toolchain check
 ```
 
 Bootstrap fetches the official [kaist-plrg/p4-spectec](https://github.com/kaist-plrg/p4-spectec)
-submodule at `2730cfd9e74048bb5439da0f8afcef124079a064`. This commit is publicly
-fetchable. `scripts/bootstrap-p4-spectec --source PATH` optionally uses a local
-Git cache containing that commit.
+submodule at `2730cfd9e74048bb5439da0f8afcef124079a064`. An optional
+`--source PATH` uses a local Git cache containing that public commit.
 
-The prebuilt Lean translator is separately pinned to Docker revision
-`d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0`. The official pin is its upstream base;
-both have the identical `spec/` tree `8267673fcb54b5ee858fec6ac70104398312097e`.
-The official repository has no `p4spec/lib/lean-skeleton` backend and cannot
-supply the donor revision. A public submodule checkout therefore reproduces the
-specification, while Lean regeneration still requires the dev Docker donor or
-an equivalent prebuilt checkout of that exact revision.
+The backend was imported from `d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0` and is
+now tracked under `translator/src/`. Its original revision is provenance; current
+source hashes identify the code being built. The official pin is that revision's
+upstream base, with an identical P4 specification tree. The tracked compatibility
+patch exposes the backend's per-definition AL conversion helper.
 
-`--donor-root` and `P4_SPECTEC_ROOT` select a prebuilt donor checkout; the default
-is `/home/p4-spectec`. `--switch` defaults to `spectecx` because that installed
-switch contains OCaml 5.1.1 and matches the Docker compiled libraries. The switch
-named `default` in this image is different. The helper links the donor's
-installed-build `p4spectec.pass` and `yojson` through `OCAMLPATH`. Source revision,
-tracked cleanliness and the translator/helper fingerprints are checked before
-generation. Changing the selected checkout requires rebuilding the metadata
-helper. A prebuilt binary is trusted as a build of its matching clean checkout;
-hashes identify it but are not a compiler proof.
+`scripts/build-translator` exports the clean official Git revision into
+`translator/_build/p4-spectec`, applies the compatibility patch there, and adds
+the tracked backend and metadata helper. Dune compiles both executables in this
+workspace against the same frontend libraries. The submodule is never patched.
+The build requires no external checkout, donor executable, or installed copy of
+the P4-SpecTec libraries. `--switch NAME` selects an opam switch; a build without
+that option uses the active switch. Translation uses the switch recorded at build
+time, without selecting a Docker installation.
 
-`scripts/build-translator` compiles only the metadata helper against the donor's
-existing executable and libraries. It does not build the Lean translator from
-the official submodule. The required OCaml packages must already be installed
-in the selected switch. The shared `/home/p4-spectec` source is not modified.
+The build identity records the official revision, backend origin, current source
+hashes, selected switch, and both executable hashes. Missing or stale builds are
+rejected with a rebuild instruction. Each build reconstructs the workspace from
+source, so manual changes to the ignored workspace are not a maintained patch.
+The runtime checks identify inputs and binaries; they do not prove compiler
+correctness.
 
 ## Data flow
 
@@ -57,8 +56,8 @@ in the selected switch. The shared `/home/p4-spectec` source is not modified.
 5. Use the existing observation/view/checker/runner tools with the **Transport**
    module as `--spec-module`.
 
-`translation.json` records mode, source paths/hashes, config/model hash, donor
-revision and executable hash, generated artifact hashes and donor diagnostics.
+`translation.json` records mode, source paths/hashes, config/model hash, local translator
+source identity and executable hash, generated artifact hashes and donor diagnostics.
 Its independent `p4_spectec` field records the official submodule URL and revision.
 The actual checker certification additionally binds the generated Lean source
 and compiled dependency closure. This does not prove that the OCaml translator
@@ -133,10 +132,10 @@ The original translator can still be called directly with all of its existing
 options; its `--manifest` means a P4 case TSV, **not** an observation manifest.
 
 ```sh
-/home/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe \
+scripts/translate-spec \
   external/p4-spectec/spec > /tmp/P4.lean
 
-/home/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe \
+scripts/translate-spec \
   --emit-modules /tmp/P4Modules external/p4-spectec/spec
 ```
 
@@ -146,8 +145,7 @@ datatype can exceed native compiler limits. Observable property checkers do not
 need an executable reference evaluator: they consume actual implementation
 observations. `--executable` is available for specifications within donor limits.
 
-The earlier Docker-era integration validation used `/home/p4-spectec/spec` and
-translated the entire P4 specification without `--keep-going`: 11,087,987 bytes
+The earlier integration validation translated the entire P4 specification without `--keep-going`: 11,087,987 bytes
 in a monolith, or 446 modules. That input tree is identical to the official pin's
 `spec/` tree used in the commands above. The only donor
 warning was the clause-less `$sink`. Fresh Lean checks passed for Core, Support

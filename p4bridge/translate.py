@@ -1,4 +1,4 @@
-"""Translate with the unchanged donor, then generate and check observation transport."""
+"""Translate with the repository's Lean backend, then check observation transport."""
 import argparse
 import ctypes
 import errno
@@ -60,7 +60,7 @@ def _publish(source, destination):
         raise OSError(code, os.strerror(code), str(destination))
 
 
-def generate(project, output_dir, config, sources, *, donor_root=None, switch='spectecx',
+def generate(project, output_dir, config, sources, *, switch=None,
              executable=False, namespace='P4Observation', timeout_seconds=300,
              transport_model=None):
     project = Path(project).resolve()
@@ -83,7 +83,7 @@ def generate(project, output_dir, config, sources, *, donor_root=None, switch='s
     config = Path(config).resolve()
     transport_model = Path(transport_model).resolve() if transport_model is not None else None
     configuration = load_config(config)
-    tool = resolve_toolchain(PROJECT, donor_root, switch)
+    tool = resolve_toolchain(PROJECT, switch)
     helper = metadata_executable(PROJECT, tool)
     before = {'toolchain': tool.identity(),
               'p4_spectec': {'url': UPSTREAM, 'revision': pinned_revision(PROJECT)},
@@ -167,8 +167,7 @@ def main():
     parser.add_argument('--project', type=Path, default=PROJECT)
     parser.add_argument('--output-dir', type=Path, required=True)
     parser.add_argument('--config', type=Path, required=True)
-    parser.add_argument('--donor-root', type=Path)
-    parser.add_argument('--switch', default='spectecx')
+    parser.add_argument('--switch', help='Require the local build to use this opam switch')
     parser.add_argument('--namespace', default='P4Observation')
     parser.add_argument('--transport-model', type=Path,
                         help='Lean declarations choosing external types/instances, inserted inside the transport namespace')
@@ -177,7 +176,7 @@ def main():
     parser.add_argument('specifications', type=Path, nargs='+')
     args = parser.parse_args()
     result = generate(args.project, args.output_dir, args.config, args.specifications,
-                      donor_root=args.donor_root, switch=args.switch, executable=args.executable,
+                      switch=args.switch, executable=args.executable,
                       namespace=args.namespace, timeout_seconds=args.timeout_seconds,
                       transport_model=args.transport_model)
     print(f"Generated and checked {result['transport_module']} in {args.output_dir}")

@@ -1,7 +1,6 @@
 """Real donor IL metadata, raw translation, and typed observation transport."""
 
 import json
-import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -9,12 +8,11 @@ import tempfile
 import unittest
 
 from pbt.observations import validate_manifest, validate_observation, render_view
+from p4bridge.toolchain import metadata_executable, resolve_toolchain
 
 
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURES = Path(__file__).with_name("fixtures")
-DONOR = Path(os.environ.get("P4_SPECTEC_ROOT", "/home/p4-spectec"))
-DONOR_EXE = DONOR / "_build/default/p4spec/lib/lean-skeleton/main.exe"
 
 
 def config(relation, *selectors):
@@ -33,17 +31,8 @@ class MetadataTests(unittest.TestCase):
         cls.directory = tempfile.TemporaryDirectory(prefix="p4-metadata-tests-")
         cls.addClassCleanup(cls.directory.cleanup)
         cls.build = Path(cls.directory.name)
-        cls.helper = cls.build / "metadata"
-        source = ROOT / "p4bridge/metadata.ml"
-        if not source.is_file():
-            return
-        shutil.copyfile(source, cls.build / "metadata.ml")
-        environment = {**os.environ, "OCAMLPATH": str(DONOR / "_build/install/default/lib")}
-        result = run(["opam", "exec", "--switch=spectecx", "--", "ocamlfind", "ocamlopt",
-                      "-linkpkg", "-package", "p4spectec.pass,yojson", "metadata.ml",
-                      "-o", str(cls.helper)], cwd=cls.build, env=environment)
-        if result.returncode:
-            raise AssertionError("Metadata helper build failed:\n" + result.stdout + result.stderr)
+        cls.tool = resolve_toolchain(ROOT)
+        cls.helper = metadata_executable(ROOT, cls.tool)
 
     def helper_result(self, fixture, configuration, model=None):
         self.assertTrue(self.helper.is_file(), "typed donor metadata helper is not implemented")
@@ -73,7 +62,7 @@ class MetadataTests(unittest.TestCase):
             '[[lean_lib]]\nname = "Spec"\n'
             '[[lean_lib]]\nname = "Transport"\n'
             '[[lean_lib]]\nname = "View"\n')
-        translated = run([str(DONOR_EXE), str(FIXTURES / fixture)])
+        translated = run([str(self.tool.executable), str(FIXTURES / fixture)])
         self.assertEqual(translated.returncode, 0, translated.stdout + translated.stderr)
         (project / "Spec.lean").write_text(translated.stdout)
         (project / "Transport.lean").write_text(value["transport"])
