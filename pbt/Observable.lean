@@ -11,10 +11,14 @@ namespace Spec4Pbt.Observable
 /-- Compiler rewriting is outside the checker's kernel dependency graph.
 Reject custom exported rewrites; conservatively catch erased local rewrites by
 rejecting project axioms, sorry-containing declarations, and unsafe proofs.
-Trusted core codec foundations remain outside this project policy. -/
+Lean's runtime and external Lake packages are trusted dependencies. -/
 private def auditCompilerPolicy : MetaM Unit := do
   let environment ← getEnv
   let runtimePath ← IO.FS.realPath (← getLibDir (← getBuildDir))
+  let packagesPath? ← try
+    pure (some (← IO.FS.realPath ((← IO.currentDir) / ".lake" / "packages")))
+  catch _ =>
+    pure none
   let mut trustedModules : NameMap Bool := {}
   for (name, info) in environment.constants.toList do
     let axiomDeclaration := match info with | .axiomInfo _ => true | _ => false
@@ -29,7 +33,11 @@ private def auditCompilerPolicy : MetaM Unit := do
       | some value => pure value
       | none => do
         let path ← IO.FS.realPath (← findOLean owner)
-        let value := path.toString.startsWith (runtimePath.toString ++ "/")
+        let runtimeModule := path.toString.startsWith (runtimePath.toString ++ "/")
+        let packageModule := match packagesPath? with
+          | some packagesPath => path.toString.startsWith (packagesPath.toString ++ "/")
+          | none => false
+        let value := runtimeModule || packageModule
         trustedModules := trustedModules.insert owner value
         pure value
     unless trusted do

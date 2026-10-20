@@ -32,7 +32,8 @@ class P4ExampleTests(unittest.TestCase):
                 self.assertEqual(result.status, expected, result.error)
             normal = json.loads((base / 'correct/case-000000/process.json').read_text())
             changed = json.loads((base / 'hidden-change/case-000000/process.json').read_text())
-            self.assertEqual(json.loads(normal['stderr'])['TRACE'], 0)
+            sample = json.loads((base / 'correct/case-000000/sample.json').read_text())
+            self.assertEqual(json.loads(normal['stderr'])['TRACE'], sample['input'])
             self.assertEqual(json.loads(changed['stderr'])['TRACE'], -999)
             self.assertEqual(normal['stdout'], changed['stdout'])
 
