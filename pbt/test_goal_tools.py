@@ -32,10 +32,18 @@ def make_project(project: Path) -> None:
     shutil.copyfile(REPOSITORY / "lean-toolchain", project / "lean-toolchain")
     for name in ["GoalTools.lean", "CorrectGen.lean", "lean_tools.py", "generate_goals.py", "verify.py"]:
         shutil.copyfile(REPOSITORY / "pbt" / name, project / "pbt" / name)
+    (project / ".lake").mkdir()
+    (project / ".lake" / "packages").symlink_to(REPOSITORY / ".lake" / "packages", target_is_directory=True)
+    manifest = json.loads((REPOSITORY / "lake-manifest.json").read_text(encoding="utf-8"))
+    manifest["name"] = "goal_tools_test"
+    (project / "lake-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     (project / "lakefile.toml").write_text(
         'name = "goal_tools_test"\nversion = "0.1.0"\n'
         '[[lean_lib]]\nname = "Fixtures"\n'
-        '[[lean_lib]]\nname = "pbt"\n',
+        '[[lean_lib]]\nname = "pbt"\n'
+        '[[require]]\nname = "palamedes"\n'
+        'git = "https://github.com/hgoldstein95/palamedes-lean"\n'
+        'rev = "c2012b84fc4ad8ee03e3528838175b959fcc9cf8"\n',
         encoding="utf-8",
     )
     (project / "Fixtures" / "Spec.lean").write_text(
@@ -141,17 +149,20 @@ class ToolBoundaryTests(unittest.TestCase):
         record = {
             "input": "Unit", "premise": "fun _ => True", "target": "fun _ => False",
             "claim": "False", "levels": levels, "equivalence": "by simp",
+            "generator_supported": True,
         }
         parsed = parse_expressions("SPEC4PBT_GOAL " + json.dumps(record))
         self.assertEqual(parsed.claim, "False")
         self.assertEqual(parsed.levels, levels)
         self.assertEqual(parsed.equivalence, "by simp")
+        self.assertTrue(parsed.generator_supported)
         for field, invalid in [
             ("levels", None), ("levels", "u"), ("levels", [1]), ("levels", {}),
             ("levels", {**levels, "input": None}),
             ("levels", {**levels, "target": "u"}),
             ("levels", {**levels, "claim": [1]}),
             ("equivalence", None), ("equivalence", ""), ("equivalence", 1),
+            ("generator_supported", None), ("generator_supported", "yes"),
         ]:
             with self.subTest(field=field, invalid=invalid):
                 with self.assertRaises((TypeError, ValueError)):
@@ -188,24 +199,15 @@ class GoalToolsIntegrationTests(unittest.TestCase):
             make_project(project)
             (project / "Fixtures" / "Proofs.lean").write_text(
                 "import pbt.CorrectGen\n"
-                "def Fixture.six : Spec4Pbt.CorrectGen (fun n : Nat => n = 6) :=\n"
-                "  Spec4Pbt.CorrectGen.convert\n"
-                "    (Spec4Pbt.CorrectGen.map (fun n : Nat => 2 * n)\n"
-                "      (Spec4Pbt.CorrectGen.pure (3 : Nat)))\n"
-                "    (by\n"
-                "      intro n\n"
-                "      constructor\n"
-                "      · rintro ⟨k, hk, hn⟩\n"
-                "        subst k\n"
-                "        exact hn.symm\n"
-                "      · intro hn\n"
-                "        subst n\n"
-                "        exact ⟨3, rfl, rfl⟩)\n"
-                "def Fixture.sample : Spec4Pbt.Generator Nat := Fixture.six.val\n"
-                "example : Fixture.sample 0 0 = 6 := rfl\n",
+                "def Fixture.six : CorrectGen (fun n : Nat => n = 6) :=\n"
+                "  Gen.CorrectGen.s_pure 6\n"
+                "def Fixture.sample : Gen Nat := Fixture.six.val\n"
+                "example : Gen.support Fixture.sample 6 := by\n"
+                "  change Gen.support Fixture.six.val 6\n"
+                "  rw [Fixture.six.property]\n",
                 encoding="utf-8",
             )
-            checked = verify(project, "Fixture.six", "Spec4Pbt.CorrectGen (fun n : Nat => n = 6)")
+            checked = verify(project, "Fixture.six", "CorrectGen (fun n : Nat => n = 6)")
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
 
     def test_pick_rule_constructs_disjunction_and_reaches_both_branches(self) -> None:
@@ -214,15 +216,19 @@ class GoalToolsIntegrationTests(unittest.TestCase):
             make_project(project)
             (project / "Fixtures" / "Proofs.lean").write_text(
                 "import pbt.CorrectGen\n"
-                "def Fixture.oneOrTwo : Spec4Pbt.CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=\n"
-                "  Spec4Pbt.CorrectGen.pick\n"
-                "    (Spec4Pbt.CorrectGen.pure (1 : Nat))\n"
-                "    (Spec4Pbt.CorrectGen.pure (2 : Nat))\n"
-                "example : Fixture.oneOrTwo.val 0 0 = 1 := rfl\n"
-                "example : Fixture.oneOrTwo.val 0 1 = 2 := rfl\n",
+                "def Fixture.oneOrTwo : CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=\n"
+                "  Gen.CorrectGen.s_pick\n"
+                "    (Gen.CorrectGen.s_pure (1 : Nat))\n"
+                "    (Gen.CorrectGen.s_pure (2 : Nat))\n"
+                "example : Gen.support Fixture.oneOrTwo.val 1 := by\n"
+                "  rw [Fixture.oneOrTwo.property]\n"
+                "  exact Or.inl rfl\n"
+                "example : Gen.support Fixture.oneOrTwo.val 2 := by\n"
+                "  rw [Fixture.oneOrTwo.property]\n"
+                "  exact Or.inr rfl\n",
                 encoding="utf-8",
             )
-            checked = verify(project, "Fixture.oneOrTwo", "Spec4Pbt.CorrectGen (fun n : Nat => n = 1 ∨ n = 2)")
+            checked = verify(project, "Fixture.oneOrTwo", "CorrectGen (fun n : Nat => n = 1 ∨ n = 2)")
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
 
     def test_bind_rule_constructs_dependent_generator(self) -> None:
@@ -231,19 +237,23 @@ class GoalToolsIntegrationTests(unittest.TestCase):
             make_project(project)
             (project / "Fixtures" / "Proofs.lean").write_text(
                 "import pbt.CorrectGen\n"
-                "def Fixture.oneOrTwo : Spec4Pbt.CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=\n"
-                "  Spec4Pbt.CorrectGen.pick\n"
-                "    (Spec4Pbt.CorrectGen.pure (1 : Nat))\n"
-                "    (Spec4Pbt.CorrectGen.pure (2 : Nat))\n"
-                "def Fixture.twoOrFour : Spec4Pbt.CorrectGen\n"
+                "def Fixture.oneOrTwo : CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=\n"
+                "  Gen.CorrectGen.s_pick\n"
+                "    (Gen.CorrectGen.s_pure (1 : Nat))\n"
+                "    (Gen.CorrectGen.s_pure (2 : Nat))\n"
+                "def Fixture.twoOrFour : CorrectGen\n"
                 "    (fun n : Nat => ∃ k, (k = 1 ∨ k = 2) ∧ n = 2 * k) :=\n"
-                "  Spec4Pbt.CorrectGen.bind Fixture.oneOrTwo\n"
-                "    (fun k => Spec4Pbt.CorrectGen.pure (2 * k))\n"
-                "example : Fixture.twoOrFour.val 0 0 = 2 := rfl\n"
-                "example : Fixture.twoOrFour.val 0 1 = 4 := rfl\n",
+                "  Gen.CorrectGen.s_bind Fixture.oneOrTwo\n"
+                "    (fun k => Gen.CorrectGen.s_pure (2 * k))\n"
+                "example : Gen.support Fixture.twoOrFour.val 2 := by\n"
+                "  rw [Fixture.twoOrFour.property]\n"
+                "  exact ⟨1, Or.inl rfl, rfl⟩\n"
+                "example : Gen.support Fixture.twoOrFour.val 4 := by\n"
+                "  rw [Fixture.twoOrFour.property]\n"
+                "  exact ⟨2, Or.inr rfl, rfl⟩\n",
                 encoding="utf-8",
             )
-            checked = verify(project, "Fixture.twoOrFour", "Spec4Pbt.CorrectGen "
+            checked = verify(project, "Fixture.twoOrFour", "CorrectGen "
                              "(fun n : Nat => ∃ k, (k = 1 ∨ k = 2) ∧ n = 2 * k)")
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
 
@@ -253,19 +263,25 @@ class GoalToolsIntegrationTests(unittest.TestCase):
             make_project(project)
             generated = generate(project, "Fixture.property", "Fixtures/Goal.lean")
             self.assertEqual(generated.returncode, 0, generated.stdout + generated.stderr)
+            self.assertNotIn("Generator", (project / "Fixtures" / "Goal.lean").read_text())
             (project / "Fixtures" / "Proofs.lean").write_text(
                 "import Fixtures.Goal\n"
-                "example : FixtureGoals.Generator = (Nat → Nat → FixtureGoals.Input) := rfl\n"
-                "def Fixture.certified : FixtureGoals.CorrectGen FixtureGoals.Premise := by\n"
-                "  refine ⟨fun _size seed => seed, ?_⟩\n"
-                "  intro input\n"
-                "  constructor\n"
-                "  · intro _; rfl\n"
-                "  · intro _; exact ⟨0, input, rfl⟩\n"
-                "def Fixture.generate : FixtureGoals.Generator := Fixture.certified.val\n"
-                "example : Fixture.generate 0 3 = (3 : Nat) := rfl\n"
-                "example : FixtureGoals.Sound Fixture.generate := Fixture.certified.sound\n"
-                "example : FixtureGoals.Complete Fixture.generate := Fixture.certified.complete\n",
+                "def Fixture.certified : FixtureGoals.CorrectGen FixtureGoals.Premise :=\n"
+                "  Gen.CorrectGen.convert (by\n"
+                "    funext n\n"
+                "    apply propext\n"
+                "    simp [FixtureGoals.Premise, Fixture.Valid]) Gen.CorrectGen.s_arbNat\n"
+                "def Fixture.generate : Gen FixtureGoals.Input := Fixture.certified.val\n"
+                "example : Gen.support Fixture.generate (3 : Nat) := by\n"
+                "  change Gen.support Fixture.certified.val (3 : Nat)\n"
+                "  rw [Fixture.certified.property]\n"
+                "  rfl\n"
+                "example : FixtureGoals.Sound Fixture.generate := by\n"
+                "  intro input h\n"
+                "  exact (Iff.of_eq (congrFun Fixture.certified.property input)).mp h\n"
+                "example : FixtureGoals.Complete Fixture.generate := by\n"
+                "  intro input h\n"
+                "  exact (Iff.of_eq (congrFun Fixture.certified.property input)).mpr h\n",
                 encoding="utf-8",
             )
             checked = verify(project, "Fixture.certified", "FixtureGoals.CorrectGen FixtureGoals.Premise")
@@ -385,7 +401,7 @@ class GoalToolsIntegrationTests(unittest.TestCase):
                 "import pbt.GoalTools", "import Fixtures.Shapes",
                 *verification_commands, "",
             ]), 60)
-            self.assertEqual(checked.count("zero transitive axioms"), len(declarations), checked)
+            self.assertEqual(checked.count("no forbidden transitive axioms"), len(declarations), checked)
 
     def test_parameterized_property_works_through_the_cli(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -450,13 +466,11 @@ class GoalToolsIntegrationTests(unittest.TestCase):
                     self.assertNotEqual(result.returncode, 0)
                     self.assertFalse((project / "Fixtures" / "Goal.lean").exists())
 
-    def test_verifier_rejects_all_transitive_axioms(self) -> None:
+    def test_verifier_rejects_untrusted_transitive_axioms(self) -> None:
         bodies = [
             ("custom", "axiom Fixture.untrusted : True\ntheorem Fixture.proof : True := Fixture.untrusted\n", "Fixture.untrusted", "True"),
             ("sorry", "theorem Fixture.proof : True := by sorry\n", "sorryAx", "True"),
-            ("propext", "theorem Fixture.proof : True = True := propext Iff.rfl\n", "propext", "True = True"),
             ("choice", "theorem Fixture.proof : True := Classical.choice (show Nonempty True from ⟨True.intro⟩)\n", "Classical.choice", "True"),
-            ("quot", "theorem Fixture.proof : Quot.mk (fun (_ _ : Nat) => True) 0 = Quot.mk (fun (_ _ : Nat) => True) 0 := Quot.sound True.intro\n", "Quot.sound", "Quot.mk (fun (_ _ : Nat) => True) 0 = Quot.mk (fun (_ _ : Nat) => True) 0"),
         ]
         for label, body, axiom, expected in bodies:
             with self.subTest(case=label), tempfile.TemporaryDirectory() as directory:
@@ -467,20 +481,44 @@ class GoalToolsIntegrationTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(axiom, result.stdout + result.stderr)
 
+    def test_verifier_allows_only_approved_foundational_axioms(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            make_project(project)
+            (project / "Fixtures" / "Proofs.lean").write_text(
+                "theorem Fixture.proof : True = True := propext Iff.rfl\n",
+                encoding="utf-8",
+            )
+            checked = verify(project, "Fixture.proof", "True = True")
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertIn("propext", checked.stdout)
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            make_project(project)
+            (project / "Fixtures" / "Proofs.lean").write_text(
+                "theorem Fixture.proof : Quot.mk (fun (_ _ : Nat) => True) 0 = "
+                "Quot.mk (fun (_ _ : Nat) => True) 0 := Quot.sound True.intro\n",
+                encoding="utf-8",
+            )
+            expected = "Quot.mk (fun (_ _ : Nat) => True) 0 = " \
+                "Quot.mk (fun (_ _ : Nat) => True) 0"
+            checked = verify(project, "Fixture.proof", expected)
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+            self.assertIn("Quot.sound", checked.stdout)
+
     def test_verifier_rejects_sorry_in_generator_witness(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             project = Path(directory)
             make_project(project)
             (project / "Fixtures" / "Proofs.lean").write_text(
                 "import pbt.CorrectGen\n"
-                "def Fixture.uncertified : Spec4Pbt.CorrectGen (fun _ : Nat => True) := by\n"
-                "  refine ⟨fun _ _ => 0, ?_⟩\n"
-                "  intro _\n"
+                "def Fixture.uncertified : CorrectGen (fun _ : Nat => True) := by\n"
+                "  refine ⟨pure 0, ?_⟩\n"
                 "  sorry\n",
                 encoding="utf-8",
             )
             checked = verify(project, "Fixture.uncertified",
-                             "Spec4Pbt.CorrectGen (fun _ : Nat => True)")
+                             "CorrectGen (fun _ : Nat => True)")
             self.assertNotEqual(checked.returncode, 0)
             self.assertIn("sorryAx", checked.stdout + checked.stderr)
 

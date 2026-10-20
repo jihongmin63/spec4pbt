@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -21,9 +20,15 @@ class ObservableRunTests(unittest.TestCase):
         for filename in ("CorrectGen.lean", "GoalTools.lean", "Observable.lean"):
             shutil.copyfile(ROOT / "pbt" / filename, cls.project / "pbt" / filename)
         shutil.copyfile(ROOT / "lean-toolchain", cls.project / "lean-toolchain")
+        shutil.copyfile(ROOT / "lake-manifest.json", cls.project / "lake-manifest.json")
+        (cls.project / ".lake").mkdir()
+        (cls.project / ".lake/packages").symlink_to(ROOT / ".lake/packages", target_is_directory=True)
         (cls.project / "lakefile.toml").write_text(
             'name = "runner_test"\n[[lean_lib]]\nname = "pbt"\n'
-            '[[lean_lib]]\nname = "Fixtures"\n')
+            '[[lean_lib]]\nname = "Fixtures"\n'
+            '[[require]]\nname = "palamedes"\n'
+            'git = "https://github.com/hgoldstein95/palamedes-lean"\n'
+            'rev = "c2012b84fc4ad8ee03e3528838175b959fcc9cf8"\n')
         (cls.project / "Fixtures/Spec.lean").write_text(
             'import Lean\nnamespace Fixture\ndef Eval (i o : Nat) : Prop := o = i\nend Fixture\n')
         cls.manifest = cls.project / "manifest.json"
@@ -53,21 +58,11 @@ end Property
 ''')
         (cls.project / "Fixtures/Generator.lean").write_text('''import Fixtures.Property
 import pbt.CorrectGen
-def correctGenerator : Spec4Pbt.CorrectGen Property.Premise := by
-  refine ⟨fun _ seed => seed, ?_⟩
-  intro n
-  constructor
-  · intro _; trivial
-  · intro _; exact ⟨0, n, rfl⟩
+def correctGenerator : CorrectGen Property.Premise := Gen.CorrectGen.s_arbNat
 ''')
         cls.adapter = cls.project / "adapter.py"
         (cls.project / "Fixtures/Generic.lean").write_text('''import pbt.CorrectGen
-def genericNats : Spec4Pbt.CorrectGen (fun _ : Nat => True) := by
-  refine ⟨fun _ seed => seed, ?_⟩
-  intro n
-  constructor
-  · intro _; trivial
-  · intro _; exact ⟨0, n, rfl⟩
+def genericNats : CorrectGen (fun _ : Nat => True) := Gen.CorrectGen.s_arbNat
 ''')
         cls.adapter.write_text('''import json, sys, time
 data = json.load(sys.stdin)
@@ -104,12 +99,16 @@ else: print(json.dumps({"observation": data["input"] + (1 if mode == "wrong" els
             self.assertEqual((result.status, result.evaluated), (status, tested))
             self.assertEqual(result.skipped, 0)
             samples = [json.loads(line) for line in (output / "samples.jsonl").read_text().splitlines()]
-            self.assertEqual([sample["input"] for sample in samples], [7, 8])
+            self.assertTrue(all(0 <= sample["input"] <= 4 for sample in samples))
+            if mode == "correct":
+                replayed_inputs = [sample["input"] for sample in samples]
+            else:
+                self.assertEqual([sample["input"] for sample in samples], replayed_inputs)
             self.assertTrue(all(set(sample) == {"index", "size", "seed", "input"} for sample in samples))
             case = output / "case-000000"
-            self.assertEqual(json.loads((case / "sample.json").read_text())["input"], 7)
+            self.assertEqual(json.loads((case / "sample.json").read_text())["input"], samples[0]["input"])
             self.assertEqual(json.loads((case / "observation.json").read_text())["observation"],
-                             7 if mode == "correct" else 8)
+                             samples[0]["input"] + (mode == "wrong"))
             self.assertEqual(json.loads((output / "result.json").read_text())["status"], status)
             with self.assertRaises(FileExistsError):
                 run_observable(self.project, self.options(output, mode))
@@ -123,17 +122,6 @@ else: print(json.dumps({"observation": data["input"] + (1 if mode == "wrong" els
                 self.assertEqual((result.status, result.evaluated), ("error", 0))
                 self.assertTrue(json.loads((output / "result.json").read_text())["error"])
                 self.assertTrue((output / "case-000000/process.json").exists())
-
-    def test_total_generator_cannot_certify_an_empty_premise(self):
-        from pbt.lean_tools import rebuild_modules
-        rebuild_modules(self.project, ["pbt.CorrectGen", "Fixtures.Property"], 60)
-        proof = self.project / "NoEmptyGenerator.lean"
-        proof.write_text("import pbt.CorrectGen\nimport Fixtures.Property\n"
-            "example (gen : Spec4Pbt.CorrectGen Property.EmptyPremise) : False :=\n"
-            "  (gen.property (gen.val 0 0)).mp ⟨0, 0, rfl⟩\n")
-        result = subprocess.run(["lake", "env", "lean", str(proof)],
-            cwd=self.project, capture_output=True, text=True, timeout=60, check=False)
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_empty_premise_rejects_generator_before_execution(self):
         from pbt.run_observable import run_observable

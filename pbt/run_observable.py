@@ -62,9 +62,11 @@ def main (args : List String) : IO UInt32 := do
   let some count := countText.toNat? | return 1
   let some size := sizeText.toNat? | return 1
   let some seed := seedText.toNat? | return 1
+  let config : SampleConfig := {{ sizeLimit := size, backtrackLimit := 100, sizeRetryLimit := 100 }}
   for index in [:count] do
     let fields := [("index", toJson index), ("size", toJson size), ("seed", toJson (seed + index))]
-    let input : {options.view_namespace}.Input := {options.generator}.val size (seed + index)
+    let input : {options.view_namespace}.Input ←
+      Plausible.runRandWith (seed + index) (SampleM.sampleRand config {options.generator}.val)
     let fields := fields ++ [("input", {options.view_namespace}.encodeInput input)]
     (← IO.getStdout).putStrLn (Json.mkObj fields).compress
   return 0
@@ -84,7 +86,7 @@ import {options.view_module}
 import {options.property_module}
 import {options.generator_module}
 #spec4pbt_verify {options.generator} in_module {options.generator_module} :
-  (Spec4Pbt.CorrectGen ({options.premise} : {options.view_namespace}.Input → Prop))
+  (_root_.CorrectGen ({options.premise} : {options.view_namespace}.Input → Prop))
 #spec4pbt_observable_executable {options.generator}
 #spec4pbt_observable_transport {options.view_namespace}.encodeInput
 ''', encoding="utf-8")

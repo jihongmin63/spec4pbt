@@ -3,31 +3,30 @@ import pbt.example.EvenProofs
 
 namespace Example
 
-/-- Every natural number occurs for a suitable size and seed. -/
-private def indices : Spec4Pbt.CorrectGen (fun _ : Nat => True) := by
-  refine ⟨fun size seed => seed % (size + 1), ?_⟩
-  intro n
-  constructor
-  · intro _
-    trivial
-  · intro _
-    refine ⟨n, n, ?_⟩
-    exact mod_succ_self n
+open Gen.CorrectGen
 
-/-- The generator and its exact support proof are constructed together. -/
+/-- A Palamedes indexed generator followed by a manual bind and return. -/
+private def doubled : CorrectGen
+    (fun n : Nat => ∃ k, True ∧ n = 2 * k) :=
+  s_bind s_arbNat (fun k => s_pure (2 * k))
+
+/-- Exact support of the extracted generator is the specification premise. -/
 def correctGenerator : ExampleGoals.CorrectGen ExampleGoals.Premise :=
-  Spec4Pbt.CorrectGen.convert
-    (Spec4Pbt.CorrectGen.map (fun n : Nat => 2 * n) indices)
-    (by
-      intro input
-      constructor
-      · rintro ⟨n, _, h⟩
-        exact (valid_iff_double input).mpr ⟨n, h.symm⟩
-      · intro valid
-        obtain ⟨n, h⟩ := (valid_iff_double input).mp valid
-        exact ⟨n, True.intro, h.symm⟩)
+  convert (by
+    funext n
+    apply propext
+    constructor
+    · rintro ⟨k, _, rfl⟩
+      exact (valid_iff_double (2 * k)).mpr ⟨k, rfl⟩
+    · intro valid
+      obtain ⟨k, h⟩ := (valid_iff_double n).mp valid
+      exact ⟨k, True.intro, h⟩) doubled
 
-/-- The executable generator is extracted from the certified construction. -/
-def generate : ExampleGoals.Generator := correctGenerator.val
+/-- Erase the support proof; the remaining value is Palamedes's `Gen` tree. -/
+def generate : Gen ExampleGoals.Input := correctGenerator.val
+
+theorem generate_support (n : Nat) :
+    Gen.support generate n ↔ ExampleGoals.Premise n := by
+  exact Iff.of_eq (congrFun correctGenerator.property n)
 
 end Example
