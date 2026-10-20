@@ -13,3 +13,8 @@ globs = ["pbt.+"]
 [[lean_exe]]
 name = "example-samples"
 root = "pbt.example.Emit"
+
+[[require]]
+name = "palamedes"
+git = "https://github.com/hgoldstein95/palamedes-lean"
+rev = "c2012b84fc4ad8ee03e3528838175b959fcc9cf8"

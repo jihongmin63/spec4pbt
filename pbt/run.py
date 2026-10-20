@@ -10,9 +10,9 @@ from typing import NamedTuple, cast
 from pbt.unparse import render_program
 
 
-Sample = NamedTuple("Sample", [("index", int), ("size", int), ("seed", int), ("input", int)])
+Sample = NamedTuple("Sample", [("index", int), ("size", int), ("input", int)])
 RunOptions = NamedTuple(
-    "RunOptions", [("implementation", Path), ("output", Path), ("count", int), ("size", int), ("seed", int)]
+    "RunOptions", [("implementation", Path), ("output", Path), ("count", int), ("size", int)]
 )
 
 
@@ -40,9 +40,8 @@ def parse_options(arguments: list[str]) -> RunOptions:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--count", type=natural_number, required=True)
     parser.add_argument("--size", type=natural_number, required=True)
-    parser.add_argument("--seed", type=natural_number, required=True)
     parsed: argparse.Namespace = parser.parse_args(arguments)
-    return RunOptions(parsed.implementation, parsed.output, parsed.count, parsed.size, parsed.seed)
+    return RunOptions(parsed.implementation, parsed.output, parsed.count, parsed.size)
 
 
 def execute(command: tuple[str, ...], directory: Path) -> subprocess.CompletedProcess[str]:
@@ -77,7 +76,7 @@ def parse_sample(line: str) -> Sample:
         raise SampleFormatError(f"sample must be a JSON object; received {decoded!r}")
     fields: dict[str, object] = cast(dict[str, object], decoded)
     values: list[int] = []
-    for field in ("index", "size", "seed", "input"):
+    for field in ("index", "size", "input"):
         value: object = fields.get(field)
         if type(value) is not int or value < 0:
             raise SampleFormatError(
@@ -85,23 +84,23 @@ def parse_sample(line: str) -> Sample:
             )
         values.append(value)
     sample: Sample = Sample(*values)
-    if sample.input % 2 != 0 or sample.input > 2 * sample.size:
+    if sample.input % 2 != 0 or sample.input >= 2 * sample.size:
         raise SampleFormatError(f"sample violates the even-input specification or size bound: {sample!r}")
     return sample
 
 
-def read_samples(root: Path, count: int, size: int, seed: int) -> tuple[Sample, ...]:
+def read_samples(root: Path, count: int, size: int) -> tuple[Sample, ...]:
     executable: Path = root / ".lake/build/bin/example-samples"
     result: subprocess.CompletedProcess[str] = execute(
-        (str(executable), str(count), str(size), str(seed)), root
+        (str(executable), str(count), str(size)), root
     )
     samples: tuple[Sample, ...] = tuple(parse_sample(line) for line in result.stdout.splitlines())
     if len(samples) != count:
         raise SampleFormatError(f"expected {count} samples; received {len(samples)}; stdout={result.stdout!r}")
     for index, sample in enumerate(samples):
-        if (sample.index, sample.size, sample.seed) != (index, size, seed + index):
+        if (sample.index, sample.size) != (index, size):
             raise SampleFormatError(
-                f"sample metadata mismatch: expected index={index}, size={size}, seed={seed + index}; "
+                f"sample metadata mismatch: expected index={index}, size={size}; "
                 f"received {sample!r}"
             )
     return samples
@@ -132,9 +131,11 @@ def run_example(root: Path, options: RunOptions) -> tuple[Sample, ...]:
     cases_root: Path = (root / "test_cases").resolve(strict=True)
     if not output.is_relative_to(cases_root) or output == cases_root:
         raise ValueError(f"output must be a new directory below {cases_root}; received {output}")
+    if options.size == 0:
+        raise ValueError("size must be positive for the indexed natural generator")
     if options.count == 0:
         raise ValueError("count must be positive so the run observes at least one program")
-    samples: tuple[Sample, ...] = read_samples(root, options.count, options.size, options.seed)
+    samples: tuple[Sample, ...] = read_samples(root, options.count, options.size)
     programs: tuple[str, ...] = tuple(render_program(sample.input) for sample in samples)
     for sample, program in zip(samples, programs, strict=True):
         compile(program, str(output / f"case-{sample.index:06d}" / "program.py"), "exec")
@@ -145,7 +146,7 @@ def run_example(root: Path, options: RunOptions) -> tuple[Sample, ...]:
         source: Path = case / "program.py"
         source.write_text(program, encoding="utf-8")
         metadata: dict[str, int] = {
-            "index": sample.index, "size": sample.size, "seed": sample.seed, "input": sample.input
+            "index": sample.index, "size": sample.size, "input": sample.input
         }
         (case / "sample.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
         result: subprocess.CompletedProcess[str] = execute((str(implementation), str(source)), case)

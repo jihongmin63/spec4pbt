@@ -13,20 +13,18 @@ def Target : Input → Prop := fun n => n + 0 = n
 
 abbrev Candidate := {input : Input // Premise input}
 
-abbrev Generator := Spec4Pbt.Generator Input
+def Support (gen : Gen Input) (input : Input) : Prop :=
+  Gen.support gen input
 
-def Support (gen : Generator) (input : Input) : Prop :=
-  Spec4Pbt.Support gen input
+abbrev CorrectGen (P : Input → Prop) := _root_.CorrectGen P
 
-abbrev CorrectGen (P : Input → Prop) := Spec4Pbt.CorrectGen P
+def Sound (gen : Gen Input) : Prop :=
+  ∀ input, Support gen input → Premise input
 
-def Sound (gen : Generator) : Prop :=
-  ∀ size seed, Premise (gen size seed)
+def Complete (gen : Gen Input) : Prop :=
+  ∀ input, Premise input → Support gen input
 
-def Complete (gen : Generator) : Prop :=
-  ∀ input, Premise input → ∃ size seed, gen size seed = input
-
-def Goal (gen : Generator) : Prop := Sound gen ∧ Complete gen
+def Goal (gen : Gen Input) : Prop := Sound gen ∧ Complete gen
 
 theorem property_iff : Property ↔ (∀ input : Input, Premise input → Target input) :=
   Iff.rfl

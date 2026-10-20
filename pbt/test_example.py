@@ -11,7 +11,7 @@ from pbt.run import ObservationError, Sample, check_observation, execute, parse_
 
 
 class ExampleIntegrationTest(unittest.TestCase):
-    def test_certified_generator_passes_strict_axiom_audit(self) -> None:
+    def test_certified_generator_passes_foundational_axiom_audit(self) -> None:
         root: Path = Path(__file__).resolve().parents[1]
         result = subprocess.run(
             (
@@ -22,43 +22,41 @@ class ExampleIntegrationTest(unittest.TestCase):
             cwd=root, capture_output=True, text=True, check=False, timeout=90,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("zero transitive axioms", result.stdout)
+        self.assertIn("no forbidden transitive axioms", result.stdout)
+        self.assertIn("axioms used: [propext, Quot.sound]", result.stdout)
 
-    def test_external_programs_are_reproducible_and_replayable(self) -> None:
+    def test_palamedes_samples_are_valid_and_replayable(self) -> None:
         root: Path = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory(dir=root / "test_cases") as temporary:
-            first: Path = Path(temporary) / "first"
-            second: Path = Path(temporary) / "second"
-            for output in (first, second):
-                result: subprocess.CompletedProcess[str] = execute(
-                    (
-                        sys.executable, "-m", "pbt.run", "--implementation", sys.executable,
-                        "--output", str(output), "--count", "4", "--size", "8", "--seed", "12",
-                    ),
-                    root,
-                )
-                self.assertIn("Passed 4 external programs", result.stdout)
-            for index, expected in enumerate((6, 8, 10, 12)):
-                first_case: Path = first / f"case-{index:06d}"
-                second_case: Path = second / f"case-{index:06d}"
-                sample: Sample = parse_sample((first_case / "sample.json").read_text(encoding="utf-8"))
-                self.assertEqual(sample, Sample(index, 8, 12 + index, expected))
-                for name in ("program.py", "sample.json", "observation.json"):
-                    self.assertEqual((first_case / name).read_bytes(), (second_case / name).read_bytes())
+            output: Path = Path(temporary) / "samples"
+            result: subprocess.CompletedProcess[str] = execute(
+                (
+                    sys.executable, "-m", "pbt.run", "--implementation", sys.executable,
+                    "--output", str(output), "--count", "4", "--size", "8",
+                ),
+                root,
+            )
+            self.assertIn("Passed 4 external programs", result.stdout)
+            for index in range(4):
+                case: Path = output / f"case-{index:06d}"
+                sample: Sample = parse_sample((case / "sample.json").read_text(encoding="utf-8"))
+                self.assertEqual((sample.index, sample.size), (index, 8))
+                self.assertEqual(sample.input % 2, 0)
+                self.assertLess(sample.input, 16)
                 replay: subprocess.CompletedProcess[str] = execute(
-                    (sys.executable, str(first_case / "program.py")), root
+                    (sys.executable, str(case / "program.py")), root
                 )
-                self.assertEqual(check_observation(expected, replay), expected)
+                self.assertEqual(check_observation(sample.input, replay), sample.input)
             repeated: subprocess.CompletedProcess[str] = subprocess.run(
                 (
                     sys.executable, "-m", "pbt.run", "--implementation", sys.executable,
-                    "--output", str(first), "--count", "4", "--size", "8", "--seed", "12",
+                    "--output", str(output), "--count", "4", "--size", "8",
                 ),
                 cwd=root, capture_output=True, text=True, check=False, timeout=60,
             )
             self.assertNotEqual(repeated.returncode, 0)
             self.assertIn("FileExistsError", repeated.stderr)
-            self.assertEqual(len(list(first.glob("case-*"))), 4)
+            self.assertEqual(len(list(output.glob("case-*"))), 4)
 
     def test_wrong_external_observation_is_rejected(self) -> None:
         root: Path = Path(__file__).resolve().parents[1]
@@ -70,10 +68,10 @@ class ExampleIntegrationTest(unittest.TestCase):
                 check_observation(8, result)
 
     def test_sample_decoder_requires_natural_fields(self) -> None:
-        valid: str = json.dumps({"index": 0, "size": 3, "seed": 2, "input": 4, "extra": "ignored"})
-        self.assertEqual(parse_sample(valid), Sample(0, 3, 2, 4))
+        valid: str = json.dumps({"index": 0, "size": 3, "input": 4, "extra": "ignored"})
+        self.assertEqual(parse_sample(valid), Sample(0, 3, 4))
         with self.assertRaisesRegex(ValueError, "'input' must be a natural number"):
-            parse_sample('{"index":0,"size":3,"seed":2,"input":true}')
+            parse_sample('{"index":0,"size":3,"input":true}')
 
 
 if __name__ == "__main__":

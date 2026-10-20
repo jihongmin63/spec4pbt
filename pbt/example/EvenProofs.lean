@@ -1,12 +1,18 @@
 import specifications.Example
 
 /-!
-The core modulo lemmas used by the short arithmetic proof depend on `propext`.
-These local constructive lemmas let the example's generator witness satisfy the
-verifier's zero-axiom policy without changing the specification.
+Arithmetic equivalence between the modulo specification and double naturals.
+The local `ite` lemmas below restore two names absent from Lean 4.31.
 -/
 
 namespace Example
+
+/- Lean 4.31 has no `ite_eq_left`/`ite_eq_right` convenience lemmas. -/
+private theorem ite_eq_left {p : Prop} [Decidable p] {a b : α} (hp : p) :
+    (if p then a else b) = a := by simp [hp]
+
+private theorem ite_eq_right {p : Prop} [Decidable p] {a b : α} (hp : ¬p) :
+    (if p then a else b) = b := by simp [hp]
 
 private theorem modCoreGo_fuel_congr (x y fuel1 fuel2 : Nat)
     (hy : 0 < y) (h1 : x < fuel1) (h2 : x < fuel2) :
@@ -113,12 +119,5 @@ theorem valid_iff_double (n : Nat) :
         have hn : n = 2 * k := Nat.succ.inj (Nat.succ.inj hk)
         exact (mod_two_step n).trans (ih.mpr ⟨k, hn⟩)
 
-theorem mod_succ_self (n : Nat) : n % (n + 1) = n := by
-  cases n with
-  | zero => rfl
-  | succ k =>
-    change (if k.succ.succ ≤ k.succ then k.succ.modCore k.succ.succ
-      else k.succ) = k.succ
-    rw [ite_eq_right (Nat.not_succ_le_self k.succ)]
 
 end Example

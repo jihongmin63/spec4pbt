@@ -2,58 +2,50 @@ import pbt.CorrectGen
 
 namespace Spec4Pbt.CorrectGenTests
 
--- These type checks distinguish the total contract from an Option-valued search.
-example : Generator Nat = (Nat → Nat → Nat) := rfl
+open Gen Gen.CorrectGen
 
-example (gen : Generator Nat) (value : Nat) :
-    Support gen value ↔ ∃ size seed, gen size seed = value := Iff.rfl
+-- The generator is Palamedes's syntax tree, interpreted by its support relation.
+example : Gen.support (Raw.Gen.ret (3 : Nat)) 3 := rfl
+example : Gen.support (pure (3 : Nat)) 3 := rfl
 
-example {α : Type} {P : α → Prop} (gen : CorrectGen P) (size seed : Nat) :
-    P (gen.val size seed) := gen.sound size seed
+example (left right : Gen Nat) (value : Nat) :
+    Gen.support (Gen.pick left right) value ↔
+      Gen.support left value ∨ Gen.support right value := Iff.rfl
 
-example {α : Type} {P : α → Prop} (gen : CorrectGen P) (value : α)
-    (valid : P value) : ∃ size seed, gen.val size seed = value :=
-  gen.complete value valid
+example (outer : Gen Nat) (next : Nat → Gen Nat) (value : Nat) :
+    Gen.support (outer >>= next) value ↔
+      ∃ input, Gen.support outer input ∧ Gen.support (next input) value := Iff.rfl
 
-example {α : Type} {P : α → Prop} (gen : Generator α) :
-    (∀ value, Support gen value ↔ P value) ↔
-      (∀ size seed, P (gen size seed)) ∧
-      (∀ value, P value → ∃ size seed, gen size seed = value) :=
-  CorrectGen.exact_support_iff gen P
+example (family : Nat → Gen (Option Nat)) (value : Nat) :
+    Gen.support (Gen.indexed family) value ↔
+      (∀ v n m, Gen.support (family n) (some v) →
+        Gen.support (family (n + m)) (some v)) ∧
+      ∃ n, Gen.support (family n) (some value) := Iff.rfl
 
-private def sized : CorrectGen (fun _ : Nat => True) :=
-  ⟨fun size _ => size, by
-    intro value
-    exact ⟨fun _ => True.intro, fun _ => ⟨value, 0, rfl⟩⟩⟩
+example (condition : Bool) (next : condition → Gen Nat) (value : Nat) :
+    Gen.support (Gen.assume condition next) value ↔
+      ∃ proof : condition, Gen.support (next proof) value := Iff.rfl
 
-private def picked := CorrectGen.pick (CorrectGen.pure 3) (CorrectGen.pure 5)
-private def mapped := CorrectGen.map (fun n : Nat => n + 10) picked
-private def paired := CorrectGen.bind sized fun x =>
-  CorrectGen.map (fun y => (x, y)) sized
-private def converted := CorrectGen.convert (CorrectGen.pure 3)
-  (fun value => show value = 3 ↔ 3 = value from eq_comm)
+example : Gen.support (Gen.assume true (fun _ => pure (7 : Nat))) 7 := by
+  simp
 
-#guard (CorrectGen.pure 3).val 0 0 = 3
-#guard (CorrectGen.pure 3).val 12 1000000 = 3
-#guard picked.val 0 0 = 3
-#guard picked.val 0 1 = 5
-#guard picked.val 20 10 = 3
-#guard picked.val 20 11 = 5
-#guard picked.val 20 1000000 = 3
-#guard picked.val 20 1000001 = 5
-#guard mapped.val 0 0 = 13
-#guard mapped.val 0 1 = 15
-#guard paired.val 0 0 = (0, 0)
-#guard paired.val 7 0 = (2, 1)
-#guard converted.val 0 0 = 3
+private def oneOrTwo : CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=
+  s_pick (s_pure 1) (s_pure 2)
 
--- Completeness must combine independent sizes for the outer and inner sampler.
-example (x y : Nat) : ∃ size seed, paired.val size seed = (x, y) := by
-  apply paired.complete
-  exact ⟨x, True.intro, y, True.intro, rfl⟩
+private def doubled : CorrectGen
+    (fun n : Nat => ∃ k, (k = 1 ∨ k = 2) ∧ n = 2 * k) :=
+  s_bind oneOrTwo (fun k => s_pure (2 * k))
 
--- A total correct generator cannot certify an empty predicate.
-example {α : Type} (gen : CorrectGen (fun _ : α => False)) : False :=
-  gen.sound 0 0
+example : Gen.support doubled.val 2 := by
+  rw [doubled.property]
+  exact ⟨1, Or.inl rfl, rfl⟩
+
+example : Gen.support doubled.val 4 := by
+  rw [doubled.property]
+  exact ⟨2, Or.inr rfl, rfl⟩
+
+example : Gen.support Gen.arbNat 137 := by
+  rw [Gen.support_arbNat]
+  trivial
 
 end Spec4Pbt.CorrectGenTests

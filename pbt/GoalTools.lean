@@ -134,6 +134,7 @@ private def reflectExpressions (claim : Expr) (input : Expr) (premise : Expr)
     (target : Expr) (equivalence : Expr) : MetaM Json := do
   return Json.mkObj [
     ("input", toJson (← expressionSource input)),
+    ("generator_supported", toJson (← isDefEq (← inferType input) (mkSort (.succ .zero)))),
     ("premise", toJson (← expressionSource premise)),
     ("target", toJson (← expressionSource target)),
     ("claim", toJson (← expressionSource claim)),
@@ -167,6 +168,7 @@ private def declarationFallback (name : Name) (claim : Expr) : MetaM Json := do
   let levels ← expressionLevels claim
   return Json.mkObj [
     ("input", toJson ("_root_.Unit" : String)),
+    ("generator_supported", toJson true),
     ("premise", toJson ("fun (_ : _root_.Unit) => _root_.True" : String)),
     ("target", toJson ("fun (_ : _root_.Unit) => " ++ claimSource)),
     ("claim", toJson claimSource),
@@ -199,10 +201,14 @@ elab "#spec4pbt_goal " declaration:ident : command => do
     reflectGoal name
   liftIO <| IO.println ("SPEC4PBT_GOAL " ++ result.compress)
 
+private def permittedAxiom (name : Name) : Bool :=
+  name == ``propext || name == ``Quot.sound
+
 private def rejectAxioms (name : Name) : MetaM Unit := do
   let axioms ← collectAxioms name
-  unless axioms.isEmpty do
-    throwError "declaration '{name}' depends on forbidden axioms: {axioms.toList}"
+  let forbidden := axioms.toList.filter (fun candidate => !permittedAxiom candidate)
+  unless forbidden.isEmpty do
+    throwError "declaration '{name}' depends on forbidden axioms: {forbidden}"
 
 private def rejectModuleAxioms (moduleName : Name) : MetaM Unit := do
   let environment ← getEnv
@@ -216,7 +222,7 @@ private def rejectModuleAxioms (moduleName : Name) : MetaM Unit := do
 
 elab "#spec4pbt_verify " proof:ident " in_module " moduleName:ident " : " expectedSyntax:term : command => do
   let proofName ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo proof
-  liftTermElabM do
+  let usedAxioms ← liftTermElabM do
     let expected ← elabType expectedSyntax
     synthesizeSyntheticMVarsNoPostponing
     let expected ← instantiateMVars expected
@@ -239,6 +245,7 @@ elab "#spec4pbt_verify " proof:ident " in_module " moduleName:ident " : " expect
     rejectAxioms proofName
     for name in expected.getUsedConstants do
       rejectAxioms name
-  liftIO <| IO.println s!"Verified '{proofName}': exact expected type, no additional hypotheses, and zero transitive axioms."
+    return (← collectAxioms proofName).toList
+  liftIO <| IO.println s!"Verified '{proofName}': exact expected type, no additional hypotheses, no forbidden transitive axioms; axioms used: {usedAxioms}."
 
 end Spec4Pbt

@@ -16,6 +16,7 @@ class GoalExpressions(NamedTuple):
     claim: str
     equivalence: str
     levels: dict[str, list[str]]
+    generator_supported: bool
 
 
 def parse_expressions(output: str) -> GoalExpressions:
@@ -43,7 +44,10 @@ def parse_expressions(output: str) -> GoalExpressions:
             raise TypeError(f"Lean reflection levels[{field!r}] must be a list of universe names")
         if len(set(parameters)) != len(parameters):
             raise ValueError(f"Duplicate universe parameters in levels[{field!r}]")
-    return GoalExpressions(*fields, levels)
+    generator_supported = value.get("generator_supported")
+    if type(generator_supported) is not bool:
+        raise TypeError("Lean reflection generator_supported must be a Boolean")
+    return GoalExpressions(*fields, levels, generator_supported)
 
 
 def render_goal(spec_module: str, property_module: str, namespace: str, expressions: GoalExpressions) -> str:
@@ -59,32 +63,36 @@ def render_goal(spec_module: str, property_module: str, namespace: str, expressi
     premise_name = at_levels("Premise", "premise")
     target_name = at_levels("Target", "target")
     candidate = at_levels("Candidate", "premise")
-    generator = at_levels("Generator", "input")
     support = at_levels("Support", "input")
     correct_gen = at_levels("CorrectGen", "input")
     sound = at_levels("Sound", "premise")
     complete = at_levels("Complete", "premise")
     goal = at_levels("Goal", "premise")
     equivalence = at_levels("property_iff", "claim")
-    return "\n".join([*(f"import {module}" for module in imports), "", f"namespace {namespace}", "",
+    declarations = [*(f"import {module}" for module in imports), "", f"namespace {namespace}", "",
         f"def {property_name} : Prop := {expressions.claim}", "",
         f"def {input_name} := {expressions.input}", "",
         f"def {premise_name} : {input_name} → Prop := {expressions.premise}", "",
         f"def {target_name} : {input_name} → Prop := {expressions.target}", "",
-        f"def {candidate} := {{input : {input_name} // {premise_name} input}}", "",
-        f"def {generator} := Spec4Pbt.Generator {input_name}", "",
-        f"def {support} (gen : {generator}) (input : {input_name}) : Prop :=",
-        "  Spec4Pbt.Support gen input", "",
-        f"def {correct_gen} (P : {input_name} → Prop) := Spec4Pbt.CorrectGen P", "",
-        f"def {sound} (gen : {generator}) : Prop :=",
-        f"  ∀ size seed, {premise_name} (gen size seed)", "",
-        f"def {complete} (gen : {generator}) : Prop :=",
-        f"  ∀ input, {premise_name} input → ∃ size seed, gen size seed = input", "",
-        f"def {goal} (gen : {generator}) : Prop := {sound} gen ∧ {complete} gen", "",
+        f"def {candidate} := {{input : {input_name} // {premise_name} input}}", ""]
+    if expressions.generator_supported:
+        declarations.extend([
+            f"def {support} (gen : Gen {input_name}) (input : {input_name}) : Prop :=",
+            "  Gen.support gen input", "",
+            f"abbrev {correct_gen} (P : {input_name} → Prop) := _root_.CorrectGen P", "",
+            f"def {sound} (gen : Gen {input_name}) : Prop :=",
+            f"  ∀ input, {support} gen input → {premise_name} input", "",
+            f"def {complete} (gen : Gen {input_name}) : Prop :=",
+            f"  ∀ input, {premise_name} input → {support} gen input", "",
+            f"def {goal} (gen : Gen {input_name}) : Prop := {sound} gen ∧ {complete} gen", "",
+        ])
+    declarations.extend([
         f"theorem {equivalence} : {property_name} ↔",
         f"    (∀ input : {input_name}, {premise_name} input → {target_name} input) :=",
         f"  {expressions.equivalence}", "",
-        f"end {namespace}", ""])
+        f"end {namespace}", "",
+    ])
+    return "\n".join(declarations)
 
 
 def generate_goals(project: Path, spec_module: str, property_module: str, declaration: str, namespace: str, output: Path, timeout_seconds: float) -> None:

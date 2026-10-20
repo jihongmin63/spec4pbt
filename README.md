@@ -6,9 +6,9 @@ Use the Lean version pinned in `lean-toolchain` and Python 3.12 or later. The
 Python tools use only the standard library. Run commands from the repository root.
 
 The common example supplies an even-natural-number specification, the proposition
-`∀ n, Valid n → n + 0 = n`, and a generator with proved soundness and completeness.
-Its `size` bounds inputs by `2 * size`; each sample uses `seed + index`. The
-generator satisfies the premise without consulting the proposition's conclusion.
+`∀ n, Valid n → n + 0 = n`, and a Palamedes `Gen Nat` with exact support proved
+against `Valid`. Its sampler draws even inputs smaller than `2 * size` when
+`size > 0`. Sampling is randomized; there is no seed decoder.
 
 ```sh
 lake build example-samples
@@ -22,8 +22,8 @@ python3 -m pbt.verify --module pbt.example.Generator \
   --expected-type 'ExampleGoals.CorrectGen ExampleGoals.Premise' \
   --timeout-seconds 60
 python3 -m pbt.run --implementation /usr/bin/python3 \
-  --output test_cases/example-run --count 4 --size 8 --seed 12
-python3 -m unittest pbt.test_example pbt.test_goal_tools.ToolBoundaryTests -v
+  --output test_cases/example-run --count 4 --size 8
+python3 -m unittest pbt.test_example pbt.test_goal_tools -v
 ```
 
 Supply the executable path of the Python interpreter to test as `--implementation`.
@@ -32,8 +32,9 @@ program, and compares its printed integer with the input. Each case folder conta
 `program.py`, `sample.json`, and `observation.json`. Replay a case with the same
 interpreter, for example `/usr/bin/python3 test_cases/example-run/case-000000/program.py`.
 Choose a fresh output directory for each run; existing output is never overwritten.
-Goal generation also requires a fresh destination and compiles the result before
-writing it. The checked-in `pbt/example/Goal.lean` is the example contract;
+Replaying a case reruns its saved Python program with its saved input; it does not
+recreate the random Lean draw. Goal generation also requires a fresh destination
+and compiles the result before writing it. The checked-in `pbt/example/Goal.lean` is the example contract;
 the command above emits a separate copy for inspection.
 
 ## Writing properties
@@ -86,8 +87,10 @@ end MyProperties
 Select one declaration with `--declaration`, for example
 `--declaration MyProperties.successorExists`, and set `--property-module` to its
 module. Types, propositions, proof inputs, typeclass binders, and arbitrary
-logical conclusions are accepted; inputs need not be monomorphic values in
-`Type`.
+logical conclusions are accepted. Palamedes's `Gen` itself is restricted to
+`Type` (`Type 0`). If the reflected `Input` lives in a higher universe, goal
+generation still emits `Property`, `Input`, `Premise`, `Target`, and `property_iff`,
+but omits the generator-specific declarations.
 
 The generated contract exposes `Property`, `Input`, `Premise`, and `Target`,
 together with a constructive equivalence checked by Lean:
@@ -117,82 +120,76 @@ Unit` and `Premise = True`. This still yields a constructive equivalence, but
 the generated input no longer exposes the proposition's quantified values for
 sampling.
 
-## Constructing and extracting a generator
+## Constructing and sampling a generator
 
-The generated contract defines `Generator` as a total function from size and seed to
-`Input` (`Nat → Nat → Input`). Its support is the set of inputs returned for at
-least one size and seed. The proof obligation is a **type with a generator witness**:
-
-```lean
-def CorrectGen (P : Input → Prop) :=
-  {gen : Generator // ∀ input, Support gen input ↔ P input}
-```
-
-Write a term of `CorrectGen Premise`. The forward implication proves that every
-generated input satisfies the premise; the reverse implication proves that every
-input satisfying it is reachable for some size and seed. Extract the executable
-generator with `.val`. Every size/seed pair produces a premise-satisfying input;
-an empty premise cannot have a `CorrectGen` witness. For example, a complete
-generator for all natural numbers can be constructed in one declaration:
+This project pins [Palamedes](https://github.com/hgoldstein95/palamedes-lean) directly
+at commit `c2012b84fc4ad8ee03e3528838175b959fcc9cf8` and uses its Lean
+4.31.0 toolchain. `pbt.CorrectGen` only imports the original library modules; it
+does not define a replacement generator. For `Input : Type`, a generated goal
+uses:
 
 ```lean
-def allNats : Spec4Pbt.CorrectGen (fun _ : Nat => True) := by
-  refine ⟨fun _size seed => seed, ?_⟩
-  intro input
-  constructor
-  · intro _; trivial
-  · intro _; exact ⟨0, input, rfl⟩
-
-def sampleNat : Spec4Pbt.Generator Nat := allNats.val
+def Support (g : Gen Input) (input : Input) : Prop := Gen.support g input
+abbrev CorrectGen (P : Input → Prop) := _root_.CorrectGen P
 ```
 
-`pbt.CorrectGen` also provides axiom-free construction rules. `pure a` has
-support `x = a`; `pick g h` has support `P x ∨ Q x`; `bind g next` has support
-`∃ a, P a ∧ Q a x`; `map f g` has support `∃ a, P a ∧ f a = x`; and `convert g h`
-changes the stated predicate using a pointwise equivalence `h`. Applying these
-rules builds the generator and its support proof at the same time. For example:
+Palamedes's `Gen` is a syntax tree with `ret`, `bind`, `pick`, `indexed`, and
+`assume` constructors. Its `support` interpreter gives the exact set of possible
+values. `pick` takes the union of supports and `bind` composes them with an
+existential witness. `indexed` additionally requires a monotone family of
+`Option` supports. `assume` contributes values only when its Boolean condition
+holds. `CorrectGen P` pairs a `Gen` with an equality `g.support = P`.
+
+Build a certified tree by hand with the original `Gen.CorrectGen.s_pure`,
+`s_pick`, `s_bind`, and `convert` rules. The library also provides
+`Gen.CorrectGen.s_arbNat`, whose `Gen.indexed` tree has support `True` for every
+natural number. A small finite example is:
 
 ```lean
-def oneOrTwo : Spec4Pbt.CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=
-  Spec4Pbt.CorrectGen.pick
-    (Spec4Pbt.CorrectGen.pure (1 : Nat))
-    (Spec4Pbt.CorrectGen.pure (2 : Nat))
+import pbt.CorrectGen
+
+open Gen.CorrectGen
+
+def oneOrTwo : CorrectGen (fun n : Nat => n = 1 ∨ n = 2) :=
+  s_pick (s_pure 1) (s_pure 2)
+
+def twoOrFour : CorrectGen
+    (fun n : Nat => ∃ k, (k = 1 ∨ k = 2) ∧ n = 2 * k) :=
+  s_bind oneOrTwo (fun k => s_pure (2 * k))
 ```
 
-[The even-number example](pbt/example/Generator.lean) starts from a certified
-natural-number generator, maps it through `n ↦ 2 * n`, converts the resulting
-predicate to `ExampleGoals.Premise`, and defines `Example.generate` as
-`Example.correctGenerator.val`. `pbt/example/Emit.lean` samples that extracted
-function. [Its arithmetic lemmas](pbt/example/EvenProofs.lean) preserve the
-original modulo specification while keeping the witness free of axioms. To check
-a witness's exact type and transitive axioms, use `pbt.verify` with the complete
-`CorrectGen` type, as shown above.
+[The even-number proof](pbt/example/Generator.lean) uses `s_arbNat`, `s_bind`,
+`s_pure`, and `convert` to produce `CorrectGen ExampleGoals.Premise`. Its `.val`
+extracts a plain `Gen Nat`, and [the emitter](pbt/example/Emit.lean) calls
+Palamedes's root-level `sample` with `SampleConfig`. `sizeLimit` controls the
+`indexed` interpreter and `sizeRetryLimit` bounds retries. Exact support alone
+does not promise that every sample call succeeds: `assume` can fail, and an
+`indexed` family can yield `none` at a chosen size. The example uses a positive
+size and Palamedes's total natural-number generator.
 
-This is a local adaptation of [Palamedes's proof-carrying generator
-approach](https://github.com/hgoldstein95/palamedes-lean). It retains this
-project's deterministic size/seed sampler; it does not import Palamedes's `Gen`
-syntax tree or sampling interpreter. `Candidate` remains an optional helper for
-holding an input together with a premise proof. For bundled inputs, proofs
-packed into `Input` still have to be constructed by the user. Exact support
-guarantees a valid sample at every size and seed, but not a uniform distribution. Accepting a proposition does not imply that an executable
-generator or decision procedure exists, and a two-natural-number sampler cannot
-cover uncountable input domains. Serialization and executable checking remain
-specific to the even-natural-number example. The generated contract does not
-prove `Property` or `Target`. `pick` and `bind` decode seeds by structural
-recursion; very large seeds can exhaust the Lean interpreter's recursion limit,
-so use a compiled executable for large sampling runs.
+The generated contract calls a generator **sound** if every supported input
+satisfies `Premise`, and **complete** if every premise-satisfying input is in its
+support. It does not prove `Property` or `Target`. Sampling is random and does
+not make support uniform. The Python serialization and executable property
+check remain specific to the even-natural-number example. This migration uses
+manual proof combinators and does not import Palamedes's generator search tactic.
 
-The verifier checks the designated declaration's exact type and rejects every
-transitive axiom, including Lean's foundational axioms. The tools fail with
-diagnostics on timeout. Run native goal-tool integration tests, including
-property extraction and the strict axiom audit, with:
+`pbt.verify` checks the declaration's exact type and its source module. With
+the approved Palamedes proof path, it permits only Lean's `propext` and
+`Quot.sound` among transitive axioms; it still rejects `sorryAx`,
+`Classical.choice`, user axioms, and axiom declarations in the source module.
+The example witness currently reports `[propext, Quot.sound]`. The tools fail
+with diagnostics on timeout. Run the full integration suite with:
 
 ```sh
-python3 -m unittest pbt.test_goal_tools.GoalToolsIntegrationTests -v
+python3 -m unittest pbt.test_example pbt.test_goal_tools -v
 ```
 
-The example witness passes the zero-axiom audit. The integration tests also
-check generated `property_iff` proofs and reject witnesses containing `sorry`.
+The only local Lean 4.31 compatibility addition is two small
+`ite_eq_left`/`ite_eq_right` lemmas in
+[pbt/example/EvenProofs.lean](pbt/example/EvenProofs.lean). They replace names
+available in the previous Lean 4.34.1 toolchain; Palamedes's generator source
+is used unchanged. Its `Type 0` restriction is an original library limit.
 
 `specifications/` holds specification sources and their provenance. `pbt/` holds
 the common goal tools and groups property-specific code in folders such as
