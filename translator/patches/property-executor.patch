@@ -1,0 +1,7 @@
+--- a/p4spec/lib/interp/interp-al/interp.ml
++++ b/p4spec/lib/interp/interp-al/interp.ml
+@@ -25,3 +25,2 @@
+-module Make (Interface : Run.INTERFACE) (Extern : Run.EXTERN) () :
+-  Run.INTERP_AL = struct
++module Make (Interface : Run.INTERFACE) (Extern : Run.EXTERN) () = struct
+   (* Build context and caches *)

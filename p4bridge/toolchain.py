@@ -16,6 +16,10 @@ UPSTREAM = 'https://github.com/kaist-plrg/p4-spectec.git'
 BACKEND_ORIGIN_REVISION = 'd150aa6e53e3f572bc4b02299c05d6d6cee9d6c0'
 BUILD_DIRECTORY = 'translator/_build'
 TRANSLATOR_TARGET = 'p4spec/lib/lean-skeleton/main.exe'
+PROPERTY_TARGET = 'p4spec/lib/spec4pbt-property/property_cli.exe'
+PROPERTY_EXECUTABLE = '_build/default/' + PROPERTY_TARGET
+PROPERTY_RUN_TARGET = 'p4spec/lib/spec4pbt-property/property_exec.exe'
+PROPERTY_RUN_EXECUTABLE = '_build/default/' + PROPERTY_RUN_TARGET
 METADATA_TARGET = 'p4spec/lib/spec4pbt-metadata/metadata.exe'
 EXECUTABLE = '_build/default/' + TRANSLATOR_TARGET
 METADATA_EXECUTABLE = '_build/default/' + METADATA_TARGET
@@ -63,7 +67,9 @@ def _source_identity(project):
     for required in [sources / 'main.ml', sources / 'dune', patches / 'algo-defs.patch']:
         if not required.is_file():
             raise ValueError(f'Vendored translator source missing: {required}')
-    files = [project / 'p4bridge/metadata.ml', project / 'p4bridge/toolchain.py']
+    files = [project / 'p4bridge/metadata.ml', project / 'p4bridge/toolchain.py',
+             project / 'p4bridge/property_cli.ml', project / 'p4bridge/property_al.ml',
+             project / 'p4bridge/property_exec.ml']
     for directory in [sources, patches]:
         files.extend(path for path in sorted(directory.rglob('*')) if path.is_file())
     hashes = {path.relative_to(project).as_posix(): digest(path) for path in sorted(files)}
@@ -75,7 +81,9 @@ def _source_identity(project):
 
 def _binary_identity(root):
     paths = {'translator_sha256': root / EXECUTABLE,
-             'metadata_executable_sha256': root / METADATA_EXECUTABLE}
+             'metadata_executable_sha256': root / METADATA_EXECUTABLE,
+             'property_executable_sha256': root / PROPERTY_EXECUTABLE,
+             'property_run_executable_sha256': root / PROPERTY_RUN_EXECUTABLE}
     for path in paths.values():
         if not path.is_file() or not os.access(path, os.X_OK):
             raise ValueError(f'Local translator build is unavailable: {path}; run scripts/build-translator')
@@ -190,8 +198,17 @@ def build(project=PROJECT, switch=None):
     shutil.copyfile(project / 'p4bridge/metadata.ml', helper_source / 'metadata.ml')
     (helper_source / 'dune').write_text(
         '(executable\n (name metadata)\n (libraries pass yojson))\n')
+    property_source = root / 'p4spec/lib/spec4pbt-property'
+    property_source.mkdir()
+    shutil.copyfile(project / 'p4bridge/property_cli.ml', property_source / 'property_cli.ml')
+    shutil.copyfile(project / 'p4bridge/property_al.ml', property_source / 'property_al.ml')
+    shutil.copyfile(project / 'p4bridge/property_exec.ml', property_source / 'property_exec.ml')
+    (property_source / 'dune').write_text('''(executable (name property_cli) (modules property_cli property_al) (libraries pass yojson))
+(executable (name property_exec) (modules property_exec) (libraries pass interp_al interface runtime lang domain util diagnostic yojson))
+''')
     command(['opam', 'exec', '--switch=' + chosen_switch, '--', 'dune', 'build',
-             '--root', root, TRANSLATOR_TARGET, METADATA_TARGET], root, timeout=1800)
+             '--root', root, TRANSLATOR_TARGET, METADATA_TARGET, PROPERTY_TARGET,
+             PROPERTY_RUN_TARGET], root, timeout=1800)
     if before != _source_identity(project):
         raise ValueError('Translator inputs changed during build; run scripts/build-translator again')
     identity = {**before, 'switch': chosen_switch, **_binary_identity(root)}

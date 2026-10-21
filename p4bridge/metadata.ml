@@ -125,8 +125,8 @@ let observations json =
   let root = fields "configuration" ["schema_version"; "observations"] json in
   if List.assoc "schema_version" root <> `Int 1 then fail "configuration: expected schema_version 1";
   let entries = match List.assoc "observations" root with
-    | `List (_ :: _ as entries) -> entries
-    | _ -> fail "configuration: expected a nonempty observations array" in
+    | `List entries -> entries
+    | _ -> fail "configuration: expected an observations array" in
   let seen = ref [] in
   List.map (fun entry ->
     let entry = fields "observation" ["id"; "relation"; "observe"] entry in
@@ -135,8 +135,8 @@ let observations json =
     seen := id :: !seen;
     let relation_name = text "observation.relation" (List.assoc "relation" entry) in
     let selectors = match List.assoc "observe" entry with
-      | `List (_ :: _ as values) -> List.map (text "observation.observe") values
-      | _ -> fail "observation.observe: expected a nonempty array" in
+      | `List values -> List.map (text "observation.observe") values
+      | _ -> fail "observation.observe: expected an array" in
     { relation_name; selectors }) entries
 
 let parse_selector value =
@@ -222,7 +222,7 @@ let children = function
   | Variant fields -> fields
   | External -> []
 
-let metadata definitions namespace relations =
+let metadata definitions namespace roots relations =
   let entries = ref [] and aliases = ref [] in
   let rec register ancestry typ =
     let name = key typ in
@@ -258,6 +258,7 @@ let metadata definitions namespace relations =
         | Function -> fail "function-valued observation transport is unsupported" in
       entries := List.map (fun (key, value) -> key, if key = name then object_ (base @ data) else value) !entries;
       name) in
+  List.iter (fun typ -> ignore (register [] typ)) roots;
   let relations = List.mapi (fun index relation ->
     let arguments = List.map (fun typ -> object_ ["type", string (register [] typ)]) relation.arguments in
     let alias = "Relation" ^ string_of_int index in
@@ -313,7 +314,7 @@ let codec_declarations definitions codec roots =
       " (" ^ lean_type typ ^ ") := inferInstance") (List.sort_uniq compare roots) in
   declarations @ checks
 
-let generate spec_module namespace transport_model configuration spec =
+let generate spec_module namespace transport_model property_inputs configuration spec =
   let spec_module = qualified "spec module" spec_module in
   let lean_namespace = qualified "transport namespace" namespace in
   let observations = observations configuration in
@@ -321,7 +322,8 @@ let generate spec_module namespace transport_model configuration spec =
   if external_types && transport_model = None then
     fail "abstract external type class parameters require a concrete --transport-model and its JSON instances";
   let relations, inputs, observed = select definitions relations observations in
-  let manifest, aliases = metadata definitions namespace relations in
+  let inputs = property_inputs @ inputs in
+  let manifest, aliases = metadata definitions namespace property_inputs relations in
   let codecs = codec_declarations definitions "ToJson" inputs @
     codec_declarations definitions "FromJson" (inputs @ observed) in
   let transport = String.concat "\n" (["import Lean"; "import " ^ spec_module;
@@ -330,9 +332,32 @@ let generate spec_module namespace transport_model configuration spec =
     [""; "end " ^ lean_namespace; ""]) in
   object_ ["manifest", manifest; "transport", string transport]
 
+let property_inputs paths path name =
+  if path = "" && name = "" then [] else (
+    if path = "" || name = "" then fail "--property and --property-name are required together";
+    let source = match Pass.parse paths with
+      | Ok spec -> spec
+      | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
+    let channel = open_in_bin path in
+    let text = Fun.protect ~finally:(fun () -> close_in channel)
+      (fun () -> really_input_string channel (in_channel_length channel)) in
+    let lex = Lexing.from_string text in
+    lex.lex_curr_p <- {lex.lex_curr_p with pos_fname = path};
+    let properties = try Frontend.Parser.properties Frontend.Lexer.token lex
+      with Frontend.Parser.Error -> fail ("invalid property syntax: " ^ path) in
+    let property = match List.filter (fun ((id:Lang.El.id),_,_,_) -> id.it = name) properties with
+      | [property] -> property
+      | _ -> fail ("expected one property named " ^ name) in
+    match Pass.elab_property source property with
+    | Ok (_,inputs,_,_) -> List.map (fun (_,typ) -> convert typ) inputs
+    | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)))
+
 let main () =
   let spec_module = ref "" and namespace = ref "" and config = ref "" and paths = ref [] and model = ref None in
-  Arg.parse ["--spec-module", Arg.Set_string spec_module, "Raw donor Lean module";
+  let property = ref "" and property_name = ref "" in
+  Arg.parse ["--property", Arg.Set_string property, "Property clause whose explicit inputs require codecs";
+    "--property-name", Arg.Set_string property_name, "Name of the property clause";
+    "--spec-module", Arg.Set_string spec_module, "Raw donor Lean module";
     "--namespace", Arg.Set_string namespace, "Transport alias namespace";
     "--config", Arg.Set_string config, "Observation configuration JSON";
     "--transport-model", Arg.String (fun path -> model := Some path), "Lean model declarations inserted inside the transport namespace"]
@@ -346,10 +371,13 @@ let main () =
     let channel = open_in_bin path in
     Fun.protect ~finally:(fun () -> close_in channel)
       (fun () -> really_input_string channel (in_channel_length channel))) !model in
-  let result = generate !spec_module !namespace transport_model configuration spec in
+  let inputs = property_inputs !paths !property !property_name in
+  let result = generate !spec_module !namespace transport_model inputs configuration spec in
   print_endline (Yojson.Basic.to_string result)
 
 let () =
   try main () with
+  | Frontend.Error.ParseError diagnostic ->
+      prerr_endline (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)); exit 1
   | Invalid_metadata message | Sys_error message | Yojson.Json_error message ->
       prerr_endline ("observation metadata: " ^ message); exit 1

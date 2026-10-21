@@ -54,6 +54,9 @@ class ToolchainTests(unittest.TestCase):
             '+let algo_defs = Algo.algo_defs\n')
         bridge = self.project / 'p4bridge'
         bridge.mkdir()
+        (bridge / 'property_cli.ml').write_text('let () = ()\n')
+        (bridge / 'property_al.ml').write_text('let () = ()\n')
+        (bridge / 'property_exec.ml').write_text('let () = ()\n')
         (bridge / 'metadata.ml').write_text('let () = print_endline "metadata"\n')
         (bridge / 'toolchain.py').write_text(Path(toolchain.__file__).read_text())
         self.real_command = toolchain.command
@@ -75,6 +78,8 @@ class ToolchainTests(unittest.TestCase):
         for target in [
             'p4spec/lib/lean-skeleton/main.exe',
             'p4spec/lib/spec4pbt-metadata/metadata.exe',
+            'p4spec/lib/spec4pbt-property/property_cli.exe',
+            'p4spec/lib/spec4pbt-property/property_exec.exe',
         ]:
             executable = overlay / '_build/default' / target
             executable.parent.mkdir(parents=True, exist_ok=True)
@@ -136,7 +141,8 @@ class ToolchainTests(unittest.TestCase):
             resolve_toolchain(self.project)
 
     def test_helper_and_build_recipe_changes_require_rebuild(self):
-        for path in ['p4bridge/metadata.ml', 'p4bridge/toolchain.py']:
+        for path in ['p4bridge/metadata.ml', 'p4bridge/toolchain.py',
+                     'p4bridge/property_al.ml', 'p4bridge/property_exec.ml']:
             with self.subTest(path=path):
                 tool = self.built()
                 file = self.project / path
@@ -147,10 +153,12 @@ class ToolchainTests(unittest.TestCase):
                 file.write_bytes(original)
 
     def test_binary_changes_require_rebuild(self):
-        for artifact in ['translator', 'metadata']:
+        for artifact in ['translator', 'metadata', 'property_exec']:
             with self.subTest(artifact=artifact):
                 tool = self.built()
-                binary = tool.executable if artifact == 'translator' else metadata_executable(self.project, tool)
+                binary = (tool.executable if artifact == 'translator' else
+                          metadata_executable(self.project, tool) if artifact == 'metadata' else
+                          tool.root / toolchain.PROPERTY_RUN_EXECUTABLE)
                 binary.write_text('#!/bin/sh\nexit 42\n')
                 with self.assertRaisesRegex(ValueError, 'stale'):
                     resolve_toolchain(self.project)
