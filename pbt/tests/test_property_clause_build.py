@@ -52,49 +52,16 @@ observe = ["%1"]
             (folder/'Proof.lean').write_text(f'''import {contract}
 namespace BadProof
 theorem property_correct : {contract}.SpecProperty := by sorry
-theorem reference_run_correct :
-    {contract}.SpecProperty → ∀ (input : {contract}.Input),
-      {contract}.Premise input → {contract}.ReferenceRun input := by sorry
 end BadProof
 ''')
             with self.assertRaisesRegex((ValueError,ChildProcessError),'sorry|forbidden|axiom'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
                     property_path=folder/'property.watsup',config_path=folder/'config.toml',
                     name='positive',output=output,proof_module=base+'.Proof',
-                    property_proof='BadProof.property_correct',
-                    reference_run_proof='BadProof.reference_run_correct',timeout_seconds=90)
+                    property_proof='BadProof.property_correct',timeout_seconds=90)
             self.assertFalse(output.exists())
 
-    def test_sorry_reference_run_proof_is_rejected_after_valid_property_proof(self):
-        from pbt.property.clause import build_property
-        with tempfile.TemporaryDirectory(prefix='ClauseBadReference',dir=ROOT/'pbt') as tmp:
-            folder=Path(tmp);base='pbt.'+folder.name;output=folder/'Bundle'
-            (folder/'spec.watsup').write_text(COPY_SPEC)
-            (folder/'property.watsup').write_text(COPY_PROPERTY)
-            (folder/'config.toml').write_text('''schema_version = 1
-[[observations]]
-id = "copy"
-relation = "Copy"
-observe = ["%1"]
-''')
-            contract=base+'.Bundle.Contract'
-            proof=(ROOT/'examples/ordered/templates/copy_positive_proof.lean.in').read_text()
-            proof=proof.replace('@CONTRACT@',contract)
-            proof=proof.split('theorem reference_run_correct :',1)[0]+f'''theorem reference_run_correct :
-    {contract}.SpecProperty → ∀ (input : {contract}.Input),
-      {contract}.Premise input → {contract}.ReferenceRun input := by sorry
-end ClauseCopy
-'''
-            (folder/'Proof.lean').write_text(proof)
-            with self.assertRaisesRegex(ChildProcessError,'forbidden|sorry|axiom'):
-                build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                    property_path=folder/'property.watsup',config_path=folder/'config.toml',
-                    name='positive',output=output,proof_module=base+'.Proof',
-                    property_proof='ClauseCopy.property_correct',
-                    reference_run_proof='ClauseCopy.reference_run_correct',timeout_seconds=120)
-            self.assertFalse(output.exists())
-
-    def test_ordered_proofs_certify_observed_guard_and_actual_output_fails(self):
+    def test_property_proof_and_actual_observed_guard_failure(self):
         from pbt.property.clause import build_property, load_bundle
         with tempfile.TemporaryDirectory(prefix='ClausePositiveNative',dir=ROOT/'pbt') as tmp:
             folder=Path(tmp);base='pbt.'+folder.name;output=folder/'Bundle'
@@ -111,8 +78,7 @@ observe = ["%1"]
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
                 property_path=folder/'property.watsup',config_path=folder/'config.toml',
                 name='positive',output=output,proof_module=base+'.Proof',
-                property_proof='ClauseCopy.property_correct',
-                reference_run_proof='ClauseCopy.reference_run_correct',timeout_seconds=120)
+                property_proof='ClauseCopy.property_correct',timeout_seconds=120)
             self.assertEqual(bundle.plan['relation_semantics'],'ordered')
             self.assertEqual(bundle.request({'n':3},[],0),{'ready':True,'input':[3]})
             good=[{'occurrence_id':'condition.0','relation_id':'Copy','input':[3],
@@ -133,7 +99,7 @@ observe = ["%1"]
             with self.assertRaisesRegex(ValueError,'stale'):
                 bundle.evaluate({'n':3},good)
 
-    def test_build_requires_property_and_reference_proofs(self):
+    def test_build_requires_property_proof(self):
         from pbt.property.clause import build_property
         with tempfile.TemporaryDirectory(prefix='ClauseMissingProof',dir=ROOT/'pbt') as tmp:
             folder=Path(tmp)
@@ -145,7 +111,7 @@ id = "copy"
 relation = "Copy"
 observe = ["%1"]
 ''')
-            with self.assertRaisesRegex(ValueError,'proof_module|property_proof|reference_run_proof'):
+            with self.assertRaisesRegex(ValueError,'proof_module|property_proof'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
                     property_path=folder/'property.watsup',config_path=folder/'config.toml',
                     name='positive',output=folder/'Bundle',timeout_seconds=90)
@@ -242,26 +208,6 @@ end ContractCheck
         self.assertIn('SpecTec.«Copy»',contract)
         self.assertIn('> (0 : Nat)',contract)
 
-    def test_reference_contract_keeps_al_output_match(self):
-        from pbt.property.plan import compile_clause
-        from pbt.property import emit as property_emit
-        source='property matched:\n (n : nat)\n true\n -- Copy: n ~> n\n'
-        plan=compile_clause(frontend(source,COPY_SPEC),COPY_CONFIG)
-        contract=property_emit.render_contract(plan,'ClauseContract','ClauseSpec')
-        self.assertIn('def ReferenceRun',contract)
-        self.assertIn('CallFacts',contract)
-        self.assertIn("n'",contract)
-        self.assertIn('ObservedChecks',contract)
-
-    def test_reference_contract_requires_each_call_prefix(self):
-        from pbt.property.plan import compile_clause
-        from pbt.property import emit as property_emit
-        source='property chained:\n (n : nat)\n true\n -- Copy: n ~> v\n -- Copy: v ~> z\n'
-        plan=compile_clause(frontend(source,COPY_SPEC),COPY_CONFIG)
-        contract=property_emit.render_contract(plan,'ClauseContract','ClauseSpec')
-        self.assertIn('def CallProgress',contract)
-        self.assertIn('CallProgress input',contract)
-
 class PropertyBuildTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -277,8 +223,7 @@ class PropertyBuildTests(unittest.TestCase):
         cls.bundle=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
             property_path=cls.root/'property.watsup',config_path=cls.root/'config.toml',
             name='positive',output=cls.root/'Bundle',proof_module=base+'.Proof',
-            property_proof='ClauseCopy.property_correct',
-            reference_run_proof='ClauseCopy.reference_run_correct',timeout_seconds=120)
+            property_proof='ClauseCopy.property_correct',timeout_seconds=120)
 
     def test_complete_typed_trace_and_request_provenance(self):
         b=self.bundle
@@ -317,28 +262,12 @@ namespace PureProof
 theorem property_correct : {base}.Bundle.Contract.SpecProperty := by
   intro input _
   exact decide_eq_true rfl
-theorem reference_run_correct :
-    {base}.Bundle.Contract.SpecProperty →
-    ∀ (input : {base}.Bundle.Contract.Input),
-      {base}.Bundle.Contract.Premise input →
-      {base}.Bundle.Contract.ReferenceRun input := by
-  intro hp input h
-  constructor
-  · trivial
-  · intro _
-    constructor
-    · trivial
-    constructor
-    · exact hp input h
-    · intro _
-      exact decide_eq_true rfl
 end PureProof
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
                 property_path=folder/'property.watsup',config_path=folder/'config.toml',
                 name='pure',output=folder/'Bundle',proof_module=base+'.Proof',
-                property_proof='PureProof.property_correct',
-                reference_run_proof='PureProof.reference_run_correct',timeout_seconds=120)
+                property_proof='PureProof.property_correct',timeout_seconds=120)
             self.assertEqual(bundle.plan['calls'],[])
             self.assertEqual(bundle.evaluate({'n':3},[]),'pass')
             with self.assertRaisesRegex(ValueError,'unknown|request'):

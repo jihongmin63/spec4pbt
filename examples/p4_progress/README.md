@@ -13,6 +13,6 @@ python3 -m pbt.property plan \
 ```
 
 This example provides the frontend/planning inputs. Certified execution needs
-the chosen implementation adapter, native/external-type codecs, property and
-reference-run proofs, and a certified generator. The [property guide](../../docs/property-clauses.md#type-soundness-successful-instantiation-after-typing)
+the chosen implementation adapter, native/external-type codecs, a property
+proof, and a certified generator. The [property guide](../../docs/property-clauses.md#type-soundness-successful-instantiation-after-typing)
 explains the generated Lean contract and current execution boundary.

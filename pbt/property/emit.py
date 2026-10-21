@@ -61,8 +61,6 @@ def render_contract(plan, namespace, spec_module):
     outputs = [v for v in plan['variables'].values() if v['producer'] is not None]
     cvars = [v for v in outputs if v['producer'] != 'goal' and v['name'] in source_names]
     gvars = [v for v in outputs if v['producer'] == 'goal' and v['name'] in goal_names]
-    rvars = [v for v in outputs if v['producer'] != 'goal']
-    goal_al_vars = [v for v in outputs if v['producer'] == 'goal']
     names = {x['name']: 'input.' + quote(x['name']) for x in plan['inputs']}
     for value in outputs:
         names[value['name']] = quote(value['name'])
@@ -94,34 +92,8 @@ def render_contract(plan, namespace, spec_module):
 
     conditions = plan['all_conditions']
     body = conj([atom(node) for node in conditions])
-    condition_nodes = [node for block in plan['condition_blocks'] for node in block['nodes']]
-    call_facts = conj([atom(node) for node in condition_nodes if node['kind'] in ('relation', 'let')])
-    observed_nodes = [node for block in plan['checks'] for node in block['nodes']]
-    observed = conj([atom(node) for node in observed_nodes if node['kind'] == 'guard'])
-    goal_al_nodes = plan['goal_block']['nodes']
-    goal_facts = conj([atom(node) for node in goal_al_nodes if node['kind'] in ('relation', 'let')])
-    goal_checks = conj([atom(node) for node in goal_al_nodes if node['kind'] == 'guard'])
-    progress = []
-    prior_nodes = []
-    prior_vars = []
-    for block in [*plan['condition_blocks'], plan['goal_block']]:
-        block_vars = [v for v in outputs if v['producer'] == block['origin']]
-        for node in block['nodes']:
-            if node['kind'] == 'relation':
-                prefix = conj([atom(p) for p in prior_nodes])
-                progress.append(forall(prior_vars,
-                    prefix + ' → ' + exists(block_vars, atom(node))))
-            if node['kind'] in ('relation', 'let'):
-                prior_nodes.append(node)
-        prior_vars += block_vars
     goal = atom(goal_node)
     cargs = args(cvars)
-    rargs = args(rvars)
-    al_goal_args = args(rvars + goal_al_vars)
-    goal_reference = forall(goal_al_vars,
-        'GoalALFacts input ' + al_goal_args + ' → GoalALChecks input ' + al_goal_args)
-    reference_body = ('CallFacts input ' + rargs + ' → ObservedChecks input ' + rargs +
-        ' ∧ ' + exists(gvars, 'Goal input ' + args(cvars + gvars)) + ' ∧ (' + goal_reference + ')')
     return '\n'.join([
         'import Lean',
         'import ' + spec_module,
@@ -140,13 +112,6 @@ def render_contract(plan, namespace, spec_module):
         'def Premise (input : Input) : Prop := ' + exists(cvars, 'Conditions input ' + cargs),
         'def SpecProperty : Prop := ∀ (input : Input), ' +
             forall(cvars, 'Conditions input ' + cargs + ' → ' + exists(gvars, 'Goal input ' + args(cvars + gvars))),
-        'def CallFacts (input : Input) ' + binders(rvars) + ' : Prop := ' + call_facts,
-        'def ObservedChecks (input : Input) ' + binders(rvars) + ' : Prop := ' + observed,
-        'def GoalALFacts (input : Input) ' + binders(rvars + goal_al_vars) + ' : Prop := ' + goal_facts,
-        'def GoalALChecks (input : Input) ' + binders(rvars + goal_al_vars) + ' : Prop := ' + goal_checks,
-        'def CallProgress (input : Input) : Prop := ' + conj(progress),
-        'def ReferenceRun (input : Input) : Prop := CallProgress input ∧ (' +
-            forall(rvars, reference_body) + ')',
         '',
         'end ' + namespace,
         '',

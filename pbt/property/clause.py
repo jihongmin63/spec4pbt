@@ -45,14 +45,11 @@ def load_clause(spec_paths, property_path, name, *, project=PROJECT, timeout_sec
     return matches[0]
 
 
-def contract_audit_source(contract_module, proof_module, property_proof, reference_run_proof):
+def contract_audit_source(contract_module, proof_module, property_proof):
     ns=contract_module
     return f'''import pbt.GoalTools
 import {proof_module}
 #spec4pbt_verify {property_proof} in_module {proof_module} : {ns}.SpecProperty
-#spec4pbt_verify {reference_run_proof} in_module {proof_module} :
-  ({ns}.SpecProperty → ∀ (input : {ns}.Input),
-    {ns}.Premise input → {ns}.ReferenceRun input)
 '''
 
 
@@ -118,9 +115,8 @@ class CertifiedProperty:
 
 def build_property(*, spec_paths, property_path, config_path, name, output,
                    project=PROJECT, timeout_seconds=120, transport_model=None,
-                   proof_module=None, property_proof=None, reference_run_proof=None):
-    for label, value in [('proof_module', proof_module), ('property_proof', property_proof),
-                         ('reference_run_proof', reference_run_proof)]:
+                   proof_module=None, property_proof=None):
+    for label, value in [('proof_module', proof_module), ('property_proof', property_proof)]:
         if not value:
             raise ValueError(f'{label} is required for property certification')
         require_name(value)
@@ -189,7 +185,7 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
                           plan['plan_id'],project,timeout)
         (output/'Contract.lean').write_text(property_emit.render_contract(plan,module,base+'.Transport'))
         (output/'ContractAudit.lean').write_text(contract_audit_source(
-            module,proof_module,property_proof,reference_run_proof))
+            module,proof_module,property_proof))
         rebuild_modules(project,[module,proof_module],timeout)
         run_checked(['lake','env','lean',str(output/'ContractAudit.lean')],project,timeout)
         files=fingerprint_dependencies(project,[output/'ContractAudit.lean'],timeout)
@@ -204,7 +200,6 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         certificate={'schema_version':3,'project':str(project),'namespace':namespace,'module':module,
                      'fingerprints':files,'plan_id':plan['plan_id'],'toolchain':tool.identity(),
                      'proof_module':proof_module,'property_proof':property_proof,
-                     'reference_run_proof':reference_run_proof,
                      'spec_paths':[str(p) for p in spec_paths],
                      'property_path':str(property_path),'property_name':name}
         write_json(output/'certificate.json',certificate)
@@ -238,7 +233,7 @@ def load_bundle(directory, *, timeout_seconds=120):
     if (directory/'Contract.lean').read_text()!=property_emit.render_contract(plan,bundle.namespace,bundle.module.rsplit('.',1)[0]+'.Transport'):
         raise ValueError('generated contract source mismatch')
     expected_audit=contract_audit_source(bundle.module,cert['proof_module'],
-        cert['property_proof'],cert['reference_run_proof'])
+        cert['property_proof'])
     if (directory/'ContractAudit.lean').read_text()!=expected_audit: raise ValueError('audit source mismatch')
     rebuild_modules(bundle.project,[bundle.module,cert['proof_module']],timeout_seconds)
     run_checked(['lake','env','lean',str(directory/'ContractAudit.lean')],bundle.project,timeout_seconds)

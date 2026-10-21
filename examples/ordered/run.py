@@ -29,13 +29,10 @@ def build_example(name,output):
     if proof_path.exists():raise FileExistsError(proof_path)
     contract=base+'.Contract'
     proof=(root/'templates'/proof_template).read_text().replace('@CONTRACT@',contract)
-    if name in ('chain','independent'):
-        proof=proof.replace('@SECOND_INPUT@','v' if name=='chain' else 'input.«n»')
     proof_path.write_text(proof)
     bundle=build_property(spec_paths=[root/'spec.watsup'],
         property_path=root/'properties.watsup',config_path=config,name=name,output=output,
-        proof_module=proof_module,property_proof=proof_namespace+'.property_correct',
-        reference_run_proof=proof_namespace+'.reference_run_correct')
+        proof_module=proof_module,property_proof=proof_namespace+'.property_correct')
     generator=(root/'templates'/generator_template).read_text()
     generator=generator.replace('@CONTRACT@',contract).replace('@PROOF@',proof_module)
     (bundle.directory/'Generator.lean').write_text(generator)

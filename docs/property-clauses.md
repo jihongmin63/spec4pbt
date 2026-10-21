@@ -13,10 +13,15 @@ declarations in an imported proof module:
 
 ```lean
 theorem property_correct : Bundle.Contract.SpecProperty := ...
-theorem reference_run_correct :
-  Bundle.Contract.SpecProperty →
-  ∀ input, Bundle.Contract.Premise input → Bundle.Contract.ReferenceRun input := ...
 ```
+
+`build` writes a bundle directory. `Spec.lean` is the translated specification,
+`Contract.lean` defines the property to prove, `plan.json` lists the relation
+calls the checker will make, and `manifest.json` records their input types.
+`certificate.json` records the proof name and hashes of those files and their
+dependencies. `run` reads this directory, samples inputs, calls the chosen
+implementation, then asks the SpecTec AL checker to judge each recorded result.
+The implementation and its results are supplied separately from the bundle.
 
 `run` additionally audits a `CorrectGen Bundle.Contract.Premise` generator for
 exact support. The proof audit rejects extra hypotheses and `sorry` dependencies.
@@ -84,8 +89,7 @@ python3 -m pbt.property build \
   --config examples/ordered/observations.toml \
   --output examples/ordered/GeneratedCustom \
   --proof-module examples.ordered.CustomProof \
-  --property-proof MyProof.property_correct \
-  --reference-run-proof MyProof.reference_run_correct
+  --property-proof MyProof.property_correct
 python3 -m pbt.property run \
   --bundle examples/ordered/GeneratedCustom \
   --implementation examples/ordered/implementations/correct.toml \
@@ -185,9 +189,8 @@ condition-variable interface. The property above is logically equivalent to:
 
 `CorrectGen Premise` certifies exactly the supported inputs satisfying the
 premise. It generates `p`; the proof does not expose `ir` to an external call.
-Bundle certification also audits the property proof and the `ReferenceRun`
-proof connecting ordered calls and AL checks. Emitting these definitions alone
-is not a proof of the P4 property.
+Bundle creation checks the property proof. Emitting these definitions alone
+does not prove the P4 property.
 
 For each generated program, collection calls only the external instantiation
 adapter. A `success` response has `observation: {}` because the property does
@@ -197,8 +200,8 @@ does not run the internal typing relation again or fabricate hidden outputs.
 
 The actual P4 clause is supported by the frontend and planner. Certified
 execution against a concrete P4 implementation additionally requires its
-adapter, the concrete external-type/native codecs, and property/reference-run
-and generator proofs. The small ordered examples exercise the complete
+adapter, the concrete external-type/native codecs, and property and generator
+proofs. The small ordered examples exercise the complete
 certified build, execution, recheck, and rerun path.
 
 Parse and plan the actual P4 clause with its status-only external metadata:

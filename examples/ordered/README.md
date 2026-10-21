@@ -4,7 +4,7 @@
 - `observations.toml`: external relation outputs visible to the AL checker.
 - `implementations/`: separate correct, zero-output and rejecting bindings.
 - `adapter.py`, `target.py`: adapter protocol and the small native target.
-- `templates/`: Lean property/reference-run proofs and exact-support generators.
+- `templates/`: Lean property proofs and exact-support generators.
 - `run.py`: instantiate a named example, certify it and execute its adapter.
 
 From the repository root:

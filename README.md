@@ -37,7 +37,7 @@ The property pipeline is split by responsibility:
 | --- | --- |
 | `cli.py`, `__main__.py` | `python3 -m pbt.property`: inspect, plan, build, run, collect, recheck, rerun. |
 | `plan.py` | Classify typed AL conditions, external calls and observation dependencies. |
-| `emit.py` | Generate the complete Lean property and reference-run contracts. |
+| `emit.py` | Generate the Lean input, premise, and property contract. |
 | `clause.py` | Build/audit certified bundles and reject stale dependencies. |
 | `implementation.py`, `protocol.py` | Resolve implementation manifests, fingerprint targets and validate adapter communication. |
 | `runner.py` | Sample certified inputs, collect outputs, save traces and invoke native AL checking. |
@@ -153,10 +153,14 @@ python3 -m examples.ordered.run \
 Use fresh bundle and output paths. The example runner instantiates supplied
 Lean proof/generator templates. Supported examples are `positive`, `chain`,
 `independent`, `internal_positive` and `progress`; `--mode zero` or `--mode reject`
-selects intentionally incorrect implementations. Custom properties need proofs
-of the generated `SpecProperty` and `ReferenceRun` implication, plus a
-`CorrectGen Contract.Premise` generator. No arbitrary property is proved
-automatically.
+selects intentionally incorrect implementations. Custom properties need a proof
+of the generated `SpecProperty` and a `CorrectGen Contract.Premise` generator.
+No arbitrary property is proved automatically.
+
+The bundle path is a generated directory containing the translated SpecTec
+specification, the property proof check, the relation call plan, and file hashes.
+The example runner reads it when calling the selected implementation and
+checking its responses. The case results go to the separate `--output` path.
 
 The [full-P4 property](examples/p4_progress/progress.watsup) uses the same syntax:
 
@@ -179,7 +183,7 @@ python3 -m pbt.property plan \
 ```
 
 Certified full-P4 execution additionally requires a concrete implementation
-adapter, external-type codecs, property/reference-run proofs and a certified
+adapter, external-type codecs, a property proof and a certified
 generator. See the [property guide](docs/property-clauses.md) for custom
 build/run, adapter contracts, saved-trace rechecking and rerunning implementations.
 

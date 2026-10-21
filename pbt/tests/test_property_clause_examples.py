@@ -91,8 +91,7 @@ class PropertyExamplesTests(unittest.TestCase):
         bundle=build_property(spec_paths=[root/'spec.watsup'],
             property_path=root/'properties.watsup',config_path=config,
             name='progress',output=output,proof_module=proof_module,
-            property_proof='ClauseProgress.property_correct',
-            reference_run_proof='ClauseProgress.reference_run_correct')
+            property_proof='ClauseProgress.property_correct')
         good=collect_case(bundle,{'n':3},self.root/'status-good',
             implementation=root/'implementations/correct.toml')
         bad=collect_case(bundle,{'n':3},self.root/'status-bad',

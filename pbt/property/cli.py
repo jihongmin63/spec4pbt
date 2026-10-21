@@ -25,7 +25,6 @@ def main():
             p.add_argument('--transport-model',type=Path)
             p.add_argument('--proof-module',required=True)
             p.add_argument('--property-proof',required=True)
-            p.add_argument('--reference-run-proof',required=True)
     for action in ['run','collect','recheck','rerun']:
         p=commands.add_parser(action)
         p.add_argument('--bundle',type=Path,required=True)
@@ -54,8 +53,7 @@ def main():
         if args.action=='build':
             b=build_property(spec_paths=args.spec,property_path=args.property,config_path=args.config,name=args.name,
                              output=args.output,timeout_seconds=args.timeout,transport_model=args.transport_model,
-                             proof_module=args.proof_module,property_proof=args.property_proof,
-                             reference_run_proof=args.reference_run_proof)
+                             proof_module=args.proof_module,property_proof=args.property_proof)
             print(json.dumps({'bundle':str(b.directory),'namespace':b.namespace,'plan_id':b.plan['plan_id']}));return 0
         b=load_bundle(args.bundle,timeout_seconds=args.timeout)
         if args.action=='run':

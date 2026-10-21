@@ -28,21 +28,4 @@ theorem property_correct : @CONTRACT@.SpecProperty := by
   intro input x _
   exact ⟨input.«n», copy_refl input.«n»⟩
 
-theorem reference_run_correct :
-    @CONTRACT@.SpecProperty → ∀ (input : @CONTRACT@.Input),
-      @CONTRACT@.Premise input → @CONTRACT@.ReferenceRun input := by
-  intro _ input _
-  constructor
-  · constructor
-    · intro _
-      exact ⟨input.«n», internal_refl input.«n»⟩
-    · intro x _
-      exact ⟨input.«n», copy_refl input.«n»⟩
-  · intro x _
-    constructor
-    · trivial
-    refine ⟨input.«n», copy_refl input.«n», ?_⟩
-    intro y _
-    trivial
-
 end ClauseProgress

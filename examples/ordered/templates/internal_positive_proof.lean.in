@@ -28,19 +28,4 @@ theorem property_correct : @CONTRACT@.SpecProperty := by
   change decide (input.«n» = input.«n») = true
   exact decide_eq_true rfl
 
-theorem reference_run_correct :
-    @CONTRACT@.SpecProperty → ∀ (input : @CONTRACT@.Input),
-      @CONTRACT@.Premise input → @CONTRACT@.ReferenceRun input := by
-  intro _ input _
-  constructor
-  · intro _
-    exact ⟨input.«n», internal_refl input.«n»⟩
-  · intro x _
-    constructor
-    · trivial
-    constructor
-    · exact decide_eq_true rfl
-    · intro _
-      exact decide_eq_true rfl
-
 end ClauseInternal

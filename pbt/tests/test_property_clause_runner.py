@@ -67,14 +67,11 @@ adapter = {command}
             module=cls.base+'.'+label+'Proof'
             proof=(ROOT/'examples/ordered/templates'/template).read_text()
             proof=proof.replace('@CONTRACT@',cls.base+'.'+label+'.Contract')
-            if label!='Positive':
-                proof=proof.replace('@SECOND_INPUT@','v' if label=='Chain' else 'input.«n»')
             (cls.root/(label+'Proof.lean')).write_text(proof)
             cls.bundles[label]=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
                 property_path=cls.root/(property_name+'.watsup'),config_path=cls.root/'config.toml',
                 name=property_name,output=cls.root/label,proof_module=module,
                 property_proof=('ClauseCopy' if label=='Positive' else 'ClauseChain')+'.property_correct',
-                reference_run_proof=('ClauseCopy' if label=='Positive' else 'ClauseChain')+'.reference_run_correct',
                 timeout_seconds=120)
         template=(ROOT/'examples/ordered/templates/copy_positive_generator.lean.in').read_text()
         (cls.root/'Generator.lean').write_text(template.replace('@CONTRACT@',cls.base+'.Positive.Contract')
