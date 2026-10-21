@@ -201,8 +201,8 @@ def validate_observation(value, observation_id, manifest, source="config"):
             raise ValueError(f"{context}: unknown relation {relation_name!r}")
         relation = manifest["relations"][relation_name]
         observed = entry["observe"]
-        if not isinstance(observed, list) or not observed:
-            raise ValueError(f"{context}.observe: empty selection or non-array")
+        if not isinstance(observed, list):
+            raise ValueError(f"{context}.observe: expected an observation selector array")
         selectors = []
         for raw in observed:
             selector_context = f"{context}.observe[{raw!r}]"

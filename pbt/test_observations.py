@@ -123,7 +123,7 @@ class ObservationValidationTests(unittest.TestCase):
             (config(("%3", "%3")), "overlap"),
             (config(("%1", "%1.inner.value")), "overlap"),
             (config(("%1.inner.value", "%1.inner")), "overlap"),
-            (config(()), "empty"), (config(("%01",)), "selector"),
+            (config(("%01",)), "selector"),
             (config(("%1; #eval 0",)), "selector"),
             ({**config(), "schema_version": True}, "schema"),
             ({**config(), "extra": 1}, "unknown"),
