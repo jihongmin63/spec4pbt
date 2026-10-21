@@ -1,0 +1,48 @@
+import @CONTRACT@
+
+namespace ClauseProgress
+
+theorem internal_refl (n : Nat) : SpecTec.Internal n n := by
+  refine ⟨0, ?_⟩
+  apply SpecTecExecution.Eval.call
+  change SpecTecExecution.Eval SpecTec.specTecProgram
+    (SpecTecExecution.firstSuccess (SpecTec.Internal_clauses n) ()) 0
+    (.success (.of n)) 0
+  apply SpecTecExecution.firstSuccess_cons_success
+  change SpecTecExecution.Eval SpecTec.specTecProgram (.pure n) 0
+    (.success (.of n)) 0
+  exact SpecTecExecution.Eval.pure n
+
+theorem copy_refl (n : Nat) : SpecTec.Copy n n := by
+  refine ⟨0, ?_⟩
+  apply SpecTecExecution.Eval.call
+  change SpecTecExecution.Eval SpecTec.specTecProgram
+    (SpecTecExecution.firstSuccess (SpecTec.Copy_clauses n) ()) 0
+    (.success (.of n)) 0
+  apply SpecTecExecution.firstSuccess_cons_success
+  change SpecTecExecution.Eval SpecTec.specTecProgram (.pure n) 0
+    (.success (.of n)) 0
+  exact SpecTecExecution.Eval.pure n
+
+theorem property_correct : @CONTRACT@.SpecProperty := by
+  intro input x _
+  exact ⟨input.«n», copy_refl input.«n»⟩
+
+theorem reference_run_correct :
+    @CONTRACT@.SpecProperty → ∀ (input : @CONTRACT@.Input),
+      @CONTRACT@.Premise input → @CONTRACT@.ReferenceRun input := by
+  intro _ input _
+  constructor
+  · constructor
+    · intro _
+      exact ⟨input.«n», internal_refl input.«n»⟩
+    · intro x _
+      exact ⟨input.«n», copy_refl input.«n»⟩
+  · intro x _
+    constructor
+    · trivial
+    refine ⟨input.«n», copy_refl input.«n», ?_⟩
+    intro y _
+    trivial
+
+end ClauseProgress

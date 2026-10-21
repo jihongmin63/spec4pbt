@@ -33,10 +33,10 @@ uses the active opam switch when building. Subsequent translation uses the
 recorded local build. `scripts/bootstrap-p4-spectec --source PATH` optionally
 uses a local Git cache containing the official pin.
 
-The build command compiles both the actual translator and the observation
-metadata helper. It creates an ignored workspace at
+The build command compiles the translator, observation metadata helper, property
+frontend, and native AL property executor. It creates an ignored workspace at
 `translator/_build/p4-spectec`, combines the pinned official source with the
-tracked backend, and applies the small tracked `algo_defs` compatibility patch
+tracked backend, and applies the tracked compatibility and property patches
 there. The official submodule stays unchanged. All source needed beyond the
 public submodule is in this repository; no external Docker checkout or prebuilt
 translator is used.
@@ -351,3 +351,14 @@ except for their tracked `.gitkeep` files.
 The `main` branch supplies the common structure and a runnable example. `P4`
 carries the P4 specification and existing generators. `P4-spectec-based` includes
 the common Palamedes generator layer and its SpecTec integration work.
+
+## Native SpecTec property clauses
+
+Use ordinary SpecTec clauses, prove their complete premises and property in
+Lean, then collect external results and check them with the native AL runner.
+Specification observation metadata and implementation adapters are separate,
+so one certified bundle can test multiple implementations.
+
+See [the property guide](docs/property-clauses.md) for build/run/recheck/rerun
+commands, adapter contracts, proof-backed examples, and the actual P4
+`Program_ok` to `Program_inst` translation.

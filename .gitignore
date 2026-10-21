@@ -11,3 +11,6 @@ _build/
 .superpowers/
 
 /docs/superpowers/
+
+# Locally certified property-clause bundles are regenerated in each checkout.
+/specifications/property_clause/Generated*/

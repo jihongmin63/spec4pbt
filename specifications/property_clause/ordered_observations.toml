@@ -1,0 +1,6 @@
+schema_version = 1
+
+[[observations]]
+id = "copy"
+relation = "Copy"
+observe = ["%1"]

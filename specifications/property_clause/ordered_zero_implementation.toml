@@ -1,0 +1,8 @@
+schema_version = 1
+id = "ordered-copy-zero"
+cwd = "../.."
+
+[[executions]]
+relation = "Copy"
+adapter = ["python3", "specifications/property_clause/ordered_adapter.py", "--mode", "zero"]
+artifacts = ["specifications/property_clause/ordered_target.py"]

@@ -1,0 +1,7 @@
+schema_version = 1
+
+# Check instantiation success; the layer and store remain hidden.
+[[observations]]
+id = "instantiation"
+relation = "Program_inst"
+observe = []

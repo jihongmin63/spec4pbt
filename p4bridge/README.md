@@ -70,6 +70,11 @@ module path components. The `lean-toolchain` in that project selects Lean.
 
 ## Observation transport boundary
 
+For native property clauses, the bridge relation manifest supplies input slots
+and types, while observation metadata supplies external selectors. Execution
+adapters are bound later through an implementation TOML; see the
+[native property workflow](../README.md#native-spectec-property-clauses).
+
 The bridge supports primitive types, closed records/variants and aliases,
 lists/options/tuples, recursive data, and supported closed generic variant/alias
 instantiations. Codecs are derived only for the dependency closure of inputs and

@@ -1,0 +1,35 @@
+property positive:
+  (n : nat)
+  v = v
+  -- Copy: n ~> v
+  -- if $(v > 0)
+
+property chain:
+  (n : nat)
+  w = w
+  -- Copy: n ~> v
+  -- Copy: v ~> w
+
+property independent:
+  (n : nat)
+  w = w
+  -- Copy: n ~> v
+  -- Copy: n ~> w
+
+property internal_positive:
+  (n : nat)
+  n = n
+  -- Internal: n ~> x
+  -- if $(x > 0)
+
+property progress:
+  (n : nat)
+  Copy: n ~> y
+  -- Internal: n ~> x
+
+property mixed:
+  (n : nat)
+  true
+  -- Internal: n ~> x
+  -- Copy: n ~> v
+  -- if x = v
