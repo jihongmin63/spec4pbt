@@ -1,5 +1,0 @@
-syntax result = { VALUE int, TRACE int }
-var n : int
-relation Eval: int ==> result hint(input %0)
-rule Eval/value:
-  n ==> { VALUE $(n + 1), TRACE n }

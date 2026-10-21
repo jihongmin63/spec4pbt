@@ -1,8 +1,0 @@
-schema_version = 1
-id = "ordered-copy-reject"
-cwd = "../.."
-
-[[executions]]
-relation = "Copy"
-adapter = ["python3", "specifications/property_clause/ordered_adapter.py", "--mode", "reject"]
-artifacts = ["specifications/property_clause/ordered_target.py"]

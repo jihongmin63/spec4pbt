@@ -48,8 +48,8 @@ stdin containing `plan_id`, `case_id`, `occurrence_id`, `relation_id`, canonical
 `input`, and the metadata's `observe` selectors. It executes the selected
 implementation, extracts those fields, and writes one JSON response with the
 same four IDs, `status = "success"` and an `observation` object, or
-`status = "relation_failure"`. The [ordered adapter](../specifications/property_clause/ordered_adapter.py)
-calls a separate [target](../specifications/property_clause/ordered_target.py) and
+`status = "relation_failure"`. The [ordered adapter](../examples/ordered/adapter.py)
+calls a separate [target](../examples/ordered/target.py) and
 extracts its native `value`. `artifacts` lists target binaries and helpers that
 cannot be found from the adapter argv. The launcher and script arguments are
 fingerprinted automatically. A fingerprint records provenance and detects
@@ -59,9 +59,9 @@ Build the pinned native translator, then run the small proof-backed examples:
 
 ```sh
 scripts/build-translator
-python3 -m pbt.property_clause_examples.run \
+python3 -m examples.ordered.run \
   --property positive \
-  --bundle pbt/OrderedPositiveDemo \
+  --bundle examples/ordered/GeneratedPositiveDemo \
   --output test_cases/ordered-positive --count 4 --size 5 --seed 0
 ```
 
@@ -77,19 +77,19 @@ To build a custom bundle, put a proof file at a stable Lean module path that
 imports the future `<output>.Contract` module, then run:
 
 ```sh
-python3 -m pbt.property_clause build \
-  --spec specifications/property_clause/ordered_spec.watsup \
-  --property specifications/property_clause/ordered_properties.watsup \
+python3 -m pbt.property build \
+  --spec examples/ordered/spec.watsup \
+  --property examples/ordered/properties.watsup \
   --name positive \
-  --config specifications/property_clause/ordered_observations.toml \
-  --output pbt/CustomBundle \
-  --proof-module pbt.CustomProof \
+  --config examples/ordered/observations.toml \
+  --output examples/ordered/GeneratedCustom \
+  --proof-module examples.ordered.CustomProof \
   --property-proof MyProof.property_correct \
   --reference-run-proof MyProof.reference_run_correct
-python3 -m pbt.property_clause run \
-  --bundle pbt/CustomBundle \
-  --implementation specifications/property_clause/ordered_correct_implementation.toml \
-  --generator-module pbt.CustomGenerator \
+python3 -m pbt.property run \
+  --bundle examples/ordered/GeneratedCustom \
+  --implementation examples/ordered/implementations/correct.toml \
+  --generator-module examples.ordered.CustomGenerator \
   --generator MyGenerator.generator \
   --output test_cases/custom --count 4
 ```
@@ -106,16 +106,16 @@ snapshot and responses without reading the implementation files. Rerun requires
 a new explicit implementation and recomputes later inputs from its new observations:
 
 ```sh
-python3 -m pbt.property_clause recheck \
-  --bundle pbt/OrderedPositiveDemo \
+python3 -m pbt.property recheck \
+  --bundle examples/ordered/GeneratedPositiveDemo \
   --trace test_cases/ordered-positive/case-000000/trace.json
-python3 -m pbt.property_clause collect \
-  --bundle pbt/OrderedPositiveDemo \
-  --implementation specifications/property_clause/ordered_correct_implementation.toml \
+python3 -m pbt.property collect \
+  --bundle examples/ordered/GeneratedPositiveDemo \
+  --implementation examples/ordered/implementations/correct.toml \
   --input input.json --output test_cases/manual-copy
-python3 -m pbt.property_clause rerun \
-  --bundle pbt/OrderedPositiveDemo \
-  --implementation specifications/property_clause/ordered_zero_implementation.toml \
+python3 -m pbt.property rerun \
+  --bundle examples/ordered/GeneratedPositiveDemo \
+  --implementation examples/ordered/implementations/zero.toml \
   --case test_cases/ordered-positive/case-000000 \
   --output test_cases/ordered-positive-rerun
 ```
@@ -204,9 +204,9 @@ certified build, execution, recheck, and rerun path.
 Parse and plan the actual P4 clause with its status-only external metadata:
 
 ```sh
-python3 -m pbt.property_clause plan \
-  --spec external/p4-spectec/spec \
-  --property specifications/property_clause/full_p4_progress.watsup \
+python3 -m pbt.property plan \
+  --spec p4-spectec/spec \
+  --property examples/p4_progress/progress.watsup \
   --name instantiation_progress \
-  --config specifications/property_clause/full_p4_observations.toml
+  --config examples/p4_progress/observations.toml
 ```

@@ -23,11 +23,14 @@ another definition's directional conversion fails. It makes no other
 frontend or interpreter changes. The build applies this patch to its private
 copy under `_build/p4-spectec/`; the official submodule stays unchanged.
 
-`tests/` contains 33 unchanged files from the development commit's
+`tests/` retains 33 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and
 Lean proofs. The large P4 oracle corpus and the original Dune test alias are
 not included. These regression suites run without the P4C submodule.
+The additional `test_*.py` files and `fixtures/` are maintained integration
+tests, consolidated here with the native helpers under `bridge/` and the
+Python toolchain/translation drivers. They are outside the imported checksums.
 
 `SHA256SUMS` records every imported backend file, test file, and the original
 `LICENSE`. Check the imported bytes from this directory with:
@@ -37,7 +40,8 @@ sha256sum --check SHA256SUMS
 ```
 
 The imported code and tests retain their original Apache-2.0 license. The
-complete original license and attribution are in `LICENSE`. Backend and test
-sources have no local edits; integration code outside `src/` is maintained by
-this repository. The backend's original README is retained in `src/README.md`;
+complete original license and attribution are in `LICENSE`. The imported backend
+and original regression files have no local edits. The native `bridge/` helpers,
+Python drivers and additional integration tests are maintained by this repository.
+The backend's original README is retained in `src/README.md`;
 its command paths describe the original P4-SpecTec checkout.
