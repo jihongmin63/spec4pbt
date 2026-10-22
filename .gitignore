@@ -2,15 +2,6 @@
 .venv/
 __pycache__/
 *.pyc
-_build/
-/implementations/*
-!/implementations/.gitkeep
-/test_cases/*
-!/test_cases/.gitkeep
-
+/out/
+/implementations/local/
 .superpowers/
-
-/docs/superpowers/
-
-# Locally certified property-clause bundles are regenerated in each checkout.
-/examples/*/Generated*

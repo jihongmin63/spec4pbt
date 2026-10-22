@@ -7,15 +7,16 @@ import shutil
 import subprocess
 import tomllib
 
-from translator.toolchain import resolve_toolchain, digest
-from translator.translate import source_identity
+from translator.toolchain import (
+    PROJECT, BRIDGE_DIRECTORY, TRANSLATOR_DIRECTORY, PROPERTY_EXECUTABLE,
+    PROPERTY_RUN_EXECUTABLE, resolve_toolchain, digest, source_identity,
+)
 from pbt.lean_tools import require_name, require_timeout, run_checked, rebuild_modules
 from pbt.property.plan import compile_clause, identity
 from pbt.property import emit as property_emit
 from pbt.observations import validate_observation
-from pbt.verify_observable import fingerprint_dependencies
+from pbt.lean_tools import fingerprint_dependencies
 
-PROJECT=Path(__file__).resolve().parents[2]
 
 
 def write_json(path, value):
@@ -35,7 +36,7 @@ def strict_json(text):
 
 def load_clause(spec_paths, property_path, name, *, project=PROJECT, timeout_seconds=60):
     tool=resolve_toolchain(project)
-    exe=tool.root/'_build/default/p4spec/lib/spec4pbt-property/property_cli.exe'
+    exe=tool.root / PROPERTY_EXECUTABLE
     command=[str(exe)]
     for path in spec_paths: command += ['--spec',str(Path(path).resolve())]
     command += ['--property',str(Path(property_path).resolve())]
@@ -47,7 +48,7 @@ def load_clause(spec_paths, property_path, name, *, project=PROJECT, timeout_sec
 
 def contract_audit_source(contract_module, proof_module, property_proof):
     ns=contract_module
-    return f'''import pbt.GoalTools
+    return f'''import Spec4Pbt.GoalTools
 import {proof_module}
 #spec4pbt_verify {property_proof} in_module {proof_module} : {ns}.SpecProperty
 '''
@@ -180,7 +181,7 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         (output/'Transport.lean').write_text(payload['transport'])
         write_json(output/'manifest.json',payload['manifest'])
         write_json(output/'plan.json',plan)
-        executable=tool.root/'_build/default/p4spec/lib/spec4pbt-property/property_exec.exe'
+        executable=tool.root / PROPERTY_RUN_EXECUTABLE
         audit_native_plan(executable,spec_paths,property_path,name,output/'plan.json',
                           plan['plan_id'],project,timeout)
         (output/'Contract.lean').write_text(property_emit.render_contract(plan,module,base+'.Transport'))
@@ -192,7 +193,15 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         files.update(origins)
         for p in [output/'manifest.json',output/'metadata-config.json']:
             files[str(p)]=digest(p)
-        files.update({str(project/p):digest(project/p) for p in ['pbt/property/plan.py','pbt/property/emit.py','pbt/property/clause.py','pbt/property/runner.py','pbt/property/protocol.py','translator/toolchain.py','translator/bridge/property_cli.ml','translator/bridge/property_exec.ml']})
+        property_directory = Path(__file__).resolve().parent
+        tool_sources = [property_directory / name for name in
+                        ['plan.py', 'emit.py', 'clause.py', 'runner.py', 'protocol.py']]
+        tool_sources += [property_directory.parent / name for name in
+                         ['lean_tools.py', 'observations.py']]
+        tool_sources += [project / TRANSLATOR_DIRECTORY / 'toolchain.py',
+                         project / BRIDGE_DIRECTORY / 'property_cli.ml',
+                         project / BRIDGE_DIRECTORY / 'property_exec.ml']
+        files.update({str(path): digest(path) for path in tool_sources})
         files[str(output/'plan.json')]=digest(output/'plan.json')
         files[str(executable)]=digest(executable)
         if tool.identity()!=initial_toolchain:
@@ -225,7 +234,7 @@ def load_bundle(directory, *, timeout_seconds=120):
     if not directory.is_relative_to(project) or cert['module']!='.'.join(directory.relative_to(project).parts)+'.Contract':
         raise ValueError('bundle location does not match its certified module')
     if plan.get('plan_id')!=cert['plan_id'] or cert['plan_id']!=identity({k:v for k,v in plan.items() if k!='plan_id'}): raise ValueError('plan identity mismatch')
-    executable=project/'translator/_build/p4-spectec/_build/default/p4spec/lib/spec4pbt-property/property_exec.exe'
+    executable=resolve_toolchain(project).root / PROPERTY_RUN_EXECUTABLE
     bundle=CertifiedProperty(project,directory,plan,cert['namespace'],cert['module'],executable,
                              tuple(Path(p) for p in cert['spec_paths']),Path(cert['property_path']),
                              cert['property_name'],cert['toolchain'],cert['fingerprints'])

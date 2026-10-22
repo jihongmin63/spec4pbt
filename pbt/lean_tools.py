@@ -2,9 +2,12 @@
 
 from pathlib import Path
 import math
+import hashlib
 import re
 import subprocess
 import tempfile
+
+from translator.toolchain import SCRATCH_DIRECTORY
 
 
 IDENTIFIER = re.compile(r"[^\W\d][\w']*(?:\.[^\W\d][\w']*)*\Z")
@@ -56,7 +59,9 @@ def run_checked(command: list[str], project: Path, timeout_seconds: float) -> st
 
 def elaborate(project: Path, source: str, timeout_seconds: float) -> str:
     """Elaborate a temporary command module using the project's native Lake environment."""
-    with tempfile.TemporaryDirectory(prefix="spec4pbt-", dir=project / ".lake") as directory:
+    scratch = project / SCRATCH_DIRECTORY
+    scratch.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="spec4pbt-", dir=scratch) as directory:
         path = Path(directory) / "Check.lean"
         path.write_text(source, encoding="utf-8")
         return run_checked(["lake", "env", "lean", str(path)], project, timeout_seconds)
@@ -65,3 +70,41 @@ def elaborate(project: Path, source: str, timeout_seconds: float) -> str:
 def rebuild_modules(project: Path, modules: list[str], timeout_seconds: float) -> None:
     """Ask Lake to refresh each named module and its source dependency closure."""
     run_checked(["lake", "build", *modules], project, timeout_seconds)
+
+
+def _digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def fingerprint_dependencies(project: Path, roots: list[Path], timeout: float) -> dict[str, str]:
+    """Resolve imports with Lean, retaining the complete local source closure."""
+    pending = list(roots)
+    result = {}
+    for name in ["lakefile.toml", "lakefile.lean", "lake-manifest.json", "lean-toolchain"]:
+        path = project / name
+        if path.exists():
+            result[str(path)] = _digest(path)
+    seen = set()
+    while pending:
+        path = pending.pop().resolve()
+        if path in seen:
+            continue
+        seen.add(path)
+        result[str(path)] = _digest(path)
+        sources = run_checked(["lake", "env", "lean", "--src-deps", str(path)], project, timeout)
+        for line in sources.splitlines():
+            dependency = Path(line).resolve()
+            if dependency.is_relative_to(project) and dependency.exists():
+                pending.append(dependency)
+        objects = run_checked(["lake", "env", "lean", "--deps", str(path)], project, timeout)
+        for line in objects.splitlines():
+            artifact = Path(line).resolve()
+            if artifact.is_file():
+                result[str(artifact)] = _digest(artifact)
+                if artifact.is_relative_to(project):
+                    # Interpreter implementations accompany imported olean files.
+                    for suffix in [".ir", ".olean.private", ".olean.server"]:
+                        companion = artifact.with_suffix(suffix)
+                        if companion.exists():
+                            result[str(companion)] = _digest(companion)
+    return result

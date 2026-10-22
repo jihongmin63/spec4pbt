@@ -7,8 +7,8 @@ from pbt.property.clause import CertifiedProperty,load_bundle,strict_json,write_
 from pbt.property.protocol import execute,validate_response
 from pbt.property.implementation import Implementation,load_implementation,validate_snapshot
 from pbt.lean_tools import require_name,require_timeout,rebuild_modules,run_checked
-from pbt.verify_observable import fingerprint_dependencies
-from translator.toolchain import digest
+from pbt.lean_tools import fingerprint_dependencies
+from translator.toolchain import digest, SCRATCH_DIRECTORY
 
 
 @dataclass(frozen=True)
@@ -168,12 +168,12 @@ def sample_inputs(bundle,generator_module,generator,*,count,size,seed,timeout_se
         if type(value) is not int or value<minimum: raise ValueError(f'{key} must be an integer >= {minimum}')
     bundle.assert_fresh()
     ns=bundle.namespace
-    rebuild_modules(bundle.project,['pbt.Observable',generator_module,bundle.module],timeout_seconds)
-    base=bundle.project/'.lake/property-clause';base.mkdir(parents=True,exist_ok=True)
+    rebuild_modules(bundle.project,['Spec4Pbt.Observable',generator_module,bundle.module],timeout_seconds)
+    base=bundle.project/SCRATCH_DIRECTORY;base.mkdir(parents=True,exist_ok=True)
     directory=Path(tempfile.mkdtemp(prefix='sampler-',dir=base))
     audit=directory/'Audit.lean'
-    audit.write_text(f'''import pbt.Observable
-import pbt.CorrectGen
+    audit.write_text(f'''import Spec4Pbt.Observable
+import Spec4Pbt.CorrectGen
 import {bundle.module}
 import {generator_module}
 #spec4pbt_verify {generator} in_module {generator_module} : (CorrectGen {ns}.Premise)

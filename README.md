@@ -1,199 +1,191 @@
-# spec4pbt — P4-spectec-based
+# spec4pbt
 
-Translate SpecTec specifications to Lean and test external implementations
-against native SpecTec property clauses. Properties are authored in `.watsup`;
-Lean checks the property proofs and exact-support generators, and the native
-SpecTec AL runner checks the implementation's actual observations.
+Propose properties from SpecTec specifications, verify them in Lean, and test external implementations with certified input generators.
+The default branch is `P4-spectec-based`.
 
-## Repository layout
+## Repository layout and responsibilities
 
 ```text
-p4-spectec/                 Official P4-SpecTec submodule and P4 specification
-translator/
-  src/                     SpecTec-to-Lean backend and embedded Lean runtime
-  bridge/                  Native metadata, property frontend and AL helpers
-  patches/                 Frontend/executor extensions and compatibility patches
-  toolchain.py             Bootstrap, build and source/binary identity
-  translate.py             Checked translation and JSON transport generation
-  tests/                   Native integration tests and imported backend regressions
-pbt/
-  property/                Planning, Lean contracts, certification, execution, replay
-  tests/                   Python regressions and Lean generator tests
-  CorrectGen.lean           Palamedes generator API
-  GoalTools.lean            Lean goal reflection and proof audit
-  Observable.lean           Observable-property contracts
-examples/
-  ordered/                 Complete proof-backed examples, adapters and templates
-  p4_progress/             Full-P4 property and observation metadata for planning
-scripts/                   Bootstrap, build and translation entrypoints
-docs/                      Detailed property workflow
-implementations/           Local implementation checkouts/builds (ignored)
-test_cases/                Generated inputs, observations and traces (ignored)
+p4-spectec/                    Official specification: pinned Git submodule
+properties/
+  instantiation_progress/
+    property.watsup            Agent-proposed property for user review
+    observations.toml          Relations and outputs observed externally for this property
+    # Add Proof.lean and Generator.lean only when implementing them
+implementations/              Add implementations as needed
+  <implementation>.toml        Execution manifest
+  <implementation>.py          Adapter
+  <implementation>.lean        Optional external-type/JSON model
+  local/                       Local implementation sources and builds (Git-ignored)
+pbt/                          Python tools for planning, certification, execution, and replay
+Spec4Pbt/                     Lean audit kernel for proofs, generators, and execution code
+translator/                   Translator sources, patches, native bridge, and provenance
+  tests/                      Unmodified imported regression data only
+tests/                        Maintained project tests, fixtures/, and ordered/
+out/                          Regenerable work products (Git-ignored)
+  translator/                 Translator build
+  bundles/<property>/          Translated specification, contract, and certificate
+  results/<property>/<run>/    Inputs, observations, verdicts, and replay traces
+  scratch/                    Temporary Lean modules and projects
 ```
 
-The property pipeline is split by responsibility:
+Keep the property folder name consistent with `--name`. For `instantiation_progress`, the proof module is
+`properties.instantiation_progress.Proof` and the fixed bundle path is
+`out/bundles/instantiation_progress`. The same relation can be an external observation for one property
+and an internal witness for another, so each property has its own `observations.toml`.
+Adapters and execution manifests in `implementations/` are shared across properties.
 
-| Module in `pbt/property/` | Responsibility |
+The root contains this guide, [AGENTS.md](AGENTS.md), and the Git/Lake configuration. Lake manages
+its dependencies and compilation cache in `.lake/`. Create `Proof.lean`, `Generator.lean`, and
+implementation files when they are needed; do not add empty examples. The default `lake build` builds
+only `Spec4Pbt` and the Lean regression test. Property and `out` modules are built explicitly as needed
+for certification and execution.
+
+## What users provide and review
+
+| Item | Details |
 | --- | --- |
-| `cli.py`, `__main__.py` | `python3 -m pbt.property`: inspect, plan, build, run, collect, recheck, rerun. |
-| `plan.py` | Classify typed AL conditions, external calls and observation dependencies. |
-| `emit.py` | Generate the Lean input, premise, and property contract. |
-| `clause.py` | Build/audit certified bundles and reject stale dependencies. |
-| `implementation.py`, `protocol.py` | Resolve implementation manifests, fingerprint targets and validate adapter communication. |
-| `runner.py` | Sample certified inputs, collect outputs, save traces and invoke native AL checking. |
+| Specification | Version and path of the specification, and the feature or scope to check. The default is `p4-spectec/spec/`. |
+| Target implementation | Source or executable location, version, build and run commands, input/output formats, and failure criteria. |
+| Execution conditions | Test count, size, seed, and timeouts; P4 architecture and external state type representations when needed. |
+| Outputs to review | Proposed property, premises, observation criteria, implementation binding, and execution results. |
 
-The common `pbt.observations`, `pbt.verify_observable`, `pbt.run_observable`,
-`pbt.generate_goals` and `pbt.verify` APIs remain available. Generated P4
-translations embed the runtime from `translator/src/lean/`. Each
-independent translation has its own `SpecTec` declarations and must be used in a
-separate Lean import closure.
+Users do not need to write property syntax, Lean proofs, or generators. An agent proposes properties
+from the specification and testing goal, and writes an adapter and manifest when implementation details
+are available. The current property is **successful instantiation of a type-checked P4 program**.
+It assumes `Program_ok` and requires `Program_inst` to succeed. Because `observe = []`, it does not
+compare output values. Checking success alone still requires a call to the actual implementation.
 
-## Build
+## Setup and property planning
 
-The official [P4-SpecTec](https://github.com/kaist-plrg/p4-spectec) submodule is
-pinned to `2730cfd9e74048bb5439da0f8afcef124079a064`. The maintained backend
-and integration helpers are tracked in `translator/`; see its
-[guide](translator/README.md) and [provenance](translator/PROVENANCE.md).
-
-A fresh checkout needs Git, Python 3.12 or later, opam with a C build toolchain,
-and Lean's `elan`/`lake`. The checked-in `lean-toolchain` selects Lean.
+Linux, Python 3.12 or later, Git, opam/C build tools, and `elan`/`lake` are required. Use the Lean
+version specified by `lean-toolchain`. Run all commands below from the repository root.
 
 ```sh
-scripts/bootstrap-p4-spectec
+python3 -m translator.toolchain bootstrap
 opam switch create spec4pbt 5.1.1
 opam install --switch=spec4pbt --deps-only ./p4-spectec/p4spectec.opam
 opam install --switch=spec4pbt yojson
-scripts/build-translator --switch spec4pbt
+python3 -m translator.toolchain build --switch spec4pbt
 lake build
-```
 
-Use `--switch NAME` for an existing compatible switch. A build without that
-option uses the active switch; later commands use the recorded build identity.
-Bootstrap optionally accepts `--source PATH` for a local cache of the official
-pin. The ignored `translator/_build/p4-spectec/` workspace combines the official
-source, local backend and patches without modifying the submodule.
-
-Translate a specification directly with:
-
-```sh
-scripts/translate-spec examples/ordered/spec.watsup > /tmp/Ordered.lean
-```
-
-`python3 -m translator.translate` additionally generates checked JSON transport
-and observation metadata. The [translator guide](translator/README.md) covers
-that interface, external-type models and full-P4 translation.
-
-## Writing properties
-
-Write properties with the SpecTec `property` clause extension supplied by this
-repository's frontend patches. An explicit input list is followed by a goal and
-`--` premises. The [ordered specification](examples/ordered/spec.watsup) defines:
-
-```text
-var n : nat
-
-relation Copy: nat ~> nat
-  hint(input %0)
-rule Copy/value: n ~> n
-
-relation Internal: nat ~> nat
-  hint(input %0)
-rule Internal/value: n ~> n
-```
-
-Its [property file](examples/ordered/properties.watsup) includes:
-
-```text
-property progress:
-  (n : nat)
-  Copy: n ~> y
-  -- Internal: n ~> x
-```
-
-Only `n` is generated. `x` is an internal existential witness for the premise;
-`y` is a goal output. With the supplied [observation metadata](examples/ordered/observations.toml),
-`Internal` stays in proof-only conditions and `Copy` is collected externally.
-Relation input slots come from `hint(input ...)`. Observation selectors choose
-which outputs are exposed to the checker; a separate
-[implementation manifest](examples/ordered/implementations/correct.toml) binds
-the external relation to its adapter and target.
-
-An observed output can also be constrained by a condition:
-
-```text
-property positive:
-  (n : nat)
-  v = v
-  -- Copy: n ~> v
-  -- if $(v > 0)
-```
-
-All source conditions remain in the generated Lean premise. This example's
-certified generator supports exactly `n > 0`; the native checker also checks
-`v > 0` against the actual observation, so returning zero fails. The `chain`
-example feeds one observation into a later request. A condition mixing a
-private internal witness with an observed value is currently rejected.
-
-## Plan and run
-
-Run these commands from the repository root after building:
-
-```sh
-python3 -m pbt.property plan \
-  --spec examples/ordered/spec.watsup \
-  --property examples/ordered/properties.watsup \
-  --name progress --config examples/ordered/observations.toml
-
-python3 -m examples.ordered.run \
-  --property progress \
-  --bundle examples/ordered/GeneratedProgress \
-  --output test_cases/property-progress --count 4 --size 5 --seed 0
-```
-
-Use fresh bundle and output paths. The example runner instantiates supplied
-Lean proof/generator templates. Supported examples are `positive`, `chain`,
-`independent`, `internal_positive` and `progress`; `--mode zero` or `--mode reject`
-selects intentionally incorrect implementations. Custom properties need a proof
-of the generated `SpecProperty` and a `CorrectGen Contract.Premise` generator.
-No arbitrary property is proved automatically.
-
-The bundle path is a generated directory containing the translated SpecTec
-specification, the property proof check, the relation call plan, and file hashes.
-The example runner reads it when calling the selected implementation and
-checking its responses. The case results go to the separate `--output` path.
-
-The [full-P4 property](examples/p4_progress/progress.watsup) uses the same syntax:
-
-```text
-property instantiation_progress:
-  (p : p4program)
-  Program_inst: |- p : l s
-  -- Program_ok: |- p : ir
-```
-
-Here `p` is generated, `ir` is the internal typing witness, and `l`/`s` are
-instantiation outputs. Parse and plan it with:
-
-```sh
 python3 -m pbt.property plan \
   --spec p4-spectec/spec \
-  --property examples/p4_progress/progress.watsup \
+  --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
-  --config examples/p4_progress/observations.toml
+  --config properties/instantiation_progress/observations.toml
 ```
 
-Certified full-P4 execution additionally requires a concrete implementation
-adapter, external-type codecs, a property proof and a certified
-generator. See the [property guide](docs/property-clauses.md) for custom
-build/run, adapter contracts, saved-trace rechecking and rerunning implementations.
+Reuse a compatible opam switch if one already exists. The official specification is pinned to
+`2730cfd9e74048bb5439da0f8afcef124079a064`. Build patches apply only to the copy under
+`out/translator/`; the official submodule is left unchanged. To translate directly, use
+`python3 -m translator.toolchain translate <spec-path> <translator-options>`. Arguments after
+`translate` are passed through to the native translator.
 
-## Verification
+## Agent work and certified execution
+
+The agent follows [AGENTS.md](AGENTS.md) to:
+
+1. Analyze the specification, propose a property and observation criteria, and use `plan` to classify internal witnesses and external calls.
+2. Prove the generated contract's exact `SpecProperty` in the property's `Proof.lean`.
+3. Use `build` to generate the specification and contract, then pass Lean type, module ownership, and axiom-dependency audits.
+4. Write a `CorrectGen Contract.Premise` generator in a separate `Generator.lean`.
+5. Bind an implementation adapter, manifest, and required type model, then perform a certified `run`.
+6. Save results and traces, and explain failures and unfinished work.
+
+Keep `Proof.lean` and `Generator.lean` separate. Adding generator code to the proof after certification
+changes the proof file's hash and invalidates the certificate. The proof does not import the generator.
+The automation commands do not complete arbitrary property proofs or generators on their own. There is
+no resident AI agent in the repository. A connected coding agent writes the code, while `pbt`, the
+translator, and Lean verify it through a defined procedure.
+
+The commands below show the path convention once a proof, generator, and implementation manifest are
+ready. The proof, generator, and real implementation adapter for the current full-P4 property are
+**not yet complete**. A P4 plan or a passing internal regression fixture is not full-P4 certification.
+
+```sh
+python3 -m pbt.property build \
+  --spec p4-spectec/spec \
+  --property properties/instantiation_progress/property.watsup \
+  --name instantiation_progress \
+  --config properties/instantiation_progress/observations.toml \
+  --output out/bundles/instantiation_progress \
+  --proof-module properties.instantiation_progress.Proof \
+  --property-proof InstantiationProgress.property_correct
+
+python3 -m pbt.property run \
+  --bundle out/bundles/instantiation_progress \
+  --implementation implementations/target.toml \
+  --generator-module properties.instantiation_progress.Generator \
+  --generator InstantiationProgressGenerator.generator \
+  --output out/results/instantiation_progress/run-001 \
+  --count 100 --size 10 --seed 0
+```
+
+The proof file imports `out.bundles.instantiation_progress.Contract`. You can write that import before
+the contract exists because `build` generates the contract before compiling the proof module. Pass the
+required type model with `build --transport-model implementations/<implementation>.lean`.
+
+`build` does not overwrite an existing output directory. To recertify, remove only the existing
+`out/bundles/instantiation_progress/` and rebuild at **the same path**. Appending a version to the
+bundle name also changes the proof's import path. Regenerate certificates invalidated by source, tool,
+or binary changes; never edit certificate hashes by hand. Use a new `<run>` for each execution result.
+
+## Binding an implementation and inspecting results
+
+Write `implementations/target.toml` for the actual execution relation and file locations.
+
+```toml
+schema_version = 1
+id = "target"
+cwd = ".."
+
+[[executions]]
+relation = "Program_inst"
+adapter = ["python3", "implementations/target.py"]
+artifacts = ["implementations/local/target-binary"]
+```
+
+`cwd` is resolved relative to the manifest's parent; `..` above is the repository root. Adapter and
+artifact paths are relative to that working directory. Register target executables and auxiliary files
+that cannot be discovered from command arguments in `artifacts`. The launcher and script arguments are
+fingerprinted automatically.
+
+The adapter reads `plan_id`, `case_id`, `occurrence_id`, `relation_id`, canonical `input`, and `observe`
+from a JSON request on stdin, then calls the actual implementation. It returns the same four IDs and
+either `status = "success"` with an `observation` object or `status = "relation_failure"` on stdout.
+Write diagnostics to stderr. For a successful response with `observe = []`, the observation is `{}`.
+
+`result.json` records the verdict and cause. Each case's `trace.json` records the request, response,
+observations, and implementation fingerprint. Run verdicts are `passed`/`failed`/`error`; case verdicts
+are `pass`/`fail`/`error`. An observation constraint violation is `fail`. Communication, decoding,
+abort, and timeout problems are `error`.
+
+```sh
+python3 -m pbt.property recheck \
+  --bundle out/bundles/instantiation_progress \
+  --trace out/results/instantiation_progress/run-001/case-000000/trace.json
+
+python3 -m pbt.property rerun \
+  --bundle out/bundles/instantiation_progress \
+  --implementation implementations/target.toml \
+  --case out/results/instantiation_progress/run-001/case-000000 \
+  --output out/results/instantiation_progress/rerun-001
+```
+
+`recheck` checks a saved trace without calling the implementation again; `rerun` makes fresh calls to
+the specified implementation. `collect --input FILE` uses manual input and does not certify the input
+premise. Use `run` for certified inputs. Limit execution time with `--timeout` and `--adapter-timeout`.
+
+## Tool verification
 
 ```sh
 lake build
-python3 -m unittest discover -s translator/tests -t . -v
-python3 -m unittest discover -s pbt/tests -t . -v
+python3 -m unittest discover -s tests -t . -v
+(cd translator && sha256sum --check SHA256SUMS)
 ```
 
-Imported backend regression commands and checksum verification are documented in
-the [translator guide](translator/README.md#verification).
+See [translator/README.md](translator/README.md) for the translator's support and limitations.
+Existing local results were moved to `out/results/`; old bundles are preserved under
+`out/results/legacy/bundles/`. Certificates from before the path change must be regenerated in the
+new layout rather than reused.

@@ -1,14 +1,22 @@
 name = "spec4pbt"
 version = "0.1.0"
-defaultTargets = ["pbt", "examples"]
+defaultTargets = ["Spec4Pbt", "tests"]
 
 [[lean_lib]]
-name = "pbt"
-globs = ["pbt.+"]
+name = "Spec4Pbt"
+globs = ["Spec4Pbt.+"]
 
 [[lean_lib]]
-name = "examples"
-globs = ["examples.+"]
+name = "tests"
+globs = ["tests.CorrectGenTests"]
+
+[[lean_lib]]
+name = "properties"
+globs = ["properties.+"]
+
+[[lean_lib]]
+name = "out"
+globs = ["out.+"]
 
 [[require]]
 name = "palamedes"

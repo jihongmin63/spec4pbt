@@ -11,10 +11,15 @@ import sys
 import tarfile
 
 PROJECT = Path(__file__).resolve().parents[1]
+TRANSLATOR_DIRECTORY = Path(__file__).resolve().parent.relative_to(PROJECT)
+SOURCE_DIRECTORY = TRANSLATOR_DIRECTORY / 'src'
+PATCH_DIRECTORY = TRANSLATOR_DIRECTORY / 'patches'
+BRIDGE_DIRECTORY = TRANSLATOR_DIRECTORY / 'bridge'
+SCRATCH_DIRECTORY = Path('out/scratch')
 SUBMODULE = 'p4-spectec'
 UPSTREAM = 'https://github.com/kaist-plrg/p4-spectec.git'
 BACKEND_ORIGIN_REVISION = 'd150aa6e53e3f572bc4b02299c05d6d6cee9d6c0'
-BUILD_DIRECTORY = 'translator/_build'
+BUILD_DIRECTORY = 'out/translator'
 TRANSLATOR_TARGET = 'p4spec/lib/lean-skeleton/main.exe'
 PROPERTY_TARGET = 'p4spec/lib/spec4pbt-property/property_cli.exe'
 PROPERTY_EXECUTABLE = '_build/default/' + PROPERTY_TARGET
@@ -37,6 +42,34 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _source_files(directory, ancestors=frozenset()):
+    # Match donor Util.Filesys.collect_files: sorted recursive traversal,
+    # following directory symlinks, except directories named "include".
+    real = directory.resolve()
+    if real in ancestors:
+        raise ValueError(f'Specification directory cycle: {directory}')
+    for child in sorted(directory.iterdir()):
+        if child.is_dir() and child.name != 'include':
+            yield from _source_files(child, ancestors | {real})
+        elif child.name.endswith('.watsup'):
+            yield child
+
+
+def source_identity(paths):
+    result = {}
+    for path in paths:
+        files = list(_source_files(path)) if path.is_dir() else [path]
+        if not files:
+            raise ValueError(f'No .watsup source files: {path}')
+        for file in files:
+            if not file.is_file():
+                raise ValueError(f'Specification file missing: {file}')
+            # Preserve lexical paths: swapping two symlink targets must change
+            # the identity even when the set of resolved source files is equal.
+            result[str(file.absolute())] = digest(file)
+    return result
+
+
 def pinned_revision(project):
     entry = command(['git', 'ls-files', '--stage', '--', SUBMODULE], project).split()
     if len(entry) != 4 or entry[0] != '160000':
@@ -47,7 +80,7 @@ def pinned_revision(project):
 def check_checkout(root, revision, *, label='Official submodule'):
     root = Path(root).resolve()
     if not root.is_dir():
-        raise ValueError(f'{label} checkout missing: {root}; run scripts/bootstrap-p4-spectec')
+        raise ValueError(f'{label} checkout missing: {root}; run python3 -m translator.toolchain bootstrap')
     actual_root = Path(command(['git', 'rev-parse', '--show-toplevel'], root)).resolve()
     if actual_root != root:
         raise ValueError(f'Expected a {label.lower()} checkout root, received {root}')
@@ -62,14 +95,14 @@ def check_checkout(root, revision, *, label='Official submodule'):
 def _source_identity(project):
     revision = pinned_revision(project)
     check_checkout(project / SUBMODULE, revision)
-    sources = project / 'translator/src'
-    patches = project / 'translator/patches'
+    sources = project / SOURCE_DIRECTORY
+    patches = project / PATCH_DIRECTORY
     for required in [sources / 'main.ml', sources / 'dune', patches / 'algo-defs.patch']:
         if not required.is_file():
             raise ValueError(f'Vendored translator source missing: {required}')
-    files = [project / 'translator/bridge/metadata.ml', project / 'translator/toolchain.py',
-             project / 'translator/bridge/property_cli.ml', project / 'translator/bridge/property_al.ml',
-             project / 'translator/bridge/property_exec.ml']
+    files = [project / BRIDGE_DIRECTORY / 'metadata.ml', project / TRANSLATOR_DIRECTORY / 'toolchain.py',
+             project / BRIDGE_DIRECTORY / 'property_cli.ml', project / BRIDGE_DIRECTORY / 'property_al.ml',
+             project / BRIDGE_DIRECTORY / 'property_exec.ml']
     for directory in [sources, patches]:
         files.extend(path for path in sorted(directory.rglob('*')) if path.is_file())
     hashes = {path.relative_to(project).as_posix(): digest(path) for path in sorted(files)}
@@ -86,7 +119,7 @@ def _binary_identity(root):
              'property_run_executable_sha256': root / PROPERTY_RUN_EXECUTABLE}
     for path in paths.values():
         if not path.is_file() or not os.access(path, os.X_OK):
-            raise ValueError(f'Local translator build is unavailable: {path}; run scripts/build-translator')
+            raise ValueError(f'Local translator build is unavailable: {path}; run python3 -m translator.toolchain build')
     return {name: digest(path) for name, path in paths.items()}
 
 
@@ -95,14 +128,14 @@ def _checked_identity(project, switch=None):
     try:
         recorded = json.loads(stamp.read_text())
     except (OSError, ValueError) as error:
-        raise ValueError('Local translator build is unavailable; run scripts/build-translator') from error
+        raise ValueError('Local translator build is unavailable; run python3 -m translator.toolchain build') from error
     if not isinstance(recorded, dict) or not isinstance(recorded.get('switch'), str):
-        raise ValueError('Local translator build is invalid; run scripts/build-translator')
+        raise ValueError('Local translator build is invalid; run python3 -m translator.toolchain build')
     chosen_switch = recorded['switch'] if switch is None else switch
     actual = {**_source_identity(project), 'switch': chosen_switch,
               **_binary_identity(project / BUILD_DIRECTORY / 'p4-spectec')}
     if actual != recorded:
-        raise ValueError('Local translator build is stale or uses a different switch; run scripts/build-translator')
+        raise ValueError('Local translator build is stale or uses a different switch; run python3 -m translator.toolchain build')
     return actual
 
 
@@ -189,20 +222,20 @@ def build(project=PROJECT, switch=None):
     for key in ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']:
         patch_environment.pop(key, None)
     patch_environment['GIT_CEILING_DIRECTORIES'] = str(directory)
-    for patch in sorted((project / 'translator/patches').glob('*.patch')):
+    for patch in sorted((project / PATCH_DIRECTORY).glob('*.patch')):
         command(['git', 'apply', '--check', patch], root, env=patch_environment)
         command(['git', 'apply', patch], root, env=patch_environment)
-    shutil.copytree(project / 'translator/src', root / 'p4spec/lib/lean-skeleton')
+    shutil.copytree(project / SOURCE_DIRECTORY, root / 'p4spec/lib/lean-skeleton')
     helper_source = root / 'p4spec/lib/spec4pbt-metadata'
     helper_source.mkdir()
-    shutil.copyfile(project / 'translator/bridge/metadata.ml', helper_source / 'metadata.ml')
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'metadata.ml', helper_source / 'metadata.ml')
     (helper_source / 'dune').write_text(
         '(executable\n (name metadata)\n (libraries pass yojson))\n')
     property_source = root / 'p4spec/lib/spec4pbt-property'
     property_source.mkdir()
-    shutil.copyfile(project / 'translator/bridge/property_cli.ml', property_source / 'property_cli.ml')
-    shutil.copyfile(project / 'translator/bridge/property_al.ml', property_source / 'property_al.ml')
-    shutil.copyfile(project / 'translator/bridge/property_exec.ml', property_source / 'property_exec.ml')
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_cli.ml', property_source / 'property_cli.ml')
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_al.ml', property_source / 'property_al.ml')
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_exec.ml', property_source / 'property_exec.ml')
     (property_source / 'dune').write_text('''(executable (name property_cli) (modules property_cli property_al) (libraries pass yojson))
 (executable (name property_exec) (modules property_exec) (libraries pass interp_al interface runtime lang domain util diagnostic yojson))
 ''')
@@ -210,7 +243,7 @@ def build(project=PROJECT, switch=None):
              '--root', root, TRANSLATOR_TARGET, METADATA_TARGET, PROPERTY_TARGET,
              PROPERTY_RUN_TARGET], root, timeout=1800)
     if before != _source_identity(project):
-        raise ValueError('Translator inputs changed during build; run scripts/build-translator again')
+        raise ValueError('Translator inputs changed during build; run python3 -m translator.toolchain build again')
     identity = {**before, 'switch': chosen_switch, **_binary_identity(root)}
     temporary_stamp = stamp.with_suffix('.json.tmp')
     temporary_stamp.write_text(json.dumps(identity, indent=2) + '\n')
@@ -220,18 +253,23 @@ def build(project=PROJECT, switch=None):
 
 def metadata_executable(project, tool):
     if Path(project).resolve() != tool.project:
-        raise ValueError('Metadata helper belongs to another project; run scripts/build-translator')
+        raise ValueError('Metadata helper belongs to another project; run python3 -m translator.toolchain build')
     tool.identity()
     return tool.helper
 
 
-def main():
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else argv
+    # The native CLI owns all translate options, including --help and --output.
+    if argv and argv[0] == 'translate':
+        executable = resolve_toolchain().executable
+        return subprocess.run([str(executable), *argv[1:]]).returncode
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['bootstrap', 'build', 'check'])
+    parser.add_argument('action', choices=['bootstrap', 'build', 'check', 'translate'])
     parser.add_argument('--project', type=Path, default=PROJECT)
     parser.add_argument('--source', type=Path)
     parser.add_argument('--switch', help='opam switch (build defaults to the active switch)')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.action == 'bootstrap':
         print(bootstrap(args.project, args.source))
     else:
@@ -243,7 +281,7 @@ def main():
 
 if __name__ == '__main__':
     try:
-        main()
+        sys.exit(main())
     except (OSError, ValueError, subprocess.TimeoutExpired) as error:
         print(str(error), file=sys.stderr)
         sys.exit(1)

@@ -1,0 +1,19 @@
+import @PROOF@
+import Spec4Pbt.CorrectGen
+
+namespace ClauseProgressGenerator
+open Gen.CorrectGen
+open @CONTRACT@
+
+def generator : CorrectGen Premise :=
+  convert (by
+    funext input
+    apply propext
+    constructor
+    · rintro ⟨n, _, rfl⟩
+      exact ⟨n, ClauseProgress.internal_refl n⟩
+    · intro _
+      exact ⟨input.«n», True.intro, by cases input; rfl⟩)
+    (s_bind s_arbNat (fun n => s_pure ({ «n» := n } : Input)))
+
+end ClauseProgressGenerator

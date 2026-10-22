@@ -2,7 +2,7 @@
 
 This package contains the semantic translator and the native observation/property
 integration. The official frontend and interpreter libraries come from the
-root [p4-spectec submodule](../p4-spectec); builds leave that source unchanged.
+[P4-SpecTec submodule](../p4-spectec); builds leave that source unchanged.
 
 | Location | Responsibility |
 | --- | --- |
@@ -10,12 +10,12 @@ root [p4-spectec submodule](../p4-spectec); builds leave that source unchanged.
 | `bridge/metadata.ml` | Typed relation metadata and JSON transport generation. |
 | `bridge/property_cli.ml`, `bridge/property_al.ml` | Typed native property frontend and normalized AL metadata. |
 | `bridge/property_exec.ml` | Native AL execution with saved external observations. |
-| `toolchain.py`, `translate.py` | Build identity, source orchestration and checked bundle publication. |
+| `toolchain.py` | Build identity, source fingerprints and native translation CLI. |
 | `patches/` | Local frontend and property-executor extensions. |
-| `tests/` | Maintained integration tests/fixtures and imported backend regressions. |
+| `tests/` | Unchanged imported backend regressions; maintained tests live in `../tests/`. |
 
 The backend's original [README](src/README.md) describes its semantics and flags;
-use `scripts/translate-spec` in place of its original executable paths.
+use `python3 -m translator.toolchain translate` in place of its original executable paths.
 [PROVENANCE.md](PROVENANCE.md) records the imported source and license.
 
 ## Build and dependency provenance
@@ -23,8 +23,8 @@ use `scripts/translate-spec` in place of its original executable paths.
 After installing the OCaml dependencies described in the [root README](../README.md):
 
 ```sh
-scripts/bootstrap-p4-spectec
-scripts/build-translator --switch spec4pbt
+python3 -m translator.toolchain bootstrap
+python3 -m translator.toolchain build --switch spec4pbt
 python3 -m translator.toolchain check
 ```
 
@@ -38,8 +38,8 @@ source hashes identify the code being built. The official pin is that revision's
 upstream base, with an identical P4 specification tree. The tracked compatibility
 patch exposes the backend's per-definition AL conversion helper.
 
-`scripts/build-translator` exports the clean official Git revision into
-`translator/_build/p4-spectec`, applies the compatibility patch there, and adds
+`python3 -m translator.toolchain build` exports the clean official Git revision into
+`out/translator/p4-spectec`, applies the compatibility patch there, and adds
 the tracked backend and metadata helper. Dune compiles the translator, metadata helper, property frontend and AL
 executor against the same frontend libraries. The submodule is never patched.
 The build requires no external checkout, donor executable, or installed copy of
@@ -54,46 +54,28 @@ source, so manual changes to the ignored workspace are not a maintained patch.
 The runtime checks identify inputs and binaries; they do not prove compiler
 correctness.
 
-## Data flow
+## Property integration
 
-1. Run the original translator with source paths in caller order; directories
-   are accepted by the donor and contain `.watsup` files.
-2. Independently elaborate the same inputs with donor `Pass.elab`. Select the
-   configured relations and read their authoritative input slots and types.
-3. Emit a v1 observation manifest and a separate transport importing the untouched
-   generated specification. Aliases provide ordinary Lean identifiers for source
-   names and concrete compound types.
-4. Compile the raw translation, transport and each typed observation view in an
-   isolated staging project. Publish the complete fresh output directory only
-   after all checks and input freshness checks succeed.
-5. Use the existing observation/view/checker/runner tools with the **Transport**
-   module as `--spec-module`.
-
-`translation.json` records mode, source paths/hashes, config/model hash, local translator
-source identity and executable hash, generated artifact hashes and donor diagnostics.
-Its independent `p4_spectec` field records the official submodule URL and revision.
-The actual checker certification additionally binds the generated Lean source
-and compiled dependency closure. This does not prove that the OCaml translator
-preserves every source execution.
-
-Bundle publication uses Linux `renameat2(RENAME_NOREPLACE)`, including protection
-against racing destinations. The supported dev environment is Linux. The output
-must be a fresh directory inside the selected Lean project, with ordinary Lean
-module path components. The `lean-toolchain` in that project selects Lean.
+`python3 -m translator.toolchain translate` forwards native options and exit status
+unchanged. Typed property planning, transport/contract generation, Lean proof
+certification, execution, and replay are provided by `python3 -m pbt.property`.
+See the [root workflow](../README.md). Generated bundles are fixed at
+`out/bundles/<property>/`; build refuses an existing output directory. Sources,
+toolchain, proof dependencies, and generated artifacts are fingerprinted.
 
 ## Observation transport boundary
 
 For native property clauses, the bridge relation manifest supplies input slots
 and types, while observation metadata supplies external selectors. Execution
 adapters are bound later through an implementation TOML; see the
-[native property workflow](../README.md#writing-properties).
+[native property workflow](../README.md).
 
 The bridge supports primitive types, closed records/variants and aliases,
 lists/options/tuples, recursive data, and supported closed generic variant/alias
 instantiations. Codecs are derived only for the dependency closure of inputs and
 selected observation leaves. A hidden record field does not itself require a
-JSON codec. The complete relation output remains present in `FullOutput` and is
-existentially hidden by `Specification`.
+JSON codec. The property contract retains internal witnesses and the original
+conditions in its premise; execution uses only the configured external observations.
 
 Manifest v1 adds `kind: "opaque"` for types selected as whole values (such as a
 list or tuple). It does not permit field selectors on opaque values. Record field
@@ -150,10 +132,10 @@ The original translator can still be called directly with all of its existing
 options; its `--manifest` means a P4 case TSV, **not** an observation manifest.
 
 ```sh
-scripts/translate-spec \
+python3 -m translator.toolchain translate \
   p4-spectec/spec > /tmp/P4.lean
 
-scripts/translate-spec \
+python3 -m translator.toolchain translate \
   --emit-modules /tmp/P4Modules p4-spectec/spec
 ```
 
@@ -182,16 +164,15 @@ fixed while porting the other branch's backend; it does not patch the submodule.
 From the repository root:
 
 ```sh
-python3 -m unittest discover -s translator/tests -t . -v
+python3 -m unittest discover -s tests -t . -v
 export ELAN_TOOLCHAIN="$(cat lean-toolchain)"
 python3 translator/tests/check_direct_relations.py \
-  --exe translator/_build/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
+  --exe out/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
 python3 translator/tests/check_ordered_relations.py \
-  --exe translator/_build/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
+  --exe out/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
 python3 translator/tests/check_case_corpus.py \
-  --exe translator/_build/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
+  --exe out/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
 ```
 
 From `translator/`, `sha256sum --check SHA256SUMS` verifies the unchanged imported
-backend and original regression files. The additional `test_*.py` files and
-`fixtures/` are maintained integration tests.
+backend and original regression files. Maintained integration tests and fixtures live in root `tests/`.

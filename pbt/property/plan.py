@@ -8,7 +8,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 
-from pbt.observations import _SELECTOR
+from pbt.observations import SELECTOR
 
 
 def identity(value):
@@ -88,7 +88,7 @@ def _profiles(config):
             raise ValueError('profile needs relation and nonempty id')
         if rid in profiles or oid in ids:
             raise ValueError('duplicate relation observation profile or id')
-        if not isinstance(selectors, list) or any(not isinstance(x, str) or _SELECTOR.fullmatch(x) is None for x in selectors):
+        if not isinstance(selectors, list) or any(not isinstance(x, str) or SELECTOR.fullmatch(x) is None for x in selectors):
             raise ValueError('invalid observation selector')
         for i, a in enumerate(selectors):
             if any(a == b or a.startswith(b+'.') or b.startswith(a+'.') for b in selectors[:i]):

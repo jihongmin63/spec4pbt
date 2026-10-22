@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 import sys
 import tomllib
-from pbt.property.clause import PROJECT,build_property,load_bundle,load_clause,strict_json
+from translator.toolchain import PROJECT
+from pbt.property.clause import build_property,load_bundle,load_clause,strict_json
 from pbt.property.plan import compile_clause
 from pbt.property.runner import collect_case,recheck_trace,rerun_case,run_property
 

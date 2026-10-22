@@ -21,16 +21,16 @@ development commit for these three files:
 It adds `Pass.algo_defs`, allowing independent definitions to survive when
 another definition's directional conversion fails. It makes no other
 frontend or interpreter changes. The build applies this patch to its private
-copy under `_build/p4-spectec/`; the official submodule stays unchanged.
+copy under `../out/translator/p4-spectec/`; the official submodule stays unchanged.
 
 `tests/` retains 33 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and
 Lean proofs. The large P4 oracle corpus and the original Dune test alias are
 not included. These regression suites run without the P4C submodule.
-The additional `test_*.py` files and `fixtures/` are maintained integration
-tests, consolidated here with the native helpers under `bridge/` and the
-Python toolchain/translation drivers. They are outside the imported checksums.
+Maintained integration tests and fixtures live in `../tests/`. The native
+helpers under `bridge/` and the Python toolchain driver are maintained here.
+These files are outside the imported checksums.
 
 `SHA256SUMS` records every imported backend file, test file, and the original
 `LICENSE`. Check the imported bytes from this directory with:
