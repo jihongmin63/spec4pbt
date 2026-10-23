@@ -1,0 +1,3 @@
+# Generator-only experiment: no external implementation observations.
+schema_version = 1
+observations = []
