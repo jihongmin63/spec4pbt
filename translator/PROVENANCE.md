@@ -21,7 +21,7 @@ development commit for these three files:
 It adds `Pass.algo_defs`, allowing independent definitions to survive when
 another definition's directional conversion fails. It makes no other
 frontend or interpreter changes. The build applies this patch to its private
-copy under `../out/translator/p4-spectec/`; the official submodule stays unchanged.
+copy under `../build/translator/p4-spectec/`; the official submodule stays unchanged.
 
 `patches/extern-singleton.patch` changes the copied Lean backend's ordered
 translation of `extern syntax` to independent inductive types with the single
@@ -30,13 +30,20 @@ mode. The declarative backend retains its imported external-type model. The buil
 copies `src/` before applying patches so backend adaptations, like frontend
 patches, affect only the disposable build tree.
 
+`patches/shared-spec-extension.patch` adds ordered helper extensions over an
+imported specification module. It reuses the base runtime and inlines acyclic
+authored helper plans, preserving failure, abort, and fresh-value supply. The
+maintained native extension regressions compare these outcomes with a combined
+translation. This patch also applies only to the copied backend.
+
 `tests/` retains 33 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and
 Lean proofs. The large P4 oracle corpus and the original Dune test alias are
 not included. These regression suites run without the P4C submodule.
-Maintained integration tests and fixtures live in `../tests/`. The native
-helpers under `bridge/` and the Python toolchain driver are maintained here.
+Maintained integration tests and fixtures live in `../scripts/tests/`. The native
+helpers under `bridge/` and the Python toolchain driver at `../scripts/toolchain.py`
+are maintained by this repository.
 These files are outside the imported checksums.
 
 `SHA256SUMS` records every imported backend file, test file, and the original
