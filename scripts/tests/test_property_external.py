@@ -204,10 +204,10 @@ id = "shared"
 cwd = "{ROOT}"
 [[executions]]
 relation = "Copy"
-adapter = ["python3", "tests/ordered/adapter.py"]
+adapter = ["python3", "{ORDERED/'adapter.py'}"]
 [[executions]]
 relation = "Internal"
-adapter = ["python3", "tests/ordered/adapter.py"]
+adapter = ["python3", "{ORDERED/'adapter.py'}"]
 ''')
         implementation = load_implementation(manifest, self.bundle)
         self.assertEqual(set(implementation.snapshot['bindings']), {'Copy', 'Internal'})
