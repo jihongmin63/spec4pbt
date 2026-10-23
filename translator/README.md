@@ -63,6 +63,15 @@ See the [root workflow](../README.md). Generated bundles are fixed at
 `out/bundles/<property>/`; build refuses an existing output directory. Sources,
 toolchain, proof dependencies, and generated artifacts are fingerprinted.
 
+Native effect auditing follows the executor's runtime roots: external request
+expressions, condition lets, observed checks, and all native goal premises.
+Proof-only condition relations are omitted at runtime, so their bodies are not
+traversed by this audit. Their existential witnesses remain in the Lean premise
+and exact-support generator obligation. The audit does not certify an arbitrary
+collected input's premise. Executed internal relations retain the transitive
+checks for hidden external relations and function calls. Native condition lets
+and goals are audited even if their JSON node lists are removed or mislabeled.
+
 ## Observation transport boundary
 
 For native property clauses, the bridge relation manifest supplies input slots

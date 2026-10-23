@@ -126,10 +126,14 @@ P4 source text is still needed before an adapter can bind that relation.
 Observation metadata and codec dependency traversal allow nested generic types,
 including `map` with different type arguments, and track complete instantiated
 types under a 4096-type graph limit. Lean must still compile the derived codecs.
-`emit` writes the obligations before native execution auditing. For
-`program_ok_implies_program_inst`, `check` still rejects dynamic function calls
-inside the internal `Program_ok` relation during the native AL effect audit.
-An emitted contract does not constitute a checked bundle.
+`emit` writes the obligations before native execution auditing. That audit covers
+external requests, evaluated condition lets, observed checks, and native goals.
+An internal premise such as `Program_ok` is retained in the proof obligation and
+generator support, but its omitted relation body is not an execution-audit root.
+Its `ir` witness is existential in the premise and is not a generated runtime
+input. Executed internal relations still reject hidden external and function
+calls. An emitted contract does not constitute a checked bundle; full-P4 proof,
+generator, transport, and actual implementation support remain separate gates.
 
 Linux, Python 3.12 or later, Git, opam/C build tools, and `elan`/`lake` are required. Use the Lean
 version specified by `lean-toolchain`. Run all commands below from the repository root.

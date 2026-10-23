@@ -224,7 +224,14 @@ rule Wrapper/value:
         with self.assertRaisesRegex(ValueError,'dynamic external call'):
             self.invoke(plan,'audit',{'n':3},[])
 
-    def test_hidden_external_effect_in_internal_condition_is_rejected_by_audit(self):
+        # The executor still runs the native goal if JSON node lists omit it.
+        plan['proof_conditions'] = plan['goal_block']['nodes']
+        plan['goal_block']['nodes'] = []
+        (self.folder/'plan.json').write_text(json.dumps(plan))
+        with self.assertRaisesRegex(ValueError,'dynamic external call'):
+            self.invoke(plan,'audit',{'n':3},[])
+
+    def test_omitted_internal_condition_is_not_executed_or_effect_audited(self):
         spec='''var n : nat
 var x : nat
 extern relation External: nat ~> nat
@@ -237,8 +244,8 @@ rule Wrapper/value:
 '''
         source='property hidden_condition:\n (n : nat)\n true\n -- Wrapper: n ~> x\n'
         plan=self.load(source,spec=spec,config={'schema_version':1})
-        with self.assertRaisesRegex(ValueError,'dynamic external call'):
-            self.invoke(plan,'audit',{'n':3},[])
+        self.assertEqual(self.invoke(plan,'audit',{},[]), {'valid': True})
+        self.assertEqual(self.invoke(plan,'check',{'n':3},[])['verdict'], 'pass')
 
     def test_hidden_function_call_in_internal_output_is_rejected_by_audit(self):
         spec='''var n : nat
@@ -247,10 +254,70 @@ relation Wrapper: nat ~> nat
   hint(input %0)
 rule Wrapper/value: n ~> $opaque(n)
 '''
-        source='property hidden_output:\n (n : nat)\n true\n -- Wrapper: n ~> x\n'
+        source='property hidden_output:\n (n : nat)\n Wrapper: n ~> x\n'
         plan=self.load(source,spec=spec,config={'schema_version':1})
         with self.assertRaisesRegex(ValueError,'dynamic function call'):
             self.invoke(plan,'audit',{'n':3},[])
+
+    def test_proof_only_function_call_needs_no_runtime_witness(self):
+        spec = SPEC + '''
+dec $identity(nat) : nat
+def $identity(n) = n
+
+relation Typed
+  : nat ~> nat
+  hint(input %0)
+rule Typed/value
+  : n ~> $identity(n)
+'''
+        source = '''property typed_run:
+  (n : nat)
+  Run: n ~> out
+  -- Typed: n ~> ir
+'''
+        config = {'schema_version': 1, 'observations': [
+            {'id': 'run', 'relation': 'Run', 'observe': []}]}
+        plan = self.load(source, spec=spec, config=config)
+        self.assertEqual([value['name'] for value in plan['inputs']], ['n'])
+        self.assertEqual([call['relation'] for call in plan['calls']], ['Run'])
+        self.assertEqual(plan['checks'], [])
+        self.assertEqual(self.invoke(plan,'audit',{},[]), {'valid': True})
+        self.assertEqual(self.invoke(plan,'request',{'n':3},[],0),
+                         {'ready': True, 'input': [3]})
+        trace = [{'occurrence_id': 'goal', 'relation_id': 'Run', 'input': [3],
+                  'status': 'success', 'observation': {}}]
+        self.assertEqual(self.invoke(plan,'check',{'n':3},trace)['verdict'], 'pass')
+
+    def test_native_condition_let_is_audited_even_when_plan_omits_it(self):
+        spec = SPEC + '\nextern dec $opaque(nat) : nat\n'
+        source = 'property bound:\n (n : nat)\n true\n -- if x = n\n'
+        plan = self.load(source, spec=spec, config={'schema_version': 1})
+        (self.folder/'property.watsup').write_text(source.replace('x = n', 'x = $opaque(n)'))
+        plan['condition_blocks'] = []
+        plan['proof_conditions'] = []
+        (self.folder/'plan.json').write_text(json.dumps(plan))
+        with self.assertRaisesRegex(ValueError, 'dynamic function call in runtime AL node'):
+            self.invoke(plan,'audit',{},[])
+
+    def test_function_call_in_external_request_is_still_rejected(self):
+        spec = SPEC + '\nextern dec $opaque(nat) : nat\n'
+        source = 'property request_call:\n (n : nat)\n true\n -- Run: $opaque(n) ~> x\n'
+        plan = self.load(source, spec=spec)
+        with self.assertRaisesRegex(ValueError, 'dynamic function call'):
+            self.invoke(plan,'audit',{},[])
+
+    def test_function_call_in_observed_check_is_still_rejected(self):
+        spec = SPEC + '\nextern dec $opaque(nat) : nat\n'
+        source = '''property observed_call:
+  (n : nat)
+  true
+  -- Parse: n ~> v
+  -- if $($opaque(v) = v)
+'''
+        plan = self.load(source, spec=spec)
+        self.assertTrue(plan['checks'])
+        with self.assertRaisesRegex(ValueError, 'dynamic function call'):
+            self.invoke(plan,'audit',{},[])
 
 
 if __name__=='__main__':unittest.main()

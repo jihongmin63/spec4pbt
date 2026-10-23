@@ -391,19 +391,34 @@ let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
         if has_function then fail ("dynamic function call under internal AL relation " ^ name);
         Option.iter visit next) prems
     end in
-  let check_node block node =
-    let node_id = text (field "id" node) in
-    let native = prem_at block (node_index node_id) in
+  let check_prem node_id native =
     let relation,has_function = prem_effect native in
     if has_function then fail ("dynamic function call in runtime AL node " ^ node_id);
     match relation with
     | Some name when not (Hashtbl.mem external_nodes node_id) -> visit name
     | _ -> () in
+  let check_node block node =
+    let node_id = text (field "id" node) in
+    check_prem node_id (prem_at block (node_index node_id)) in
+  (* Match execution, not every logical premise in the contract. Internal
+     condition relations are omitted by check_property and justified by the
+     certified generator; their witnesses are not runtime inputs. *)
+  List.iter (fun call ->
+    let _,_,native = parse_occurrence blocks goal call in
+    check_prem (text (field "node_id" call)) native) calls;
+  (* evaluate_lets runs native condition lets, including proof-classified lets.
+     Read these from AL so JSON node-list omissions cannot bypass the audit. *)
+  List.iteri (fun block_index (prems,_) ->
+    List.iteri (fun index (prem:S.prem) -> match prem.it with
+      | S.LetPr _ ->
+          check_prem ("condition." ^ string_of_int block_index ^ "." ^ string_of_int index) prem
+      | _ -> ()) prems) blocks;
   List.iter (fun block ->
     let native=blocks_at blocks (origin_index (text (field "origin" block))) in
     List.iter (check_node native) (array (field "nodes" block)))
-    (array (field "condition_blocks" plan));
-  List.iter (check_node goal) (array (field "nodes" (field "goal_block" plan)))
+    (array (field "checks" plan));
+  (* eval_goal executes every native goal premise, regardless of plan labels. *)
+  List.iteri (fun index prem -> check_prem ("goal." ^ string_of_int index) prem) (fst goal)
 
 let check_property plan blocks goal calls ctx statuses =
   let call_status id =
