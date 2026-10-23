@@ -25,7 +25,7 @@ def main():
             p.add_argument('--config',type=Path,required=True)
             p.add_argument('--external',type=Path,required=True)
         if action=='emit':
-            p.add_argument('--output',type=Path,required=True)
+            p.add_argument('--output',type=Path,help='defaults to bundle/ beside the property source')
             p.add_argument('--transport-model',type=Path)
             p.add_argument('--proof-module')
             p.add_argument('--property-proof')

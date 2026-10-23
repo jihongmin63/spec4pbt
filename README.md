@@ -6,35 +6,34 @@ The default branch is `P4-spectec-based`.
 ## Repository layout and responsibilities
 
 ```text
-p4-spectec/                    Official specification: pinned Git submodule
-specifications/
-  p4/observations.toml         Shared catalog of permitted external P4 observations
-properties/
-  instantiation_progress/
-    property.watsup            Agent-proposed property for user review
-    external.toml              This property's selection from the shared catalog
-    Proof.lean                emit creates the property proof obligation
-    Generator.lean            emit creates the generator obligation
-implementations/              Add implementations as needed
-  <implementation>.toml        Execution manifest
-  <implementation>.py          Adapter
-  <implementation>.lean        Optional extra JSON declarations
-  local/                       Local implementation sources and builds (Git-ignored)
-pbt/                          Python tools for planning, certification, execution, and replay
-Spec4Pbt/                     Lean audit kernel for proofs, generators, and execution code
-translator/                   Translator sources, patches, native bridge, and provenance
-  tests/                      Unmodified imported regression data only
-tests/                        Maintained project tests, fixtures/, and ordered/
-out/                          Regenerable work products (Git-ignored)
-  translator/                 Translator build
-  bundles/<property>/          Translated specification, contract, and certificate
-  results/<property>/<run>/    Inputs, observations, verdicts, and replay traces
-  scratch/                    Temporary Lean modules and projects
+p4-spectec/                         Pinned official specification submodule
+specifications/<spec-id>/
+  observations.toml                 User-provided external observation catalog
+  translated/<identity>/            Shared Lean translation and identity.json (ignored)
+properties/<name>/
+  property.watsup                   Authored property and optional helper relations
+  external.toml                     Selection from the shared observation catalog
+  Proof.lean                        Authored proof; emit creates an obligation if absent
+  Generator.lean                    Separate exact-support input generator
+  bundle/                           Generated helpers, transport, contract, audits, certificate (ignored)
+  runs/<run>/                       Inputs, implementation observations, verdicts, traces (ignored)
+implementations/                    Shared manifests, adapters, optional JSON declarations
+  local/                            Local implementation sources and builds (ignored)
+scripts/                            Python planning, certification, execution, and replay
+  toolchain.py                      Repository/build paths and native tool lifecycle
+  specification.py                  Shared specification translation and validation
+  lean/Spec4Pbt/                    Lean proof, generator, and execution audits
+  tests/                            Maintained Python/Lean regressions, fixtures, ordered examples
+translator/                         Imported backend, integration bridge, patches, provenance
+  tests/                            Unmodified imported regression data only
+build/                              Reproducible tool builds and temporary work (ignored)
+  translator/                       Patched build copy of the pinned official sources
+  scratch/                          Temporary Lean modules/projects and regression translations
 ```
 
 Keep the property folder name consistent with `--name`. For `instantiation_progress`, the proof module is
 `properties.instantiation_progress.Proof` and the fixed bundle path is
-`out/bundles/instantiation_progress`. The same relation can be an external observation for one property
+`properties/instantiation_progress/bundle`. The same relation can be an external observation for one property
 and an internal witness for another. The specification's `observations.toml` lists all permitted
 external observations; each property's `external.toml` selects only what it uses.
 Adapters and execution manifests in `implementations/` are shared across properties.
@@ -43,8 +42,34 @@ The root contains this guide, [AGENTS.md](AGENTS.md), and the Git/Lake configura
 its dependencies and compilation cache in `.lake/`. `emit` creates unfinished `Proof.lean` and
 `Generator.lean` declarations with explicit failing tactics. Complete them before `check`; they
 are not certified examples. Existing authored files are never overwritten. The default `lake build` builds
-only `Spec4Pbt` and the Lean regression test. Property and `out` modules are built explicitly as needed
-for certification and execution.
+only `Spec4Pbt`. Run the Lean regression explicitly with `lake build scripts.tests.CorrectGenTests`.
+Property, shared specification, and scratch modules are built explicitly as needed; incomplete
+proofs and historical results are never default build targets.
+
+## Shared specification translation
+
+The catalog identifies the specification workspace. For `specifications/p4/observations.toml`,
+`emit` stores the whole-spec Lean translation in `specifications/p4/translated/s<digest>/Spec.lean`.
+The identity includes the selected source files, native toolchain identity, and translation options.
+Different source/tool selections coexist; emitting another property does not replace earlier
+shared dependencies. Catalogs used by regression fixtures use an ignored scratch translation cache.
+
+Each property bundle imports that shared module through `Helpers.lean`. With no authored helpers,
+this file contains only the import. Acyclic authored helpers become plans over the imported ordered
+runtime, preserving normal failure, abort, and fresh-value supply. Recursive helper extensions
+are rejected explicitly. Property-specific observation selection and codecs remain in the bundle;
+the common translation does not depend on which external observations a property selects.
+
+Emission reuses unchanged shared files. Certification and certificate loading independently
+reconstruct their native translation and compare its bytes, as well as reconstructing the property
+artifacts. Editing cached hashes cannot certify a changed translation. `identity.json` records
+translation identity; it is not evidence of completed full-P4 Lean validation.
+
+`emit` defaults to `bundle/` beside the property source. Keep that path fixed so authored imports
+remain stable, and use a fresh `runs/<run>/` for each implementation execution. Sampling scratch is
+kept through the run's dependency checks, then removed on success or error. Saved run evidence is
+preserved. `build/translator/` can be recreated, but deleting it requires a rebuild before use and
+changed executable fingerprints require recertification.
 
 ## What users provide and review
 
@@ -139,14 +164,14 @@ Linux, Python 3.12 or later, Git, opam/C build tools, and `elan`/`lake` are requ
 version specified by `lean-toolchain`. Run all commands below from the repository root.
 
 ```sh
-python3 -m translator.toolchain bootstrap
+python3 -m scripts.toolchain bootstrap
 opam switch create spec4pbt 5.1.1
 opam install --switch=spec4pbt --deps-only ./p4-spectec/p4spectec.opam
 opam install --switch=spec4pbt yojson
-python3 -m translator.toolchain build --switch spec4pbt
+python3 -m scripts.toolchain build --switch spec4pbt
 lake build
 
-python3 -m pbt.property plan \
+python3 -m scripts.property plan \
   --spec p4-spectec/spec \
   --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
@@ -156,8 +181,8 @@ python3 -m pbt.property plan \
 
 Reuse a compatible opam switch if one already exists. The official specification is pinned to
 `2730cfd9e74048bb5439da0f8afcef124079a064`. Build patches apply only to the copy under
-`out/translator/`; the official submodule is left unchanged. To translate directly, use
-`python3 -m translator.toolchain translate <spec-path> <translator-options>`. Arguments after
+`build/translator/`; the official submodule is left unchanged. To translate directly, use
+`python3 -m scripts.toolchain translate <spec-path> <translator-options>`. Arguments after
 `translate` are passed through to the native translator.
 
 ## Emit, check, run
@@ -165,7 +190,8 @@ Reuse a compatible opam switch if one already exists. The official specification
 The agent follows [AGENTS.md](AGENTS.md) to propose the property and external
 selection, then uses three commands:
 
-1. `emit` generates `Spec.lean`, `Transport.lean`, `Contract.lean`, both audit
+1. `emit` prepares or reuses the shared specification translation and generates
+   `Helpers.lean`, `Transport.lean`, `Contract.lean`, both audit
    modules, and `emission.json`. It creates `Proof.lean` and `Generator.lean` beside
    the property source if those files do not exist.
 2. Fill the proof of `Contract.property` and the value of
@@ -186,27 +212,27 @@ selection, then uses three commands:
    independent Lean validation instead of trusting a manually repaired hash list.
 
 ```sh
-python3 -m pbt.property emit \
+python3 -m scripts.property emit \
   --spec p4-spectec/spec \
   --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
   --config specifications/p4/observations.toml \
   --external properties/instantiation_progress/external.toml \
-  --output out/bundles/instantiation_progress
+  --output properties/instantiation_progress/bundle
 
 # Complete properties/instantiation_progress/Proof.lean and Generator.lean.
 
-python3 -m pbt.property check \
-  --bundle out/bundles/instantiation_progress
+python3 -m scripts.property check \
+  --bundle properties/instantiation_progress/bundle
 
-python3 -m pbt.property run \
-  --bundle out/bundles/instantiation_progress \
+python3 -m scripts.property run \
+  --bundle properties/instantiation_progress/bundle \
   --implementation implementations/target.toml \
-  --output out/results/instantiation_progress/run-001 \
+  --output properties/instantiation_progress/runs/run-001 \
   --count 100 --size 10 --seed 0
 ```
 
-The proof file imports `out.bundles.instantiation_progress.Contract`, which exists
+The proof file imports `properties.instantiation_progress.bundle.Contract`, which exists
 before authoring begins. Default declaration names are
 `properties.instantiation_progress.Proof.property_correct` and
 `properties.instantiation_progress.Generator.generator`. Existing declarations can
@@ -284,15 +310,15 @@ are `pass`/`fail`/`error`. An observation constraint violation is `fail`. Commun
 abort, and timeout problems are `error`.
 
 ```sh
-python3 -m pbt.property recheck \
-  --bundle out/bundles/instantiation_progress \
-  --trace out/results/instantiation_progress/run-001/case-000000/trace.json
+python3 -m scripts.property recheck \
+  --bundle properties/instantiation_progress/bundle \
+  --trace properties/instantiation_progress/runs/run-001/case-000000/trace.json
 
-python3 -m pbt.property rerun \
-  --bundle out/bundles/instantiation_progress \
+python3 -m scripts.property rerun \
+  --bundle properties/instantiation_progress/bundle \
   --implementation implementations/target.toml \
-  --case out/results/instantiation_progress/run-001/case-000000 \
-  --output out/results/instantiation_progress/rerun-001
+  --case properties/instantiation_progress/runs/run-001/case-000000 \
+  --output properties/instantiation_progress/runs/rerun-001
 ```
 
 `recheck` checks a saved trace without calling the implementation again; `rerun` makes fresh calls to
@@ -303,11 +329,19 @@ premise. Use `run` for certified inputs. Limit execution time with `--timeout` a
 
 ```sh
 lake build
-python3 -m unittest discover -s tests -t . -v
+lake build scripts.tests.CorrectGenTests
+python3 -m unittest discover -s scripts/tests -t . -v
 (cd translator && sha256sum --check SHA256SUMS)
 ```
 
 See [translator/README.md](translator/README.md) for the translator's support and limitations.
-Existing local results were moved to `out/results/`; old bundles are preserved under
-`out/results/legacy/bundles/`. Certificates from before the path change must be regenerated in the
-new layout rather than reused.
+Old `out/` data remains historical evidence: do not delete or rewrite it during migration.
+Copy saved runs into `properties/<name>/runs/` when their owner is known; preserve unknown or
+legacy records until classified. Old source/module paths and certificates are historical, not
+portable attestations. Re-emit and check at the new fixed bundle path; never repair hashes.
+Local implementation checkouts remain in `implementations/local/`.
+
+Property work requires the selected property's emit/check/run, not the entire tool regression
+suite. Tool changes should run the directly affected tests; changes to certification, translation,
+or repository layout also require the full regression checks once after integration. Rebuild the
+native toolchain only when its source or build identity changes.

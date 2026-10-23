@@ -53,6 +53,23 @@ class PropertyWorkflowTests(unittest.TestCase):
         with self.assertRaisesRegex((ValueError, OSError), 'check|certificate'):
             load_bundle(self.output)
 
+    def test_two_properties_default_to_local_bundles_and_share_specification(self):
+        imports = []
+        for name in ('positive', 'chain'):
+            folder = self.root/name
+            folder.mkdir()
+            source = folder/'property.watsup'
+            source.write_bytes((ORDERED/'properties.watsup').read_bytes())
+            output = workflow.emit_property(spec_paths=[ORDERED/'spec.watsup'],
+                property_path=source, config_path=ORDERED/'observations.toml',
+                external_path=ORDERED/'external'/(name+'.toml'), name=name)
+            self.assertEqual(output, folder/'bundle')
+            self.assertFalse((output/'Spec.lean').exists())
+            self.assertTrue((folder/'Proof.lean').exists())
+            self.assertTrue((folder/'Generator.lean').exists())
+            imports.append((output/'Helpers.lean').read_text())
+        self.assertEqual(imports[0], imports[1])
+
     def test_reemit_preserves_authored_sources_and_unrelated_files(self):
         self.emit()
         self.complete()
@@ -69,7 +86,7 @@ class PropertyWorkflowTests(unittest.TestCase):
         self.emit()
         authored = self.root / 'kept-source.txt'
         authored.write_text('keep authored content')
-        generated = self.output / 'Spec.lean'
+        generated = self.output / 'Helpers.lean'
         generated.unlink()
         os.link(authored, generated)
         self.emit()
@@ -79,7 +96,7 @@ class PropertyWorkflowTests(unittest.TestCase):
         self.emit()
         authored = self.root / 'kept-source.txt'
         authored.write_text('keep authored content')
-        generated = self.output / 'Spec.lean'
+        generated = self.output / 'Helpers.lean'
         generated.unlink()
         generated.symlink_to(authored)
         with self.assertRaisesRegex(ValueError, 'regular file'):

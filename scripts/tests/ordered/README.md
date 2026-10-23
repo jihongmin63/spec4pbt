@@ -11,7 +11,7 @@ Run from the repository root with fresh output paths:
 ```sh
 python3 -m scripts.tests.ordered.run --property progress \
   --bundle build/scratch/OrderedProgress \
-  --output out/results/ordered_progress/run-001 --count 4 --size 5 --seed 0
+  --output build/scratch/ordered_progress/run-001 --count 4 --size 5 --seed 0
 ```
 
 `--mode reject` exercises relation failure; `--property positive --mode zero`

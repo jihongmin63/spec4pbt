@@ -10,12 +10,12 @@ integration. The official frontend and interpreter libraries come from the
 | `bridge/metadata.ml` | Typed relation metadata and JSON transport generation. |
 | `bridge/property_cli.ml`, `bridge/property_al.ml` | Typed native property frontend and normalized AL metadata. |
 | `bridge/property_exec.ml` | Native AL execution with saved external observations. |
-| `toolchain.py` | Build identity, source fingerprints and native translation CLI. |
+| `../scripts/toolchain.py` | Build identity, source fingerprints and native translation CLI. |
 | `patches/` | Local frontend and property-executor extensions. |
-| `tests/` | Unchanged imported backend regressions; maintained tests live in `../tests/`. |
+| `tests/` | Unchanged imported backend regressions; maintained tests live in `../scripts/tests/`. |
 
 The backend's original [README](src/README.md) describes its semantics and flags;
-use `python3 -m translator.toolchain translate` in place of its original executable paths.
+use `python3 -m scripts.toolchain translate` in place of its original executable paths.
 [PROVENANCE.md](PROVENANCE.md) records the imported source and license.
 
 ## Build and dependency provenance
@@ -23,9 +23,9 @@ use `python3 -m translator.toolchain translate` in place of its original executa
 After installing the OCaml dependencies described in the [root README](../README.md):
 
 ```sh
-python3 -m translator.toolchain bootstrap
-python3 -m translator.toolchain build --switch spec4pbt
-python3 -m translator.toolchain check
+python3 -m scripts.toolchain bootstrap
+python3 -m scripts.toolchain build --switch spec4pbt
+python3 -m scripts.toolchain check
 ```
 
 Bootstrap fetches the official [kaist-plrg/p4-spectec](https://github.com/kaist-plrg/p4-spectec)
@@ -38,8 +38,8 @@ source hashes identify the code being built. The official pin is that revision's
 upstream base, with an identical P4 specification tree. The tracked compatibility
 patch exposes the backend's per-definition AL conversion helper.
 
-`python3 -m translator.toolchain build` exports the clean official Git revision into
-`out/translator/p4-spectec`, applies the compatibility patch there, and adds
+`python3 -m scripts.toolchain build` exports the clean official Git revision into
+`build/translator/p4-spectec`, applies the compatibility patch there, and adds
 the tracked backend and metadata helper. Dune compiles the translator, metadata helper, property frontend and AL
 executor against the same frontend libraries. The submodule is never patched.
 The build requires no external checkout, donor executable, or installed copy of
@@ -56,11 +56,11 @@ correctness.
 
 ## Property integration
 
-`python3 -m translator.toolchain translate` forwards native options and exit status
+`python3 -m scripts.toolchain translate` forwards native options and exit status
 unchanged. Typed property planning, transport/contract generation, Lean proof
-certification, execution, and replay are provided by `python3 -m pbt.property`.
+certification, execution, and replay are provided by `python3 -m scripts.property`.
 See the [root workflow](../README.md). Generated bundles are fixed at
-`out/bundles/<property>/`; build refuses an existing output directory. Sources,
+`properties/<property>/bundle/`; emit refreshes only owned generated files. Sources,
 toolchain, proof dependencies, and generated artifacts are fingerprinted.
 
 Native effect auditing follows the executor's runtime roots: external request
@@ -71,6 +71,17 @@ and exact-support generator obligation. The audit does not certify an arbitrary
 collected input's premise. Executed internal relations retain the transitive
 checks for hidden external relations and function calls. Native condition lets
 and goals are audited even if their JSON node lists are removed or mislabeled.
+
+## Shared ordered specification extensions
+
+`--extension-base MODULE --extension-helper NAME` (repeatable) translates authored
+helper relations into plans over an imported whole-spec module. Helpers may call
+base relations and acyclic helper dependencies; recursive extensions are rejected.
+The native extension preserves ordered failure/abort and the shared fresh supply.
+It emits no duplicate runtime, call family, or base definitions. The integration
+patch is `patches/shared-spec-extension.patch`; imported sources remain unchanged.
+Python orchestration stores shared translations by source/tool/options identity
+and reconstructs them during certification and certificate loading.
 
 ## Observation transport boundary
 
@@ -143,10 +154,10 @@ The original translator can still be called directly with all of its existing
 options; its `--manifest` means a P4 case TSV, **not** an observation manifest.
 
 ```sh
-python3 -m translator.toolchain translate \
+python3 -m scripts.toolchain translate \
   p4-spectec/spec > /tmp/P4.lean
 
-python3 -m translator.toolchain translate \
+python3 -m scripts.toolchain translate \
   --emit-modules /tmp/P4Modules p4-spectec/spec
 ```
 
@@ -176,15 +187,15 @@ model described above; the official submodule is not patched.
 From the repository root:
 
 ```sh
-python3 -m unittest discover -s tests -t . -v
+python3 -m unittest discover -s scripts/tests -t . -v
 export ELAN_TOOLCHAIN="$(cat lean-toolchain)"
 python3 translator/tests/check_direct_relations.py \
-  --exe out/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
+  --exe build/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
 ```
 
 From `translator/`, `sha256sum --check SHA256SUMS` verifies the unchanged imported
-backend and original regression files. Maintained integration tests and fixtures live in root `tests/`.
+backend and original regression files. Maintained integration tests and fixtures live in `scripts/tests/`.
 The archived ordered/case suites in `translator/tests/` describe the donor's
 class-based external model; their old instance proofs are not the singleton
-regressions. Current singleton tests live in `tests/test_metadata.py` and
-`tests/test_property_clause_examples.py`.
+regressions. Current singleton tests live in `scripts/tests/test_metadata.py` and
+`scripts/tests/test_property_clause_examples.py`.

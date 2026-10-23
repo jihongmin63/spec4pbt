@@ -16,6 +16,7 @@ from scripts.property.plan import compile_clause, identity, select_external
 from scripts.property import emit as property_emit
 from scripts.observations import validate_observation
 from scripts.lean_tools import fingerprint_dependencies
+from scripts.specification import prepare_translation
 
 
 
@@ -118,7 +119,8 @@ class CertifiedProperty:
 
 def generate_property_files(*, spec_paths, property_path, config_path, external_path,
                             name, output, project=PROJECT, timeout_seconds=120,
-                            transport_model=None, namespace=None, audit_plan=True):
+                            transport_model=None, namespace=None, audit_plan=True,
+                            verify_shared=False):
     """Generate and audit source artifacts without compiling authored declarations."""
     project=Path(project).resolve();timeout=require_timeout(timeout_seconds)
     spec_paths=[Path(p).absolute() for p in spec_paths]
@@ -147,19 +149,29 @@ def generate_property_files(*, spec_paths, property_path, config_path, external_
     namespace=base+'.Contract'
     module=namespace
     output.mkdir(parents=True,exist_ok=True)
-    spec=run_checked([str(tool.executable),'--relation-semantics','ordered',
-                      *[str(p) for p in spec_paths],str(property_path)],project,timeout)
-    (output/'Spec.lean').write_text(spec)
+    shared=prepare_translation(spec_paths,config_path,project=project,
+                               timeout_seconds=timeout,verify=verify_shared)
+    origins.update(shared.fingerprints)
+    helpers=clause.get('helpers',[])
+    if helpers:
+        command=[str(tool.executable),'--extension-base',shared.module]
+        for helper in helpers:
+            command += ['--extension-helper',helper['name']]
+        command += [*[str(p) for p in spec_paths],str(property_path)]
+        extension=run_checked(command,project,timeout)
+    else:
+        extension='import '+shared.module+'\n'
+    (output/'Helpers.lean').write_text(extension)
     settings=output/'metadata-config.json'
     write_json(settings,{'schema_version':1,'observations':config.get('observations',[])})
     catalog_settings=output/'catalog-config.json'
     write_json(catalog_settings,catalog)
     model_args=['--transport-model',str(transport_model)] if transport_model else []
-    catalog_payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec',
+    catalog_payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Helpers',
         '--namespace',namespace+'CatalogTransport','--config',str(catalog_settings),
         *model_args,*[str(p) for p in spec_paths]],project,timeout))
     write_json(output/'catalog-manifest.json',catalog_payload['manifest'])
-    payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec','--namespace',namespace+'Transport',
+    payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Helpers','--namespace',namespace+'Transport',
                                     '--config',str(settings),'--property',str(property_path),'--property-name',name,*model_args,*[str(p) for p in spec_paths]],project,timeout))
     # Validate every selected field's type, even if this clause hides the
     # enclosing output as an existential witness.
@@ -241,7 +253,7 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
         tool_sources = [property_directory / name for name in
                         ['plan.py', 'emit.py', 'clause.py', 'runner.py', 'protocol.py']]
         tool_sources += [property_directory.parent / name for name in
-                         ['lean_tools.py', '_lean_dependencies.py', 'observations.py']]
+                         ['lean_tools.py', '_lean_dependencies.py', 'observations.py', 'specification.py']]
         tool_sources += [project / TOOLCHAIN_SOURCE,
                          project / BRIDGE_DIRECTORY / 'property_document.ml',
                          project / BRIDGE_DIRECTORY / 'property_cli.ml',

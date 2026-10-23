@@ -18,7 +18,7 @@ from scripts.property.plan import identity
 
 
 GENERATED_FILES = (
-    'Spec.lean', 'Transport.lean', 'Contract.lean', 'plan.json', 'manifest.json',
+    'Helpers.lean', 'Transport.lean', 'Contract.lean', 'plan.json', 'manifest.json',
     'metadata-config.json', 'catalog-config.json', 'catalog-manifest.json',
     'ContractAudit.lean', 'GeneratorAudit.lean',
 )
@@ -110,22 +110,22 @@ def _fresh(fingerprints, description):
 def _tool_fingerprints(project):
     directory = Path(__file__).resolve().parent
     paths = [directory/name for name in
-             ['workflow.py', 'clause.py', 'cli.py', 'emit.py', 'plan.py', 'runner.py', 'protocol.py']]
-    paths += [directory.parent/'lean_tools.py', directory.parent/'_lean_dependencies.py', directory.parent/'observations.py',
+             ['workflow.py', 'clause.py', 'cli.py', 'emit.py', 'plan.py', 'runner.py', 'protocol.py', 'implementation.py']]
+    paths += [directory.parent/'lean_tools.py', directory.parent/'_lean_dependencies.py', directory.parent/'observations.py', directory.parent/'specification.py',
               project/TOOLCHAIN_SOURCE]
     paths += [project/BRIDGE_DIRECTORY/name for name in
               ['property_document.ml', 'property_cli.ml', 'property_exec.ml']]
     return {str(path): digest(path) for path in paths}
 
 
-def emit_property(*, spec_paths, property_path, config_path, external_path, name, output,
+def emit_property(*, spec_paths, property_path, config_path, external_path, name, output=None,
                   project=PROJECT, timeout_seconds=120, transport_model=None,
                   proof_module=None, property_proof=None, generator_module=None, generator=None):
     """Generate obligations without certifying or overwriting authored declarations."""
     project = Path(project).resolve()
     timeout = require_timeout(timeout_seconds)
-    output = _bundle_path(output, project)
     property_path = Path(property_path).resolve()
+    output = _bundle_path(output if output is not None else property_path.parent/'bundle', project)
     declarations = _declarations(project, property_path, proof_module, property_proof, generator_module, generator)
     module = '.'.join(output.relative_to(project).parts) + '.Contract'
     authored = [_module_path(declarations[key], project) for key in ['proof_module', 'generator_module']]
@@ -213,7 +213,7 @@ def _validate_generated(directory, record, project, timeout):
     with tempfile.TemporaryDirectory(prefix='check-', dir=scratch) as tmp:
         stage = Path(tmp)
         plan, origins, tool = generate_property_files(**record['request'], output=stage,
-            project=project, timeout_seconds=timeout, namespace=module)
+            project=project, timeout_seconds=timeout, namespace=module, verify_shared=True)
         _audit_files(stage, module, declarations)
         for name in GENERATED_FILES:
             if (directory/name).read_bytes() != (stage/name).read_bytes():
