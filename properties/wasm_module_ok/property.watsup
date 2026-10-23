@@ -1,0 +1,4 @@
+property wasm_module_ok:
+  (m : module)
+  true
+  -- Module_ok: |- m : OK
