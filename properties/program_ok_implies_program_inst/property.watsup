@@ -1,4 +1,0 @@
-property program_ok_implies_program_inst:
-  (program : p4program)
-  Program_inst: |- program : layer store
-  -- Program_ok: |- program : ir

@@ -3,6 +3,10 @@
 Propose properties from SpecTec specifications, verify them in Lean, and test external implementations with certified input generators.
 The default branch is `P4-spectec-based`.
 
+This `wasm-spec-experiments` branch imports the [Wasm specification](specifications/wasm/README.md)
+and removes the authored P4 properties. The P4 commands below document the baseline
+workflow; their property sources are available on `P4-spectec-based`.
+
 ## Repository layout and responsibilities
 
 ```text
