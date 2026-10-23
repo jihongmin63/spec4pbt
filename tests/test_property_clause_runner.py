@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from pbt.property.clause import build_property
+from tests.external_selection import select_all
 from pbt.property.implementation import load_implementation
 from pbt.property.runner import collect_case,recheck_trace,rerun_case,run_property
 from tests.test_property_clause_build import COPY_SPEC,COPY_PROPERTY
@@ -73,6 +74,7 @@ adapter = {command}
             (cls.root/(label+'Proof.lean')).write_text(proof)
             cls.bundles[label]=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
                 property_path=cls.root/(property_name+'.watsup'),config_path=cls.root/'config.toml',
+                external_path=select_all(cls.root/'config.toml'),
                 name=property_name,output=cls.root/label,proof_module=module,
                 property_proof=('ClauseCopy' if label=='Positive' else 'ClauseChain')+'.property_correct',
                 timeout_seconds=120)

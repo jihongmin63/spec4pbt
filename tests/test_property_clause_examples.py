@@ -6,6 +6,7 @@ import unittest
 
 from pbt.property.runner import collect_case,run_property
 from tests.ordered.run import build_example
+from tests.external_selection import select_all
 from pbt.property.clause import build_property,load_clause
 from pbt.property.plan import compile_clause
 
@@ -83,6 +84,7 @@ class PropertyExamplesTests(unittest.TestCase):
         (folder / 'Proof.lean').write_text(proof.replace('@CONTRACT@', contract))
         bundle = build_property(spec_paths=[spec],
             property_path=ORDERED / 'properties.watsup', config_path=ORDERED / 'observations.toml',
+            external_path=ORDERED / 'external/progress.toml',
             name='progress', output=folder / 'Bundle', proof_module=base + '.Proof',
             property_proof='ClauseProgress.property_correct')
         generator = (ORDERED / 'templates/progress_generator.lean.in').read_text()
@@ -112,6 +114,7 @@ class PropertyExamplesTests(unittest.TestCase):
             'out.scratch.'+self.root.name+'.StatusBundle.Contract'))
         bundle=build_property(spec_paths=[root/'spec.watsup'],
             property_path=root/'properties.watsup',config_path=config,
+            external_path=select_all(config),
             name='progress',output=output,proof_module=proof_module,
             property_proof='ClauseProgress.property_correct')
         good=collect_case(bundle,{'n':3},self.root/'status-good',

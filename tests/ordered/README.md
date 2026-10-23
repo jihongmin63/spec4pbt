@@ -3,6 +3,8 @@
 These small specifications, properties, proof/generator templates, and target
 adapters exercise the certified workflow. They are internal regression data;
 actual property work belongs in `properties/` and `implementations/`.
+`observations.toml` is this small specification's catalog; `external/<name>.toml`
+selects the observations used by each regression property.
 
 Run from the repository root with fresh output paths:
 

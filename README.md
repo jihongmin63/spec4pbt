@@ -7,10 +7,12 @@ The default branch is `P4-spectec-based`.
 
 ```text
 p4-spectec/                    Official specification: pinned Git submodule
+specifications/
+  p4/observations.toml         Shared catalog of permitted external P4 observations
 properties/
   instantiation_progress/
     property.watsup            Agent-proposed property for user review
-    observations.toml          Relations and outputs observed externally for this property
+    external.toml              This property's selection from the shared catalog
     # Add Proof.lean and Generator.lean only when implementing them
 implementations/              Add implementations as needed
   <implementation>.toml        Execution manifest
@@ -32,7 +34,8 @@ out/                          Regenerable work products (Git-ignored)
 Keep the property folder name consistent with `--name`. For `instantiation_progress`, the proof module is
 `properties.instantiation_progress.Proof` and the fixed bundle path is
 `out/bundles/instantiation_progress`. The same relation can be an external observation for one property
-and an internal witness for another, so each property has its own `observations.toml`.
+and an internal witness for another. The specification's `observations.toml` lists all permitted
+external observations; each property's `external.toml` selects only what it uses.
 Adapters and execution manifests in `implementations/` are shared across properties.
 
 The root contains this guide, [AGENTS.md](AGENTS.md), and the Git/Lake configuration. Lake manages
@@ -45,10 +48,10 @@ for certification and execution.
 
 | Item | Details |
 | --- | --- |
-| Specification | Version and path of the specification, and the feature or scope to check. The default is `p4-spectec/spec/`. |
+| Specification | Version and path, feature or scope to check, and one concrete `observations.toml` catalog of all permitted external relations and output fields. The default source is `p4-spectec/spec/`. |
 | Target implementation | Source or executable location, version, build and run commands, input/output formats, and failure criteria. |
 | Execution conditions | Test count, size, seed, and timeouts; P4 architecture and external state type representations when needed. |
-| Outputs to review | Proposed property, premises, observation criteria, implementation binding, and execution results. |
+| Outputs to review | Proposed property, premises, external selection, observation criteria, implementation binding, and execution results. |
 
 Users do not need to write property syntax, Lean proofs, or generators. An agent proposes properties
 from the specification and testing goal, and writes an adapter and manifest when implementation details
@@ -65,7 +68,32 @@ alongside one or more `property` clauses. Authored rules may only define authore
 relations; attempts to replace or extend a relation from the pinned specification
 are rejected. `plan` computes the external helper set from relation dependencies
 before checking whether each use reads only property inputs and observed outputs.
-An observation profile still names a primitive relation, not a helper.
+An observation catalog entry still names a primitive relation, not a helper.
+
+### Shared catalog and property selection
+
+Keep the user's catalog outside the pinned specification checkout. For the
+included P4 source, it is `specifications/p4/observations.toml`. Each catalog
+entry has an `id`, `relation`, and `observe` array. It grants a maximum external
+capability; listing a relation does not make every property call it. A property
+selects catalog IDs in `properties/<name>/external.toml`:
+
+```toml
+schema_version = 1
+
+[[external]]
+id = "instantiation"
+observe = []
+```
+
+An omitted relation remains internal. A selected relation with `observe = []`
+still calls the implementation to check success or failure. Selected output
+fields may be narrower than the catalog allows: a selector must be the same as
+or inside one catalog selector. `external = []` selects no external calls. The
+property author writes this restriction for review; users provide the catalog
+once with the specification. A shared implementation manifest may bind other
+relations from the catalog, but execution calls only the relations selected by
+this property's plan.
 
 The executable subset currently covers zero-output helpers with one rule that
 passes its inputs unchanged to one primitive call. Such wrappers can be chained
@@ -109,7 +137,8 @@ python3 -m pbt.property plan \
   --spec p4-spectec/spec \
   --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
-  --config properties/instantiation_progress/observations.toml
+  --config specifications/p4/observations.toml \
+  --external properties/instantiation_progress/external.toml
 ```
 
 Reuse a compatible opam switch if one already exists. The official specification is pinned to
@@ -122,7 +151,7 @@ Reuse a compatible opam switch if one already exists. The official specification
 
 The agent follows [AGENTS.md](AGENTS.md) to:
 
-1. Analyze the specification, propose a property and observation criteria, and use `plan` to classify internal witnesses and external calls.
+1. Analyze the specification, propose a property and a selection from the user's observation catalog, and use `plan` to classify internal witnesses and external calls.
 2. Prove the generated contract's exact `SpecProperty` in the property's `Proof.lean`.
 3. Use `build` to generate the specification and contract, then pass Lean type, module ownership, and axiom-dependency audits.
 4. Write a `CorrectGen Contract.Premise` generator in a separate `Generator.lean`.
@@ -144,7 +173,8 @@ python3 -m pbt.property build \
   --spec p4-spectec/spec \
   --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
-  --config properties/instantiation_progress/observations.toml \
+  --config specifications/p4/observations.toml \
+  --external properties/instantiation_progress/external.toml \
   --output out/bundles/instantiation_progress \
   --proof-module properties.instantiation_progress.Proof \
   --property-proof InstantiationProgress.property_correct

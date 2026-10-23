@@ -18,10 +18,14 @@ class ImplementationManifestTests(unittest.TestCase):
             'schema_version':1,'observations':[
                 {'id':'copy','relation':'Copy','observe':['%1']},
                 {'id':'other','relation':'Other','observe':[]}]}))
+        (self.bundle_dir/'catalog-config.json').write_text(
+            (self.bundle_dir/'metadata-config.json').read_text())
         (self.bundle_dir/'manifest.json').write_text(json.dumps({'relations':{
             'Copy':{'inputs':[0],'arguments':[{'type':'nat'},{'type':'nat'}]},
             'Other':{'inputs':[0],'arguments':[{'type':'nat'},{'type':'nat'}]},
             'Internal':{'inputs':[0],'arguments':[{'type':'nat'},{'type':'nat'}]}}}))
+        (self.bundle_dir/'catalog-manifest.json').write_text(json.dumps({
+            'relations': {'Copy': {}, 'Other': {}}}))
         self.bundle=SimpleNamespace(directory=self.bundle_dir,plan={'calls':[{'relation':'Copy','id':'condition.0'}]})
         self.impl=self.root/'implementation.toml'
         (self.root/'run').mkdir()

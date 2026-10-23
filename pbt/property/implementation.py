@@ -65,11 +65,18 @@ class Implementation:
 
 def _bundle_relations(bundle):
     metadata=json.loads((bundle.directory/'metadata-config.json').read_text())
+    catalog=json.loads((bundle.directory/'catalog-config.json').read_text())
     manifest=json.loads((bundle.directory/'manifest.json').read_text())
-    external={profile['relation'] for profile in metadata['observations']}
-    if not external <= set(manifest['relations']):
+    catalog_manifest=json.loads((bundle.directory/'catalog-manifest.json').read_text())
+    selected={profile['relation'] for profile in metadata['observations']}
+    allowed={profile['relation'] for profile in catalog['observations']}
+    if not selected <= allowed:
+        raise ValueError('selected observation metadata exceeds the specification catalog')
+    if allowed != set(catalog_manifest['relations']):
+        raise ValueError('catalog observation metadata differs from the specification manifest')
+    if not selected <= set(manifest['relations']):
         raise ValueError('observation metadata names a relation absent from the relation manifest')
-    return external
+    return allowed
 
 
 def _nonempty(value,label):

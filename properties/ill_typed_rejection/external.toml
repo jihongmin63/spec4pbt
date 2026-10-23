@@ -1,6 +1,5 @@
 schema_version = 1
 
-[[observations]]
+[[external]]
 id = "program_typecheck"
-relation = "Program_ok"
 observe = []

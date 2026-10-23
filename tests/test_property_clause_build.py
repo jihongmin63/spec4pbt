@@ -7,6 +7,7 @@ import subprocess
 from translator.toolchain import resolve_toolchain
 from tests.test_property_frontend import SPEC, VALUE, PROGRESS
 from tests.test_property_clause import frontend
+from tests.external_selection import select_all
 
 from tests import ROOT, FIXTURES, ORDERED, SCRATCH
 CONFIG='''schema_version = 1
@@ -63,7 +64,7 @@ theorem helper_refl : {base}.Bundle.Contract.SpecProperty := by
   exact h
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                 name='reflexive',output=output,proof_module=base+'.Proof',
                 property_proof='helper_refl',timeout_seconds=120)
             self.assertEqual([call['relation'] for call in bundle.plan['calls']], ['Copy','Copy'])
@@ -104,7 +105,7 @@ theorem negative_refl : {base}.Bundle.Contract.SpecProperty := by
   exact h
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                 name='rejection',output=output,proof_module=base+'.Proof',
                 property_proof='negative_refl',timeout_seconds=120)
             self.assertTrue(all(call['invert'] for call in bundle.plan['calls']))
@@ -135,7 +136,7 @@ end BadProof
 ''')
             with self.assertRaisesRegex((ValueError,ChildProcessError),'sorry|forbidden|axiom'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                    property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                    property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                     name='positive',output=output,proof_module=base+'.Proof',
                     property_proof='BadProof.property_correct',timeout_seconds=90)
             self.assertFalse(output.exists())
@@ -155,7 +156,7 @@ observe = ["%1"]
             proof=(ORDERED/'templates/copy_positive_proof.lean.in').read_text()
             (folder/'Proof.lean').write_text(proof.replace('@CONTRACT@',base+'.Bundle.Contract'))
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                 name='positive',output=output,proof_module=base+'.Proof',
                 property_proof='ClauseCopy.property_correct',timeout_seconds=120)
             self.assertEqual(bundle.plan['relation_semantics'],'ordered')
@@ -192,7 +193,7 @@ observe = ["%1"]
 ''')
             with self.assertRaisesRegex(ValueError,'proof_module|property_proof'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                    property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                    property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                     name='positive',output=folder/'Bundle',timeout_seconds=90)
 
     def _prove_positive_premise(self,spec,source,config,relation):
@@ -300,7 +301,7 @@ class PropertyBuildTests(unittest.TestCase):
         template=(ORDERED/'templates/copy_positive_proof.lean.in').read_text()
         (cls.root/'Proof.lean').write_text(template.replace('@CONTRACT@',base+'.Bundle.Contract'))
         cls.bundle=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
-            property_path=cls.root/'property.watsup',config_path=cls.root/'config.toml',
+            property_path=cls.root/'property.watsup',config_path=cls.root/'config.toml',external_path=select_all(cls.root/'config.toml'),
             name='positive',output=cls.root/'Bundle',proof_module=base+'.Proof',
             property_proof='ClauseCopy.property_correct',timeout_seconds=120)
 
@@ -335,7 +336,7 @@ class PropertyEdgeBuildTests(unittest.TestCase):
             folder=Path(tmp);base='out.scratch.'+folder.name
             (folder/'spec.watsup').write_text('var n : nat\n')
             (folder/'property.watsup').write_text('property pure:\n (n : nat)\n n = n\n')
-            (folder/'config.toml').write_text('schema_version = 1\n')
+            (folder/'config.toml').write_text('schema_version = 1\nobservations = []\n')
             (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
 namespace PureProof
 theorem property_correct : {base}.Bundle.Contract.SpecProperty := by
@@ -344,7 +345,7 @@ theorem property_correct : {base}.Bundle.Contract.SpecProperty := by
 end PureProof
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
                 name='pure',output=folder/'Bundle',proof_module=base+'.Proof',
                 property_proof='PureProof.property_correct',timeout_seconds=120)
             self.assertEqual(bundle.plan['calls'],[])

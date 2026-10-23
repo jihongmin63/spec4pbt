@@ -33,7 +33,8 @@ def build_example(name,output):
     proof=(root/'templates'/proof_template).read_text().replace('@CONTRACT@',contract)
     proof_path.write_text(proof)
     bundle=build_property(spec_paths=[root/'spec.watsup'],
-        property_path=root/'properties.watsup',config_path=config,name=name,output=output,
+        property_path=root/'properties.watsup',config_path=config,
+        external_path=root/'external'/(name+'.toml'),name=name,output=output,
         proof_module=proof_module,property_proof=proof_namespace+'.property_correct')
     generator=(root/'templates'/generator_template).read_text()
     generator=generator.replace('@CONTRACT@',contract).replace('@PROOF@',proof_module)

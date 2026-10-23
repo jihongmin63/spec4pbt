@@ -7,7 +7,7 @@ import sys
 import tomllib
 from translator.toolchain import PROJECT
 from pbt.property.clause import build_property,load_bundle,load_clause,strict_json
-from pbt.property.plan import compile_clause
+from pbt.property.plan import compile_clause,select_external
 from pbt.property.runner import collect_case,recheck_trace,rerun_case,run_property
 
 
@@ -20,7 +20,9 @@ def main():
         p.add_argument('--property',type=Path,required=True)
         p.add_argument('--name',required=True)
         p.add_argument('--timeout',type=float,default=120)
-        if action!='inspect':p.add_argument('--config',type=Path,required=True)
+        if action!='inspect':
+            p.add_argument('--config',type=Path,required=True)
+            p.add_argument('--external',type=Path,required=True)
         if action=='build':
             p.add_argument('--output',type=Path,required=True)
             p.add_argument('--transport-model',type=Path)
@@ -49,10 +51,12 @@ def main():
             clause=load_clause(args.spec,args.property,args.name,timeout_seconds=args.timeout)
             if args.action=='plan':
                 with args.config.open('rb') as f:config=tomllib.load(f)
-                clause=compile_clause(clause,config)
+                with args.external.open('rb') as f:selection=tomllib.load(f)
+                clause=compile_clause(clause,select_external(config,selection))
             print(json.dumps(clause,indent=2,ensure_ascii=False));return 0
         if args.action=='build':
-            b=build_property(spec_paths=args.spec,property_path=args.property,config_path=args.config,name=args.name,
+            b=build_property(spec_paths=args.spec,property_path=args.property,config_path=args.config,
+                             external_path=args.external,name=args.name,
                              output=args.output,timeout_seconds=args.timeout,transport_model=args.transport_model,
                              proof_module=args.proof_module,property_proof=args.property_proof)
             print(json.dumps({'bundle':str(b.directory),'namespace':b.namespace,'plan_id':b.plan['plan_id']}));return 0

@@ -12,7 +12,7 @@ from translator.toolchain import (
     PROPERTY_RUN_EXECUTABLE, resolve_toolchain, digest, source_identity,
 )
 from pbt.lean_tools import require_name, require_timeout, run_checked, rebuild_modules
-from pbt.property.plan import compile_clause, identity
+from pbt.property.plan import compile_clause, identity, select_external
 from pbt.property import emit as property_emit
 from pbt.observations import validate_observation
 from pbt.lean_tools import fingerprint_dependencies
@@ -114,7 +114,7 @@ class CertifiedProperty:
     def validate(self,input_value,trace): return self.invoke('validate',input_value,trace)
 
 
-def build_property(*, spec_paths, property_path, config_path, name, output,
+def build_property(*, spec_paths, property_path, config_path, external_path, name, output,
                    project=PROJECT, timeout_seconds=120, transport_model=None,
                    proof_module=None, property_proof=None):
     for label, value in [('proof_module', proof_module), ('property_proof', property_proof)]:
@@ -124,7 +124,10 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
     project=Path(project).resolve();timeout=require_timeout(timeout_seconds)
     spec_paths=[Path(p).absolute() for p in spec_paths]
     property_path=Path(property_path).absolute();config_path=Path(config_path).absolute()
-    with config_path.open('rb') as f: config=tomllib.load(f)
+    external_path=Path(external_path).absolute()
+    with config_path.open('rb') as f: catalog=tomllib.load(f)
+    with external_path.open('rb') as f: selection=tomllib.load(f)
+    config=select_external(catalog,selection)
     initial_toolchain=resolve_toolchain(project).identity()
     clause=load_clause(spec_paths,property_path,name,project=project,timeout_seconds=timeout)
     plan=compile_clause(clause,config)
@@ -132,7 +135,8 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         details=', '.join(f"{entry['relation']}: {entry['reason']}" for entry in plan['unsupported'])
         raise ValueError('property execution plan has unsupported structures: '+details)
     tool=resolve_toolchain(project)
-    origins={**source_identity(spec_paths),str(property_path):digest(property_path),str(config_path):digest(config_path)}
+    origins={**source_identity(spec_paths),str(property_path):digest(property_path),
+             str(config_path):digest(config_path),str(external_path):digest(external_path)}
     if transport_model is not None:
         transport_model=Path(transport_model).resolve();origins[str(transport_model)]=digest(transport_model)
     output=Path(output)
@@ -151,7 +155,13 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         (output/'Spec.lean').write_text(spec)
         settings=output/'metadata-config.json'
         write_json(settings,{'schema_version':1,'observations':config.get('observations',[])})
+        catalog_settings=output/'catalog-config.json'
+        write_json(catalog_settings,catalog)
         model_args=['--transport-model',str(transport_model)] if transport_model else []
+        catalog_payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec',
+            '--namespace',namespace+'CatalogTransport','--config',str(catalog_settings),
+            *model_args,*[str(p) for p in spec_paths]],project,timeout))
+        write_json(output/'catalog-manifest.json',catalog_payload['manifest'])
         payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec','--namespace',namespace+'Transport',
                                         '--config',str(settings),'--property',str(property_path),'--property-name',name,*model_args,*[str(p) for p in spec_paths]],project,timeout))
         # Validate every selected field's type, even if this clause hides the
@@ -195,7 +205,8 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         run_checked(['lake','env','lean',str(output/'ContractAudit.lean')],project,timeout)
         files=fingerprint_dependencies(project,[output/'ContractAudit.lean'],timeout)
         files.update(origins)
-        for p in [output/'manifest.json',output/'metadata-config.json']:
+        for p in [output/'manifest.json',output/'metadata-config.json',
+                  output/'catalog-config.json',output/'catalog-manifest.json']:
             files[str(p)]=digest(p)
         property_directory = Path(__file__).resolve().parent
         tool_sources = [property_directory / name for name in

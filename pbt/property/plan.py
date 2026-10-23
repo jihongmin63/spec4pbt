@@ -128,6 +128,51 @@ def _profiles(config):
     return profiles
 
 
+def select_external(catalog, selection):
+    """Restrict a specification's external catalog for one property."""
+    if not isinstance(catalog, dict) or set(catalog) != {'schema_version', 'observations'}:
+        raise ValueError('catalog requires schema_version and observations only')
+    if not isinstance(catalog['observations'], list) or any(
+            not isinstance(entry, dict) for entry in catalog['observations']):
+        raise ValueError('catalog observations must be an array of tables')
+    _profiles(catalog)
+    by_id = {entry['id']: entry for entry in catalog['observations']}
+    if not isinstance(selection, dict) or set(selection) != {'schema_version', 'external'}:
+        raise ValueError('selection requires schema_version and external only')
+    if type(selection['schema_version']) is not int or selection['schema_version'] != 1:
+        raise ValueError('expected external selection schema_version 1')
+    if not isinstance(selection['external'], list):
+        raise ValueError('external selection must be an array')
+    seen = set()
+    selected = []
+    for index, entry in enumerate(selection['external']):
+        where = f'external[{index}]'
+        if not isinstance(entry, dict) or set(entry) != {'id', 'observe'}:
+            raise ValueError(f'{where}: expected id and observe only')
+        oid, selectors = entry['id'], entry['observe']
+        if not isinstance(oid, str) or not oid:
+            raise ValueError(f'{where}: id must be a nonempty string')
+        if oid in seen:
+            raise ValueError(f'{where}: duplicate external id {oid}')
+        seen.add(oid)
+        if oid not in by_id:
+            raise ValueError(f'{where}: unknown catalog id {oid}')
+        if not isinstance(selectors, list):
+            raise ValueError(f'{where}: observe must be an array')
+        allowed = by_id[oid]['observe']
+        for i, selector in enumerate(selectors):
+            if not isinstance(selector, str) or SELECTOR.fullmatch(selector) is None:
+                raise ValueError(f'{where}: invalid observation selector {selector!r}')
+            if any(selector == previous or selector.startswith(previous + '.') or
+                   previous.startswith(selector + '.') for previous in selectors[:i]):
+                raise ValueError(f'{where}: overlapping observation selectors')
+            if not any(selector == grant or selector.startswith(grant + '.') for grant in allowed):
+                raise ValueError(f'{where}: observation selector {selector} is outside catalog grant')
+        selected.append({'id': oid, 'relation': by_id[oid]['relation'],
+                         'observe': list(selectors)})
+    return {'schema_version': 1, 'observations': selected}
+
+
 def compile_clause(clause, config):
     """Compile the native AL IR into a proof and runtime collection plan."""
     clause = copy.deepcopy(clause)

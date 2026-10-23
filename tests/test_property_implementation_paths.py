@@ -16,7 +16,9 @@ class ImplementationPathTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root=Path(self.temporary.name)
         (self.root/'metadata-config.json').write_text(json.dumps({'schema_version':1,'observations':[{'id':'copy','relation':'Copy','observe':['%1']}]}))
+        (self.root/'catalog-config.json').write_text((self.root/'metadata-config.json').read_text())
         (self.root/'manifest.json').write_text(json.dumps({'relations':{'Copy':{}}}))
+        (self.root/'catalog-manifest.json').write_text((self.root/'manifest.json').read_text())
         self.bundle=SimpleNamespace(directory=self.root,plan={'calls':[{'relation':'Copy'}]})
 
     def manifest(self,command):

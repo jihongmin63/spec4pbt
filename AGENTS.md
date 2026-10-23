@@ -6,13 +6,18 @@ implementation protocol, and the current full-P4 limitations.
 ## Responsibilities and boundaries
 
 Users supply the specification selection, implementation details, and execution
-conditions. Propose properties and observation criteria from that information;
+conditions, including one concrete `observations.toml` catalog of every
+permitted external relation and output field for the specification. Propose
+properties and property-specific restrictions from that information;
 users review their meaning and the resulting evidence. Users do not have to
 write property syntax, proofs, or generators themselves.
 
-- `properties/<name>/`: authored property, per-property observations, `Proof.lean`,
+- `properties/<name>/`: authored property, per-property `external.toml`, `Proof.lean`,
   and separate `Generator.lean`. Create proof/generator files when implementing
   them, never empty placeholders or fake full-P4 proofs.
+- `specifications/<spec-id>/observations.toml`: user-provided catalog of all
+  permitted external observations for that specification. Do not write it into
+  the pinned `p4-spectec/` checkout.
 - `implementations/`: shared flat `<implementation>.toml`, adapter `.py`, and
   optional external-type/JSON model `.lean`. Keep local checkouts/builds in
   ignored `implementations/local/`. Resolve `cwd` relative to the manifest parent.
@@ -36,16 +41,19 @@ Run Python module commands from the repository root.
    module prefix, bundle directory, and results directory consistent:
    `properties/<name>/`, `properties.<name>.Proof`, `out/bundles/<name>/`,
    `out/results/<name>/<run>/`.
-2. Propose `property.watsup` and `observations.toml` together. A relation may be
-   external for one property and internal for another; never share a global
-   observations file across unrelated properties. Explain any change to the
-   user's intended premises or expected behavior.
+2. Propose `property.watsup` and its `external.toml` restriction together. Select
+   only catalog IDs and output selectors allowed by the specification's shared
+   `observations.toml`; a relation omitted from the restriction stays internal.
+   A selected relation with `observe = []` still checks its success or failure.
+   Never broaden the user's catalog to make a property pass. Explain any change
+   to the user's intended premises or expected behavior.
    Format authored SpecTec declarations with the relation or rule name on its
    own header line, followed by the goal, optional hint, and each `--` premise
    on separate indented lines. Use the same line-separated layout for properties.
-3. Use `python3 -m pbt.property plan` to classify inputs, internal witnesses,
-   external calls, and observation dependencies. Report unsupported structures
-   and missing implementation information.
+3. Run `python3 -m pbt.property plan` with `--config <catalog>` and
+   `--external properties/<name>/external.toml` to classify inputs, internal
+   witnesses, external calls, and observation dependencies. Report unsupported
+   structures and missing implementation information.
 4. Write `Proof.lean` importing `out.bundles.<name>.Contract`. The contract can be
    absent initially: `build` generates it before compiling the proof module.
    Prove the exact `Contract.SpecProperty`, with no extra assumptions, `sorry`,
