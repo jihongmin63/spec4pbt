@@ -1,4 +1,5 @@
 """Collect external occurrences, then check the frozen trace with SpecTec AL."""
+from contextlib import contextmanager
 from dataclasses import dataclass,asdict
 from pathlib import Path
 import os
@@ -170,6 +171,15 @@ def rerun_case(bundle,case,output,*,implementation,timeout_seconds=10):
 
 
 def sample_inputs(bundle,generator_module=None,generator=None,*,count,size,seed,timeout_seconds):
+    """Return samples and their recorded hashes, releasing temporary driver files."""
+    with _sample_inputs(bundle,generator_module,generator,count=count,size=size,seed=seed,
+                        timeout_seconds=timeout_seconds) as sampled:
+        return sampled
+
+
+@contextmanager
+def _sample_inputs(bundle,generator_module=None,generator=None,*,count,size,seed,timeout_seconds):
+    """Keep the fingerprinted driver alive for the full sampling consumer scope."""
     if not bundle.generator_module or not bundle.generator:
         raise ValueError('generator is not certified; emit and check both declarations before run')
     if ((generator_module is not None and generator_module != bundle.generator_module)
@@ -183,9 +193,10 @@ def sample_inputs(bundle,generator_module=None,generator=None,*,count,size,seed,
     bundle.assert_fresh()
     ns=bundle.namespace
     base=bundle.project/SCRATCH_DIRECTORY;base.mkdir(parents=True,exist_ok=True)
-    directory=Path(tempfile.mkdtemp(prefix='sampler-',dir=base))
-    driver=directory/'Driver.lean'
-    driver.write_text(f'''import {bundle.module}
+    with tempfile.TemporaryDirectory(prefix='sampler-',dir=base) as temporary:
+        directory=Path(temporary)
+        driver=directory/'Driver.lean'
+        driver.write_text(f'''import {bundle.module}
 import {generator_module}
 open Lean
 
@@ -195,17 +206,17 @@ def main : IO Unit := do
     let value : {ns}.Input ← Plausible.runRandWith ({seed} + index) (SampleM.sampleRand config {generator}.val)
     (← IO.getStdout).putStrLn (Json.mkObj [("index",toJson index),("input",{ns}.encodeInput value)]).compress
 ''')
-    fingerprints=fingerprint_dependencies(bundle.project,[driver],timeout_seconds)
-    fingerprints.update(bundle.fingerprints)
-    bundle.assert_fresh()
-    text=run_checked(['lake','env','lean','--run',str(driver)],bundle.project,timeout_seconds)
-    fresh(fingerprints)
-    samples=[strict_json(line) for line in text.splitlines()]
-    if len(samples)!=count:raise ValueError('sampler count mismatch')
-    for i,s in enumerate(samples):
-        if set(s)!={'index','input'} or type(s['index']) is not int or s['index']!=i:
-            raise ValueError('sampler protocol mismatch')
-    return samples,fingerprints
+        fingerprints=fingerprint_dependencies(bundle.project,[driver],timeout_seconds)
+        fingerprints.update(bundle.fingerprints)
+        bundle.assert_fresh()
+        text=run_checked(['lake','env','lean','--run',str(driver)],bundle.project,timeout_seconds)
+        fresh(fingerprints)
+        samples=[strict_json(line) for line in text.splitlines()]
+        if len(samples)!=count:raise ValueError('sampler count mismatch')
+        for i,s in enumerate(samples):
+            if set(s)!={'index','input'} or type(s['index']) is not int or s['index']!=i:
+                raise ValueError('sampler protocol mismatch')
+        yield samples,fingerprints
 
 
 def run_property(bundle,*,implementation,output,generator_module=None,generator=None,count=100,size=10,seed=0,
@@ -214,22 +225,23 @@ def run_property(bundle,*,implementation,output,generator_module=None,generator=
     implementation=implementation_value(implementation,bundle)
     output=Path(output).resolve()
     if os.path.lexists(output):raise FileExistsError('run output already exists: '+str(output))
-    samples,fingerprints=sample_inputs(bundle,generator_module,generator,count=count,size=size,seed=seed,timeout_seconds=timeout_seconds)
-    output.mkdir(parents=True)
-    write_json(output/'samples.json',samples)
-    write_json(output/'run.json',{'plan_id':bundle.plan['plan_id'],'generator_module':bundle.generator_module,
-                                'generator':bundle.generator,'count':count,'size':size,'seed':seed,
-                                'adapter_timeout_seconds':adapter_timeout_seconds,'sampler_dependencies':fingerprints,
-                                'implementation':implementation.snapshot})
-    counts={k:0 for k in ['pass','fail','error']}
-    for sample in samples:
-        fresh(fingerprints)
-        implementation.assert_fresh()
-        result=collect_case(bundle,sample['input'],output/f'case-{sample["index"]:06d}',
-                            implementation=implementation,case_id=str(sample['index']),timeout_seconds=adapter_timeout_seconds)
-        counts[result.verdict]+=1
-        if result.verdict=='error':break
-    status='error' if counts['error'] else 'failed' if counts['fail'] else 'passed' if counts['pass'] else 'error'
-    summary=RunSummary(status,counts,count,sum(counts.values()),output)
-    write_json(output/'result.json',{**asdict(summary),'output':str(output)})
-    return summary
+    with _sample_inputs(bundle,generator_module,generator,count=count,size=size,seed=seed,
+                        timeout_seconds=timeout_seconds) as (samples,fingerprints):
+        output.mkdir(parents=True)
+        write_json(output/'samples.json',samples)
+        write_json(output/'run.json',{'plan_id':bundle.plan['plan_id'],'generator_module':bundle.generator_module,
+                                    'generator':bundle.generator,'count':count,'size':size,'seed':seed,
+                                    'adapter_timeout_seconds':adapter_timeout_seconds,'sampler_dependencies':fingerprints,
+                                    'implementation':implementation.snapshot})
+        counts={k:0 for k in ['pass','fail','error']}
+        for sample in samples:
+            fresh(fingerprints)
+            implementation.assert_fresh()
+            result=collect_case(bundle,sample['input'],output/f'case-{sample["index"]:06d}',
+                                implementation=implementation,case_id=str(sample['index']),timeout_seconds=adapter_timeout_seconds)
+            counts[result.verdict]+=1
+            if result.verdict=='error':break
+        status='error' if counts['error'] else 'failed' if counts['fail'] else 'passed' if counts['pass'] else 'error'
+        summary=RunSummary(status,counts,count,sum(counts.values()),output)
+        write_json(output/'result.json',{**asdict(summary),'output':str(output)})
+        return summary
