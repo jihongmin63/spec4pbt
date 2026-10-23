@@ -66,8 +66,8 @@ class MetadataTests(unittest.TestCase):
         (project / "Transport.lean").write_text(value["transport"])
         built = run(["lake", "build", "Transport"], cwd=project)
         if transport_error:
-            self.assertNotEqual(built.returncode, 0, "missing external codecs unexpectedly compiled")
-            self.assertIn("Json", built.stdout + built.stderr)
+            self.assertNotEqual(built.returncode, 0, "invalid transport model unexpectedly compiled")
+            self.assertIn(transport_error, built.stdout + built.stderr)
             return project, value
         self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
         if extra:
@@ -172,35 +172,58 @@ def main : IO Unit := pure ()
                 self.assertEqual(result.stdout, "")
                 self.assertTrue(result.stderr.strip())
 
-    def test_abstract_external_types_are_explicitly_rejected(self):
-        result = self.helper_result("extern.watsup", config("Copy", "%1"))
-        self.assertNotEqual(result.returncode, 0)
-        self.assertEqual(result.stdout, "")
-        self.assertIn("external", result.stderr.lower())
-
-    def test_user_external_model_freezes_concrete_type_in_transport_alias(self):
-        self.compile("extern.watsup", config("Copy", "%1"), lambda manifest: f'''
-example : {manifest["types"]["archState"]["lean"]} = Nat := rfl
+    def test_singleton_external_type_roundtrip_without_model(self):
+        self.compile("extern.watsup", config("Copy", "%1"), '''
+example (x y : SpecTec.archState) : x = y := by cases x; cases y; rfl
 def main : IO Unit := do
-  let input : {manifest["types"]["archState"]["lean"]} := (42 : Nat)
+  let input : SpecTec.archState := .mk
+  let encoded := Lean.toJson input
+  if encoded != Lean.Json.str "mk" then throw (IO.userError "singleton encoding")
+  let .ok decoded := Lean.fromJson? (α := SpecTec.archState) encoded
+    | throw (IO.userError "singleton decode")
+  if decoded != input then throw (IO.userError "singleton roundtrip")
+  if (Lean.fromJson? (α := SpecTec.archState) (Lean.Json.str "other")).isOk then
+    throw (IO.userError "invalid singleton accepted")
+''')
+
+    def test_arbitrary_external_names_are_distinct_singleton_types(self):
+        project, _ = self.compile("extern-singletons.watsup", config("Copy", "%1"), '''
+example (x y : SpecTec.packetState) : x = y := by cases x; cases y; rfl
+example : SpecTec.«$init_archState» SpecTec.archState.mk := .allowed _
+def main : IO Unit := do
+  let input : SpecTec.payload := { JSON := .mk, ARCH := .mk, OBJECT := .mk, PACKET := .mk }
+  let .ok decoded := Lean.fromJson? (α := SpecTec.payload) (Lean.toJson input)
+    | throw (IO.userError "external record decode")
+  if decoded != input then throw (IO.userError "external record roundtrip")
+''')
+        (project / "WrongType.lean").write_text(
+            "import Transport\nexample : SpecTec.objectState := SpecTec.archState.mk\n")
+        checked = run(["lake", "env", "lean", "WrongType.lean"], cwd=project)
+        self.assertNotEqual(checked.returncode, 0)
+        self.assertIn("type mismatch", (checked.stdout + checked.stderr).lower())
+
+    def test_transport_alias_preserves_generated_external_type(self):
+        self.compile("extern.watsup", config("Copy", "%1"), lambda manifest: f'''
+example : {manifest["types"]["archState"]["lean"]} = SpecTec.archState := rfl
+def main : IO Unit := do
+  let input : {manifest["types"]["archState"]["lean"]} := .mk
   let .ok decoded := Lean.fromJson? (α := {manifest["types"]["archState"]["lean"]}) (Lean.toJson input)
     | throw (IO.userError "decode")
-  if !(Nat.beq decoded 42) then throw (IO.userError "external roundtrip")
-''', model="external-nat-model.lean")
+  if decoded != input then throw (IO.userError "external roundtrip")
+''')
 
-    def test_missing_external_codec_is_rejected_by_transport_compilation(self):
+    def test_obsolete_external_type_model_cannot_override_singleton(self):
         self.compile("extern.watsup", config("Copy", "%1"),
-                     model="external-missing-codec-model.lean", transport_error=True)
+                     model="external-nat-model.lean", transport_error="SpecTecExternTypes")
 
-    def test_external_dependent_record_uses_explicit_model_codecs(self):
+    def test_external_dependent_record_derives_codecs_without_model(self):
         self.compile("extern-record.watsup", config("Copy", "%1"), '''
-attribute [local instance] Transport.concrete
 def main : IO Unit := do
-  let input : SpecTec.payload := { STATE := (9 : Nat), VALUE := 7 }
+  let input : SpecTec.payload := { STATE := .mk, VALUE := 7 }
   let encoded := Lean.toJson input
   let .ok decoded := Lean.fromJson? (α := SpecTec.payload) encoded | throw (IO.userError "decode")
-  if !(Nat.beq decoded.STATE 9) || decoded.VALUE != 7 then throw (IO.userError "external record codec")
-''', model="external-record-model.lean")
+  if decoded.STATE != SpecTec.archState.mk || decoded.VALUE != 7 then throw (IO.userError "external record codec")
+''')
 
     def test_external_relation_uses_donor_public_typed_declaration(self):
         self.compile("extern-relation.watsup", config("Native", "%1"), lambda manifest: f'''

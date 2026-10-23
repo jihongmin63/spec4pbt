@@ -75,6 +75,8 @@ def collect_case(bundle,input_value,output,*,implementation,case_id='0',timeout_
             else:
                 write_json(directory/'response.json',reply)
                 entry.update(status=reply['status'],observation=reply.get('observation',{}),raw_response=reply)
+                if reply['status']=='abort':
+                    entry['error']=reply['message'];errors.append(reply['message'])
                 try: bundle.validate(input_value,[*entries,entry])
                 except ValueError as e:
                     entry.update(status='execution_error',observation={},error=str(e))
@@ -130,7 +132,12 @@ def validate_saved_trace(bundle,record):
             validate_response(response,request)
         except ValueError as error:
             raise ValueError('invalid raw response: '+str(error)) from error
-        if entry['status']=='execution_error':
+        if entry['status']=='abort':
+            if response['status']!='abort':
+                raise ValueError('abort status does not match raw response')
+            if entry['observation']!={} or entry.get('error')!=response['message']:
+                raise ValueError('abort cause does not match raw response')
+        elif entry['status']=='execution_error':
             if entry['observation']!={} or not isinstance(entry.get('error'),str) or not entry['error']:
                 raise ValueError('decode error cause missing from trace')
         elif entry.get('error') is not None:

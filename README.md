@@ -15,7 +15,7 @@ properties/
 implementations/              Add implementations as needed
   <implementation>.toml        Execution manifest
   <implementation>.py          Adapter
-  <implementation>.lean        Optional external-type/JSON model
+  <implementation>.lean        Optional extra JSON declarations
   local/                       Local implementation sources and builds (Git-ignored)
 pbt/                          Python tools for planning, certification, execution, and replay
 Spec4Pbt/                     Lean audit kernel for proofs, generators, and execution code
@@ -58,6 +58,42 @@ compare output values. Checking success alone still requires a call to the actua
 
 ## Setup and property planning
 
+### Authored helper relations
+
+A `property.watsup` file may contain ordinary `relation` and `rule` declarations
+alongside one or more `property` clauses. Authored rules may only define authored
+relations; attempts to replace or extend a relation from the pinned specification
+are rejected. `plan` computes the external helper set from relation dependencies
+before checking whether each use reads only property inputs and observed outputs.
+An observation profile still names a primitive relation, not a helper.
+
+The executable subset currently covers zero-output helpers with one rule that
+passes its inputs unchanged to one primitive call. Such wrappers can be chained
+and can negate a zero-output helper with `:/`. A normal primitive relation failure
+is inverted through negation; an adapter error remains an error. Helpers with
+output constraints, guards, alternative rules, or recursion are reported as
+unsupported at the execution-planning boundary. `build` rejects a plan with
+unsupported uses. A `:/` premise in a property clause becomes logical negation
+in its Lean contract. At execution time, only a normal `relation_failure` is
+inverted; `abort`, transport errors, and timeouts remain errors. The narrow
+helper delegation is checked against typed SpecTec IL by the native audit; a
+separate Lean theorem for general helper composition is not yet available.
+The authored `ill_typed_rejection` property now plans without unsupported
+structures, but has no full-P4 proof, exact-support generator, or real
+implementation binding yet. In the ordered translation its `Rejected` helper
+requires a normal `unmatch`; logical `¬ TypeChecks` alone does not establish
+that outcome. The implementation outcome criteria do not discharge this Lean
+proof obligation.
+
+The default ordered translation gives each `extern syntax` its own Lean
+inductive type with one nullary constructor, `mk`. No `SpecTecExternTypes`
+instance or separate external-type model is required. This deliberately models
+each external type as having exactly one value; it does not represent distinct
+dynamic P4 states. JSON codecs are derived for types needed by the property.
+The intended p4c implementation entry point is `p4test
+--validate`, but a certified conversion from generated `p4program` inputs to
+P4 source text is still needed before an adapter can bind that relation.
+
 Linux, Python 3.12 or later, Git, opam/C build tools, and `elan`/`lake` are required. Use the Lean
 version specified by `lean-toolchain`. Run all commands below from the repository root.
 
@@ -90,7 +126,7 @@ The agent follows [AGENTS.md](AGENTS.md) to:
 2. Prove the generated contract's exact `SpecProperty` in the property's `Proof.lean`.
 3. Use `build` to generate the specification and contract, then pass Lean type, module ownership, and axiom-dependency audits.
 4. Write a `CorrectGen Contract.Premise` generator in a separate `Generator.lean`.
-5. Bind an implementation adapter, manifest, and required type model, then perform a certified `run`.
+5. Bind an implementation adapter and manifest, then perform a certified `run`.
 6. Save results and traces, and explain failures and unfinished work.
 
 Keep `Proof.lean` and `Generator.lean` separate. Adding generator code to the proof after certification
@@ -123,8 +159,10 @@ python3 -m pbt.property run \
 ```
 
 The proof file imports `out.bundles.instantiation_progress.Contract`. You can write that import before
-the contract exists because `build` generates the contract before compiling the proof module. Pass the
-required type model with `build --transport-model implementations/<implementation>.lean`.
+the contract exists because `build` generates the contract before compiling the proof module.
+External types and their required codecs are generated automatically. Additional Lean declarations
+can optionally be supplied with `build --transport-model implementations/<implementation>.lean`;
+they cannot replace the generated external types.
 
 `build` does not overwrite an existing output directory. To recertify, remove only the existing
 `out/bundles/instantiation_progress/` and rebuild at **the same path**. Appending a version to the
@@ -133,10 +171,11 @@ or binary changes; never edit certificate hashes by hand. Use a new `<run>` for 
 
 ## Binding an implementation and inspecting results
 
-Write `implementations/target.toml` for the actual execution relation and file locations.
+Write `implementations/target.toml` for the actual execution relation, file
+locations, and classification criteria. New manifests use schema 2:
 
 ```toml
-schema_version = 1
+schema_version = 2
 id = "target"
 cwd = ".."
 
@@ -144,6 +183,11 @@ cwd = ".."
 relation = "Program_inst"
 adapter = ["python3", "implementations/target.py"]
 artifacts = ["implementations/local/target-binary"]
+
+[executions.outcomes]
+match = "the target completes and accepts the relation input"
+unmatch = "the target completes and reports an ordinary relation failure"
+abort = "the target cannot evaluate the relation input normally"
 ```
 
 `cwd` is resolved relative to the manifest's parent; `..` above is the repository root. Adapter and
@@ -151,10 +195,19 @@ artifact paths are relative to that working directory. Register target executabl
 that cannot be discovered from command arguments in `artifacts`. The launcher and script arguments are
 fingerprinted automatically.
 
-The adapter reads `plan_id`, `case_id`, `occurrence_id`, `relation_id`, canonical `input`, and `observe`
-from a JSON request on stdin, then calls the actual implementation. It returns the same four IDs and
-either `status = "success"` with an `observation` object or `status = "relation_failure"` on stdout.
-Write diagnostics to stderr. For a successful response with `observe = []`, the observation is `{}`.
+The three outcome descriptions must be present and are saved with the
+implementation identity for review. The adapter applies those criteria to the
+actual target result; the TOML descriptions do not classify target output by
+themselves. Existing schema 1 manifests remain readable.
+
+The adapter reads `plan_id`, `case_id`, `occurrence_id`, `relation_id`, canonical
+`input`, and `observe` from a JSON request on stdin, then calls the actual
+implementation. It returns the same four IDs and one of these statuses:
+`"success"` (match) with an `observation` object, `"relation_failure"`
+(unmatch), or `"abort"` with a nonempty `message`. For a successful response
+with `observe = []`, the observation is `{}`. Anything outside the stated
+criteria, including a crash or malformed adapter response, is an error. Write
+additional diagnostics to stderr.
 
 `result.json` records the verdict and cause. Each case's `trace.json` records the request, response,
 observations, and implementation fingerprint. Run verdicts are `passed`/`failed`/`error`; case verdicts

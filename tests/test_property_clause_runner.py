@@ -21,7 +21,10 @@ with open(sys.argv[2],'a') as f:f.write(r['occurrence_id']+' '+str(r['input'])+'
 if mode=='timeout':time.sleep(2)
 reply={key:r[key] for key in ['plan_id','case_id','occurrence_id','relation_id']}
 if mode=='protocol':reply['occurrence_id']='other'
-if mode=='reject' and r['occurrence_id']=='condition.0':
+if mode=='abort':
+ reply['status']='abort'
+ reply['message']='target rejected execution environment'
+elif mode=='reject' and r['occurrence_id']=='condition.0':
  reply['status']='relation_failure'
 else:
  reply['status']='success'
@@ -109,6 +112,16 @@ adapter = {command}
         self.assertEqual(result.verdict,'error')
         self.assertIn('timeout',result.error)
 
+    def test_explicit_adapter_abort_is_error_and_rechecks(self):
+        self.mode('abort')
+        result=self.collect()
+        self.assertEqual((result.verdict,result.reason),('error','external_abort'))
+        self.assertIn('target rejected execution environment',result.error)
+        entry=json.loads(result.trace_path.read_text())['entries'][0]
+        self.assertEqual(entry['status'],'abort')
+        self.assertEqual(entry['raw_response']['status'],'abort')
+        self.assertEqual(recheck_trace(self.bundles['Positive'],result.trace_path).verdict,'error')
+
     def test_decode_error_is_error(self):
         self.mode('decode')
         result=self.collect()
@@ -163,6 +176,7 @@ adapter = {command}
             (lambda record:record['entries'][0]['raw_response'].update(occurrence_id='other'),'raw response'),
             (lambda record:record['entries'][0]['raw_response'].update(unexpected='field'),'response fields'),
             (lambda record:record['entries'][0].update(error='forged'),'trace error'),
+            (lambda record:record['entries'][0].update(status='abort',observation={}),'abort status'),
             (lambda record:record['entries'][0].update(input=[99]),'request input')]:
             record=json.loads(json.dumps(original));change(record)
             result.trace_path.write_text(json.dumps(record))
@@ -244,6 +258,36 @@ adapter = {command}
             self.assertFalse((self.root/self._testMethodName).exists())
         finally:
             adapter.write_bytes(original)
+
+    def test_outcome_criteria_are_required_as_a_complete_set_and_frozen(self):
+        manifest=self.root/'classified-implementation.toml'
+        manifest.write_text((self.root/'implementation.toml').read_text().replace(
+            'schema_version = 1','schema_version = 2',1)+'''\n[executions.outcomes]
+match = "target accepts the relation input"
+unmatch = "target rejects a valid request normally"
+abort = "target cannot evaluate the request"
+''')
+        binding=load_implementation(manifest,self.bundles['Positive'])
+        self.assertEqual(set(binding.snapshot['bindings']['Copy']['outcomes']),
+                         {'match','unmatch','abort'})
+        self.mode('abort')
+        result=collect_case(self.bundles['Positive'],{'n':3},self.root/self._testMethodName,
+                            implementation=manifest)
+        self.assertEqual((result.verdict,result.reason),('error','external_abort'))
+        record=json.loads(result.trace_path.read_text())
+        record['implementation']['bindings']['Copy']['outcomes']['abort']='changed'
+        result.trace_path.write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError,'binding identity'):
+            recheck_trace(self.bundles['Positive'],result.trace_path)
+        incomplete=self.root/'incomplete-implementation.toml'
+        incomplete.write_text(manifest.read_text().replace('abort = "target cannot evaluate the request"\n',''))
+        with self.assertRaisesRegex(ValueError,'outcomes'):
+            load_implementation(incomplete,self.bundles['Positive'])
+        omitted=self.root/'unclassified-implementation.toml'
+        omitted.write_text((self.root/'implementation.toml').read_text().replace(
+            'schema_version = 1','schema_version = 2',1))
+        with self.assertRaisesRegex(ValueError,'outcomes'):
+            load_implementation(omitted,self.bundles['Positive'])
 
     def test_artifact_change_during_adapter_call_is_rejected(self):
         artifact=self.root/'changing-target.bin'

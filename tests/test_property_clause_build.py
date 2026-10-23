@@ -36,6 +36,85 @@ COPY_CONFIG={'schema_version':1,'observations':[{'id':'copy','relation':'Copy','
 
 
 class PropertyContractTests(unittest.TestCase):
+    def test_certified_zero_output_helper_uses_primitive_observation(self):
+        from pbt.property.clause import build_property
+        with tempfile.TemporaryDirectory(prefix='ClauseHelper',dir=SCRATCH) as tmp:
+            folder=Path(tmp);base='out.scratch.'+folder.name;output=folder/'Bundle'
+            (folder/'spec.watsup').write_text(COPY_SPEC)
+            (folder/'property.watsup').write_text('''relation Probe: |- nat
+  hint(input %0)
+rule Probe/value: |- n
+  -- Copy: n ~> _
+
+property reflexive:
+  (n : nat)
+  Probe: |- n
+  -- Probe: |- n
+''')
+            (folder/'config.toml').write_text('''schema_version = 1
+[[observations]]
+id = "copy"
+relation = "Copy"
+observe = []
+''')
+            (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
+theorem helper_refl : {base}.Bundle.Contract.SpecProperty := by
+  intro input h
+  exact h
+''')
+            bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                name='reflexive',output=output,proof_module=base+'.Proof',
+                property_proof='helper_refl',timeout_seconds=120)
+            self.assertEqual([call['relation'] for call in bundle.plan['calls']], ['Copy','Copy'])
+            self.assertEqual(bundle.request({'n':3},[],0), {'ready':True,'input':[3]})
+            trace=[{'occurrence_id':origin,'relation_id':'Copy','input':[3],
+                    'status':'success','observation':{}} for origin in ('condition.0','goal')]
+            self.assertEqual(bundle.evaluate({'n':3},trace),'pass')
+
+    def test_certified_negative_helper_preserves_error_status(self):
+        from pbt.property.clause import build_property
+        with tempfile.TemporaryDirectory(prefix='ClauseNegativeHelper',dir=SCRATCH) as tmp:
+            folder=Path(tmp);base='out.scratch.'+folder.name;output=folder/'Bundle'
+            (folder/'spec.watsup').write_text(COPY_SPEC)
+            (folder/'property.watsup').write_text('''relation Exists: |- nat
+  hint(input %0)
+rule Exists/value: |- n
+  -- Copy: n ~> _
+
+relation Rejected: |- nat
+  hint(input %0)
+rule Rejected/value: |- n
+  -- Exists:/ |- n
+
+property rejection:
+  (n : nat)
+  Rejected: |- n
+  -- Rejected: |- n
+''')
+            (folder/'config.toml').write_text('''schema_version = 1
+[[observations]]
+id = "copy"
+relation = "Copy"
+observe = []
+''')
+            (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
+theorem negative_refl : {base}.Bundle.Contract.SpecProperty := by
+  intro input h
+  exact h
+''')
+            bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                name='rejection',output=output,proof_module=base+'.Proof',
+                property_proof='negative_refl',timeout_seconds=120)
+            self.assertTrue(all(call['invert'] for call in bundle.plan['calls']))
+            failed=[{'occurrence_id':origin,'relation_id':'Copy','input':[3],
+                     'status':'relation_failure','observation':{}}
+                    for origin in ('condition.0','goal')]
+            self.assertEqual(bundle.evaluate({'n':3},failed),'pass')
+            errored=[{**failed[0], 'status':'execution_error'},failed[1]]
+            self.assertEqual(bundle.evaluate({'n':3},errored),'error')
+
     def test_sorry_property_proof_is_rejected(self):
         from pbt.property.clause import build_property
         with tempfile.TemporaryDirectory(prefix='ClauseBadProof',dir=SCRATCH) as tmp:

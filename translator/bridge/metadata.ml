@@ -268,18 +268,6 @@ let metadata definitions namespace roots relations =
   object_ ["schema_version", `Int 1; "namespace", string namespace;
     "types", object_ !entries; "relations", object_ relations], !aliases
 
-let rec depends_on_external definitions visited typ =
-  if List.mem typ visited then false else
-  let visited = typ :: visited in
-  match typ with
-  | Primitive _ | Function -> false
-  | Sequence typ | Optional typ -> depends_on_external definitions visited typ
-  | Tuple types -> List.exists (depends_on_external definitions visited) types
-  | Named (name, arguments) ->
-      match instantiate definitions name arguments with
-      | External -> true
-      | body -> List.exists (depends_on_external definitions visited) (arguments @ children body)
-
 let codec_declarations definitions codec roots =
   let visited = ref [] and active = ref [] and derived = ref [] in
   let rec visit typ =
@@ -300,12 +288,11 @@ let codec_declarations definitions codec roots =
           List.iter visit (children body);
           active := List.tl !active;
           (match body with
-          | Alias _ | External -> ()
-          | Record _ | Variant _ ->
-              (* Deriving against a class-parameterized datatype would quantify
-                 over its abstract external types again. Concrete model codecs
-                 must be supplied by the caller, not guessed by this bridge. *)
-              if not (List.mem name !derived) && not (depends_on_external definitions [] typ) then
+          | Alias _ -> ()
+          | External | Record _ | Variant _ ->
+              (* Ordered translation emits each external type as a singleton
+                 inductive, so its codecs and dependent record codecs derive. *)
+              if not (List.mem name !derived) then
                 derived := !derived @ [name])) in
   List.iter visit roots;
   let declarations = List.map (fun name -> "deriving instance _root_.Lean." ^ codec ^ " for _root_.SpecTec." ^ quote name) !derived in
@@ -318,9 +305,7 @@ let generate spec_module namespace transport_model property_inputs configuration
   let spec_module = qualified "spec module" spec_module in
   let lean_namespace = qualified "transport namespace" namespace in
   let observations = observations configuration in
-  let definitions, relations, external_types = collect spec in
-  if external_types && transport_model = None then
-    fail "abstract external type class parameters require a concrete --transport-model and its JSON instances";
+  let definitions, relations, _external_types = collect spec in
   let relations, inputs, observed = select definitions relations observations in
   let inputs = property_inputs @ inputs in
   let manifest, aliases = metadata definitions namespace property_inputs relations in
@@ -335,16 +320,7 @@ let generate spec_module namespace transport_model property_inputs configuration
 let property_inputs paths path name =
   if path = "" && name = "" then [] else (
     if path = "" || name = "" then fail "--property and --property-name are required together";
-    let source = match Pass.parse paths with
-      | Ok spec -> spec
-      | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
-    let channel = open_in_bin path in
-    let text = Fun.protect ~finally:(fun () -> close_in channel)
-      (fun () -> really_input_string channel (in_channel_length channel)) in
-    let lex = Lexing.from_string text in
-    lex.lex_curr_p <- {lex.lex_curr_p with pos_fname = path};
-    let properties = try Frontend.Parser.properties Frontend.Lexer.token lex
-      with Frontend.Parser.Error -> fail ("invalid property syntax: " ^ path) in
+    let source, properties, _ = Property_document.load paths path in
     let property = match List.filter (fun ((id:Lang.El.id),_,_,_) -> id.it = name) properties with
       | [property] -> property
       | _ -> fail ("expected one property named " ^ name) in
@@ -364,9 +340,13 @@ let main () =
     (fun path -> paths := !paths @ [path]) "metadata --spec-module MODULE --namespace NAME --config CONFIG_JSON SPEC...";
   if !spec_module = "" || !namespace = "" || !config = "" || !paths = [] then fail "required metadata arguments are missing";
   let configuration = Yojson.Basic.from_file !config in
-  let spec = match Pass.elab !paths with
+  let spec = if !property = "" then match Pass.elab !paths with
     | Ok spec -> spec
-    | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
+    | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic))
+    else let source, _, _ = Property_document.load !paths !property in
+      match Pass.elab_spec source with
+      | Ok spec -> spec
+      | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
   let transport_model = Option.map (fun path ->
     let channel = open_in_bin path in
     Fun.protect ~finally:(fun () -> close_in channel)

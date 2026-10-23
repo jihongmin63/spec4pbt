@@ -24,6 +24,110 @@ def frontend(source, spec=SPEC):
         return json.loads(r.stdout)['properties'][0]
 
 class PropertyPlanTests(unittest.TestCase):
+    def test_helper_external_classification_ignores_observation_outputs(self):
+        from pbt.property.plan import classify_relations
+        helpers = [
+            {'name':'First','rules':[{'dependencies':['Primitive']}]},
+            {'name':'Second','rules':[{'dependencies':['First']}]},
+        ]
+        seen = classify_relations(helpers, {'Primitive'})
+        self.assertEqual(seen['external'], ['First', 'Primitive', 'Second'])
+        self.assertEqual(seen['reasons']['Second'], ['First'])
+        self.assertEqual(classify_relations(helpers, {'Primitive'}, observations={'Primitive':['%1']})['external'],
+                         seen['external'])
+
+    def test_helper_scc_requires_all_outside_dependencies_external(self):
+        from pbt.property.plan import classify_relations
+        helpers = [
+            {'name':'A','rules':[{'dependencies':['B']}]},
+            {'name':'B','rules':[{'dependencies':['A','Primitive']}]},
+            {'name':'C','rules':[{'dependencies':['A','Internal']}]},
+            {'name':'D','rules':[{'dependencies':['C']}]},
+        ]
+        seen = classify_relations(helpers, {'Primitive'})
+        self.assertEqual(seen['external'], ['A','B','Primitive'])
+        self.assertEqual(seen['internal']['C'], ['Internal'])
+        self.assertEqual(seen['internal']['D'], ['C'])
+
+    def test_plan_reports_external_helper_and_execution_gap(self):
+        source = '''relation Helper: int ~> int
+  hint(input %0)
+rule Helper/value: n ~> n
+  -- Inst: n ~> n
+
+property helper_goal:
+  (n : int)
+  Helper: n ~> v
+'''
+        plan = self.compile(source, {'schema_version':1,'observations':[
+            {'id':'inst','relation':'Inst','observe':[]}]})
+        self.assertEqual(plan['external_relations'], ['Helper','Inst'])
+        self.assertEqual(plan['unsupported'][0]['relation'], 'Helper')
+
+    def test_zero_output_wrapper_calls_primitive_relation(self):
+        source = '''relation Probe: |- int
+  hint(input %0)
+rule Probe/value: |- n
+  -- Inst: n ~> _
+
+property probe:
+  (n : int)
+  Probe: |- n
+'''
+        plan = self.compile(source, {'schema_version':1,'observations':[
+            {'id':'inst','relation':'Inst','observe':[]}]})
+        self.assertEqual(plan['unsupported'], [])
+        self.assertEqual([(call['id'],call['relation'],call['source_relation'])
+                          for call in plan['calls']], [('goal','Inst','Probe')])
+
+    def test_source_not_hold_is_logical_negation_in_contract(self):
+        from pbt.property import emit
+        source = '''relation Probe: |- int
+  hint(input %0)
+rule Probe/value: |- n
+  -- Inst: n ~> _
+
+property negative:
+  (n : int)
+  true
+  -- Probe:/ |- n
+'''
+        plan = self.compile(source, {'schema_version':1,'observations':[
+            {'id':'inst','relation':'Inst','observe':[]}]})
+        self.assertEqual(plan['unsupported'], [])
+        contract=emit.render_contract(plan,'Test.Contract','Test.Spec')
+        self.assertIn('(¬ (SpecTec.«Probe» input.«n»))',contract)
+
+    def test_wrapper_with_output_constraint_cannot_delegate(self):
+        source = '''relation Probe: |- int
+  hint(input %0)
+rule Probe/value: |- n
+  -- Inst: n ~> n
+
+property probe:
+  (n : int)
+  Probe: |- n
+'''
+        plan = self.compile(source, {'schema_version':1,'observations':[
+            {'id':'inst','relation':'Inst','observe':[]}]})
+        self.assertEqual(plan['calls'], [])
+        self.assertEqual(plan['unsupported'][0]['relation'], 'Probe')
+
+    def test_hidden_helper_output_use_is_rejected_after_classification(self):
+        source = '''relation Helper: int ~> int
+  hint(input %0)
+rule Helper/value: n ~> n
+  -- Inst: n ~> n
+
+property hidden:
+  (n : int)
+  v = v
+  -- Helper: n ~> v
+'''
+        with self.assertRaisesRegex(ValueError, 'v.*hidden|v.*observable'):
+            self.compile(source, {'schema_version':1,'observations':[
+                {'id':'inst','relation':'Inst','observe':[]}]})
+
     def test_metadata_alone_plans_external_calls_without_execution_binding(self):
         config={'schema_version':1,'observations':[
             {'id':'value','relation':'Eval','observe':['%1.VALUE']} ]}

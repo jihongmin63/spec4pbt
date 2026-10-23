@@ -80,9 +80,10 @@ def render_contract(plan, namespace, spec_module):
     def atom(node):
         if node['kind'] == 'guard':
             return expression(node['expression'], names) + ' = true'
-        if node['kind'] == 'relation':
+        if node['kind'] in ('relation', 'not_relation'):
             relation = node.get('lean_relation', 'SpecTec.' + quote(node['relation']))
-            return '(' + relation + ' ' + ' '.join(expression(e, names) for e in node['arguments']) + ')'
+            atom = '(' + relation + ' ' + ' '.join(expression(e, names) for e in node['arguments']) + ')'
+            return '(¬ ' + atom + ')' if node['kind'] == 'not_relation' else atom
         if node['kind'] == 'let':
             return '(' + expression(node['target'], names) + ' = ' + expression(node['value'], names) + ')'
         raise ValueError('unsupported logical AL condition ' + node['kind'])

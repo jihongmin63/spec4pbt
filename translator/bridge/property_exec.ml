@@ -48,14 +48,8 @@ let checked = function
   | B.Err _ -> fail "AL premise evaluation error"
 
 let parse_property specs path name =
-  let spec_el = match Pass.parse specs with Ok x -> x | Error d -> fail (report d) in
-  let spec_il = match Pass.elab specs with Ok x -> x | Error d -> fail (report d) in
-  let ic = open_in path in
-  let source = Fun.protect ~finally:(fun () -> close_in ic)
-    (fun () -> really_input_string ic (in_channel_length ic)) in
-  let lex = Lexing.from_string source in
-  lex.lex_curr_p <- {lex.lex_curr_p with pos_fname = path};
-  let properties = Frontend.Parser.properties Frontend.Lexer.token lex in
+  let spec_el, properties, _ = Property_document.load specs path in
+  let spec_il = match Pass.elab_spec spec_el with Ok x -> x | Error d -> fail (report d) in
   let selected = List.filter (fun ((id:El.id),_,_,_) -> id.it = name) properties in
   let clause = match selected with [p] -> p | _ -> fail "property occurrence mismatch" in
   let ((_, inputs, _, _) as clause_il) =
@@ -63,7 +57,7 @@ let parse_property specs path name =
   let blocks, goal = match Pass.algo_property spec_il clause_il with
     | Ok x -> x | Error d -> fail (report d) in
   let spec_al = match Pass.algo_spec spec_il with Ok x -> x | Error d -> fail (report d) in
-  (inputs, blocks, goal, spec_al)
+  (inputs, blocks, goal, spec_il, spec_al)
 
 let types spec =
   let table = Hashtbl.create 64 in
@@ -149,7 +143,7 @@ let request_inputs ctx (prem:S.prem) =
       let requested = List.mapi (fun index e -> index,e) args
         |> List.filter_map (fun (index,e) -> if List.mem index inputs then Some e else None) in
       `List (List.map (fun e -> encode (checked (Eval.eval_exp ctx e))) requested)
-  | S.IfHoldPr (_, notation) ->
+  | S.IfHoldPr (_, notation) | S.IfNotHoldPr (_, notation) ->
       `List (List.map (fun e -> encode (checked (Eval.eval_exp ctx e)))
         (Domain.Mixfix.args notation))
   | _ -> fail "external occurrence is not an AL relation"
@@ -166,15 +160,19 @@ let parse_occurrence blocks goal call =
   let index = node_index (text (field "node_id" call)) in
   let prem = prem_at block index in
   let relation = text (field "relation" call) in
+  let source_relation = match call with
+    | `Assoc fields -> (match List.assoc_opt "source_relation" fields with
+        | Some value -> text value | None -> relation)
+    | _ -> fail "invalid external call" in
   let native_relation = match prem.it with
-    | S.RulePr (rid,_,_) | S.IfHoldPr (rid,_) -> rid.it
+    | S.RulePr (rid,_,_) | S.IfHoldPr (rid,_) | S.IfNotHoldPr (rid,_) -> rid.it
     | _ -> fail "external occurrence is not an AL relation" in
-  if native_relation <> relation then fail "AL occurrence relation mismatch";
+  if native_relation <> source_relation then fail "AL occurrence relation mismatch";
   (block,index,prem)
 
 let selector_type typedefs (prem:S.prem) selector =
   let arguments = match prem.it with
-    | S.RulePr (_,notation,_) | S.IfHoldPr (_,notation) -> Domain.Mixfix.args notation
+    | S.RulePr (_,notation,_) | S.IfHoldPr (_,notation) | S.IfNotHoldPr (_,notation) -> Domain.Mixfix.args notation
     | _ -> fail "selector requires a relation" in
   match String.split_on_char '.' selector with
   | slot :: fields when String.length slot > 1 && slot.[0] = '%' ->
@@ -275,12 +273,20 @@ let validate_entry typedefs blocks goal statuses ctx call entry =
          fail "unavailable request must be blocked");
   let next = match status with
     | "success" -> bind_observation typedefs ctx call prem entry
-    | "relation_failure" | "execution_error" | "blocked" ->
+    | "relation_failure" | "abort" | "execution_error" | "blocked" ->
         if object_fields (field "observation" entry) <> [] then
           fail "non-success occurrence has observations";
         ctx
     | _ -> fail "unknown observation status" in
-  Hashtbl.replace statuses id status;
+  let inverted = match call with
+    | `Assoc fields -> List.assoc_opt "invert" fields = Some (`Bool true)
+    | _ -> false in
+  let effective = if inverted then match status with
+    | "success" -> "relation_failure"
+    | "relation_failure" -> "success"
+    | other -> other
+    else status in
+  Hashtbl.replace statuses id effective;
   next
 
 let replay typedefs blocks goal ctx calls trace =
@@ -329,13 +335,30 @@ let rec prem_effect (prem:S.prem) =
         | _ -> prem_effect prem in
       inner_effect inner
 
-let audit_effects (spec:Lang.Al.spec) blocks goal plan =
+let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
   let calls = array (field "calls" plan) in
   let external_names = Hashtbl.create 32 in
   let external_nodes = Hashtbl.create 32 in
   List.iter (fun call ->
     Hashtbl.replace external_names (text (field "relation" call)) ();
-    Hashtbl.replace external_nodes (text (field "node_id" call)) ()) calls;
+    Hashtbl.replace external_nodes (text (field "node_id" call)) ();
+    let _,_,source_prem = parse_occurrence blocks goal call in
+    let source_negative = match source_prem.it with
+      | S.IfNotHoldPr _ -> true | _ -> false in
+    (match call with
+    | `Assoc fields ->
+        let inverted = List.assoc_opt "invert" fields = Some (`Bool true) in
+        (match List.assoc_opt "source_relation" fields with
+        | None ->
+            if inverted <> source_negative then fail "external call negation mismatch"
+        | Some source ->
+            let source = text source and primitive = text (field "relation" call) in
+            (match Property_document.delegate_target spec_il source primitive with
+            | Some (_, helper_negative) when inverted = (helper_negative <> source_negative) -> ()
+            | _ -> fail ("helper delegation does not match source relation " ^ source));
+            if array (field "profile_selectors" call) <> [] then
+              fail "delegated helper cannot observe primitive outputs")
+    | _ -> fail "invalid external call")) calls;
   let definitions = Hashtbl.create 128 in
   List.iter (fun (definition:Lang.Al.def) -> match definition.it with
     | Lang.Al.ExternRelD (id,_,_,_) -> Hashtbl.replace external_names id.it ()
@@ -388,6 +411,8 @@ let check_property plan blocks goal calls ctx statuses =
   let statuses_all = List.map (fun call -> call_status (text (field "id" call))) calls in
   if List.exists ((=) "execution_error") statuses_all then
     verdict "error" "external_execution_error"
+  else if List.exists ((=) "abort") statuses_all then
+    verdict "error" "external_abort"
   else if List.exists ((=) "relation_failure") statuses_all then
     verdict "fail" "external_relation_failure"
   else if List.exists ((=) "blocked") statuses_all then
@@ -439,9 +464,8 @@ let main () =
   if field "schema_version" plan <> `Int 2 || text (field "engine" plan) <> "spectec-al" then
     fail "property plan schema 2 required";
   if field "plan_id" request <> field "plan_id" plan then fail "plan identity mismatch";
-  let spec_il = match Pass.elab !specs with Ok x -> x | Error d -> fail (report d) in
+  let inputs, blocks, goal, spec_il, spec_al = parse_property !specs !property !name in
   let typedefs = types spec_il in
-  let inputs, blocks, goal, spec_al = parse_property !specs !property !name in
   (match Eval.init ~cache:false ~det:false ~guard:true spec_al with
    | Ok () -> () | Error d -> fail (report d));
   let mode = text (field "mode" request) in
@@ -449,7 +473,7 @@ let main () =
   let calls = array (field "calls" plan) in
   if List.length trace > List.length calls then fail "too many trace entries";
   let result = if mode = "audit" then begin
-      audit_effects spec_al blocks goal plan;
+      audit_effects spec_il spec_al blocks goal plan;
       json_obj ["valid",json_bool true]
     end else
   let ctx = input_context typedefs inputs (field "input" request) in

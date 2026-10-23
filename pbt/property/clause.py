@@ -128,6 +128,9 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
     initial_toolchain=resolve_toolchain(project).identity()
     clause=load_clause(spec_paths,property_path,name,project=project,timeout_seconds=timeout)
     plan=compile_clause(clause,config)
+    if plan['unsupported']:
+        details=', '.join(f"{entry['relation']}: {entry['reason']}" for entry in plan['unsupported'])
+        raise ValueError('property execution plan has unsupported structures: '+details)
     tool=resolve_toolchain(project)
     origins={**source_identity(spec_paths),str(property_path):digest(property_path),str(config_path):digest(config_path)}
     if transport_model is not None:
@@ -143,7 +146,8 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
     module=namespace
     output.mkdir(parents=True)
     try:
-        spec=run_checked([str(tool.executable),'--relation-semantics','ordered',*[str(p) for p in spec_paths]],project,timeout)
+        spec=run_checked([str(tool.executable),'--relation-semantics','ordered',
+                          *[str(p) for p in spec_paths],str(property_path)],project,timeout)
         (output/'Spec.lean').write_text(spec)
         settings=output/'metadata-config.json'
         write_json(settings,{'schema_version':1,'observations':config.get('observations',[])})
@@ -199,6 +203,7 @@ def build_property(*, spec_paths, property_path, config_path, name, output,
         tool_sources += [property_directory.parent / name for name in
                          ['lean_tools.py', 'observations.py']]
         tool_sources += [project / TRANSLATOR_DIRECTORY / 'toolchain.py',
+                         project / BRIDGE_DIRECTORY / 'property_document.ml',
                          project / BRIDGE_DIRECTORY / 'property_cli.ml',
                          project / BRIDGE_DIRECTORY / 'property_exec.ml']
         files.update({str(path): digest(path) for path in tool_sources})

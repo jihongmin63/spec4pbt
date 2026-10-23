@@ -12,11 +12,13 @@ def validate_response(response, request):
     for key in IDENTITIES:
         if response.get(key)!=request[key]: raise ValueError('adapter response identity mismatch: '+key)
     status=response.get('status')
-    if status not in ('success','relation_failure'): raise ValueError('invalid adapter relation status')
-    expected=set(IDENTITIES)|{'status'}|({'observation'} if status=='success' else set())
+    if status not in ('success','relation_failure','abort'): raise ValueError('invalid adapter relation status')
+    expected=set(IDENTITIES)|{'status'}|({'observation'} if status=='success' else {'message'} if status=='abort' else set())
     if set(response)!=expected: raise ValueError('invalid adapter response fields')
     if status=='success' and (not isinstance(response['observation'],dict) or set(response['observation'])!=set(request['observe'])):
         raise ValueError('adapter observation selectors mismatch')
+    if status=='abort' and (not isinstance(response['message'],str) or not response['message']):
+        raise ValueError('adapter abort requires a nonempty message')
     return response
 
 

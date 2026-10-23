@@ -40,6 +40,9 @@ Run Python module commands from the repository root.
    external for one property and internal for another; never share a global
    observations file across unrelated properties. Explain any change to the
    user's intended premises or expected behavior.
+   Format authored SpecTec declarations with the relation or rule name on its
+   own header line, followed by the goal, optional hint, and each `--` premise
+   on separate indented lines. Use the same line-separated layout for properties.
 3. Use `python3 -m pbt.property plan` to classify inputs, internal witnesses,
    external calls, and observation dependencies. Report unsupported structures
    and missing implementation information.

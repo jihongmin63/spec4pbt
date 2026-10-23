@@ -72,6 +72,28 @@ class PropertyExamplesTests(unittest.TestCase):
         failed=self.run_example('progress','reject')
         self.assertEqual((failed.status,failed.counts['fail']),('failed',2))
 
+    def test_certified_progress_with_unused_external_type_needs_no_model(self):
+        folder = self.root / 'SingletonProgress'
+        folder.mkdir()
+        base = '.'.join(folder.relative_to(ROOT).parts)
+        contract = base + '.Bundle.Contract'
+        spec = folder / 'spec.watsup'
+        spec.write_text('extern syntax archState\n' + (ORDERED / 'spec.watsup').read_text())
+        proof = (ORDERED / 'templates/progress_proof.lean.in').read_text()
+        (folder / 'Proof.lean').write_text(proof.replace('@CONTRACT@', contract))
+        bundle = build_property(spec_paths=[spec],
+            property_path=ORDERED / 'properties.watsup', config_path=ORDERED / 'observations.toml',
+            name='progress', output=folder / 'Bundle', proof_module=base + '.Proof',
+            property_proof='ClauseProgress.property_correct')
+        generator = (ORDERED / 'templates/progress_generator.lean.in').read_text()
+        (folder / 'Generator.lean').write_text(generator.replace('@CONTRACT@', contract)
+            .replace('@PROOF@', base + '.Proof'))
+        result = run_property(bundle, generator_module=base + '.Generator',
+            generator='ClauseProgressGenerator.generator',
+            implementation=ORDERED / 'implementations/correct.toml',
+            output=folder / 'results', count=2, size=6, seed=0)
+        self.assertEqual((result.status, result.counts['pass']), ('passed', 2))
+
     def test_chained_output_is_forwarded_to_second_request(self):
         result=self.run_example('chain')
         self.assertEqual(result.status,'passed')

@@ -23,6 +23,13 @@ another definition's directional conversion fails. It makes no other
 frontend or interpreter changes. The build applies this patch to its private
 copy under `../out/translator/p4-spectec/`; the official submodule stays unchanged.
 
+`patches/extern-singleton.patch` changes the copied Lean backend's ordered
+translation of `extern syntax` to independent inductive types with the single
+nullary constructor `mk`. It also permits arbitrary external type names in that
+mode. The declarative backend retains its imported external-type model. The build
+copies `src/` before applying patches so backend adaptations, like frontend
+patches, affect only the disposable build tree.
+
 `tests/` retains 33 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and

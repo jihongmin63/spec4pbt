@@ -1,0 +1,6 @@
+schema_version = 1
+
+[[observations]]
+id = "program_typecheck"
+relation = "Program_ok"
+observe = []

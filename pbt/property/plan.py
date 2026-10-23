@@ -11,6 +11,36 @@ from dataclasses import dataclass
 from pbt.observations import SELECTOR
 
 
+def classify_relations(helpers, primitive_external, *, observations=None):
+    """Compute the greatest external helper set from relation dependencies.
+
+    Output selectors deliberately play no part in this calculation. Cycles
+    remain in the set only when every dependency leaving the cycle does.
+    """
+    del observations
+    primitive_external = set(primitive_external)
+    dependencies = {}
+    for helper in helpers:
+        name = helper['name']
+        if name in dependencies or name in primitive_external:
+            raise ValueError(f'duplicate or primitive helper relation {name}')
+        dependencies[name] = set().union(
+            *(set(rule['dependencies']) for rule in helper['rules']))
+    possible = set(dependencies)
+    while True:
+        remaining = {name for name in possible
+                     if dependencies[name] <= (possible | primitive_external)}
+        if remaining == possible:
+            break
+        possible = remaining
+    return {
+        'external': sorted(possible | primitive_external),
+        'reasons': {name: sorted(dependencies[name]) for name in sorted(possible)},
+        'internal': {name: sorted(dependencies[name] - (possible | primitive_external))
+                     for name in sorted(set(dependencies) - possible)},
+    }
+
+
 def identity(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False,
                                     separators=(',', ':'), allow_nan=False).encode()).hexdigest()
@@ -116,12 +146,34 @@ def compile_clause(clause, config):
             for node in clause['goal_block']['nodes']):
         raise ValueError('AL goal block has invalid origin, scope, or nodes')
     profiles = _profiles(config)
+    helper_names = {helper['name'] for helper in clause.get('helpers', [])}
+    helpers = {helper['name']: helper for helper in clause.get('helpers', [])}
+    overlap = helper_names & set(profiles)
+    if overlap:
+        raise ValueError('helper external classification is automatic; remove observation profiles for '
+                         + ', '.join(sorted(overlap)))
+    roles = classify_relations(clause.get('helpers', []), profiles)
+    external_relations = set(roles['external'])
+
+    def delegate_primitive(name):
+        seen = set()
+        inverted = False
+        while name in helpers and name not in seen:
+            seen.add(name)
+            inverted ^= helpers[name].get('negative', False)
+            name = helpers[name].get('delegate')
+            if name is None:
+                return None
+        if name in seen:
+            return None
+        profile = profiles.get(name)
+        return (name, inverted) if profile is not None and not profile['observe'] else None
     known = {x['name']: {**x, 'producer': None, 'selector': None,
                          'projection': [], 'sources': ['input'], 'dependencies': []}
              for x in clause['inputs']}
     flows = {name: Flow(frozenset({'I'})) for name in known}
     input_names = set(known)
-    calls, checks, proof, origins = [], [], [], {}
+    calls, checks, proof, origins, unsupported = [], [], [], {}, []
 
     def diagnostic(node, message):
         loc = node.get('location', {})
@@ -200,7 +252,9 @@ def compile_clause(clause, config):
 
     def process_relation(node, origin, block_bindings):
         rid = node['relation']
-        external = rid in profiles
+        negative = node['kind'] == 'not_relation'
+        external = rid in external_relations
+        primitive = rid in profiles
         args, in_slots = node['arguments'], node['inputs']
         if any(i >= len(args) for i in in_slots):
             raise diagnostic(node, 'relation input slot out of range')
@@ -212,7 +266,7 @@ def compile_clause(clause, config):
             if 'E' in input_flow.sources or input_flow.observed:
                 raise diagnostic(node, f'internal request combines private and observable values: {details_from_names(needed)}')
         if external:
-            selectors = profiles[rid]['observe']
+            selectors = profiles[rid]['observe'] if primitive else []
             observations = []
             for selector in selectors:
                 slot = int(selector.split('.')[0][1:])
@@ -246,9 +300,24 @@ def compile_clause(clause, config):
                             raise diagnostic(node, f'output match reads hidden or unavailable {name}')
                     if external:
                         matches.append({'selector': covering, 'projection': projection, 'expression': leaf})
+        if external and not primitive:
+            delegated = delegate_primitive(rid)
+            if delegated is not None:
+                target, inverted = delegated
+                occurrence = origin if not node['auxiliary'] else node['id']
+                calls.append({**node, 'node_id': node['id'], 'id': occurrence,
+                              'relation': target, 'source_relation': rid, 'invert': inverted ^ negative,
+                              'dependencies': sorted(input_flow.producers & frozenset(c['id'] for c in calls)),
+                              'profile_selectors': [], 'observations': [],
+                              'bindings': [], 'matches': [], 'input_only': needed <= input_names})
+            else:
+                unsupported.append({'relation': rid, 'location': node.get('location'),
+                                    'reason': 'composed external helper execution is not supported'})
+            return 'call'
         if external:
             occurrence = origin if not node['auxiliary'] else node['id']
             call = {**node, 'node_id': node['id'], 'id': occurrence,
+                    'invert': negative,
                     'dependencies': sorted(input_flow.producers & frozenset(c['id'] for c in calls)),
                     'profile_selectors': list(selectors),
                     'observations': observations, 'bindings': bindings,
@@ -265,7 +334,7 @@ def compile_clause(clause, config):
             origins[node['id']] = {'origin': origin, 'scope': node['scope'],
                                    'location': node['location'], 'auxiliary': node['auxiliary']}
             kind = node['kind']
-            if kind == 'relation':
+            if kind in ('relation', 'not_relation'):
                 category = process_relation(node, origin, block_bindings)
             elif kind == 'let':
                 value_flow = expression_flow(node['value'], node)
@@ -310,6 +379,8 @@ def compile_clause(clause, config):
         all_conditions.append(item)
     result = {'schema_version': 2, 'engine': 'spectec-al', 'relation_semantics': 'ordered',
               'name': clause['name'], 'inputs': clause['inputs'],
+              'external_relations': roles['external'], 'helper_reasons': roles['reasons'],
+              'internal_helpers': roles['internal'], 'unsupported': unsupported,
               'all_conditions': all_conditions, 'proof_conditions': proof,
               'conditions': all_conditions, 'checks': checks, 'goal_block': clause['goal_block'],
               'goal': clause['goal'], 'condition_blocks': clause['condition_blocks'],

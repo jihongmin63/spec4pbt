@@ -108,5 +108,61 @@ property a:
 """)
         self.assertNotEqual(r.returncode, 0)
 
+    def test_helper_relation_and_property_share_one_document(self):
+        source = """relation Helper: int ~> int
+  hint(input %0)
+rule Helper/value: n ~> n
+  -- Inst: n ~> n
+
+property helper_value:
+  (n : int)
+  Helper: n ~> n
+"""
+        result = self.frontend(source)
+        self.assertEqual(result['properties'][0]['goal']['relation'], 'Helper')
+        self.assertEqual(result['properties'][0]['goal']['arguments'][1]['type']['lean'], 'Int')
+        self.assertEqual(result['properties'][0]['helpers'], [
+            {'name':'Helper','rules':[{'dependencies':['Inst']}]}
+        ])
+
+    def test_helper_cannot_replace_source_relation(self):
+        source = """relation Eval: int ~> int
+  hint(input %0)
+rule Eval/value: n ~> n
+
+property collision:
+  (n : int)
+  true
+"""
+        result = self.run_frontend(source)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Eval', result.stderr)
+
+    def test_helper_rule_cannot_extend_source_relation(self):
+        source = """rule Inst/extra: 0 ~> 0
+
+property collision:
+  (n : int)
+  true
+"""
+        result = self.run_frontend(source)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Inst', result.stderr)
+
+    def test_negated_zero_output_helper_condition_is_typed(self):
+        source = """relation Probe: |- int
+  hint(input %0)
+rule Probe/value: |- n
+  -- Inst: n ~> _
+
+property negative:
+  (n : int)
+  true
+  -- Probe:/ |- n
+"""
+        clause = self.frontend(source)['properties'][0]
+        self.assertEqual(clause['conditions'][0]['kind'], 'not_relation')
+        self.assertEqual(clause['conditions'][0]['relation'], 'Probe')
+
 if __name__ == '__main__':
     unittest.main()

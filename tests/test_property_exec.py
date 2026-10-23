@@ -6,7 +6,7 @@ import tempfile
 import unittest
 
 from translator.toolchain import resolve_toolchain, PROPERTY_EXECUTABLE, PROPERTY_RUN_EXECUTABLE
-from pbt.property.plan import compile_clause
+from pbt.property.plan import compile_clause, identity
 from tests.test_property_clause import frontend
 
 from tests import ROOT, FIXTURES, ORDERED, SCRATCH
@@ -24,6 +24,111 @@ CONFIG={'schema_version':1,
 
 
 class NativePropertyExecutorTests(unittest.TestCase):
+    def test_zero_output_helper_replays_primitive_status(self):
+        source = '''relation Probe: |- nat
+  hint(input %0)
+rule Probe/value: |- n
+  -- Run: n ~> _
+
+property probe:
+  (n : nat)
+  Probe: |- n
+'''
+        config = {'schema_version':1,'observations':[
+            {'id':'run','relation':'Run','observe':[]}]}
+        plan = self.load(source, config=config)
+        self.assertEqual(self.invoke(plan,'request',{'n':3},[],0),{'ready':True,'input':[3]})
+        success = [{'occurrence_id':'goal','relation_id':'Run','input':[3],
+                    'status':'success','observation':{}}]
+        self.assertEqual(self.invoke(plan,'check',{'n':3},success)['verdict'],'pass')
+        failure = [{**success[0],'status':'relation_failure'}]
+        self.assertEqual(self.invoke(plan,'check',{'n':3},failure)['verdict'],'fail')
+        with self.assertRaisesRegex(ValueError,'request input mismatch'):
+            self.invoke(plan,'check',{'n':3},[{**success[0],'input':[4]}])
+
+    def test_negative_helper_inverts_only_relation_failure(self):
+        source = '''relation Exists: |- nat
+  hint(input %0)
+rule Exists/value: |- n
+  -- Run: n ~> _
+
+relation Rejected: |- nat
+  hint(input %0)
+rule Rejected/value: |- n
+  -- Exists:/ |- n
+
+property rejection:
+  (n : nat)
+  Rejected: |- n
+'''
+        config = {'schema_version':1,'observations':[
+            {'id':'run','relation':'Run','observe':[]}]}
+        plan = self.load(source, config=config)
+        self.assertEqual(plan['calls'][0]['relation'], 'Run')
+        self.assertTrue(plan['calls'][0]['invert'])
+        success = [{'occurrence_id':'goal','relation_id':'Run','input':[3],
+                    'status':'success','observation':{}}]
+        failure = [{**success[0],'status':'relation_failure'}]
+        error = [{**success[0],'status':'execution_error'}]
+        abort = [{**success[0],'status':'abort','observation':{}}]
+        self.assertEqual(self.invoke(plan,'check',{'n':3},failure)['verdict'],'pass')
+        self.assertEqual(self.invoke(plan,'check',{'n':3},success)['verdict'],'fail')
+        self.assertEqual(self.invoke(plan,'check',{'n':3},error)['verdict'],'error')
+        self.assertEqual(self.invoke(plan,'check',{'n':3},abort)['verdict'],'error')
+
+    def test_two_negative_helpers_restore_primitive_status(self):
+        source = '''relation Exists: |- nat
+  hint(input %0)
+rule Exists/value: |- n
+  -- Run: n ~> _
+
+relation Rejected: |- nat
+  hint(input %0)
+rule Rejected/value: |- n
+  -- Exists:/ |- n
+
+relation Accepted: |- nat
+  hint(input %0)
+rule Accepted/value: |- n
+  -- Rejected:/ |- n
+
+property accepted:
+  (n : nat)
+  Accepted: |- n
+'''
+        config = {'schema_version':1,'observations':[
+            {'id':'run','relation':'Run','observe':[]}]}
+        plan = self.load(source, config=config)
+        self.assertFalse(plan['calls'][0]['invert'])
+        success = [{'occurrence_id':'goal','relation_id':'Run','input':[3],
+                    'status':'success','observation':{}}]
+        failure = [{**success[0],'status':'relation_failure'}]
+        self.assertEqual(self.invoke(plan,'check',{'n':3},success)['verdict'],'pass')
+        self.assertEqual(self.invoke(plan,'check',{'n':3},failure)['verdict'],'fail')
+
+    def test_native_audit_rejects_tampered_helper_delegation(self):
+        source = '''relation Probe: |- nat
+  hint(input %0)
+rule Probe/value: |- n
+  -- Run: n ~> _
+
+property probe:
+  (n : nat)
+  Probe: |- n
+'''
+        config = {'schema_version':1,'observations':[
+            {'id':'run','relation':'Run','observe':[]}]}
+        plan = self.load(source, config=config)
+        original = plan['calls'][0]
+        for changes in ({'invert': True}, {'source_relation': 'Run'}):
+            with self.subTest(changes=changes):
+                plan['calls'][0] = {**original, **changes}
+                plan['plan_id'] = identity({k:v for k,v in plan.items() if k != 'plan_id'})
+                (self.folder/'plan.json').write_text(json.dumps(plan))
+                with self.assertRaisesRegex(ValueError,
+                                            'helper delegation does not match source relation|AL occurrence relation mismatch'):
+                    self.invoke(plan,'audit',{},[])
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory(prefix='PropertyExec',dir=SCRATCH)
         self.addCleanup(self.tmp.cleanup)

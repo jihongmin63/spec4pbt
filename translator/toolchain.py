@@ -100,7 +100,8 @@ def _source_identity(project):
     for required in [sources / 'main.ml', sources / 'dune', patches / 'algo-defs.patch']:
         if not required.is_file():
             raise ValueError(f'Vendored translator source missing: {required}')
-    files = [project / BRIDGE_DIRECTORY / 'metadata.ml', project / TRANSLATOR_DIRECTORY / 'toolchain.py',
+    files = [project / BRIDGE_DIRECTORY / 'metadata.ml', project / BRIDGE_DIRECTORY / 'property_document.ml',
+             project / TRANSLATOR_DIRECTORY / 'toolchain.py',
              project / BRIDGE_DIRECTORY / 'property_cli.ml', project / BRIDGE_DIRECTORY / 'property_al.ml',
              project / BRIDGE_DIRECTORY / 'property_exec.ml']
     for directory in [sources, patches]:
@@ -222,22 +223,25 @@ def build(project=PROJECT, switch=None):
     for key in ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE']:
         patch_environment.pop(key, None)
     patch_environment['GIT_CEILING_DIRECTORIES'] = str(directory)
+    # Backend patches apply to this copy too; the imported sources stay pristine.
+    shutil.copytree(project / SOURCE_DIRECTORY, root / 'p4spec/lib/lean-skeleton')
     for patch in sorted((project / PATCH_DIRECTORY).glob('*.patch')):
         command(['git', 'apply', '--check', patch], root, env=patch_environment)
         command(['git', 'apply', patch], root, env=patch_environment)
-    shutil.copytree(project / SOURCE_DIRECTORY, root / 'p4spec/lib/lean-skeleton')
     helper_source = root / 'p4spec/lib/spec4pbt-metadata'
     helper_source.mkdir()
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'metadata.ml', helper_source / 'metadata.ml')
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_document.ml', helper_source / 'property_document.ml')
     (helper_source / 'dune').write_text(
-        '(executable\n (name metadata)\n (libraries pass yojson))\n')
+        '(executable\n (name metadata)\n (modules metadata property_document)\n (libraries pass yojson))\n')
     property_source = root / 'p4spec/lib/spec4pbt-property'
     property_source.mkdir()
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_cli.ml', property_source / 'property_cli.ml')
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_al.ml', property_source / 'property_al.ml')
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_exec.ml', property_source / 'property_exec.ml')
-    (property_source / 'dune').write_text('''(executable (name property_cli) (modules property_cli property_al) (libraries pass yojson))
-(executable (name property_exec) (modules property_exec) (libraries pass interp_al interface runtime lang domain util diagnostic yojson))
+    shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_document.ml', property_source / 'property_document.ml')
+    (property_source / 'dune').write_text('''(executable (name property_cli) (modules property_cli property_al property_document) (libraries pass yojson))
+(executable (name property_exec) (modules property_exec property_document) (libraries pass interp_al interface runtime lang domain util diagnostic yojson))
 ''')
     command(['opam', 'exec', '--switch=' + chosen_switch, '--', 'dune', 'build',
              '--root', root, TRANSLATOR_TARGET, METADATA_TARGET, PROPERTY_TARGET,

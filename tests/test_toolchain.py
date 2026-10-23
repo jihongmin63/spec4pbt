@@ -59,6 +59,7 @@ class ToolchainTests(unittest.TestCase):
         (bridge / 'property_cli.ml').write_text('let () = ()\n')
         (bridge / 'property_al.ml').write_text('let () = ()\n')
         (bridge / 'property_exec.ml').write_text('let () = ()\n')
+        (bridge / 'property_document.ml').write_text('let () = ()\n')
         (bridge / 'metadata.ml').write_text('let () = print_endline "metadata"\n')
         (self.project / 'translator/toolchain.py').write_text(Path(toolchain.__file__).read_text())
         self.real_command = toolchain.command
@@ -116,6 +117,24 @@ class ToolchainTests(unittest.TestCase):
         with patch.dict(os.environ, {'P4_SPECTEC_ROOT': '/does/not/exist'}):
             self.assertEqual(resolve_toolchain(self.project).executable, tool.executable)
 
+    def test_backend_patch_applies_to_copy_and_is_fingerprinted(self):
+        backend_patch = self.project / 'translator/patches/backend.patch'
+        backend_patch.write_text(
+            '--- a/p4spec/lib/lean-skeleton/main.ml\n'
+            '+++ b/p4spec/lib/lean-skeleton/main.ml\n'
+            '@@ -1 +1 @@\n'
+            '-let () = print_endline "translation"\n'
+            '+let () = print_endline "singleton translation"\n')
+        tool = self.built()
+        self.assertEqual((tool.root / 'p4spec/lib/lean-skeleton/main.ml').read_text(),
+                         'let () = print_endline "singleton translation"\n')
+        self.assertEqual((self.backend / 'main.ml').read_text(),
+                         'let () = print_endline "translation"\n')
+        self.assertEqual(git(self.project / 'p4-spectec', 'status', '--porcelain'), '')
+        backend_patch.write_text(backend_patch.read_text() + '\n')
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            tool.identity()
+
     def test_missing_local_build_does_not_fall_back_to_external_donor(self):
         bootstrap(self.project, self.upstream)
         with patch.dict(os.environ, {'P4_SPECTEC_ROOT': str(self.upstream)}):
@@ -144,7 +163,8 @@ class ToolchainTests(unittest.TestCase):
 
     def test_helper_and_build_recipe_changes_require_rebuild(self):
         for path in ['translator/bridge/metadata.ml', 'translator/toolchain.py',
-                     'translator/bridge/property_al.ml', 'translator/bridge/property_exec.ml']:
+                     'translator/bridge/property_al.ml', 'translator/bridge/property_exec.ml',
+                     'translator/bridge/property_document.ml']:
             with self.subTest(path=path):
                 tool = self.built()
                 file = self.project / path

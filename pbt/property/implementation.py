@@ -16,6 +16,7 @@ from pbt.property.plan import identity
 
 
 SCRIPT_SUFFIXES={'.py','.sh','.rb','.pl'}
+OUTCOME_NAMES={'match','unmatch','abort'}
 
 
 @dataclass(frozen=True)
@@ -77,6 +78,16 @@ def _nonempty(value,label):
     return value
 
 
+def _outcomes(value,label):
+    if not isinstance(value,dict) or set(value)!=OUTCOME_NAMES:
+        raise ValueError(label+' must define match, unmatch, and abort')
+    for name,criterion in value.items():
+        _nonempty(criterion,label+' '+name)
+        if not criterion.strip():
+            raise ValueError(label+' '+name+' must describe a nonempty criterion')
+    return value
+
+
 def _file(path,label):
     if not path.is_file():
         raise ValueError(label+' is missing: '+str(path))
@@ -121,8 +132,9 @@ def load_implementation(path,bundle):
         document=tomllib.load(source)
     if set(document)-{'schema_version','id','cwd','executions'}:
         raise ValueError('invalid implementation manifest field')
-    if type(document.get('schema_version')) is not int or document['schema_version']!=1:
-        raise ValueError('implementation schema_version 1 required')
+    version=document.get('schema_version')
+    if type(version) is not int or version not in (1,2):
+        raise ValueError('implementation schema_version 1 or 2 required')
     name=_nonempty(document.get('id'),'implementation id')
     cwd_value=_nonempty(document.get('cwd','.'),'implementation cwd')
     cwd=(path.parent/cwd_value).resolve()
@@ -134,8 +146,10 @@ def load_implementation(path,bundle):
     external=_bundle_relations(bundle)
     bindings={}
     for entry in entries:
-        if not isinstance(entry,dict) or set(entry)-{'relation','adapter','artifacts'} or not {'relation','adapter'}<=set(entry):
+        if not isinstance(entry,dict) or set(entry)-{'relation','adapter','artifacts','outcomes'} or not {'relation','adapter'}<=set(entry):
             raise ValueError('invalid implementation execution field')
+        if version==2 and 'outcomes' not in entry:
+            raise ValueError('implementation outcomes are required by schema_version 2')
         relation=_nonempty(entry['relation'],'execution relation')
         if relation in bindings:
             raise ValueError('duplicate implementation binding for '+relation)
@@ -149,6 +163,8 @@ def load_implementation(path,bundle):
             raise ValueError('artifacts must be nonempty file paths without NUL')
         command,dependencies=_command_dependencies(command,cwd,artifacts)
         record={'adapter':command,'dependencies':dependencies}
+        if 'outcomes' in entry:
+            record['outcomes']=_outcomes(entry['outcomes'],'implementation outcomes')
         record['binding_id']=identity({'relation':relation,**record})
         bindings[relation]=record
     used={call['relation'] for call in bundle.plan['calls']}
@@ -183,7 +199,9 @@ def validate_snapshot(snapshot,bundle):
     if not set(bindings)<=external or not {c['relation'] for c in bundle.plan['calls']}<=set(bindings):
         raise ValueError('saved implementation binding coverage mismatch')
     for relation,record in bindings.items():
-        if not isinstance(record,dict) or set(record)!={'adapter','dependencies','binding_id'}:
+        if not isinstance(record,dict) or set(record) not in (
+            {'adapter','dependencies','binding_id'},
+            {'adapter','dependencies','outcomes','binding_id'}):
             raise ValueError('invalid saved implementation binding')
         command=record['adapter']
         if not isinstance(command,list) or not command or any(not isinstance(x,str) or not x for x in command):
@@ -191,7 +209,10 @@ def validate_snapshot(snapshot,bundle):
         deps=record['dependencies']
         if not isinstance(deps,dict) or not deps or any(not isinstance(k,str) or not isinstance(v,str) or not k or not v for k,v in deps.items()):
             raise ValueError('invalid saved implementation dependencies')
-        if record['binding_id']!=identity({'relation':relation,'adapter':command,'dependencies':deps}):
+        payload={'relation':relation,'adapter':command,'dependencies':deps}
+        if 'outcomes' in record:
+            payload['outcomes']=_outcomes(record['outcomes'],'saved implementation outcomes')
+        if record['binding_id']!=identity(payload):
             raise ValueError('saved implementation binding identity mismatch')
     if snapshot['identity']!=identity({k:v for k,v in snapshot.items() if k!='identity'}):
         raise ValueError('saved implementation identity mismatch')
