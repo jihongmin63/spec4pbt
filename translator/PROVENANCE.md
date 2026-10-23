@@ -35,6 +35,16 @@ authored helper plans, preserving failure, abort, and fresh-value supply. The
 maintained native extension regressions compare these outcomes with a combined
 translation. This patch also applies only to the copied backend.
 
+`patches/wasm-lsl.patch` adds the Wasm `$lsl_(int, int) : int` builtin to the
+copied native dispatcher and Lean backend. The native implementation is copied
+from `kaist-plrg/wasm-ntt` revision
+`4773b2b7abe56e61f279ec2340ac0d3c836b5033`,
+`p4spec/lib/interface/builtin/numerics.ml`. Its shift count is clamped to
+`[0, 4096]`: nonpositive counts leave the value unchanged, and larger positive
+counts use 4096. The Lean definition preserves that behavior, including negative
+base values and counts outside machine-integer range. This is the imported
+implementation's bounded operation, not an unrestricted mathematical shift.
+
 `tests/` retains 36 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and
