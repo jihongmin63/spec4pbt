@@ -1,0 +1,1076 @@
+--- a/p4spec/lib/lean-skeleton/ast.ml
++++ b/p4spec/lib/lean-skeleton/ast.ml
+@@ -76,6 +76,7 @@
+     type_arguments : type_ref list;
+     instance_arguments : type_ref list;
+     print_instance_arguments : type_ref list;
++    compare_instance_arguments : type_ref list;
+     arguments : term list;
+   }
+ 
+@@ -99,6 +100,7 @@
+     arguments : type_ref list;
+     result : type_ref;
+     print_origin : string;
++    compare_notation : unit Domain.Mixfix.t option;
+     print_format : print_format;
+   }
+ 
+@@ -107,6 +109,7 @@
+     type_parameters : string list;
+     equality_parameters : string list;
+     print_parameters : string list;
++    compare_parameters : string list;
+     parameters : type_ref list;
+     result : type_ref;
+     body : string;
+@@ -144,6 +147,7 @@
+         type_parameters : string list;
+         equality_parameters : string list;
+         print_parameters : string list;
++    compare_parameters : string list;
+         argument_types : type_ref list;
+         rules : rule list;
+         notation : notation_part list option;
+@@ -216,6 +220,7 @@
+     | DerivingDecidableEq of declaration_group
+     | ManualDecidableEq of manual_equality
+     | ManualPrinter of manual_printer
++    | ManualCompare of manual_equality
+ 
+   type program = declaration_group list
+ end
+--- a/p4spec/lib/lean-skeleton/builtin.ml
++++ b/p4spec/lib/lean-skeleton/builtin.ml
+@@ -4,7 +4,7 @@
+ let list (value : L.type_ref) : L.type_ref = L.BuiltinType ("List", [ value ])
+ let set (value : L.type_ref) : L.type_ref = L.Applied ("set", [ value ])
+ 
+-let is_text_set_operation (builtin_name : string) : bool =
++let is_set_operation (builtin_name : string) : bool =
+   List.mem builtin_name
+     [ "union_set"; "unions_set"; "diff_set"; "intersect_set" ]
+ 
+@@ -15,7 +15,7 @@
+     (parameters : L.type_ref list) (result : L.type_ref) (body : string) :
+     (L.builtin, string) result =
+   Ok
+-    { name; type_parameters; equality_parameters = []; print_parameters = [];
++    { name; type_parameters; equality_parameters = []; print_parameters = []; compare_parameters = [];
+       parameters; result; body }
+ 
+ let band_body : string =
+@@ -30,32 +30,32 @@
+    b) | Int.negSucc a, Int.ofNat b => Int.negSucc (Nat.xor a b) | \
+    Int.negSucc a, Int.negSucc b => Int.ofNat (Nat.xor a b)"
+ 
+-(* These operations are deliberately monomorphic. SpecTec's OCaml runtime
+-   orders set elements with Value.compare, whose text case is String.compare.
+-   That order agrees with Lean String ordering for valid UTF-8; other key
+-   types are rejected at calls because their observable ordering is not
+-   reproduced here. *)
+-let text_set_definition (builtin_name : string) : (L.builtin, string) result =
+-  let text : L.type_ref = L.BuiltinType ("String", []) in
+-  let text_set : L.type_ref = set text in
+-  let define = definition builtin_name [] in
++(* Native Sets normalizes every argument with Set.Make(Value), then returns
++   Value.compare order. The comparison dictionary encodes that runtime order. *)
++let set_definition (builtin_name : string) (key : string) : (L.builtin, string) result =
++  let key_set : L.type_ref = set (L.TypeParameter key) in
++  let define parameters body =
++    match definition builtin_name [key] parameters key_set body with
++    | Ok builtin -> Ok { builtin with compare_parameters = [key] }
++    | Error _ as error -> error
++  in
+   match builtin_name with
+   | "union_set" ->
+-      define [ text_set; text_set ] text_set
++      define [key_set; key_set]
+         "match arg0, arg1 with | .«`{ % `}» left, .«`{ % `}» right => \
+-         .«`{ % `}» (_root_.specTecTextSetUnion left right)"
++         .«`{ % `}» (_root_.specTecSetUnion left right)"
+   | "unions_set" ->
+-      define [ list text_set ] text_set
+-        ".«`{ % `}» (arg0.foldr (fun current result => match current with | \
+-         .«`{ % `}» elements => _root_.specTecTextSetUnion elements result) [])"
++      define [list key_set]
++        ".«`{ % `}» (arg0.foldl (fun result current => match current with | \
++         .«`{ % `}» elements => _root_.specTecSetUnion result elements) [])"
+   | "diff_set" ->
+-      define [ text_set; text_set ] text_set
++      define [key_set; key_set]
+         "match arg0, arg1 with | .«`{ % `}» left, .«`{ % `}» right => \
+-         .«`{ % `}» (_root_.specTecTextSetDiff left right)"
++         .«`{ % `}» (_root_.specTecSetDiff left right)"
+   | "intersect_set" ->
+-      define [ text_set; text_set ] text_set
++      define [key_set; key_set]
+         "match arg0, arg1 with | .«`{ % `}» left, .«`{ % `}» right => \
+-         .«`{ % `}» (_root_.specTecTextSetIntersect left right)"
++         .«`{ % `}» (_root_.specTecSetIntersect left right)"
+   | _ -> assert false
+ 
+ let translate (builtin_name : string) (type_parameters : string list) :
+@@ -120,8 +120,8 @@
+       Error "split_text because SpecTec requires a one-byte separator"
+   | "transpose_", _ ->
+       Error "transpose_ because SpecTec rejects ragged matrices"
+-  | ("intersect_set" | "union_set" | "unions_set" | "diff_set"), [ _ ] ->
+-      text_set_definition builtin_name
++  | ("intersect_set" | "union_set" | "unions_set" | "diff_set"), [ key ] ->
++      set_definition builtin_name key
+   | "sub_set", _ -> Error "sub_set without SpecTec set representation"
+   | "eq_set", _ -> Error "eq_set without SpecTec set representation"
+   | "fresh_typeId", _ ->
+@@ -157,23 +157,8 @@
+         (builtin_name ^ " because its number of type parameters is unexpected")
+   | _, _ -> Error (builtin_name ^ " because no SpecTec implementation is known")
+ 
+-(* The SpecTec declaration of a text set operation stays generic in K, while
+-   its Lean definition is specialized to String. *)
+ let signature (builtin_name : string) (type_parameters : string list) :
+     (L.type_ref list * L.type_ref, string) result =
+-  if is_text_set_operation builtin_name then
+-    match type_parameters with
+-    | [ key ] ->
+-        let generic_set : L.type_ref = set (L.TypeParameter key) in
+-        let parameters : L.type_ref list =
+-          if builtin_name = "unions_set" then [ list generic_set ]
+-          else [ generic_set; generic_set ]
+-        in
+-        Ok (parameters, generic_set)
+-    | _ ->
+-        Error
+-          (builtin_name ^ " because its number of type parameters is unexpected")
+-  else
+-    match translate builtin_name type_parameters with
+-    | Ok builtin -> Ok (builtin.parameters, builtin.result)
+-    | Error reason -> Error reason
++  match translate builtin_name type_parameters with
++  | Ok builtin -> Ok (builtin.parameters, builtin.result)
++  | Error reason -> Error reason
+--- a/p4spec/lib/lean-skeleton/builtin_relation.ml
++++ b/p4spec/lib/lean-skeleton/builtin_relation.ml
+@@ -77,7 +77,7 @@
+ let application (name : string) (types : L.type_ref list) (arguments : L.term list) :
+     L.application =
+   { target = L.Global ("$" ^ name); type_arguments = types;
+-    instance_arguments = []; print_instance_arguments = []; arguments }
++    instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments }
+ 
+ let holds (name : string) (types : L.type_ref list) (arguments : L.term list) :
+     L.premise =
+@@ -96,13 +96,13 @@
+     (argument_types : L.type_ref list) (rules : L.rule list) : L.declaration =
+   L.Relation
+     { name = "$" ^ name; type_parameters; equality_parameters = [];
+-      print_parameters; argument_types; rules; notation = None }
++      print_parameters; compare_parameters = []; argument_types; rules; notation = None }
+ 
+ let builtin (name : string) (parameters : L.type_ref list)
+     (result : L.type_ref) (body : string) : L.declaration =
+   L.Builtin
+     { name = "$" ^ name; type_parameters = []; equality_parameters = [];
+-      print_parameters = []; parameters; result; body }
++      print_parameters = []; compare_parameters = []; parameters; result; body }
+ 
+ (* First pair with key k: a later pair is reached only past pairs with other
+    keys, as in Maps.map_find_opt and Lists.assoc_. *)
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -157,7 +157,10 @@
+       | L.Global n -> "SpecTecCall." ^ ident n
+       | L.Local n -> ident n in
+     let type_args = List.map (Printer.print_type bound_types) app.type_arguments in
+-    String.concat " " (head :: type_args @ List.map value inputs), outputs, E.tuple_type output_types,
++    let comparison_args = List.mapi (fun i typ ->
++      "(specTecCompare_" ^ string_of_int i ^ " := " ^ Printer.compare_instance bound_types typ ^ ")")
++      app.compare_instance_arguments in
++    String.concat " " (head :: type_args @ comparison_args @ List.map value inputs), outputs, E.tuple_type output_types,
+       (match app.target with L.Global n -> List.mem n helpers | L.Local _ -> false) in
+   let rec premises bound = function
+     | [] ->
+@@ -301,28 +304,30 @@
+     | _ -> None) source in
+   let groups = ref [] in
+   let add s = groups := !groups @ [s] in
+-  let instances eq print = String.concat ""
++  let instances eq print comparison = String.concat ""
+     (List.map (fun n -> " [_root_.DecidableEq " ^ ident n ^ "]") eq
+-     @ List.map (fun n -> " [_root_.SpecTecPrint " ^ ident n ^ "]") print) in
++     @ List.map (fun n -> " [_root_.SpecTecPrint " ^ ident n ^ "]") print
++     @ List.mapi (fun i n -> " [specTecCompare_" ^ string_of_int i ^ " : _root_.SpecTecCompareKey " ^ ident n ^ "]") comparison) in
+   let type_binders names = String.concat "" (List.map (fun n -> " (" ^ ident n ^ " : Type)") names) in
+   let args s = List.mapi (fun i typ -> "input" ^ string_of_int i, typ) (E.input_types s) in
+   let arg_binders bound args = String.concat "" (List.map (fun (n,t) -> " (" ^ n ^ " : " ^ call_type bound t ^ ")") args) in
+-  let instance_patterns eq print = List.map (fun n -> "eq_" ^ n) eq @ List.map (fun n -> "print_" ^ n) print in
+-  let restore_instances eq print =
++  let instance_patterns eq print comparison = List.map (fun n -> "eq_" ^ n) eq @ List.map (fun n -> "print_" ^ n) print @ List.map (fun n -> "compare_" ^ n) comparison in
++  let restore_instances eq print comparison =
+     String.concat " " (List.map (fun n -> "letI : _root_.DecidableEq " ^ ident n ^ " := eq_" ^ n ^ ";") eq
+-      @ List.map (fun n -> "letI : _root_.SpecTecPrint " ^ ident n ^ " := print_" ^ n ^ ";") print) in
++      @ List.map (fun n -> "letI : _root_.SpecTecPrint " ^ ident n ^ " := print_" ^ n ^ ";") print
++      @ List.map (fun n -> "letI : _root_.SpecTecCompareKey " ^ ident n ^ " := compare_" ^ n ^ ";") comparison) in
+   let arms ?(only_extern = false) ?(typed = false) f = List.filter_map (function L.Relation r ->
+     let s = M.find r.name signatures in
+     if only_extern && not s.external_ then None else Some ((if typed then "  | @SpecTecCall." else "  | ⟨_, @SpecTecCall.") ^ ident r.name ^ " " ^ String.concat " "
+-      ((if call_extern_types then ["_"] else []) @ List.map ident r.type_parameters @ instance_patterns r.equality_parameters r.print_parameters @ List.map fst (args s))
+-      ^ (if typed then " => " else "⟩ => ") ^ restore_instances r.equality_parameters r.print_parameters ^ " " ^ f s r.name)
++      ((if call_extern_types then ["_"] else []) @ List.map ident r.type_parameters @ instance_patterns r.equality_parameters r.print_parameters r.compare_parameters @ List.map fst (args s))
++      ^ (if typed then " => " else "⟩ => ") ^ restore_instances r.equality_parameters r.print_parameters r.compare_parameters ^ " " ^ f s r.name)
+     | _ -> None) relations in
+   (* Even a singleton polymorphic call family needs an index, not a promoted
+      parameter: dispatch patterns bind its result type. *)
+   add ("set_option inductive.autoPromoteIndices false in\ninductive SpecTecCall : Type → Type 1 where\n" ^ String.concat "\n" (List.filter_map (function
+     | L.Relation r -> let s = M.find r.name signatures in
+       Some ("  | " ^ ident r.name ^ type_binders r.type_parameters
+-        ^ instances r.equality_parameters r.print_parameters ^ arg_binders r.type_parameters (args s) ^ " : SpecTecCall " ^ call_type r.type_parameters (E.tuple_type (E.output_types s)))
++        ^ instances r.equality_parameters r.print_parameters r.compare_parameters ^ arg_binders r.type_parameters (args s) ^ " : SpecTecCall " ^ call_type r.type_parameters (E.tuple_type (E.output_types s)))
+     | _ -> None) relations));
+   add "abbrev SpecTecRequest := Sigma SpecTecCall";
+   List.iter (function L.Relation r ->
+@@ -330,7 +335,7 @@
+     if not s.external_ && not (List.mem r.name fresh_builtins) then (
+       let clause_names = List.mapi (fun i _ -> r.name ^ ":clause:" ^ string_of_int i) r.rules in
+       let clauses = List.map ident clause_names in
+-      let shared = type_binders r.type_parameters ^ instances r.equality_parameters r.print_parameters in
++      let shared = type_binders r.type_parameters ^ instances r.equality_parameters r.print_parameters r.compare_parameters in
+       let output = call_type r.type_parameters (E.tuple_type (E.output_types s)) in
+       let applied_args = String.concat " " (List.map ident r.type_parameters @ List.map fst (args s)) in
+       List.iter2 (fun name (rule : L.rule) ->
+@@ -370,7 +375,7 @@
+     if s.external_ then (
+       let all = List.mapi (fun i typ -> "arg" ^ string_of_int i, typ) s.arguments in
+       let parameters = String.concat "" (List.map (fun n -> " {" ^ ident n ^ " : Type}") s.parameters)
+-        ^ instances r.equality_parameters r.print_parameters in
++        ^ instances r.equality_parameters r.print_parameters r.compare_parameters in
+       let signature = String.concat " → " (List.map (call_type s.parameters) s.arguments @ ["Prop"]) in
+       let conclusion = extern_application s (List.map fst all) in
+       add ("inductive " ^ ident r.name ^ parameters ^ " : " ^ signature ^ " where\n  | allowed : "
+@@ -420,7 +425,7 @@
+       ^ String.concat " " (List.map ident s.parameters
+         @ List.map fst input) in
+     let output_term = List.map (fun (n,t) -> L.Variable (n,t)) output |> E.tuple_term |> Printer.print_term r.type_parameters in
+-    add ("noncomputable def " ^ ident r.name ^ type_binders r.type_parameters ^ instances r.equality_parameters r.print_parameters
++    add ("noncomputable def " ^ ident r.name ^ type_binders r.type_parameters ^ instances r.equality_parameters r.print_parameters r.compare_parameters
+       ^ arg_binders r.type_parameters all ^ " : Prop :=\n  ∃ finalSupply : Nat, SpecTecExecution.Eval specTecProgram (.call ⟨" ^ call_type r.type_parameters (E.tuple_type (E.output_types s)) ^ ", " ^ request
+       ^ "⟩) 0 (.success (.of (" ^ output_term ^ "))) finalSupply"
+       ^ (match r.notation with None -> "" | Some n -> "\n\n" ^ Printer.print_notation r.name n)))
+@@ -515,9 +520,10 @@
+     let _, ordered = List.fold_left (visit []) ([], []) helpers in
+     let chunks = ref [] in
+     let add text = chunks := text :: !chunks in
+-    let instances eq print = String.concat ""
++    let instances eq print comparison = String.concat ""
+       (List.map (fun n -> " [_root_.DecidableEq " ^ ident n ^ "]") eq
+-       @ List.map (fun n -> " [_root_.SpecTecPrint " ^ ident n ^ "]") print) in
++       @ List.map (fun n -> " [_root_.SpecTecPrint " ^ ident n ^ "]") print
++     @ List.mapi (fun i n -> " [specTecCompare_" ^ string_of_int i ^ " : _root_.SpecTecCompareKey " ^ ident n ^ "]") comparison) in
+     let type_binders names = String.concat ""
+       (List.map (fun n -> " (" ^ ident n ^ " : Type)") names) in
+     let arg_binders bound args = String.concat ""
+@@ -528,7 +534,7 @@
+           let args = List.mapi (fun i typ -> "input" ^ string_of_int i, typ)
+             (E.input_types s) in
+           let shared = type_binders r.type_parameters
+-            ^ instances r.equality_parameters r.print_parameters in
++            ^ instances r.equality_parameters r.print_parameters r.compare_parameters in
+           let applied = String.concat " " (List.map ident r.type_parameters @ List.map fst args) in
+           let clauses = List.mapi (fun i (rule : L.rule) ->
+             let name = ident (r.name ^ ":clause:" ^ string_of_int i) in
+--- a/p4spec/lib/lean-skeleton/extern_model.ml
++++ b/p4spec/lib/lean-skeleton/extern_model.ml
+@@ -103,12 +103,12 @@
+   let conclusion : L.application =
+     { target = L.Global name;
+       type_arguments = List.map (fun n -> L.TypeParameter n) type_parameters;
+-      instance_arguments = []; print_instance_arguments = []; arguments }
++      instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments }
+   in
+   let rule : L.rule = { name = "allowed"; binders; premises; conclusion } in
+   L.Relation
+     { name; type_parameters; equality_parameters = [];
+-      print_parameters = []; argument_types; rules = [rule]; notation }
++      print_parameters = []; compare_parameters = []; argument_types; rules = [rule]; notation }
+ 
+ let relation_predicate (name : string) : string option =
+   match name with
+--- a/p4spec/lib/lean-skeleton/order.ml
++++ b/p4spec/lib/lean-skeleton/order.ml
+@@ -57,7 +57,7 @@
+   StringSet.union (reference_names application.target)
+     (unions (List.map type_references
+        (application.type_arguments @ application.instance_arguments
+-       @ application.print_instance_arguments)
++       @ application.print_instance_arguments @ application.compare_instance_arguments)
+        @ List.map term_references application.arguments))
+ 
+ let premise_references (premise : L.premise) : StringSet.t =
+@@ -188,6 +188,68 @@
+     (fun seen (typ, at) -> visit_type at seen typ)
+     StringSet.empty roots
+ 
++let compare_roots (declarations : L.located_declaration list) =
++  List.concat_map (fun (located : L.located_declaration) ->
++    match located.declaration with
++    | L.Relation { rules; _ } ->
++        Translator.relation_applications rules |> List.concat_map (fun (application : L.application) ->
++          List.map (fun typ -> typ, located.at) application.compare_instance_arguments)
++    | _ -> []) declarations
++
++let reachable_compare_names (graph : graph)
++    (roots : (L.type_ref * Util.Source.region) list) : StringSet.t =
++  let rec visit_type (at : Util.Source.region) (seen : StringSet.t)
++      (typ : L.type_ref) : StringSet.t =
++    match typ with
++    | TypeParameter _ -> seen
++    | BuiltinType (_, arguments) | TupleType arguments ->
++        List.fold_left (visit_type at) seen arguments
++    | RelationType _ -> Translator.unsupported at "Value.compare for function keys"
++    | Name name -> visit_named at seen name []
++    | Applied (name, arguments) -> visit_named at seen name arguments
++  and visit_named (at : Util.Source.region) (seen : StringSet.t)
++      (name : string) (arguments : L.type_ref list) : StringSet.t =
++    let seen : StringSet.t = List.fold_left (visit_type at) seen arguments in
++    if StringSet.mem name seen then seen
++    else
++      match StringMap.find_opt name graph with
++      | None -> seen
++      | Some node -> (
++          match node.source.declaration with
++          | TypeAlias alias ->
++              if List.length alias.type_parameters <> List.length arguments then
++                Translator.unsupported at
++                  (Printf.sprintf "comparison type arity in %s: expected %d, got %d"
++                     name (List.length alias.type_parameters)
++                     (List.length arguments));
++              let bindings : (string * L.type_ref) list =
++                List.combine alias.type_parameters arguments
++              in
++              visit_type node.source.at seen
++                (Translator.substitute_type_parameters bindings alias.body)
++          | Datatype datatype ->
++              if List.length datatype.type_parameters <> List.length arguments
++                 && arguments <> [] then
++                Translator.unsupported at
++                  (Printf.sprintf "comparison type arity in %s: expected %d, got %d"
++                     name (List.length datatype.type_parameters)
++                     (List.length arguments));
++              let seen : StringSet.t = StringSet.add name seen in
++              List.fold_left
++                (fun seen (constructor : L.constructor) ->
++                  if constructor.compare_notation = None then
++                    Translator.unsupported node.source.at ("Value.compare for external type " ^ name);
++                  List.fold_left (visit_type node.source.at) seen constructor.arguments)
++                seen datatype.constructors
++          | Structure { fields; _ } ->
++              List.fold_left (visit_type node.source.at) (StringSet.add name seen) (List.map snd fields)
++          | ExternType _ -> Translator.unsupported node.source.at ("Value.compare for external type " ^ name)
++          | _ -> seen)
++  in
++  List.fold_left
++    (fun seen (typ, at) -> visit_type at seen typ)
++    StringSet.empty roots
++
+ let names_in_order (graph : graph) : string list =
+   StringMap.bindings graph
+   |> List.sort (fun (_, left) (_, right) -> Int.compare left.index right.index)
+@@ -341,7 +403,8 @@
+   let normalize (application : L.application) : L.application =
+     { application with
+       print_instance_arguments =
+-        List.map expand application.print_instance_arguments }
++        List.map expand application.print_instance_arguments;
++      compare_instance_arguments = List.map expand application.compare_instance_arguments }
+   in
+   let application (value : L.application) : L.application =
+     normalize
+@@ -487,7 +550,7 @@
+         result = Translator.substitute_type_parameters bindings constructor.result })
+     datatype.constructors
+ 
+-let manual_equality (graph : graph) (at : Util.Source.region)
++let manual_equality ?(comparison = false) (graph : graph) (at : Util.Source.region)
+     (declarations : L.declaration list) : L.manual_equality =
+   let root_names : StringSet.t =
+     declarations |> List.map defined_name |> StringSet.of_list
+@@ -502,9 +565,14 @@
+     | declaration :: _ -> data_type_parameters declaration
+     | [] -> assert false
+   in
++  let expand typ = if not comparison then typ else
++    Translator.expand_type_aliases (fun name -> match StringMap.find_opt name graph with
++      | Some { source = { declaration = L.TypeAlias alias; _ }; _ } -> Some alias
++      | _ -> None) at [] typ in
+   let rec collect (trail : (string * L.type_ref) list)
+       (shapes : L.equality_shape list) (typ : L.type_ref) :
+       L.equality_shape list =
++    let typ = expand typ in
+     let trail : (string * L.type_ref) list =
+       match typ with
+       | Name name | Applied (name, _) -> (
+@@ -537,9 +605,10 @@
+             in
+             match declaration with
+             | Some (Datatype datatype) ->
+-                L.EqualityDatatype (instantiate_datatype at typ datatype)
++                L.EqualityDatatype (instantiate_datatype at typ datatype
++                  |> List.map (fun (c : L.constructor) -> {c with arguments = List.map expand c.arguments}))
+             | Some (Structure { fields; _ }) when typ = L.Name name ->
+-                L.EqualityStructure fields
++                L.EqualityStructure (List.map (fun (n,t) -> n, expand t) fields)
+             | _ ->
+                 Translator.unsupported at
+                   ("DecidableEq nested recursive type " ^ Translator.type_code typ))
+@@ -548,7 +617,11 @@
+               ("DecidableEq nested recursive shape " ^ Translator.type_code typ)
+       in
+       let shape : L.equality_shape =
+-        { equality_name = equality_function_name root_names typ;
++        { equality_name =
++            (if comparison && not (direct_type_name root_names typ) then
++               "decEq_shape_" ^ String.sub (Digest.to_hex (Digest.string
++                 (String.concat "," (StringSet.elements root_names) ^ ":" ^ Translator.type_code typ))) 0 12
++             else equality_function_name root_names typ);
+           equality_type = typ; equality_kind = kind }
+       in
+       let shapes : L.equality_shape list = shapes @ [ shape ] in
+@@ -564,7 +637,9 @@
+       in
+       List.fold_left
+         (fun shapes child ->
+-          if contains_type_name root_names child then collect trail shapes child
++          if contains_type_name root_names child || (comparison && (match expand child with
++            | BuiltinType (("List" | "Option"), [_]) | TupleType _ -> true | _ -> false))
++          then collect trail shapes child
+           else shapes)
+         shapes children
+   in
+@@ -708,7 +783,7 @@
+         (fun typ -> typ, print_function_name root_names typ)
+         root_types }
+ 
+-let data_groups (graph : graph) (print_names : StringSet.t)
++let data_groups (graph : graph) (print_names : StringSet.t) (compare_names : StringSet.t)
+     (at : Util.Source.region) (declarations : L.declaration list)
+     (group : L.declaration_group) :
+     L.declaration_group list =
+@@ -720,10 +795,12 @@
+       [ group; L.ManualDecidableEq (manual_equality graph at declarations) ]
+     else [ L.DerivingDecidableEq group ]
+   in
+-  if StringSet.disjoint names print_names then equality
+-  else equality @ [ L.ManualPrinter (manual_printer graph at declarations) ]
+-
+-let group_program (graph : graph) (print_names : StringSet.t)
++  let printed = if StringSet.disjoint names print_names then equality
++    else equality @ [ L.ManualPrinter (manual_printer graph at declarations) ] in
++  if StringSet.disjoint names compare_names then printed else
++    printed @ [L.ManualCompare (manual_equality ~comparison:true graph at declarations)]
++
++let group_program (graph : graph) (print_names : StringSet.t) (compare_names : StringSet.t)
+     (names : string list) : L.program =
+   let sources : L.located_declaration list =
+     List.map (fun name -> (StringMap.find name graph).source) names
+@@ -784,7 +861,7 @@
+       aliases;
+   match sources with
+   | [ source ] when data_declaration source.declaration ->
+-      data_groups graph print_names source.at [ source.declaration ]
++      data_groups graph print_names compare_names source.at [ source.declaration ]
+         (L.Single source.declaration)
+   | [ source ] -> [ L.Single source.declaration ]
+   | _ ->
+@@ -830,7 +907,7 @@
+           (topological_components alias_graph)
+       in
+       (if List.for_all data_declaration declarations then
+-         data_groups graph print_names at declarations (L.Mutual declarations)
++         data_groups graph print_names compare_names at declarations (L.Mutual declarations)
+        else [ L.Mutual declarations ])
+       @ ordered_aliases
+ 
+@@ -844,8 +921,9 @@
+     let graph : graph = make_graph declarations in
+     let print_names : StringSet.t =
+       reachable_printer_names graph (print_roots declarations) in
++  let compare_names = reachable_compare_names graph (compare_roots declarations) in
+     Ok
+-      (List.concat_map (group_program graph print_names)
++      (List.concat_map (group_program graph print_names compare_names)
+          (topological_components graph))
+   with Translator.Unsupported_il diagnostic -> Error diagnostic
+ 
+@@ -909,11 +987,12 @@
+   in
+   let print_names : StringSet.t =
+     reachable_printer_names graph (print_roots declarations) in
++  let compare_names = reachable_compare_names graph (compare_roots declarations) in
+   let (invalid, scc_diagnostics) : string StringMap.t * Diagnostic.t list =
+     List.fold_left
+       (fun (invalid, diagnostics) names ->
+         try
+-          ignore (group_program graph print_names names);
++          ignore (group_program graph print_names compare_names names);
+           invalid, diagnostics
+         with Translator.Unsupported_il diagnostic ->
+           let messages : Diagnostic.t list =
+@@ -968,6 +1047,6 @@
+         || StringSet.mem name used_generated)
+       graph
+   in
+-  ( List.concat_map (group_program graph print_names)
++  ( List.concat_map (group_program graph print_names compare_names)
+       (topological_components graph),
+     dependency_diagnostics @ scc_diagnostics @ transitive_diagnostics )
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -108,26 +108,80 @@
+ def specTecPrintEscapeText (value : String) : String :=
+   value.toUTF8.foldl (fun result byte => result ++ specTecPrintEscapeByte byte) ""
+ 
+-def specTecTextSetInsert (value : String) : List String → List String
++-- A key mirrors Value.compare and Mixfix.compare tags, never declaration order.
++inductive SpecTecOrderKey where
++  | integer : Int → SpecTecOrderKey
++  | text : String → SpecTecOrderKey
++  | node : Nat → List SpecTecOrderKey → SpecTecOrderKey
++
++def SpecTecOrderKey.tag : SpecTecOrderKey → Nat
++  | .integer _ => 0
++  | .text _ => 1
++  | .node _ _ => 2
++
++mutual
++  def specTecCompareKey (left right : SpecTecOrderKey) : Ordering :=
++    match left, right with
++    | .integer a, .integer b => compare a b
++    | .text a, .text b => compare a b
++    | .node a xs, .node b ys =>
++        match compare a b with
++        | .eq => specTecCompareKeys xs ys
++        | order => order
++    | a, b => compare a.tag b.tag
++  termination_by structural left
++
++  def specTecCompareKeys (left right : List SpecTecOrderKey) : Ordering :=
++    match left, right with
++    | [], [] => .eq
++    | [], _ :: _ => .lt
++    | _ :: _, [] => .gt
++    | x :: xs, y :: ys =>
++        match specTecCompareKey x y with
++        | .eq => specTecCompareKeys xs ys
++        | order => order
++  termination_by structural left
++end
++
++class SpecTecCompareKey (α : Type) where
++  key : α → SpecTecOrderKey
++
++instance : SpecTecCompareKey Bool := ⟨fun b => .node 0 [.integer (if b then 1 else 0)]⟩
++instance : SpecTecCompareKey Nat := ⟨fun n => .node 1 [.node 0 [.integer (Int.ofNat n)]]⟩
++instance : SpecTecCompareKey Int := ⟨fun n => .node 1 [.node 1 [.integer n]]⟩
++instance : SpecTecCompareKey String := ⟨fun s => .node 2 [.text s]⟩
++instance {α : Type} [SpecTecCompareKey α] : SpecTecCompareKey (List α) :=
++  ⟨fun xs => .node 8 (xs.map SpecTecCompareKey.key)⟩
++instance {α : Type} [SpecTecCompareKey α] : SpecTecCompareKey (Option α) :=
++  ⟨fun x => match x with | none => .node 6 [] | some v => .node 7 [SpecTecCompareKey.key v]⟩
++instance {α β : Type} [SpecTecCompareKey α] [SpecTecCompareKey β] : SpecTecCompareKey (α × β) :=
++  ⟨fun p => .node 5 [SpecTecCompareKey.key p.1, SpecTecCompareKey.key p.2]⟩
++
++def specTecValueCompare {α : Type} [SpecTecCompareKey α] (left right : α) : Ordering :=
++  specTecCompareKey (SpecTecCompareKey.key left) (SpecTecCompareKey.key right)
++
++def specTecSetInsert {α : Type} [SpecTecCompareKey α] (value : α) : List α → List α
+   | [] => [value]
+   | head :: tail =>
+-      if value < head then value :: head :: tail
+-      else if head < value then head :: specTecTextSetInsert value tail
+-      else head :: tail
+-
+-def specTecTextSetNormalize (values : List String) : List String :=
+-  values.foldr specTecTextSetInsert []
+-
+-def specTecTextSetUnion (left right : List String) : List String :=
+-  specTecTextSetNormalize (left ++ right)
+-
+-def specTecTextSetDiff (left right : List String) : List String :=
+-  let normalizedRight := specTecTextSetNormalize right
+-  (specTecTextSetNormalize left).filter (fun value => !normalizedRight.contains value)
+-
+-def specTecTextSetIntersect (left right : List String) : List String :=
+-  let normalizedRight := specTecTextSetNormalize right
+-  (specTecTextSetNormalize left).filter (fun value => normalizedRight.contains value)
++      match specTecValueCompare value head with
++      | .eq => head :: tail
++      | .lt => value :: head :: tail
++      | .gt => head :: specTecSetInsert value tail
++
++def specTecSetNormalize {α : Type} [SpecTecCompareKey α] (values : List α) : List α :=
++  values.foldr specTecSetInsert []
++
++def specTecSetUnion {α : Type} [SpecTecCompareKey α] (left right : List α) : List α :=
++  specTecSetNormalize (left ++ right)
++
++def specTecSetDiff {α : Type} [SpecTecCompareKey α] (left right : List α) : List α :=
++  (specTecSetNormalize left).filter (fun value =>
++    !right.any (fun other => specTecValueCompare value other == .eq))
++
++def specTecSetIntersect {α : Type} [SpecTecCompareKey α] (left right : List α) : List α :=
++  (specTecSetNormalize left).filter (fun value =>
++    right.any (fun other => specTecValueCompare value other == .eq))
++
+ 
+ instance : SpecTecPrint Bool :=
+   ⟨fun value => some (if value then "true" else "false")⟩
+@@ -217,6 +271,30 @@
+       annotated
+         ("@" ^ print_identifier ("print_" ^ name) ^ " "
+         ^ String.concat " " parameters)
++  | BuiltinType _ -> "_"
++
++let rec compare_instance (bound : string list) (typ : L.type_ref) : string =
++  let key typ value = "(@_root_.SpecTecCompareKey.key " ^ print_type bound typ
++    ^ " " ^ compare_instance bound typ ^ " " ^ value ^ ")" in
++  let annotated body = "({ key := " ^ body ^ " } : _root_.SpecTecCompareKey "
++    ^ print_type bound typ ^ ")" in
++  match typ with
++  | TypeParameter _ | BuiltinType (_, []) -> "_"
++  | BuiltinType ("List", [element]) ->
++      annotated ("fun values => .node 8 (values.map (fun value => " ^ key element "value" ^ "))")
++  | BuiltinType ("Option", [element]) ->
++      annotated ("fun value => match value with | none => .node 6 [] | some item => .node 7 ["
++        ^ key element "item" ^ "]")
++  | TupleType elements ->
++      annotated ("fun value => match value with | " ^ tuple_pattern "x" elements
++        ^ " => .node 5 [" ^ String.concat ", " (List.mapi (fun i typ ->
++          key typ ("x" ^ string_of_int i)) elements) ^ "]")
++  | Name name -> annotated (print_identifier ("compareKey_" ^ name))
++  | Applied (name, arguments) ->
++      annotated ("@" ^ print_identifier ("compareKey_" ^ name) ^ " "
++        ^ String.concat " " (List.map (print_type bound) arguments
++          @ List.map (compare_instance bound) arguments))
++  | RelationType _ -> invalid_arg "Value.compare for function keys"
+   | BuiltinType _ -> "_"
+ 
+ let rec print_term (bound : string list) (term : L.term) : string =
+@@ -312,11 +390,15 @@
+         @ List.mapi (fun index typ ->
+             "(specTecPrint_" ^ string_of_int index ^ " := "
+             ^ print_instance bound typ ^ ")") application.print_instance_arguments
++        @ List.mapi (fun index typ ->
++            "(specTecCompare_" ^ string_of_int index ^ " := "
++            ^ compare_instance bound typ ^ ")") application.compare_instance_arguments
+     | _ ->
+         (if application.type_arguments = [] then name else "@" ^ name),
+         List.map (print_type bound) application.type_arguments
+         @ List.map (fun _ -> "_") application.instance_arguments
+         @ List.map (print_instance bound) application.print_instance_arguments
++        @ List.map (compare_instance bound) application.compare_instance_arguments
+   in
+   let arguments = implicit_arguments @ List.map (print_term bound) application.arguments
+   in
+@@ -381,7 +463,10 @@
+       builtin.parameters
+   in
+   let binders : string list =
+-    type_parameters @ equality_parameters @ print_parameters @ parameters in
++    type_parameters @ equality_parameters @ print_parameters
++    @ List.mapi (fun index name -> "[specTecCompare_" ^ string_of_int index
++        ^ " : _root_.SpecTecCompareKey " ^ print_identifier name ^ "]") builtin.compare_parameters
++    @ parameters in
+   let binders : string =
+     match binders with [] -> "" | _ -> " " ^ String.concat " " binders
+   in
+@@ -577,7 +662,7 @@
+                  "  (" ^ quoted ^ " : " ^ print_type bound typ ^ ")")
+                fields))
+   | Relation
+-      { name; type_parameters; equality_parameters; print_parameters;
++      { name; type_parameters; equality_parameters; print_parameters; compare_parameters;
+         argument_types; rules; notation = _ } ->
+       let signature : string =
+         String.concat " → "
+@@ -595,7 +680,9 @@
+               (fun index name ->
+                 " [specTecPrint_" ^ string_of_int index
+                 ^ " : _root_.SpecTecPrint " ^ print_identifier name ^ "]")
+-              print_parameters)
++              print_parameters
++          @ List.mapi (fun index name -> " [specTecCompare_" ^ string_of_int index
++              ^ " : _root_.SpecTecCompareKey " ^ print_identifier name ^ "]") compare_parameters)
+       in
+       let declaration : string =
+         String.concat "\n"
+@@ -1009,6 +1096,114 @@
+           parameters (print_type bound typ) (print_identifier name))
+       printer.printer_instances
+   in
++  String.concat "\n\n" (functions :: instances)
++
++(* OCaml's polymorphic Atom.compare orders all nullary constructors before
++   payload constructors; the latter use independent block tags 0, 1, 2. *)
++let compare_atom_key (atom : Domain.Atom.t) : string =
++  let text s = ".text \"" ^ escape_string s ^ "\"" in
++  let payload tag s = ".node 1 [.integer " ^ string_of_int tag ^ ", " ^ text s ^ "]" in
++  match atom with
++  | Keyword s -> payload 0 s
++  | Tag s -> payload 1 s
++  | Operator s -> payload 2 s
++  | atom ->
++      let constants = Domain.Atom.[Sub; Sup; Turnstile; Tilesturn; Arrow; ArrowSub;
++        DoubleArrowSub; DoubleArrowLong; SqArrow; SqArrowStar; Dot; Dot2; Dot3;
++        Semicolon; Colon; ColonEq; Tilde2; Backslash; LAngle; RAngle; LParen;
++        RParen; LBrack; RBrack; LBrace; RBrace] in
++      let rec position i = function
++        | candidate :: _ when candidate = atom -> i
++        | _ :: tail -> position (i + 1) tail
++        | [] -> assert false in
++      ".node 0 [.integer " ^ string_of_int (position 0 constants) ^ "]"
++
++let compare_function_name name =
++  if String.starts_with ~prefix:"decEq_" name then
++    "compareKey_" ^ String.sub name 6 (String.length name - 6)
++  else invalid_arg "comparison shape name"
++
++let compare_shape_call bound shapes typ value =
++  match List.find_opt (fun (s : L.equality_shape) -> s.equality_type = typ) shapes with
++  | Some shape ->
++      let call = print_identifier (compare_function_name shape.equality_name) ^ " " ^ value in
++      (match shape.equality_kind with
++       | EqualityList _ -> "(.node 8 (" ^ call ^ "))"
++       | _ -> "(" ^ call ^ ")")
++  | None -> "(@_root_.SpecTecCompareKey.key " ^ print_type bound typ ^ " "
++      ^ compare_instance bound typ ^ " " ^ value ^ ")"
++
++let compare_shape_children (shape : L.equality_shape) =
++  match shape.equality_kind with
++  | EqualityDatatype constructors -> List.concat_map (fun (c : L.constructor) -> c.arguments) constructors
++  | EqualityStructure fields -> List.map snd fields
++  | EqualityList element -> [element; shape.equality_type]
++  | EqualityOption element -> [element]
++  | EqualityTuple elements -> elements
++
++let recursive_compare_shape shapes (start : L.equality_shape) =
++  let rec visit seen shape = List.exists (fun typ ->
++    if typ = start.equality_type then true else if List.mem typ seen then false else
++    match List.find_opt (fun (s : L.equality_shape) -> s.equality_type = typ) shapes with
++    | None -> false | Some next -> visit (typ :: seen) next) (compare_shape_children shape) in
++  visit [start.equality_type] start
++
++let print_compare_parameters parameters = String.concat ""
++  (List.map (fun name -> " {" ^ print_identifier name ^ " : Type} [_root_.SpecTecCompareKey "
++    ^ print_identifier name ^ "]") parameters)
++
++let print_compare_shape (comparison : L.manual_equality) (shape : L.equality_shape) =
++  let bound = comparison.equality_type_parameters in
++  let key = compare_shape_call bound comparison.equality_shapes in
++  let fields elements = List.mapi (fun i typ -> key typ ("x" ^ string_of_int i)) elements in
++  let node tag children = "(.node " ^ string_of_int tag ^ " [" ^ String.concat ", " children ^ "])" in
++  let body = match shape.equality_kind with
++  | EqualityDatatype [] -> "nomatch value"
++  | EqualityDatatype constructors -> "match value with\n" ^ String.concat "\n"
++      (List.map (fun (constructor : L.constructor) ->
++        let arguments = Array.of_list (fields constructor.arguments) in
++        let index = ref 0 in
++        let rec notation = function
++          | Domain.Mixfix.Arg () -> let i = !index in incr index; node 0 [arguments.(i)]
++          | Domain.Mixfix.Atom atom -> node 1 [compare_atom_key atom.it]
++          | Domain.Mixfix.Brack (left, middle, right) ->
++              node 2 [compare_atom_key left.it; notation middle; compare_atom_key right.it]
++          | Domain.Mixfix.Infix (left, atom, right) ->
++              let left = notation left in
++              let right = notation right in
++              node 3 [left; compare_atom_key atom.it; right]
++          | Domain.Mixfix.Seq parts -> node 4 (List.map notation parts) in
++        let body = match constructor.compare_notation with
++          | Some mixop -> node 4 [notation mixop]
++          | None -> invalid_arg "Value.compare for external keys" in
++        "  | " ^ constructor_pattern constructor "x" ^ " => " ^ body) constructors)
++  | EqualityStructure fields_ ->
++      "match value with\n  | ⟨" ^ String.concat ", "
++        (List.mapi (fun i _ -> "x" ^ string_of_int i) fields_) ^ "⟩ => "
++      ^ node 3 (List.mapi (fun i (name, typ) -> node 0
++          [compare_atom_key (Domain.Atom.atom_of_string name); key typ ("x" ^ string_of_int i)]) fields_)
++  | EqualityList element ->
++      "match value with\n  | [] => []\n  | head :: tail => " ^ key element "head"
++      ^ " :: " ^ print_identifier (compare_function_name shape.equality_name) ^ " tail"
++  | EqualityOption element ->
++      "match value with\n  | none => .node 6 []\n  | some item => " ^ node 7 [key element "item"]
++  | EqualityTuple elements ->
++      "match value with\n  | " ^ tuple_pattern "x" elements ^ " => " ^ node 5 (fields elements) in
++  let result = match shape.equality_kind with
++    | EqualityList _ -> "_root_.List _root_.SpecTecOrderKey"
++    | _ -> "_root_.SpecTecOrderKey" in
++  "def " ^ print_identifier (compare_function_name shape.equality_name)
++  ^ print_compare_parameters bound ^ " (value : " ^ print_type bound shape.equality_type
++  ^ ") : " ^ result ^ " :=\n  " ^ body
++  ^ (if recursive_compare_shape comparison.equality_shapes shape then "\ntermination_by structural value" else "")
++
++let print_manual_compare (comparison : L.manual_equality) =
++  let functions = "mutual\n\n" ^ String.concat "\n\n"
++    (List.map (print_compare_shape comparison) comparison.equality_shapes) ^ "\n\nend" in
++  let instances = List.map (fun (typ, name) ->
++    "instance" ^ print_compare_parameters comparison.equality_type_parameters
++    ^ " : _root_.SpecTecCompareKey " ^ print_type comparison.equality_type_parameters typ
++    ^ " := ⟨" ^ print_identifier (compare_function_name name) ^ "⟩") comparison.equality_instances in
+   String.concat "\n\n" (functions :: instances)
+ 
+ let rec print_group (group : L.declaration_group) : string =
+@@ -1036,13 +1231,14 @@
+   | DerivingDecidableEq group -> print_group group
+   | ManualDecidableEq equality -> print_manual_equality equality
+   | ManualPrinter printer -> print_manual_printer printer
++  | ManualCompare comparison -> print_manual_compare comparison
+ 
+ let rec declarations_in_group (group : L.declaration_group) : L.declaration list =
+   match group with
+   | L.Single declaration -> [ declaration ]
+   | L.Mutual declarations -> declarations
+   | L.DerivingDecidableEq group -> declarations_in_group group
+-  | L.ManualDecidableEq _ | L.ManualPrinter _ -> []
++  | L.ManualDecidableEq _ | L.ManualPrinter _ | L.ManualCompare _ -> []
+ 
+ let append_obligations (semantics : string) (obligations : string) : string =
+   if obligations = "" then semantics
+--- a/p4spec/lib/lean-skeleton/translator.ml
++++ b/p4spec/lib/lean-skeleton/translator.ml
+@@ -457,6 +457,7 @@
+       | _ -> L.Applied (type_name, type_arguments));
+     print_origin = (let origin, _ = typorigin.it in origin.it);
+     print_format = constructor_print_format nottyp hints;
++    compare_notation = Some (Mixfix.to_mixop nottyp.it);
+   }
+ 
+ let rec translate_notation (notation : S.nottyp') : L.notation_part list =
+@@ -701,7 +702,7 @@
+     { target = L.Global name;
+       type_arguments = List.map (fun name -> L.TypeParameter name) type_parameters;
+       instance_arguments = [];
+-      print_instance_arguments = [];
++      print_instance_arguments = []; compare_instance_arguments = [];
+       arguments = context_terms @ collections }
+   in
+   let empty : L.term list = List.map
+@@ -734,7 +735,7 @@
+     (List.init (List.length context + List.length inputs) Fun.id);
+   let helper : L.declaration = L.Relation
+     { name; type_parameters; equality_parameters = [];
+-      print_parameters = [];
++      print_parameters = []; compare_parameters = [];
+       argument_types = List.map snd context @ List.map (fun (_, _, typ) -> collection_type typ) vectors;
+       rules; notation = None }
+   in
+@@ -1045,13 +1046,13 @@
+             ^ (if List.length cases = List.length source_variant.cases then "" else " | _ => none")
+           in
+           let helper : L.declaration = L.Builtin
+-            { name; type_parameters; equality_parameters = []; print_parameters = [];
++            { name; type_parameters; equality_parameters = []; print_parameters = []; compare_parameters = [];
+               parameters = [ source ]; result = L.BuiltinType ("Option", [ target ]); body }
+           in
+           L.Apply
+             { target = L.Global name;
+               type_arguments = List.map (fun name -> L.TypeParameter name) type_parameters;
+-              instance_arguments = []; print_instance_arguments = []; arguments = [ term ] },
++              instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments = [ term ] },
+           [ helper ]
+       | _ -> unsupported at
+           ("execution downcast from " ^ type_code source ^ " to " ^ type_code target))
+@@ -1122,25 +1123,7 @@
+             | Error reason -> unsupported exp.at ("builtin call " ^ reason))
+         | Some (BuiltinFunction parameters) -> (
+             match Builtin.translate id.it parameters with
+-            | Ok _ ->
+-                if Builtin.is_text_set_operation id.it then (
+-                  match type_arguments with
+-                  | [ key ] ->
+-                      let expanded_key : L.type_ref =
+-                        translate_type_with_parameters type_parameters key
+-                        |> expand_expression_type env exp.at
+-                      in
+-                      if expanded_key <> L.BuiltinType ("String", []) then
+-                        unsupported exp.at
+-                          ("builtin call $" ^ id.it ^ " with K = "
+-                         ^ S.Print.string_of_typ key
+-                         ^ " because Lean translates this builtin only for \
+-                            text keys")
+-                  | _ ->
+-                      unsupported exp.at
+-                        ("builtin call $" ^ id.it
+-                       ^ " because its number of type arguments is unexpected"));
+-                true
++            | Ok _ -> true
+             | Error reason -> unsupported exp.at ("builtin call " ^ reason))
+         | None -> unsupported exp.at ("unknown function call $" ^ id.it)
+       in
+@@ -1153,13 +1136,9 @@
+       let application : L.application =
+         { target;
+           type_arguments =
+-            (if Builtin.is_text_set_operation id.it && direct then []
+-             else
+-               List.map
+-                 (translate_type_with_parameters type_parameters)
+-                 type_arguments);
++            List.map (translate_type_with_parameters type_parameters) type_arguments;
+           instance_arguments = [];
+-          print_instance_arguments = [];
++          print_instance_arguments = []; compare_instance_arguments = [];
+           arguments = result.terms }
+       in
+       if direct then combine_term result (L.Apply application)
+@@ -1546,8 +1525,8 @@
+       let heads = body.term :: List.map (fun ((n,t), _) -> L.Variable (n,t)) vectors in
+       let application args = {L.target = L.Global name;
+         type_arguments = List.map (fun n -> L.TypeParameter n) type_parameters;
+-        instance_arguments = []; print_instance_arguments = []; arguments = context_terms @ args} in
+-      let helper = L.Relation {name; type_parameters; equality_parameters = []; print_parameters = [];
++        instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments = context_terms @ args} in
++      let helper = L.Relation {name; type_parameters; equality_parameters = []; print_parameters = []; compare_parameters = [];
+         argument_types = List.map snd context @ (input_type :: vector_types); notation = None;
+         rules = [
+           {name = "empty"; binders = context; premises = [];
+@@ -1583,7 +1562,7 @@
+     L.application * terms_result =
+   let result : terms_result = collect_terms (translate_term env type_parameters functions) next arguments in
+   { target = L.Global name; type_arguments; instance_arguments = [];
+-    print_instance_arguments = [];
++    print_instance_arguments = []; compare_instance_arguments = [];
+     arguments = result.terms }, result
+ 
+ type condition_result = { condition : L.prop; evaluation : terms_result }
+@@ -1713,7 +1692,7 @@
+   let conclusion : L.application =
+     { target = L.Global relation_name;
+       type_arguments = List.map (fun name -> L.TypeParameter name) type_parameters;
+-      instance_arguments = []; print_instance_arguments = []; arguments } in
++      instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments } in
+   let variables : (string * L.type_ref) list =
+     List.concat_map variables_in_term
+       (conclusion.arguments @ List.concat_map Traversal.premise_terms result.premises)
+@@ -1848,7 +1827,7 @@
+   in
+   let rules : L.rule list = List.rev rules in
+   L.Relation
+-    { name; type_parameters; equality_parameters = []; print_parameters = [];
++    { name; type_parameters; equality_parameters = []; print_parameters = []; compare_parameters = [];
+       argument_types; rules; notation }
+   :: helpers
+ 
+@@ -2148,7 +2127,7 @@
+                      L.Apply
+                        { target = L.Global (if env.ordered then (List.nth selectors index).name else (List.hd selectors).name);
+                          type_arguments = []; instance_arguments = [];
+-                         print_instance_arguments = [];
++                         print_instance_arguments = []; compare_instance_arguments = [];
+                          arguments = selector_arguments }
+                    in
+                    let premise : L.premise =
+@@ -2247,7 +2226,7 @@
+     | ExternTypD (id, _) when env.ordered ->
+         let constructor : L.constructor =
+           { name = "mk"; arguments = []; result = L.Name id.it;
+-            print_origin = id.it; print_format = L.PrintAbsent }
++            print_origin = id.it; print_format = L.PrintAbsent; compare_notation = None }
+         in
+         [ L.Datatype
+             { name = id.it; type_parameters = [];
+@@ -2323,7 +2302,7 @@
+              list or a pure function. Keep its original typed call signature. *)
+           [ L.Relation
+               { name = "$" ^ id.it; type_parameters = [];
+-                equality_parameters = []; print_parameters = [];
++                equality_parameters = []; print_parameters = []; compare_parameters = [];
+                 argument_types = [ result ]; rules = []; notation = None } ])
+         else if Builtin_relation.is_relation id.it then
+           let (expected_parameters, expected_result) : L.type_ref list * L.type_ref =
+@@ -2433,6 +2412,7 @@
+   type_parameters : string list;
+   equality : string list;
+   printer : string list;
++  comparison : string list;
+ }
+ 
+ let equality_parameters (declarations : L.located_declaration list) :
+@@ -2442,7 +2422,7 @@
+       (fun signatures (located : L.located_declaration) ->
+         match located.declaration with
+         | L.Relation
+-            { name; type_parameters; equality_parameters; print_parameters;
++            { name; type_parameters; equality_parameters; print_parameters; compare_parameters;
+               rules; _ } ->
+             let direct : string list =
+               relation_terms rules
+@@ -2457,13 +2437,13 @@
+                       List.mem parameter equality_parameters
+                       || List.mem parameter direct)
+                     type_parameters;
+-                printer = print_parameters }
++                printer = print_parameters; comparison = compare_parameters }
+               signatures
+         | L.Builtin builtin ->
+             StringMap.add builtin.name
+               { type_parameters = builtin.type_parameters;
+                 equality = builtin.equality_parameters;
+-                printer = builtin.print_parameters }
++                printer = builtin.print_parameters; comparison = builtin.compare_parameters }
+               signatures
+         | _ -> signatures)
+       StringMap.empty declarations
+@@ -2533,9 +2513,15 @@
+                     || List.mem parameter called_printers)
+                   type_parameters
+               in
++              let called_comparisons = relation_applications rules
++                |> List.concat_map (required_by_application type_parameters
++                     (fun signature -> signature.comparison) signatures) in
++              let comparison = List.filter (fun parameter ->
++                List.mem parameter current.comparison || List.mem parameter called_comparisons)
++                type_parameters in
+               if equality <> current.equality || printer <> current.printer
+-              then changed := true;
+-              StringMap.add name { type_parameters; equality; printer } next
++                 || comparison <> current.comparison then changed := true;
++              StringMap.add name { type_parameters; equality; printer; comparison } next
+           | _ -> next)
+         signatures declarations
+     in
+@@ -2563,7 +2549,8 @@
+     { value with
+       instance_arguments = arguments (fun signature -> signature.equality) value;
+       print_instance_arguments =
+-        arguments (fun signature -> signature.printer) value }
++        arguments (fun signature -> signature.printer) value;
++      compare_instance_arguments = arguments (fun signature -> signature.comparison) value }
+   in
+   let rule (value : L.rule) : L.rule =
+     let conclusion : L.application =
+@@ -2587,14 +2574,14 @@
+               StringMap.find relation.name signatures in
+             L.Relation
+               { relation with equality_parameters = required.equality;
+-                print_parameters = required.printer;
++                print_parameters = required.printer; compare_parameters = required.comparison;
+                 rules = List.map rule relation.rules }
+         | L.Builtin builtin ->
+             let required : instance_signature =
+               StringMap.find builtin.name signatures in
+             L.Builtin
+               { builtin with equality_parameters = required.equality;
+-                print_parameters = required.printer }
++                print_parameters = required.printer; compare_parameters = required.comparison }
+         | declaration -> declaration
+       in
+       { located with declaration })
+--- a/p4spec/lib/lean-skeleton/traversal.ml
++++ b/p4spec/lib/lean-skeleton/traversal.ml
+@@ -53,6 +53,7 @@
+     instance_arguments = List.map map application.instance_arguments;
+     print_instance_arguments =
+       List.map map application.print_instance_arguments;
++    compare_instance_arguments = List.map map application.compare_instance_arguments;
+     arguments = List.map (map_term_types map) application.arguments }
+ 
+ let map_premise_types (map : L.type_ref -> L.type_ref) (premise : L.premise) :
