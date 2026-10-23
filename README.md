@@ -50,7 +50,8 @@ proofs and historical results are never default build targets.
 
 The catalog identifies the specification workspace. For `specifications/p4/observations.toml`,
 `emit` stores the whole-spec Lean translation in `specifications/p4/translated/s<digest>/Spec.lean`.
-The identity includes the selected source files, native toolchain identity, and translation options.
+The identity includes the ordered source selection, source contents, native toolchain identity,
+and translation options.
 Different source/tool selections coexist; emitting another property does not replace earlier
 shared dependencies. Catalogs used by regression fixtures use an ignored scratch translation cache.
 
@@ -62,7 +63,9 @@ the common translation does not depend on which external observations a property
 
 Emission reuses unchanged shared files. Certification and certificate loading independently
 reconstruct their native translation and compare its bytes, as well as reconstructing the property
-artifacts. Editing cached hashes cannot certify a changed translation. `identity.json` records
+artifacts. Certificates must cover both Lean dependencies and native generation inputs; freshness
+checks also detect newly added files in selected specification directories. Editing cached hashes
+cannot certify a changed translation. `identity.json` records
 translation identity; it is not evidence of completed full-P4 Lean validation.
 
 `emit` defaults to `bundle/` beside the property source. Keep that path fixed so authored imports

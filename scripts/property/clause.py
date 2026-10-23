@@ -5,10 +5,11 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import tempfile
 import tomllib
 
 from scripts.toolchain import (
-    PROJECT, BRIDGE_DIRECTORY, TRANSLATOR_DIRECTORY, TOOLCHAIN_SOURCE, PROPERTY_EXECUTABLE,
+    PROJECT, BRIDGE_DIRECTORY, TRANSLATOR_DIRECTORY, TOOLCHAIN_SOURCE, SCRATCH_DIRECTORY, PROPERTY_EXECUTABLE,
     PROPERTY_RUN_EXECUTABLE, resolve_toolchain, digest, source_identity,
 )
 from scripts.lean_tools import require_name, require_timeout, run_checked, rebuild_modules
@@ -88,7 +89,15 @@ class CertifiedProperty:
     generator: str | None = None
 
     def assert_fresh(self):
+        try:
+            selected = source_identity(self.spec_paths)
+        except (OSError, ValueError) as error:
+            raise ValueError('certified specification source selection is stale') from error
+        if any(self.fingerprints.get(file) != expected for file, expected in selected.items()):
+            raise ValueError('certified specification source selection is stale')
         for file,expected in self.fingerprints.items():
+            if file in selected:
+                continue
             if not Path(file).is_file() or digest(file)!=expected:
                 raise ValueError('certified property is stale: '+file)
         if resolve_toolchain(self.project).identity()!=self.toolchain:
@@ -234,10 +243,12 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
     require_name(base)
     namespace=module=base+'.Contract'
     try:
+        # Legacy proof-only certification must not trust an editable cache hash.
+        prepare_translation(spec_paths,config_path,project=project,timeout_seconds=timeout)
         plan, origins, tool=generate_property_files(spec_paths=spec_paths,
             property_path=property_path,config_path=config_path,external_path=external_path,
             name=name,output=output,project=project,timeout_seconds=timeout,
-            transport_model=transport_model)
+            transport_model=transport_model,verify_shared=True)
         initial_toolchain=tool.identity()
         executable=tool.root / PROPERTY_RUN_EXECUTABLE
         (output/'ContractAudit.lean').write_text(contract_audit_source(
@@ -249,16 +260,8 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
         for p in [output/'manifest.json',output/'metadata-config.json',
                   output/'catalog-config.json',output/'catalog-manifest.json']:
             files[str(p)]=digest(p)
-        property_directory = Path(__file__).resolve().parent
-        tool_sources = [property_directory / name for name in
-                        ['plan.py', 'emit.py', 'clause.py', 'runner.py', 'protocol.py']]
-        tool_sources += [property_directory.parent / name for name in
-                         ['lean_tools.py', '_lean_dependencies.py', 'observations.py', 'specification.py']]
-        tool_sources += [project / TOOLCHAIN_SOURCE,
-                         project / BRIDGE_DIRECTORY / 'property_document.ml',
-                         project / BRIDGE_DIRECTORY / 'property_cli.ml',
-                         project / BRIDGE_DIRECTORY / 'property_exec.ml']
-        files.update({str(path): digest(path) for path in tool_sources})
+        from scripts.property.workflow import _tool_fingerprints
+        files.update(_tool_fingerprints(project))
         files[str(output/'plan.json')]=digest(output/'plan.json')
         files[str(executable)]=digest(executable)
         if tool.identity()!=initial_toolchain:
@@ -267,7 +270,10 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
                      'fingerprints':files,'plan_id':plan['plan_id'],'toolchain':tool.identity(),
                      'proof_module':proof_module,'property_proof':property_proof,
                      'spec_paths':[str(p) for p in spec_paths],
-                     'property_path':str(property_path),'property_name':name}
+                     'property_path':str(property_path),'property_name':name,
+                     'config_path':str(Path(config_path).absolute()),
+                     'external_path':str(Path(external_path).absolute()),
+                     'transport_model':str(Path(transport_model).absolute()) if transport_model else None}
         write_json(output/'certificate.json',certificate)
         bundle=CertifiedProperty(project,output,plan,namespace,module,executable,
                                  tuple(spec_paths),property_path,name,tool.identity(),files)
@@ -307,8 +313,32 @@ def load_bundle(directory, *, timeout_seconds=120):
     expected_audit=contract_audit_source(bundle.module,cert['proof_module'],
         cert['property_proof'])
     if (directory/'ContractAudit.lean').read_text()!=expected_audit: raise ValueError('audit source mismatch')
+    if not all(key in cert for key in ('config_path', 'external_path', 'transport_model')):
+        raise ValueError('legacy certificate lacks native input selection; rebuild the bundle')
+    from scripts.property.workflow import GENERATED_FILES, _tool_fingerprints
+    scratch=project/SCRATCH_DIRECTORY
+    scratch.mkdir(parents=True,exist_ok=True)
+    names=[name for name in GENERATED_FILES if name != 'GeneratorAudit.lean']
+    with tempfile.TemporaryDirectory(prefix='legacy-check-',dir=scratch) as tmp:
+        stage=Path(tmp)
+        _,origins,_=generate_property_files(spec_paths=bundle.spec_paths,
+            property_path=bundle.property_path,config_path=cert['config_path'],
+            external_path=cert['external_path'],name=bundle.property_name,output=stage,
+            project=project,timeout_seconds=timeout_seconds,transport_model=cert['transport_model'],
+            namespace=bundle.module,verify_shared=True)
+        (stage/'ContractAudit.lean').write_text(expected_audit)
+        for name in names:
+            if (directory/name).read_bytes() != (stage/name).read_bytes():
+                raise ValueError('generated source mismatch: '+name)
     rebuild_modules(bundle.project,[bundle.module,cert['proof_module']],timeout_seconds)
     run_checked(['lake','env','lean',str(directory/'ContractAudit.lean')],bundle.project,timeout_seconds)
+    current=fingerprint_dependencies(project,[directory/'ContractAudit.lean'],timeout_seconds)
+    current.update(origins)
+    current.update(_tool_fingerprints(project))
+    current.update({str(directory/name):digest(directory/name) for name in names})
+    current[str(executable)]=digest(executable)
+    if any(cert['fingerprints'].get(path) != value for path,value in current.items()):
+        raise ValueError('certificate dependency closure mismatch; rebuild the bundle')
     bundle.assert_fresh()
     return bundle
 

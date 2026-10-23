@@ -293,12 +293,16 @@ def load_checked_bundle(directory, certificate, *, timeout_seconds=120, _just_ch
     if not _just_checked:
         # Certificates are editable local data. Repeat the Lean audits when
         # loading, so repaired/omitted hashes cannot attest a different proof.
-        _validate_generated(directory, record, project, timeout_seconds)
+        _, origins, _ = _validate_generated(directory, record, project, timeout_seconds)
         rebuild_modules(project, ['Spec4Pbt.Observable', module, declarations['proof_module'],
                                   declarations['generator_module']], timeout_seconds)
         roots = [directory/'ContractAudit.lean', directory/'GeneratorAudit.lean']
         graph = {}
         current = fingerprint_dependencies(project, roots, timeout_seconds, dependency_graph=graph)
+        current.update(origins)
+        current.update(_tool_fingerprints(project))
+        current.update({str(directory/name): digest(directory/name) for name in (*GENERATED_FILES, 'emission.json')})
+        current[str(bundle.executable)] = digest(bundle.executable)
         _assert_proof_independent(project, declarations, graph)
         for audit in roots:
             run_checked(['lake', 'env', 'lean', str(audit)], project, timeout_seconds)

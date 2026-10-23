@@ -1,7 +1,9 @@
 """Reuse shared translation without trusting editable cache hash claims."""
 import json
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -55,3 +57,24 @@ class SharedSpecificationTests(unittest.TestCase):
         (self.root/'translated').symlink_to(other, target_is_directory=True)
         with self.assertRaisesRegex(ValueError, 'symlink'):
             self.prepare()
+
+    def test_source_selection_order_has_distinct_identity(self):
+        first = self.root/'first.watsup'
+        second = self.root/'second.watsup'
+        first.write_text('relation First: |- nat hint(input %0)\nrule First/value: |- 1\n')
+        second.write_text('relation Second: |- nat hint(input %0)\nrule Second/value: |- 2\n')
+        a = prepare_translation([first, second], self.catalog, project=ROOT)
+        b = prepare_translation([second, first], self.catalog, project=ROOT)
+        self.assertNotEqual(a.module, b.module)
+
+    def test_concurrent_identical_emissions_publish_one_translation(self):
+        from scripts.specification import run_checked
+        barrier = threading.Barrier(2)
+        def translate(*args, **kwargs):
+            barrier.wait(timeout=10)
+            return run_checked(*args, **kwargs)
+        with patch('scripts.specification.run_checked', side_effect=translate):
+            with ThreadPoolExecutor(max_workers=2) as workers:
+                jobs = [workers.submit(self.prepare) for _ in range(2)]
+                results = [job.result(timeout=30) for job in jobs]
+        self.assertEqual(results[0], results[1])

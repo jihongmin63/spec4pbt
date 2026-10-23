@@ -223,6 +223,64 @@ class PropertyWorkflowTests(unittest.TestCase):
             build_property(**arguments)
         self.assertFalse(self.output.exists())
 
+    def test_certificate_must_cover_native_configuration_dependencies(self):
+        self.emit()
+        self.complete()
+        workflow.check_property(self.output)
+        path = self.output/'certificate.json'
+        cert = json.loads(path.read_text())
+        del cert['fingerprints'][str(ORDERED/'observations.toml')]
+        path.write_text(json.dumps(cert))
+        with self.assertRaisesRegex(ValueError, 'dependency closure'):
+            load_bundle(self.output)
+
+    def test_legacy_build_reconstructs_shared_translation(self):
+        from scripts.specification import prepare_translation
+        from scripts.toolchain import digest
+        from scripts.property.clause import build_property
+        shared = prepare_translation(self.arguments['spec_paths'], self.arguments['config_path'], project=ROOT)
+        source = shared.directory/'Spec.lean'
+        identity_path = shared.directory/'identity.json'
+        before_source, before_identity = source.read_bytes(), identity_path.read_bytes()
+        try:
+            source.write_bytes(before_source+b'\n-- edited shared specification\n')
+            record = json.loads(before_identity)
+            record['generated']['Spec.lean'] = digest(source)
+            identity_path.write_text(json.dumps(record))
+            self.complete()
+            args = {k:v for k,v in self.arguments.items() if k not in ('generator_module','generator')}
+            with self.assertRaisesRegex(ValueError, 'shared translation.*mismatch'):
+                build_property(**args)
+        finally:
+            source.write_bytes(before_source)
+            identity_path.write_bytes(before_identity)
+
+    def test_legacy_load_reconstructs_shared_translation_despite_repaired_hashes(self):
+        from scripts.specification import prepare_translation
+        from scripts.toolchain import digest
+        from scripts.property.clause import build_property
+        self.complete()
+        args = {k:v for k,v in self.arguments.items() if k not in ('generator_module','generator')}
+        build_property(**args)
+        self.assertEqual(load_bundle(self.output).property_name, 'positive')
+        shared = prepare_translation(self.arguments['spec_paths'], self.arguments['config_path'], project=ROOT)
+        source, identity_path = shared.directory/'Spec.lean', shared.directory/'identity.json'
+        before_source, before_identity = source.read_bytes(), identity_path.read_bytes()
+        try:
+            source.write_bytes(before_source+b'\n-- edited shared specification\n')
+            record = json.loads(before_identity)
+            record['generated']['Spec.lean'] = digest(source)
+            identity_path.write_text(json.dumps(record))
+            path = self.output/'certificate.json'
+            cert = json.loads(path.read_text())
+            cert['fingerprints'].update({str(p):digest(p) for p in (source, identity_path)})
+            path.write_text(json.dumps(cert))
+            with self.assertRaisesRegex(ValueError, 'shared translation.*mismatch'):
+                load_bundle(self.output)
+        finally:
+            source.write_bytes(before_source)
+            identity_path.write_bytes(before_identity)
+
     def test_cli_exposes_emit_check_and_run_uses_certificate_selection(self):
         command = ['python3', '-m', 'scripts.property', 'emit']
         for key, value in self.arguments.items():

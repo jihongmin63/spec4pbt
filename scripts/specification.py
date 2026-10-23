@@ -1,5 +1,6 @@
 """Shared, content-keyed specification translations, independently checked at certification."""
 from dataclasses import dataclass
+import errno
 import hashlib
 import json
 from pathlib import Path
@@ -29,7 +30,7 @@ def prepare_translation(spec_paths, catalog_path, *, project=PROJECT,
     timeout = require_timeout(timeout_seconds)
     sources = [Path(path).absolute() for path in spec_paths]
     tool = resolve_toolchain(project)
-    expected = dict(schema_version=1, sources=source_identity(sources),
+    expected = dict(schema_version=1, spec_paths=list(map(str, sources)), sources=source_identity(sources),
                     toolchain=tool.identity(), options=['--relation-semantics', 'ordered'])
     key = 's' + hashlib.sha256(json.dumps(expected, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
     catalog = Path(catalog_path).absolute()
@@ -83,8 +84,12 @@ def prepare_translation(spec_paths, catalog_path, *, project=PROJECT,
             (stage/'identity.json').write_text(json.dumps(record, indent=2, sort_keys=True)+'\n')
             try:
                 stage.rename(directory)
-            except FileExistsError:
+            except OSError as error:
+                if error.errno not in (errno.EEXIST, errno.ENOTEMPTY):
+                    raise
                 # Concurrent emissions may prepare the same immutable selection.
+                if directory.is_symlink() or source.is_symlink() or identity_path.is_symlink():
+                    raise ValueError('shared translation path must not contain a symlink') from error
                 if source.read_bytes() != contents or json.loads(identity_path.read_text()) != record:
                     raise ValueError('concurrent shared translation mismatch')
     return SharedTranslation(directory, module, {str(path): digest(path) for path in [source, identity_path]})
