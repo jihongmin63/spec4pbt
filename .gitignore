@@ -11,4 +11,3 @@ __pycache__/
 /properties/*/bundle/
 /properties/*/runs/
 /specifications/*/translated/
-/scripts/tests/**/translated/
