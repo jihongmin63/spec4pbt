@@ -1,0 +1,576 @@
+--- a/p4spec/lib/lean-skeleton/builtin_relation.ml
++++ b/p4spec/lib/lean-skeleton/builtin_relation.ml
+@@ -13,7 +13,7 @@
+     "strip_suffix"; "shl"; "shr"; "shr_arith"; "int_to_bitstr";
+     "bitstr_to_int"; "split_text"; "sub_set"; "eq_set";
+     "bits_to_int_signed"; "int_to_bits_unsigned"; "int_to_bits_signed";
+-    "bitacc"; "bitacc_replace"; "text_to_int"; "print_" ] @ Wasm_scalar.names
++    "bitacc"; "bitacc_replace"; "text_to_int"; "print_" ] @ Wasm_scalar.names @ Wasm_execution.names
+ 
+ let is_relation (name : string) : bool = List.mem name names
+ 
+@@ -34,6 +34,7 @@
+ 
+ let signature (name : string) (type_parameters : string list) :
+     (L.type_ref list * L.type_ref, string) result =
++  if List.mem name Wasm_execution.names then Wasm_execution.signature name type_parameters else
+   if List.mem name Wasm_scalar.names then Wasm_scalar.signature name type_parameters else
+   let expect (expected : string list) (arguments : L.type_ref list)
+       (result : L.type_ref) : (L.type_ref list * L.type_ref, string) result =
+@@ -530,6 +531,7 @@
+ 
+ let translate (name : string) (type_parameters : string list)
+     (constructor : constructor_lookup) : (L.declaration list, string) result =
++  if List.mem name Wasm_execution.names then Wasm_execution.translate name type_parameters else
+   if List.mem name Wasm_scalar.names then Wasm_scalar.translate name type_parameters else
+   match signature name type_parameters with
+   | Error reason -> Error reason
+--- a/p4spec/lib/lean-skeleton/dune
++++ b/p4spec/lib/lean-skeleton/dune
+@@ -6,6 +6,7 @@
+   builtin
+   builtin_relation
+   wasm_scalar
++  wasm_execution
+   extern_model
+   identifier
+   translator
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -295,7 +295,7 @@
+   let call_extern_types = List.exists (function L.Relation r ->
+     List.exists (uses_extern extern_names) r.argument_types | _ -> false) relations in
+   let aborting_builtins = List.filter_map (fun (d : S.def) -> match d.it with
+-    | S.BuiltinDecD (id, _, _, _, _) when List.mem id.it Wasm_scalar.names || List.mem id.it
++    | S.BuiltinDecD (id, _, _, _, _) when List.mem id.it Wasm_execution.names || List.mem id.it Wasm_scalar.names || List.mem id.it
+         ["text_to_int"; "strip_prefix"; "strip_suffix"; "split_text";
+          "adds_map"; "bitacc"; "bitacc_replace"; "partition_"; "print_"] -> Some ("$" ^ id.it)
+     | _ -> None) source in
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -1082,7 +1082,7 @@
+     ^ "\n-- SpecTecModule:decl:end:" ^ number) groups in
+   "set_option autoImplicit false\nset_option linter.unusedVariables false\n"
+   ^ (if extern_types then "set_option linter.unusedSectionVars false\n" else "")
+-  ^ "\n" ^ print_prelude ^ "\n\n" ^ Wasm_scalar.source ^ "\n\n"
++  ^ "\n" ^ print_prelude ^ "\n\n" ^ Wasm_scalar.source ^ "\n\n" ^ Wasm_execution.source ^ "\n\n"
+   ^ (if extern_types then Extern_model.types_source ~ordered:ordered_externs ^ "\n\n" else "")
+   ^ "namespace SpecTec\n\n"
+   ^ (if extern_types then "variable [SpecTecExternTypes]\n\n" else "")
+--- /dev/null
++++ b/p4spec/lib/lean-skeleton/wasm_execution.ml
+@@ -0,0 +1,514 @@
++module L = Ast.Lean
++
++let source = {wasm_support|namespace SpecTecWasmExec
++
++def wrap (width : Nat) (value : Int) : Nat := (value % (2 ^ width : Nat)).toNat
++def signed (width value : Nat) : Int :=
++  let value := value % 2 ^ width
++  if value < 2 ^ (width - 1) then value else (value : Int) - 2 ^ width
++def lane (width value index : Nat) : Nat := (value / 2 ^ (width * index)) % 2 ^ width
++def pack (width : Nat) (values : List Nat) : Nat :=
++  values.foldr (fun value rest => value % 2 ^ width + 2 ^ width * rest) 0
++def lanes (width value : Nat) : List Nat := (List.range (128 / width)).map (lane width value)
++def mapLanes (width : Nat) (f : Nat → Nat) (value : Nat) : Nat := pack width ((lanes width value).map f)
++def zipLanes (width : Nat) (f : Nat → Nat → Nat) (a b : Nat) : Nat :=
++  pack width ((lanes width a).zipWith f (lanes width b))
++def clamp (width : Nat) (isSigned : Bool) (x : Int) : Nat :=
++  let lo : Int := if isSigned then -(2 ^ (width - 1) : Nat) else 0
++  let hi : Int := if isSigned then (2 ^ (width - 1) : Nat) - 1 else (2 ^ width : Nat) - 1
++  wrap width (max lo (min hi x))
++
++def integerUnary (width : Nat) (op : String) (packWidth value : Nat) : Option Nat :=
++  let value := value % 2 ^ width
++  match op with
++  | "Clz" => some (((List.range width).reverse.takeWhile (fun i => value / 2 ^ i % 2 == 0)).length)
++  | "Ctz" => some (((List.range width).takeWhile (fun i => value / 2 ^ i % 2 == 0)).length)
++  | "Popcnt" => some (((List.range width).filter (fun i => value / 2 ^ i % 2 == 1)).length)
++  | "ExtendS" => if packWidth ≤ width then some (wrap width (signed packWidth value)) else none
++  | "Abs" => some (wrap width (signed width value).natAbs)
++  | "Neg" => some (wrap width (-(value : Int)))
++  | _ => none
++
++def integerBinary (width : Nat) (op : String) (left right : Nat) : Option Nat :=
++  let a := left % 2 ^ width
++  let b := right % 2 ^ width
++  let sa := signed width a
++  let sb := signed width b
++  let shift := b % width
++  match op with
++  | "Add" | "IAdd" => some (wrap width ((a : Int) + b))
++  | "Sub" | "ISub" => some (wrap width ((a : Int) - b))
++  | "Mul" | "IMul" => some (wrap width ((a : Int) * b))
++  | "IDivS" => if b == 0 || (sa == -(2 ^ (width - 1) : Nat) && sb == -1) then none else some (wrap width (Int.tdiv sa sb))
++  | "IDivU" => if b == 0 then none else some (a / b)
++  | "IRemS" => if b == 0 then none else some (wrap width (Int.tmod sa sb))
++  | "IRemU" => if b == 0 then none else some (a % b)
++  | "IAnd" => some (Nat.land a b)
++  | "IOr" => some (Nat.lor a b)
++  | "IXor" => some (Nat.xor a b)
++  | "Shl" | "IShl" => some ((a * 2 ^ shift) % 2 ^ width)
++  | "ShrU" | "IShrU" => some (a / 2 ^ shift)
++  | "ShrS" | "IShrS" => some (wrap width (Int.shiftRight sa shift))
++  | "IRotl" => some ((a * 2 ^ shift + a / 2 ^ (width - shift)) % 2 ^ width)
++  | "IRotr" => some ((a / 2 ^ shift + a * 2 ^ (width - shift)) % 2 ^ width)
++  | "MinS" => some (wrap width (min sa sb))
++  | "MinU" => some (min a b)
++  | "MaxS" => some (wrap width (max sa sb))
++  | "MaxU" => some (max a b)
++  | "AvgrU" => some ((a + b + 1) / 2)
++  | "AddSatS" => some (clamp width true (sa + sb))
++  | "AddSatU" => some (clamp width false ((a : Int) + b))
++  | "SubSatS" => some (clamp width true (sa - sb))
++  | "SubSatU" => some (clamp width false ((a : Int) - b))
++  | "Q15MulRSatS" | "RelaxedQ15MulRS" => some (clamp 16 true (Int.shiftRight (sa * sb + 16384) 15))
++  | _ => none
++
++def integerCompare (width : Nat) (op : String) (a b : Nat) : Bool :=
++  let sa := signed width a
++  let sb := signed width b
++  match op with
++  | "Eq" => a == b
++  | "Ne" => a != b
++  | "LtS" => sa < sb
++  | "LtU" => a < b
++  | "GtS" => sa > sb
++  | "GtU" => a > b
++  | "LeS" => sa ≤ sb
++  | "LeU" => a ≤ b
++  | "GeS" => sa ≥ sb
++  | "GeU" => a ≥ b
++  | _ => false
++
++def integerVectorBinary (width : Nat) (op : String) (indices : List Nat) (a b : Nat) : Option Nat := do
++  let narrowWidth := width / 2
++  let extend (signedFlag : Bool) (x : Nat) : Int := if signedFlag then signed narrowWidth x else x
++  if op == "Swizzle" || op == "RelaxedSwizzle" then
++    if width != 8 then none else
++      some (pack 8 ((lanes 8 b).map fun i => if i < 16 then lane 8 a i else 0))
++  else if op == "Shuffle" then
++    if width != 8 || indices.length != 16 || !(indices.all (· < 32)) then none else
++      some (pack 8 (indices.map fun i => if i < 16 then lane 8 a i else lane 8 b (i - 16)))
++  else if op == "NarrowS" || op == "NarrowU" then
++    if !(width == 8 || width == 16) then none else
++      some (pack width (((lanes (width * 2) a) ++ (lanes (width * 2) b)).map
++        fun x => clamp width (op == "NarrowS") (signed (width * 2) x)))
++  else if ["ExtMulLowS", "ExtMulHighS", "ExtMulLowU", "ExtMulHighU"].contains op then
++    if !(width == 16 || width == 32 || width == 64) then none else
++      let high := op == "ExtMulHighS" || op == "ExtMulHighU"
++      let sign := op == "ExtMulLowS" || op == "ExtMulHighS"
++      let offset := if high then 128 / width else 0
++      some (pack width ((List.range (128 / width)).map fun i =>
++        wrap width (extend sign (lane narrowWidth a (i + offset)) * extend sign (lane narrowWidth b (i + offset)))))
++  else if op == "DotS" || op == "RelaxedDot" then
++    if !((width == 32 && op == "DotS") || (width == 16 && op == "RelaxedDot")) then none else
++      some (pack width ((List.range (128 / width)).map fun i =>
++        wrap width (signed narrowWidth (lane narrowWidth a (2*i)) * signed narrowWidth (lane narrowWidth b (2*i)) +
++          signed narrowWidth (lane narrowWidth a (2*i+1)) * signed narrowWidth (lane narrowWidth b (2*i+1)))))
++  else
++    let allowed := if width == 8 then ["Add", "Sub", "AddSatS", "AddSatU", "SubSatS", "SubSatU", "MinS", "MinU", "MaxS", "MaxU", "AvgrU"]
++      else if width == 16 then ["Add", "Sub", "Mul", "AddSatS", "AddSatU", "SubSatS", "SubSatU", "MinS", "MinU", "MaxS", "MaxU", "AvgrU", "Q15MulRSatS", "RelaxedQ15MulRS"]
++      else if width == 32 then ["Add", "Sub", "Mul", "MinS", "MinU", "MaxS", "MaxU"]
++      else if width == 64 then ["Add", "Sub", "Mul"] else []
++    if !allowed.contains op then none else
++      let values ← ((lanes width a).zip (lanes width b)).mapM fun (x,y) => integerBinary width op x y
++      pure (pack width values)
++
++def integerVectorConvert (width : Nat) (op : String) (value : Nat) : Option Nat :=
++  if ["ExtendLowS", "ExtendLowU", "ExtendHighS", "ExtendHighU", "ExtAddPairwiseS", "ExtAddPairwiseU"].contains op then
++    if !(width == 16 || width == 32 || width == 64) || (width == 64 && ["ExtAddPairwiseS", "ExtAddPairwiseU"].contains op) then none else
++      let sourceWidth := width / 2
++      let sign := ["ExtendLowS", "ExtendHighS", "ExtAddPairwiseS"].contains op
++      let cvt (i : Nat) : Int := if sign then signed sourceWidth (lane sourceWidth value i) else lane sourceWidth value i
++      let offset := if ["ExtendHighS", "ExtendHighU"].contains op then 128 / width else 0
++      some (pack width ((List.range (128 / width)).map fun i => wrap width
++        (if ["ExtAddPairwiseS", "ExtAddPairwiseU"].contains op then cvt (2*i) + cvt (2*i+1) else cvt (i + offset))))
++  else if width == 32 then
++    let from64 := ["TruncSatSZeroF64x2", "TruncSatUZeroF64x2", "RelaxedTruncSZeroF64x2", "RelaxedTruncUZeroF64x2"].contains op
++    let from32 := ["TruncSatSF32x4", "TruncSatUF32x4", "RelaxedTruncSF32x4", "RelaxedTruncUF32x4"].contains op
++    if !from64 && !from32 then none else
++      let sign := ["TruncSatSF32x4", "TruncSatSZeroF64x2", "RelaxedTruncSF32x4", "RelaxedTruncSZeroF64x2"].contains op
++      let sw := if from64 then 64 else 32
++      ((lanes sw value).mapM (SpecTecWasmFloat.toInt sw 32 sign true)).map (pack 32)
++  else none
++
++def floatVectorConvert (width : Nat) (op : String) (value : Nat) : Option Nat :=
++  if op == "ConvertSI32x4" || op == "ConvertUI32x4" then
++    some (pack width (((lanes 32 value).take (128 / width)).map fun x =>
++      SpecTecWasmFloat.ofInt width (if op == "ConvertSI32x4" then signed 32 x else x)))
++  else if width == 32 && op == "DemoteZeroF64x2" then
++    some (pack 32 ((lanes 64 value).map (SpecTecWasmFloat.convert 64 32)))
++  else if width == 64 && op == "PromoteLowF32x4" then
++    some (pack 64 (((lanes 32 value).take 2).map (SpecTecWasmFloat.convert 32 64)))
++  else none
++
++def bitselect (a b mask : Nat) : Nat := Nat.lor (Nat.land a mask) (Nat.land b (Nat.xor mask (2^128-1))) % 2^128
++def replaceLane (width vector index value : Nat) : Nat :=
++  let factor := 2 ^ (width * index)
++  vector % factor + value % 2 ^ width * factor + vector / (factor * 2 ^ width) * (factor * 2 ^ width)
++def decodeBytes (bytes : List Nat) : Option Nat :=
++  if bytes.all (· < 256) then some (pack 8 bytes) else none
++def encodeBytes (size value : Nat) : List Nat := (List.range size).map (lane 8 value)
++end SpecTecWasmExec
++|wasm_support}
++
++let names = [ "eval_testop"; "eval_relop"; "eval_unop"; "eval_binop"; "eval_cvtop"; "eval_vtestop"; "eval_vunop"; "eval_vrelop"; "eval_vbinop"; "eval_vternop"; "eval_vcvtop"; "eval_vshiftop"; "eval_vbitmaskop"; "eval_vvtestop"; "eval_vvunop"; "eval_vvbinop"; "eval_vvternop"; "eval_vsplatop"; "eval_vextractop"; "eval_vreplaceop"; "loadop_size"; "storeop_size"; "vloadop_size"; "vstoreop_size"; "vlaneop_size"; "eval_load_num"; "eval_store_num"; "eval_load_vec"; "eval_store_vec"; "eval_load_vec_lane"; "eval_store_vec_lane" ]
++let signature name type_parameters =
++  if type_parameters <> [] then Error (name ^ " must be monomorphic") else
++  match name with
++  | "eval_testop" -> Ok ([ (L.Name "testop_"); (L.Name "num_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_relop" -> Ok ([ (L.Name "relop_"); (L.Name "num_"); (L.Name "num_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_unop" -> Ok ([ (L.Name "unop_"); (L.Name "num_") ], (L.Name "num_"))
++  | "eval_binop" -> Ok ([ (L.Name "binop_"); (L.Name "num_"); (L.Name "num_") ], (L.Name "numresult"))
++  | "eval_cvtop" -> Ok ([ (L.Name "cvtop_"); (L.Name "num_") ], (L.Name "numresult"))
++  | "eval_vtestop" -> Ok ([ (L.Name "vtestop_"); (L.Name "vec_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_vrelop" -> Ok ([ (L.Name "vrelop_"); (L.Name "vec_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vunop" -> Ok ([ (L.Name "vunop_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vbinop" -> Ok ([ (L.Name "vbinop_"); (L.Name "vec_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vternop" -> Ok ([ (L.Name "vternop_"); (L.Name "vec_"); (L.Name "vec_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vcvtop" -> Ok ([ (L.Name "vcvtop_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vshiftop" -> Ok ([ (L.Name "vshiftop_"); (L.Name "vec_"); (L.Name "num_") ], (L.Name "vec_"))
++  | "eval_vbitmaskop" -> Ok ([ (L.Name "vbitmaskop_"); (L.Name "vec_") ], (L.Name "num_"))
++  | "eval_vvtestop" -> Ok ([ (L.Name "vvtestop_"); (L.Name "vec_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_vvunop" -> Ok ([ (L.Name "vvunop_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vvbinop" -> Ok ([ (L.Name "vvbinop_"); (L.Name "vec_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vvternop" -> Ok ([ (L.Name "vvternop_"); (L.Name "vec_"); (L.Name "vec_"); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_vsplatop" -> Ok ([ (L.Name "vsplatop_"); (L.Name "num_") ], (L.Name "vec_"))
++  | "eval_vextractop" -> Ok ([ (L.Name "vextractop_"); (L.Name "vec_") ], (L.Name "num_"))
++  | "eval_vreplaceop" -> Ok ([ (L.Name "vreplaceop_"); (L.Name "vec_"); (L.Name "num_") ], (L.Name "vec_"))
++  | "loadop_size" -> Ok ([ (L.Name "loadop_") ], (L.BuiltinType ("Nat", [])))
++  | "storeop_size" -> Ok ([ (L.Name "storeop_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_load_num" -> Ok ([ (L.Name "loadop_"); (L.BuiltinType ("List", [ (L.Name "byte") ])) ], (L.Name "num_"))
++  | "eval_store_num" -> Ok ([ (L.Name "storeop_"); (L.Name "num_") ], (L.BuiltinType ("List", [ (L.Name "byte") ])))
++  | "vloadop_size" -> Ok ([ (L.Name "vloadop_") ], (L.BuiltinType ("Nat", [])))
++  | "vstoreop_size" -> Ok ([ (L.Name "vstoreop_") ], (L.BuiltinType ("Nat", [])))
++  | "vlaneop_size" -> Ok ([ (L.Name "vlaneop_") ], (L.BuiltinType ("Nat", [])))
++  | "eval_load_vec" -> Ok ([ (L.Name "vloadop_"); (L.BuiltinType ("List", [ (L.Name "byte") ])) ], (L.Name "vec_"))
++  | "eval_store_vec" -> Ok ([ (L.Name "vstoreop_"); (L.Name "vec_") ], (L.BuiltinType ("List", [ (L.Name "byte") ])))
++  | "eval_load_vec_lane" -> Ok ([ (L.Name "vlaneop_"); (L.BuiltinType ("Int", [])); (L.BuiltinType ("List", [ (L.Name "byte") ])); (L.Name "vec_") ], (L.Name "vec_"))
++  | "eval_store_vec_lane" -> Ok ([ (L.Name "vlaneop_"); (L.BuiltinType ("Int", [])); (L.Name "vec_") ], (L.BuiltinType ("List", [ (L.Name "byte") ])))
++  | _ -> Error ("unknown Wasm execution builtin " ^ name)
++
++let numeric_prefix =
++  "let to32 (arg0 : f32) : Option Nat := " ^ Wasm_scalar.float_to_bits_body 32 ^ "\n" ^
++  "let to64 (arg0 : f64) : Option Nat := " ^ Wasm_scalar.float_to_bits_body 64 ^ "\n" ^
++  "let from32 (arg0 : Nat) : f32 := " ^ Wasm_scalar.float_from_bits_body 32 ^ "\n" ^
++  "let from64 (arg0 : Nat) : f64 := " ^ Wasm_scalar.float_from_bits_body 64 ^ "\n" ^
++  {numeric|
++let numBits (v : num_) : Option (Nat × Nat) := match v with
++  | .I32 x => if x < 2^32 then some (0,x) else none
++  | .I64 x => if x < 2^64 then some (1,x) else none
++  | .F32 x => (to32 x).map (fun b => (2,b))
++  | .F64 x => (to64 x).map (fun b => (3,b))
++let numOf (tag bits : Nat) : num_ := match tag with
++  | 0 => .I32 bits
++  | 1 => .I64 bits
++  | 2 => .F32 (from32 bits)
++  | _ => .F64 (from64 bits)
++|numeric}
++
++let body = function
++  | "eval_testop" -> numeric_prefix ^ {wasm_body|do
++  let (tag,x) ← numBits arg1
++  match arg0 with
++  | .I32 .Eqz => if tag == 0 then some (if x == 0 then 1 else 0) else none
++  | .I64 .Eqz => if tag == 1 then some (if x == 0 then 1 else 0) else none
++  | .F32 x => nomatch x
++  | .F64 x => nomatch x|wasm_body}
++  | "eval_relop" -> numeric_prefix ^ {wasm_body|do
++  let (ta,a) ← numBits arg1
++  let (tb,b) ← numBits arg2
++  match arg0 with
++  | .I32 op => if ta == 0 && tb == 0 then some (if SpecTecWasmExec.integerCompare 32 ((fun (x : irelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) a b then 1 else 0) else none
++  | .I64 op => if ta == 1 && tb == 1 then some (if SpecTecWasmExec.integerCompare 64 ((fun (x : irelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) a b then 1 else 0) else none
++  | .F32 op => if ta == 2 && tb == 2 then some (if SpecTecWasmFloat.compare 32 ((fun (x : frelop) => match x with | .«Eq» => "eq" | .«Ne» => "ne" | .«Lt» => "lt" | .«Gt» => "gt" | .«Le» => "le" | .«Ge» => "ge") op) a b then 1 else 0) else none
++  | .F64 op => if ta == 3 && tb == 3 then some (if SpecTecWasmFloat.compare 64 ((fun (x : frelop) => match x with | .«Eq» => "eq" | .«Ne» => "ne" | .«Lt» => "lt" | .«Gt» => "gt" | .«Le» => "le" | .«Ge» => "ge") op) a b then 1 else 0) else none|wasm_body}
++  | "eval_unop" -> numeric_prefix ^ {wasm_body|let packBits (p : packtype) : Nat := match p with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++do
++  let (tag,x) ← numBits arg1
++  match arg0 with
++  | .I32 op => if tag != 0 then none else let (name,pw) := (fun (x : iunop) => match x with | .Clz => ("Clz",0) | .Ctz => ("Ctz",0) | .Popcnt => ("Popcnt",0) | .ExtendS p => ("ExtendS", packBits p)) op; (SpecTecWasmExec.integerUnary 32 name pw x).map (numOf 0)
++  | .I64 op => if tag != 1 then none else let (name,pw) := (fun (x : iunop) => match x with | .Clz => ("Clz",0) | .Ctz => ("Ctz",0) | .Popcnt => ("Popcnt",0) | .ExtendS p => ("ExtendS", packBits p)) op; (SpecTecWasmExec.integerUnary 64 name pw x).map (numOf 1)
++  | .F32 op => if tag != 2 then none else some (numOf 2 (SpecTecWasmFloat.unary 32 ((fun (x : funop) => match x with | .«Neg» => "neg" | .«Abs» => "abs" | .«Ceil» => "ceil" | .«Floor» => "floor" | .«Trunc» => "trunc" | .«Nearest» => "nearest" | .«Sqrt» => "sqrt") op) x))
++  | .F64 op => if tag != 3 then none else some (numOf 3 (SpecTecWasmFloat.unary 64 ((fun (x : funop) => match x with | .«Neg» => "neg" | .«Abs» => "abs" | .«Ceil» => "ceil" | .«Floor» => "floor" | .«Trunc» => "trunc" | .«Nearest» => "nearest" | .«Sqrt» => "sqrt") op) x))|wasm_body}
++  | "eval_binop" -> numeric_prefix ^ {wasm_body|do
++  let (ta,a) ← numBits arg1
++  let (tb,b) ← numBits arg2
++  match arg0 with
++  | .I32 op => if ta != 0 || tb != 0 then none else some (match SpecTecWasmExec.integerBinary 32 ((fun (x : ibinop) => match x with | .«IAdd» => "IAdd" | .«ISub» => "ISub" | .«IMul» => "IMul" | .«IDivS» => "IDivS" | .«IDivU» => "IDivU" | .«IRemS» => "IRemS" | .«IRemU» => "IRemU" | .«IAnd» => "IAnd" | .«IOr» => "IOr" | .«IXor» => "IXor" | .«IShl» => "IShl" | .«IShrS» => "IShrS" | .«IShrU» => "IShrU" | .«IRotl» => "IRotl" | .«IRotr» => "IRotr") op) a b with | none => .NumTrap | some x => .NumValue (numOf 0 x))
++  | .I64 op => if ta != 1 || tb != 1 then none else some (match SpecTecWasmExec.integerBinary 64 ((fun (x : ibinop) => match x with | .«IAdd» => "IAdd" | .«ISub» => "ISub" | .«IMul» => "IMul" | .«IDivS» => "IDivS" | .«IDivU» => "IDivU" | .«IRemS» => "IRemS" | .«IRemU» => "IRemU" | .«IAnd» => "IAnd" | .«IOr» => "IOr" | .«IXor» => "IXor" | .«IShl» => "IShl" | .«IShrS» => "IShrS" | .«IShrU» => "IShrU" | .«IRotl» => "IRotl" | .«IRotr» => "IRotr") op) a b with | none => .NumTrap | some x => .NumValue (numOf 1 x))
++  | .F32 op => if ta != 2 || tb != 2 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.binary 32 ((fun (x : fbinop) => match x with | .«FAdd» => "add" | .«FSub» => "sub" | .«FMul» => "mul" | .«FDiv» => "div" | .«FMin» => "min" | .«FMax» => "max" | .«FCopysign» => "copysign") op) a b)))
++  | .F64 op => if ta != 3 || tb != 3 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.binary 64 ((fun (x : fbinop) => match x with | .«FAdd» => "add" | .«FSub» => "sub" | .«FMul» => "mul" | .«FDiv» => "div" | .«FMin» => "min" | .«FMax» => "max" | .«FCopysign» => "copysign") op) a b)))|wasm_body}
++  | "eval_cvtop" -> numeric_prefix ^ {wasm_body|do
++  let (tag,x) ← numBits arg1
++  match arg0 with
++  | .I32 op => match op with
++    | .ExtendSI32 => none
++    | .ExtendUI32 => none
++    | .WrapI64 => if tag != 1 then none else some (match some (x % 2^32) with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .ReinterpretFloat => if tag != 2 then none else some (match some x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 32 true false x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSatSF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 32 true true x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncUF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 32 false false x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSatUF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 32 false true x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 32 true false x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSatSF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 32 true true x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncUF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 32 false false x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++    | .TruncSatUF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 32 false true x with | none => .NumTrap | some y => .NumValue (numOf 0 y))
++  | .I64 op => match op with
++    | .ExtendSI32 => if tag != 0 then none else some (match some (SpecTecWasmExec.wrap 64 (SpecTecWasmExec.signed 32 x)) with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .ExtendUI32 => if tag != 0 then none else some (match some x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .WrapI64 => none
++    | .ReinterpretFloat => if tag != 3 then none else some (match some x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 64 true false x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSatSF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 64 true true x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncUF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 64 false false x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSatUF32 => if tag != 2 then none else some (match SpecTecWasmFloat.toInt 32 64 false true x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 64 true false x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSatSF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 64 true true x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncUF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 64 false false x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++    | .TruncSatUF64 => if tag != 3 then none else some (match SpecTecWasmFloat.toInt 64 64 false true x with | none => .NumTrap | some y => .NumValue (numOf 1 y))
++  | .F32 op => match op with
++    | .ConvertSI32 => if tag != 0 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.ofInt 32 (SpecTecWasmExec.signed 32 x))))
++    | .ConvertUI32 => if tag != 0 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.ofInt 32 ((x : Int)))))
++    | .ConvertSI64 => if tag != 1 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.ofInt 32 (SpecTecWasmExec.signed 64 x))))
++    | .ConvertUI64 => if tag != 1 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.ofInt 32 ((x : Int)))))
++    | .ReinterpretInt => if tag != 0 then none else some (.NumValue (numOf 2 x))
++    | .PromoteF32 => none
++    | .DemoteF64 => if tag != 3 then none else some (.NumValue (numOf 2 (SpecTecWasmFloat.convert 64 32 x)))
++  | .F64 op => match op with
++    | .ConvertSI32 => if tag != 0 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.ofInt 64 (SpecTecWasmExec.signed 32 x))))
++    | .ConvertUI32 => if tag != 0 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.ofInt 64 ((x : Int)))))
++    | .ConvertSI64 => if tag != 1 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.ofInt 64 (SpecTecWasmExec.signed 64 x))))
++    | .ConvertUI64 => if tag != 1 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.ofInt 64 ((x : Int)))))
++    | .ReinterpretInt => if tag != 1 then none else some (.NumValue (numOf 3 x))
++    | .PromoteF32 => if tag != 2 then none else some (.NumValue (numOf 3 (SpecTecWasmFloat.convert 32 64 x)))
++    | .DemoteF64 => none|wasm_body}
++  | "eval_vtestop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 .AllTrue => some (if (SpecTecWasmExec.lanes 8 v1).all (· != 0) then 1 else 0)
++  | .I16x8 .AllTrue => some (if (SpecTecWasmExec.lanes 16 v1).all (· != 0) then 1 else 0)
++  | .I32x4 .AllTrue => some (if (SpecTecWasmExec.lanes 32 v1).all (· != 0) then 1 else 0)
++  | .I64x2 .AllTrue => some (if (SpecTecWasmExec.lanes 64 v1).all (· != 0) then 1 else 0)
++  | .F32x4 _ => none
++  | .F64x2 _ => none|wasm_body}
++  | "eval_vunop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 op => if false && ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) == "Popcnt" then none else ((SpecTecWasmExec.lanes 8 v1).mapM (SpecTecWasmExec.integerUnary 8 ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) 0)).map (fun xs => .V128 (SpecTecWasmExec.pack 8 xs))
++  | .I16x8 op => if true && ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) == "Popcnt" then none else ((SpecTecWasmExec.lanes 16 v1).mapM (SpecTecWasmExec.integerUnary 16 ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) 0)).map (fun xs => .V128 (SpecTecWasmExec.pack 16 xs))
++  | .I32x4 op => if true && ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) == "Popcnt" then none else ((SpecTecWasmExec.lanes 32 v1).mapM (SpecTecWasmExec.integerUnary 32 ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) 0)).map (fun xs => .V128 (SpecTecWasmExec.pack 32 xs))
++  | .I64x2 op => if true && ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) == "Popcnt" then none else ((SpecTecWasmExec.lanes 64 v1).mapM (SpecTecWasmExec.integerUnary 64 ((fun (x : viunop) => match x with | .«Abs» => "Abs" | .«Neg» => "Neg" | .«Popcnt» => "Popcnt") op) 0)).map (fun xs => .V128 (SpecTecWasmExec.pack 64 xs))
++  | .F32x4 op => some (.V128 (SpecTecWasmExec.mapLanes 32 (SpecTecWasmFloat.unary 32 ((fun (x : vfunop) => match x with | .«Abs» => "abs" | .«Neg» => "neg" | .«Sqrt» => "sqrt" | .«Ceil» => "ceil" | .«Floor» => "floor" | .«Trunc» => "trunc" | .«Nearest» => "nearest") op)) v1))
++  | .F64x2 op => some (.V128 (SpecTecWasmExec.mapLanes 64 (SpecTecWasmFloat.unary 64 ((fun (x : vfunop) => match x with | .«Abs» => "abs" | .«Neg» => "neg" | .«Sqrt» => "sqrt" | .«Ceil» => "ceil" | .«Floor» => "floor" | .«Trunc» => "trunc" | .«Nearest» => "nearest") op)) v1))|wasm_body}
++  | "eval_vrelop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 v2 := arg2
++  if v2 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 op => some (.V128 (SpecTecWasmExec.zipLanes 8 (fun x y => if SpecTecWasmExec.integerCompare 8 ((fun (x : virelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) x y then 2^8-1 else 0) v1 v2))
++  | .I16x8 op => some (.V128 (SpecTecWasmExec.zipLanes 16 (fun x y => if SpecTecWasmExec.integerCompare 16 ((fun (x : virelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) x y then 2^16-1 else 0) v1 v2))
++  | .I32x4 op => some (.V128 (SpecTecWasmExec.zipLanes 32 (fun x y => if SpecTecWasmExec.integerCompare 32 ((fun (x : virelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) x y then 2^32-1 else 0) v1 v2))
++  | .I64x2 op => if ["LtU","LeU","GtU","GeU"].contains ((fun (x : virelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) then none else some (.V128 (SpecTecWasmExec.zipLanes 64 (fun x y => if SpecTecWasmExec.integerCompare 64 ((fun (x : virelop) => match x with | .«Eq» => "Eq" | .«Ne» => "Ne" | .«LtS» => "LtS" | .«LtU» => "LtU" | .«LeS» => "LeS" | .«LeU» => "LeU" | .«GtS» => "GtS" | .«GtU» => "GtU" | .«GeS» => "GeS" | .«GeU» => "GeU") op) x y then 2^64-1 else 0) v1 v2))
++  | .F32x4 op => some (.V128 (SpecTecWasmExec.zipLanes 32 (fun x y => if SpecTecWasmFloat.compare 32 ((fun (x : vfrelop) => match x with | .«Eq» => "eq" | .«Ne» => "ne" | .«Lt» => "lt" | .«Le» => "le" | .«Gt» => "gt" | .«Ge» => "ge") op) x y then 2^32-1 else 0) v1 v2))
++  | .F64x2 op => some (.V128 (SpecTecWasmExec.zipLanes 64 (fun x y => if SpecTecWasmFloat.compare 64 ((fun (x : vfrelop) => match x with | .«Eq» => "eq" | .«Ne» => "ne" | .«Lt» => "lt" | .«Le» => "le" | .«Gt» => "gt" | .«Ge» => "ge") op) x y then 2^64-1 else 0) v1 v2))|wasm_body}
++  | "eval_vbinop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 v2 := arg2
++  if v2 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 op => let (name,indices) := (fun (x : vibinop) => match x with | .Add => ("Add",[]) | .Sub => ("Sub",[]) | .Mul => ("Mul",[]) | .MinS => ("MinS",[]) | .MinU => ("MinU",[]) | .MaxS => ("MaxS",[]) | .MaxU => ("MaxU",[]) | .AvgrU => ("AvgrU",[]) | .AddSatS => ("AddSatS",[]) | .AddSatU => ("AddSatU",[]) | .SubSatS => ("SubSatS",[]) | .SubSatU => ("SubSatU",[]) | .DotS => ("DotS",[]) | .Q15MulRSatS => ("Q15MulRSatS",[]) | .ExtMulLowS => ("ExtMulLowS",[]) | .ExtMulHighS => ("ExtMulHighS",[]) | .ExtMulLowU => ("ExtMulLowU",[]) | .ExtMulHighU => ("ExtMulHighU",[]) | .Swizzle => ("Swizzle",[]) | .NarrowS => ("NarrowS",[]) | .NarrowU => ("NarrowU",[]) | .RelaxedSwizzle => ("RelaxedSwizzle",[]) | .RelaxedQ15MulRS => ("RelaxedQ15MulRS",[]) | .RelaxedDot => ("RelaxedDot",[]) | .Shuffle is => ("Shuffle",is)) op; (SpecTecWasmExec.integerVectorBinary 8 name indices v1 v2).map (fun x => .V128 x)
++  | .I16x8 op => let (name,indices) := (fun (x : vibinop) => match x with | .Add => ("Add",[]) | .Sub => ("Sub",[]) | .Mul => ("Mul",[]) | .MinS => ("MinS",[]) | .MinU => ("MinU",[]) | .MaxS => ("MaxS",[]) | .MaxU => ("MaxU",[]) | .AvgrU => ("AvgrU",[]) | .AddSatS => ("AddSatS",[]) | .AddSatU => ("AddSatU",[]) | .SubSatS => ("SubSatS",[]) | .SubSatU => ("SubSatU",[]) | .DotS => ("DotS",[]) | .Q15MulRSatS => ("Q15MulRSatS",[]) | .ExtMulLowS => ("ExtMulLowS",[]) | .ExtMulHighS => ("ExtMulHighS",[]) | .ExtMulLowU => ("ExtMulLowU",[]) | .ExtMulHighU => ("ExtMulHighU",[]) | .Swizzle => ("Swizzle",[]) | .NarrowS => ("NarrowS",[]) | .NarrowU => ("NarrowU",[]) | .RelaxedSwizzle => ("RelaxedSwizzle",[]) | .RelaxedQ15MulRS => ("RelaxedQ15MulRS",[]) | .RelaxedDot => ("RelaxedDot",[]) | .Shuffle is => ("Shuffle",is)) op; (SpecTecWasmExec.integerVectorBinary 16 name indices v1 v2).map (fun x => .V128 x)
++  | .I32x4 op => let (name,indices) := (fun (x : vibinop) => match x with | .Add => ("Add",[]) | .Sub => ("Sub",[]) | .Mul => ("Mul",[]) | .MinS => ("MinS",[]) | .MinU => ("MinU",[]) | .MaxS => ("MaxS",[]) | .MaxU => ("MaxU",[]) | .AvgrU => ("AvgrU",[]) | .AddSatS => ("AddSatS",[]) | .AddSatU => ("AddSatU",[]) | .SubSatS => ("SubSatS",[]) | .SubSatU => ("SubSatU",[]) | .DotS => ("DotS",[]) | .Q15MulRSatS => ("Q15MulRSatS",[]) | .ExtMulLowS => ("ExtMulLowS",[]) | .ExtMulHighS => ("ExtMulHighS",[]) | .ExtMulLowU => ("ExtMulLowU",[]) | .ExtMulHighU => ("ExtMulHighU",[]) | .Swizzle => ("Swizzle",[]) | .NarrowS => ("NarrowS",[]) | .NarrowU => ("NarrowU",[]) | .RelaxedSwizzle => ("RelaxedSwizzle",[]) | .RelaxedQ15MulRS => ("RelaxedQ15MulRS",[]) | .RelaxedDot => ("RelaxedDot",[]) | .Shuffle is => ("Shuffle",is)) op; (SpecTecWasmExec.integerVectorBinary 32 name indices v1 v2).map (fun x => .V128 x)
++  | .I64x2 op => let (name,indices) := (fun (x : vibinop) => match x with | .Add => ("Add",[]) | .Sub => ("Sub",[]) | .Mul => ("Mul",[]) | .MinS => ("MinS",[]) | .MinU => ("MinU",[]) | .MaxS => ("MaxS",[]) | .MaxU => ("MaxU",[]) | .AvgrU => ("AvgrU",[]) | .AddSatS => ("AddSatS",[]) | .AddSatU => ("AddSatU",[]) | .SubSatS => ("SubSatS",[]) | .SubSatU => ("SubSatU",[]) | .DotS => ("DotS",[]) | .Q15MulRSatS => ("Q15MulRSatS",[]) | .ExtMulLowS => ("ExtMulLowS",[]) | .ExtMulHighS => ("ExtMulHighS",[]) | .ExtMulLowU => ("ExtMulLowU",[]) | .ExtMulHighU => ("ExtMulHighU",[]) | .Swizzle => ("Swizzle",[]) | .NarrowS => ("NarrowS",[]) | .NarrowU => ("NarrowU",[]) | .RelaxedSwizzle => ("RelaxedSwizzle",[]) | .RelaxedQ15MulRS => ("RelaxedQ15MulRS",[]) | .RelaxedDot => ("RelaxedDot",[]) | .Shuffle is => ("Shuffle",is)) op; (SpecTecWasmExec.integerVectorBinary 64 name indices v1 v2).map (fun x => .V128 x)
++  | .F32x4 op => some (.V128 (SpecTecWasmExec.zipLanes 32 (SpecTecWasmFloat.binary 32 ((fun (x : vfbinop) => match x with | .«Add» => "add" | .«Sub» => "sub" | .«Mul» => "mul" | .«Div» => "div" | .«Min» => "min" | .«Max» => "max" | .«Pmin» => "pmin" | .«Pmax» => "pmax" | .«RelaxedMin» => "relaxedmin" | .«RelaxedMax» => "relaxedmax") op)) v1 v2))
++  | .F64x2 op => some (.V128 (SpecTecWasmExec.zipLanes 64 (SpecTecWasmFloat.binary 64 ((fun (x : vfbinop) => match x with | .«Add» => "add" | .«Sub» => "sub" | .«Mul» => "mul" | .«Div» => "div" | .«Min» => "min" | .«Max» => "max" | .«Pmin» => "pmin" | .«Pmax» => "pmax" | .«RelaxedMin» => "relaxedmin" | .«RelaxedMax» => "relaxedmax") op)) v1 v2))|wasm_body}
++  | "eval_vternop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 v2 := arg2
++  if v2 ≥ 2^128 then none else pure ()
++  let .V128 v3 := arg3
++  if v3 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 op => (match op with | .RelaxedLaneselect => some (.V128 (SpecTecWasmExec.bitselect v1 v2 v3)) | .RelaxedDotAdd => none)
++  | .I16x8 op => (match op with | .RelaxedLaneselect => some (.V128 (SpecTecWasmExec.bitselect v1 v2 v3)) | .RelaxedDotAdd => none)
++  | .I32x4 op => (match op with | .RelaxedLaneselect => some (.V128 (SpecTecWasmExec.bitselect v1 v2 v3)) | .RelaxedDotAdd => some (.V128 (SpecTecWasmExec.pack 32 ((List.range 4).map fun i =>
++      SpecTecWasmExec.wrap 32 ((SpecTecWasmExec.signed 32 (SpecTecWasmExec.lane 32 v3 i)) +
++        ((List.range 4).foldl (fun acc j => acc + SpecTecWasmExec.signed 8 (SpecTecWasmExec.lane 8 v1 (4*i+j)) * SpecTecWasmExec.signed 8 (SpecTecWasmExec.lane 8 v2 (4*i+j))) (0 : Int)))))))
++  | .I64x2 op => (match op with | .RelaxedLaneselect => some (.V128 (SpecTecWasmExec.bitselect v1 v2 v3)) | .RelaxedDotAdd => none)
++  | .F32x4 op => (let neg := (match op with | .RelaxedMadd => false | .RelaxedNmadd => true);
++    some (.V128 (SpecTecWasmExec.pack 32 ((List.range 4).map fun i =>
++      let x := SpecTecWasmExec.lane 32 v1 i;
++      SpecTecWasmFloat.fma 32 (if neg then Nat.xor x (2^31) else x) (SpecTecWasmExec.lane 32 v2 i) (SpecTecWasmExec.lane 32 v3 i)))))
++  | .F64x2 op => (let neg := (match op with | .RelaxedMadd => false | .RelaxedNmadd => true);
++    some (.V128 (SpecTecWasmExec.pack 64 ((List.range 2).map fun i =>
++      let x := SpecTecWasmExec.lane 64 v1 i;
++      SpecTecWasmFloat.fma 64 (if neg then Nat.xor x (2^63) else x) (SpecTecWasmExec.lane 64 v2 i) (SpecTecWasmExec.lane 64 v3 i)))))|wasm_body}
++  | "eval_vcvtop" -> {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 op => (SpecTecWasmExec.integerVectorConvert 8 ((fun (x : vicvtop) => match x with | .«ExtendLowS» => "ExtendLowS" | .«ExtendLowU» => "ExtendLowU" | .«ExtendHighS» => "ExtendHighS" | .«ExtendHighU» => "ExtendHighU" | .«ExtAddPairwiseS» => "ExtAddPairwiseS" | .«ExtAddPairwiseU» => "ExtAddPairwiseU" | .«TruncSatSF32x4» => "TruncSatSF32x4" | .«TruncSatUF32x4» => "TruncSatUF32x4" | .«TruncSatSZeroF64x2» => "TruncSatSZeroF64x2" | .«TruncSatUZeroF64x2» => "TruncSatUZeroF64x2" | .«RelaxedTruncSF32x4» => "RelaxedTruncSF32x4" | .«RelaxedTruncUF32x4» => "RelaxedTruncUF32x4" | .«RelaxedTruncSZeroF64x2» => "RelaxedTruncSZeroF64x2" | .«RelaxedTruncUZeroF64x2» => "RelaxedTruncUZeroF64x2") op) v1).map (fun x => .V128 x)
++  | .I16x8 op => (SpecTecWasmExec.integerVectorConvert 16 ((fun (x : vicvtop) => match x with | .«ExtendLowS» => "ExtendLowS" | .«ExtendLowU» => "ExtendLowU" | .«ExtendHighS» => "ExtendHighS" | .«ExtendHighU» => "ExtendHighU" | .«ExtAddPairwiseS» => "ExtAddPairwiseS" | .«ExtAddPairwiseU» => "ExtAddPairwiseU" | .«TruncSatSF32x4» => "TruncSatSF32x4" | .«TruncSatUF32x4» => "TruncSatUF32x4" | .«TruncSatSZeroF64x2» => "TruncSatSZeroF64x2" | .«TruncSatUZeroF64x2» => "TruncSatUZeroF64x2" | .«RelaxedTruncSF32x4» => "RelaxedTruncSF32x4" | .«RelaxedTruncUF32x4» => "RelaxedTruncUF32x4" | .«RelaxedTruncSZeroF64x2» => "RelaxedTruncSZeroF64x2" | .«RelaxedTruncUZeroF64x2» => "RelaxedTruncUZeroF64x2") op) v1).map (fun x => .V128 x)
++  | .I32x4 op => (SpecTecWasmExec.integerVectorConvert 32 ((fun (x : vicvtop) => match x with | .«ExtendLowS» => "ExtendLowS" | .«ExtendLowU» => "ExtendLowU" | .«ExtendHighS» => "ExtendHighS" | .«ExtendHighU» => "ExtendHighU" | .«ExtAddPairwiseS» => "ExtAddPairwiseS" | .«ExtAddPairwiseU» => "ExtAddPairwiseU" | .«TruncSatSF32x4» => "TruncSatSF32x4" | .«TruncSatUF32x4» => "TruncSatUF32x4" | .«TruncSatSZeroF64x2» => "TruncSatSZeroF64x2" | .«TruncSatUZeroF64x2» => "TruncSatUZeroF64x2" | .«RelaxedTruncSF32x4» => "RelaxedTruncSF32x4" | .«RelaxedTruncUF32x4» => "RelaxedTruncUF32x4" | .«RelaxedTruncSZeroF64x2» => "RelaxedTruncSZeroF64x2" | .«RelaxedTruncUZeroF64x2» => "RelaxedTruncUZeroF64x2") op) v1).map (fun x => .V128 x)
++  | .I64x2 op => (SpecTecWasmExec.integerVectorConvert 64 ((fun (x : vicvtop) => match x with | .«ExtendLowS» => "ExtendLowS" | .«ExtendLowU» => "ExtendLowU" | .«ExtendHighS» => "ExtendHighS" | .«ExtendHighU» => "ExtendHighU" | .«ExtAddPairwiseS» => "ExtAddPairwiseS" | .«ExtAddPairwiseU» => "ExtAddPairwiseU" | .«TruncSatSF32x4» => "TruncSatSF32x4" | .«TruncSatUF32x4» => "TruncSatUF32x4" | .«TruncSatSZeroF64x2» => "TruncSatSZeroF64x2" | .«TruncSatUZeroF64x2» => "TruncSatUZeroF64x2" | .«RelaxedTruncSF32x4» => "RelaxedTruncSF32x4" | .«RelaxedTruncUF32x4» => "RelaxedTruncUF32x4" | .«RelaxedTruncSZeroF64x2» => "RelaxedTruncSZeroF64x2" | .«RelaxedTruncUZeroF64x2» => "RelaxedTruncUZeroF64x2") op) v1).map (fun x => .V128 x)
++  | .F32x4 op => (SpecTecWasmExec.floatVectorConvert 32 ((fun (x : vfcvtop) => match x with | .«DemoteZeroF64x2» => "DemoteZeroF64x2" | .«PromoteLowF32x4» => "PromoteLowF32x4" | .«ConvertSI32x4» => "ConvertSI32x4" | .«ConvertUI32x4» => "ConvertUI32x4") op) v1).map (fun x => .V128 x)
++  | .F64x2 op => (SpecTecWasmExec.floatVectorConvert 64 ((fun (x : vfcvtop) => match x with | .«DemoteZeroF64x2» => "DemoteZeroF64x2" | .«PromoteLowF32x4» => "PromoteLowF32x4" | .«ConvertSI32x4» => "ConvertSI32x4" | .«ConvertUI32x4» => "ConvertUI32x4") op) v1).map (fun x => .V128 x)|wasm_body}
++  | "eval_vshiftop" -> numeric_prefix ^ {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  let (tag,n) ← numBits arg2
++  if tag != 0 then none else pure ()
++  match op with
++  | .I8x16 op => ((SpecTecWasmExec.lanes 8 v1).mapM (fun x => SpecTecWasmExec.integerBinary 8 ((fun (x : vishiftop) => match x with | .«Shl» => "Shl" | .«ShrS» => "ShrS" | .«ShrU» => "ShrU") op) x n)).map (fun xs => .V128 (SpecTecWasmExec.pack 8 xs))
++  | .I16x8 op => ((SpecTecWasmExec.lanes 16 v1).mapM (fun x => SpecTecWasmExec.integerBinary 16 ((fun (x : vishiftop) => match x with | .«Shl» => "Shl" | .«ShrS» => "ShrS" | .«ShrU» => "ShrU") op) x n)).map (fun xs => .V128 (SpecTecWasmExec.pack 16 xs))
++  | .I32x4 op => ((SpecTecWasmExec.lanes 32 v1).mapM (fun x => SpecTecWasmExec.integerBinary 32 ((fun (x : vishiftop) => match x with | .«Shl» => "Shl" | .«ShrS» => "ShrS" | .«ShrU» => "ShrU") op) x n)).map (fun xs => .V128 (SpecTecWasmExec.pack 32 xs))
++  | .I64x2 op => ((SpecTecWasmExec.lanes 64 v1).mapM (fun x => SpecTecWasmExec.integerBinary 64 ((fun (x : vishiftop) => match x with | .«Shl» => "Shl" | .«ShrS» => "ShrS" | .«ShrU» => "ShrU") op) x n)).map (fun xs => .V128 (SpecTecWasmExec.pack 64 xs))
++  | .F32x4 op => none
++  | .F64x2 op => none|wasm_body}
++  | "eval_vbitmaskop" -> numeric_prefix ^ {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 _ => some (.I32 (((List.range 16).foldl (fun a j => a + (SpecTecWasmExec.lane 8 v1 j / 2^7) * 2^j) 0)))
++  | .I16x8 _ => some (.I32 (((List.range 8).foldl (fun a j => a + (SpecTecWasmExec.lane 16 v1 j / 2^15) * 2^j) 0)))
++  | .I32x4 _ => some (.I32 (((List.range 4).foldl (fun a j => a + (SpecTecWasmExec.lane 32 v1 j / 2^31) * 2^j) 0)))
++  | .I64x2 _ => some (.I32 (((List.range 2).foldl (fun a j => a + (SpecTecWasmExec.lane 64 v1 j / 2^63) * 2^j) 0)))
++  | .F32x4 _ => none
++  | .F64x2 _ => none|wasm_body}
++  | "eval_vvtestop" -> {wasm_body|let .V128 x := arg1; if x < 2^128 then some (if x == 0 then 0 else 1) else none|wasm_body}
++  | "eval_vvunop" -> {wasm_body|let .V128 x := arg1; if x < 2^128 then some (.V128 (Nat.xor x (2^128-1))) else none|wasm_body}
++  | "eval_vvbinop" -> {wasm_body|let .V128 x := arg1; let .V128 y := arg2
++  if x ≥ 2^128 || y ≥ 2^128 then none else
++  let .V128 op := arg0
++  some (.V128 (match op with | .And => Nat.land x y | .Or => Nat.lor x y | .Xor => Nat.xor x y | .AndNot => Nat.land x (Nat.xor y (2^128-1))))|wasm_body}
++  | "eval_vvternop" -> {wasm_body|let .V128 x := arg1; let .V128 y := arg2; let .V128 z := arg3
++  if x ≥ 2^128 || y ≥ 2^128 || z ≥ 2^128 then none else some (.V128 (SpecTecWasmExec.bitselect x y z))|wasm_body}
++  | "eval_vsplatop" -> numeric_prefix ^ {wasm_body|do
++  let (tag,x) ← numBits arg1
++  let .V128 op := arg0
++  match op with
++  | .I8x16 _ => if tag != 0 then none else some (.V128 (SpecTecWasmExec.pack 8 (List.replicate 16 x)))
++  | .I16x8 _ => if tag != 0 then none else some (.V128 (SpecTecWasmExec.pack 16 (List.replicate 8 x)))
++  | .I32x4 _ => if tag != 0 then none else some (.V128 (SpecTecWasmExec.pack 32 (List.replicate 4 x)))
++  | .I64x2 _ => if tag != 1 then none else some (.V128 (SpecTecWasmExec.pack 64 (List.replicate 2 x)))
++  | .F32x4 _ => if tag != 2 then none else some (.V128 (SpecTecWasmExec.pack 32 (List.replicate 4 x)))
++  | .F64x2 _ => if tag != 3 then none else some (.V128 (SpecTecWasmExec.pack 64 (List.replicate 2 x)))|wasm_body}
++  | "eval_vextractop" -> numeric_prefix ^ {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  match op with
++  | .I8x16 (.Extract (index,ext)) => if index ≥ 16 then none else some (numOf 0 (match ext with | .SX => SpecTecWasmExec.wrap 32 (SpecTecWasmExec.signed 8 (SpecTecWasmExec.lane 8 v1 index)) | .ZX => SpecTecWasmExec.lane 8 v1 index))
++  | .I16x8 (.Extract (index,ext)) => if index ≥ 8 then none else some (numOf 0 (match ext with | .SX => SpecTecWasmExec.wrap 32 (SpecTecWasmExec.signed 16 (SpecTecWasmExec.lane 16 v1 index)) | .ZX => SpecTecWasmExec.lane 16 v1 index))
++  | .I32x4 (.Extract (index,ext)) => if index ≥ 4 then none else some (numOf 0 (SpecTecWasmExec.lane 32 v1 index))
++  | .I64x2 (.Extract (index,ext)) => if index ≥ 2 then none else some (numOf 1 (SpecTecWasmExec.lane 64 v1 index))
++  | .F32x4 (.Extract (index,ext)) => if index ≥ 4 then none else some (numOf 2 (SpecTecWasmExec.lane 32 v1 index))
++  | .F64x2 (.Extract (index,ext)) => if index ≥ 2 then none else some (numOf 3 (SpecTecWasmExec.lane 64 v1 index))|wasm_body}
++  | "eval_vreplaceop" -> numeric_prefix ^ {wasm_body|do
++  let .V128 v1 := arg1
++  if v1 ≥ 2^128 then none else pure ()
++  let .V128 op := arg0
++  let (tag,n) ← numBits arg2
++  match op with
++  | .I8x16 (.Replace i) => if i ≥ 2^62 || tag != 0 then none else some (.V128 (if i ≥ 16 then v1 else SpecTecWasmExec.replaceLane 8 v1 i n))
++  | .I16x8 (.Replace i) => if i ≥ 2^62 || tag != 0 then none else some (.V128 (if i ≥ 8 then v1 else SpecTecWasmExec.replaceLane 16 v1 i n))
++  | .I32x4 (.Replace i) => if i ≥ 2^62 || tag != 0 then none else some (.V128 (if i ≥ 4 then v1 else SpecTecWasmExec.replaceLane 32 v1 i n))
++  | .I64x2 (.Replace i) => if i ≥ 2^62 || tag != 1 then none else some (.V128 (if i ≥ 2 then v1 else SpecTecWasmExec.replaceLane 64 v1 i n))
++  | .F32x4 (.Replace i) => if i ≥ 2^62 || tag != 2 then none else some (.V128 (if i ≥ 4 then v1 else SpecTecWasmExec.replaceLane 32 v1 i n))
++  | .F64x2 (.Replace i) => if i ≥ 2^62 || tag != 3 then none else some (.V128 (if i ≥ 2 then v1 else SpecTecWasmExec.replaceLane 64 v1 i n))|wasm_body}
++  | "loadop_size" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++if !memValid arg0.ALIGN arg0.OFFSET then none else
++  let (_,w) := (fun (t : numtype) => match t with | .I32T => (0,32) | .I64T => (1,64) | .F32T => (2,32) | .F64T => (3,64)) arg0.TYPE
++  some (match arg0.PACK with | none => w / 8 | some p => packBits p.1 / 8)|wasm_body}
++  | "storeop_size" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++if !memValid arg0.ALIGN arg0.OFFSET then none else
++  let (_,w) := (fun (t : numtype) => match t with | .I32T => (0,32) | .I64T => (1,64) | .F32T => (2,32) | .F64T => (3,64)) arg0.TYPE
++  some (match arg0.PACK with | none => w / 8 | some p => packBits p / 8)|wasm_body}
++  | "vloadop_size" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++if memValid arg0.ALIGN arg0.OFFSET then some (match arg0.PACK with | none => 16 | some p => packBits p.1 / 8) else none|wasm_body}
++  | "vstoreop_size" -> {wasm_body|let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++if memValid arg0.ALIGN arg0.OFFSET then some (16) else none|wasm_body}
++  | "vlaneop_size" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++if memValid arg0.ALIGN arg0.OFFSET then some (packBits arg0.PACK / 8) else none|wasm_body}
++  | "eval_load_num" -> numeric_prefix ^ {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++do
++  if !memValid arg0.ALIGN arg0.OFFSET then none else pure ()
++  let raw ← SpecTecWasmExec.decodeBytes arg1
++  let (t,w) := (fun (t : numtype) => match t with | .I32T => (0,32) | .I64T => (1,64) | .F32T => (2,32) | .F64T => (3,64)) arg0.TYPE
++  match arg0.PACK with
++  | none => pure (numOf t (raw % 2^w))
++  | some (p,ext) =>
++    let pw := packBits p
++    if t ≥ 2 || pw > w then none else
++      pure (numOf t (match ext with | .SX => SpecTecWasmExec.wrap w (SpecTecWasmExec.signed pw raw) | .ZX => raw % 2^w))|wasm_body}
++  | "eval_store_num" -> numeric_prefix ^ {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++do
++  if !memValid arg0.ALIGN arg0.OFFSET then none else pure ()
++  let (tag,x) ← numBits arg1
++  let w := if tag == 0 || tag == 2 then 32 else 64
++  match arg0.PACK with
++  | none => pure (SpecTecWasmExec.encodeBytes (w / 8) x)
++  | some p => if tag ≥ 2 || packBits p > w then none else pure (SpecTecWasmExec.encodeBytes (packBits p / 8) x)|wasm_body}
++  | "eval_load_vec" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++do
++  if !memValid arg0.ALIGN arg0.OFFSET then none else pure ()
++  let x ← SpecTecWasmExec.decodeBytes arg1
++  let value ← match arg0.PACK with
++  | none => if arg1.length ≥ 16 then some (x % 2^128) else none
++  | some (p,ext) =>
++    let pw := packBits p
++    match ext with
++    | .ExtZero => if pw == 32 || pw == 64 then some (x % 2^64) else none
++    | .ExtSplat => some (SpecTecWasmExec.pack pw (List.replicate (128 / pw) (x % 2^64)))
++    | .ExtLane sh sign =>
++      let sw := match sh with | .Pack8x8 => 8 | .Pack16x4 => 16 | .Pack32x2 => 32
++      if pw != 64 then none else
++        some (SpecTecWasmExec.pack (sw*2) ((List.range (64 / sw)).map fun i =>
++          let n := SpecTecWasmExec.lane sw x i
++          if sign == .SX then SpecTecWasmExec.wrap (sw*2) (SpecTecWasmExec.signed sw n) else n))
++  pure (.V128 value)|wasm_body}
++  | "eval_store_vec" -> {wasm_body|let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++let .V128 x := arg1
++  if !memValid arg0.ALIGN arg0.OFFSET || x ≥ 2^128 then none else some (SpecTecWasmExec.encodeBytes 16 x)|wasm_body}
++  | "eval_load_vec_lane" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++do
++  if !memValid arg0.ALIGN arg0.OFFSET then none else pure ()
++  let .V128 x := arg3
++  let w := packBits arg0.PACK
++  if arg1 < -(2^62 : Int) || arg1 ≥ (2^62 : Int) || x ≥ 2^128 then none else pure ()
++  let n ← SpecTecWasmExec.decodeBytes arg2
++  pure (.V128 (if arg1 < 0 || arg1 ≥ (128 / w : Nat) then x else SpecTecWasmExec.replaceLane w x arg1.toNat n))|wasm_body}
++  | "eval_store_vec_lane" -> {wasm_body|let packBits (x : packtype) : Nat := match x with | .I8 => 8 | .I16 => 16 | .I32 => 32 | .I64 => 64
++let memValid (a : u32) (o : u64) : Bool := a < 2^32 && o < 2^64
++let .V128 x := arg2
++  let w := packBits arg0.PACK
++  if !memValid arg0.ALIGN arg0.OFFSET || arg1 < 0 || arg1 ≥ (128 / w : Nat) || x ≥ 2^128 then none else
++    some (SpecTecWasmExec.encodeBytes (w/8) (SpecTecWasmExec.lane w x arg1.toNat))|wasm_body}
++  | name -> invalid_arg ("unknown Wasm execution builtin " ^ name)
++
++let translate name type_parameters =
++  match signature name type_parameters with
++  | Error e -> Error e
++  | Ok (arguments, result) -> Ok (Wasm_scalar.option_relation name arguments result (body name))

@@ -242,7 +242,7 @@ def build(project=PROJECT, switch=None):
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_exec.ml', property_source / 'property_exec.ml')
     shutil.copyfile(project / BRIDGE_DIRECTORY / 'property_document.ml', property_source / 'property_document.ml')
     (property_source / 'dune').write_text('''(executable (name property_cli) (modules property_cli property_al property_document) (libraries pass yojson))
-(executable (name property_exec) (modules property_exec property_document) (libraries pass interp_al interface runtime lang domain util diagnostic yojson))
+(executable (name property_exec) (modules property_exec property_document) (libraries pass interp_al interface runtime lang domain util diagnostic yojson wasm_builtin_hooks))
 ''')
     command(['opam', 'exec', '--switch=' + chosen_switch, '--', 'dune', 'build',
              '--root', root, TRANSLATOR_TARGET, METADATA_TARGET, PROPERTY_TARGET,

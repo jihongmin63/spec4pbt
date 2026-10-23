@@ -68,3 +68,47 @@ and original regression files have no local edits. The native `bridge/` helpers,
 Python drivers and additional integration tests are maintained by this repository.
 The backend's original README is retained in `src/README.md`;
 its command paths describe the original P4-SpecTec checkout.
+
+`patches/wasm-native-builtins.patch` imports the Wasm numeric implementation from
+[kaist-plrg/wasm-ntt](https://github.com/kaist-plrg/wasm-ntt) revision
+`4773b2b7abe56e61f279ec2340ac0d3c836b5033`. The numeric dependency closure contains
+23 interpreter modules (34 `.ml`/`.mli` files), all unchanged, plus the donor's
+numeric builtin registrations and value conversion hooks. The numeric library's
+Apache-2.0 `LICENSE` is retained in the patch. The donor root license is also
+Apache-2.0; source and integrated hashes, exact paths, and local adaptations are
+recorded in `WASM_NATIVE_PROVENANCE.json`.
+
+The donor uses array-backed SpecTec lists. The copied bridge instead uses a
+small immutable-list compatibility module matching this repository's pinned
+runtime, with three explicit source adaptations in `nats.ml`, `wrap.ml`, and
+`construct.ml`. Dune builds only the numeric library and hook library; upstream
+CLI, JavaScript, and test targets are omitted. `property_exec.ml` initializes the
+hooks before interpreting property expressions. These additions provide native
+builtin execution, and do not constitute Lean proofs or property certificates.
+
+`patches/wasm-generic-sets.patch` replaces the text-only set restriction with
+structural comparison keys. Their tags, notation ordering, tuple layout, and
+record ordering follow the pinned AL runtime's `Value.compare`; generic calls
+carry the required comparison dictionaries. `patches/wasm-structures.patch`
+adds parameterized structures, preserves explicitly declared empty syntax
+types, and translates nested list/record updates with their bounds checks.
+
+`patches/wasm-scalar-builtins.patch` supplies 42 scalar and byte operations.
+`patches/wasm-zz-execution.patch` supplies 31 numeric, SIMD, and memory operations.
+The Lean implementations follow the donor numeric library cited above. Floating
+point operations use integer bit patterns and exact rational rounding, including
+the donor's intermediate binary64 rounding for binary32 arithmetic and its NaN
+selection. They do not use host float primitives or compiler substitutions.
+Partial builtin helpers return `Option`; the ordered translation preserves
+native builtin errors as aborts and keeps numeric traps as explicit `NumTrap`
+results. These implementations remain subject to the normal proof, generator,
+dependency, and executable audits.
+
+`patches/wasm-zz-identifiers.patch` quotes the Lean keywords `mut` and `catch`.
+`patches/wasm-zzz-specialization.patch` specializes fixed named callback inputs
+that participate in recursive dependency groups, such as `$free_instr` passed
+to `$free_list`. It retains the generic declarations, clause order, guards,
+and premises, and recomputes typeclass requirements for the specialized
+definitions. Nonuniform recursive instantiation is rejected explicitly.
+The metadata bridge instantiates parameterized record fields before deriving
+JSON transport for closed input types, including Wasm's `memop<A,B>`.

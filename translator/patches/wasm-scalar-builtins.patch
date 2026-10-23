@@ -1,0 +1,445 @@
+--- a/p4spec/lib/lean-skeleton/builtin_relation.ml
++++ b/p4spec/lib/lean-skeleton/builtin_relation.ml
+@@ -13,7 +13,7 @@
+     "strip_suffix"; "shl"; "shr"; "shr_arith"; "int_to_bitstr";
+     "bitstr_to_int"; "split_text"; "sub_set"; "eq_set";
+     "bits_to_int_signed"; "int_to_bits_unsigned"; "int_to_bits_signed";
+-    "bitacc"; "bitacc_replace"; "text_to_int"; "print_" ]
++    "bitacc"; "bitacc_replace"; "text_to_int"; "print_" ] @ Wasm_scalar.names
+ 
+ let is_relation (name : string) : bool = List.mem name names
+ 
+@@ -34,6 +34,7 @@
+ 
+ let signature (name : string) (type_parameters : string list) :
+     (L.type_ref list * L.type_ref, string) result =
++  if List.mem name Wasm_scalar.names then Wasm_scalar.signature name type_parameters else
+   let expect (expected : string list) (arguments : L.type_ref list)
+       (result : L.type_ref) : (L.type_ref list * L.type_ref, string) result =
+     if type_parameters = expected then Ok (arguments, result)
+@@ -529,6 +530,7 @@
+ 
+ let translate (name : string) (type_parameters : string list)
+     (constructor : constructor_lookup) : (L.declaration list, string) result =
++  if List.mem name Wasm_scalar.names then Wasm_scalar.translate name type_parameters else
+   match signature name type_parameters with
+   | Error reason -> Error reason
+   | Ok (arguments, result) -> (
+--- a/p4spec/lib/lean-skeleton/dune
++++ b/p4spec/lib/lean-skeleton/dune
+@@ -5,6 +5,7 @@
+   traversal
+   builtin
+   builtin_relation
++  wasm_scalar
+   extern_model
+   identifier
+   translator
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -295,7 +295,7 @@
+   let call_extern_types = List.exists (function L.Relation r ->
+     List.exists (uses_extern extern_names) r.argument_types | _ -> false) relations in
+   let aborting_builtins = List.filter_map (fun (d : S.def) -> match d.it with
+-    | S.BuiltinDecD (id, _, _, _, _) when List.mem id.it
++    | S.BuiltinDecD (id, _, _, _, _) when List.mem id.it Wasm_scalar.names || List.mem id.it
+         ["text_to_int"; "strip_prefix"; "strip_suffix"; "split_text";
+          "adds_map"; "bitacc"; "bitacc_replace"; "partition_"; "print_"] -> Some ("$" ^ id.it)
+     | _ -> None) source in
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -1082,7 +1082,7 @@
+     ^ "\n-- SpecTecModule:decl:end:" ^ number) groups in
+   "set_option autoImplicit false\nset_option linter.unusedVariables false\n"
+   ^ (if extern_types then "set_option linter.unusedSectionVars false\n" else "")
+-  ^ "\n" ^ print_prelude ^ "\n\n"
++  ^ "\n" ^ print_prelude ^ "\n\n" ^ Wasm_scalar.source ^ "\n\n"
+   ^ (if extern_types then Extern_model.types_source ~ordered:ordered_externs ^ "\n\n" else "")
+   ^ "namespace SpecTec\n\n"
+   ^ (if extern_types then "variable [SpecTecExternTypes]\n\n" else "")
+--- /dev/null
++++ b/p4spec/lib/lean-skeleton/wasm_scalar.ml
+@@ -0,0 +1,383 @@
++module L = Ast.Lean
++
++(* The native definitions are the unchanged wasm-ntt Nats/Text helpers. Keep
++   partial operations relational: invalid encodings and byte bounds abort. *)
++let nat = L.BuiltinType ("Nat", [])
++let text = L.BuiltinType ("String", [])
++let byte = L.Name "byte"
++let f32 = L.Name "f32"
++let f64 = L.Name "f64"
++let list typ = L.BuiltinType ("List", [typ])
++let option typ = L.BuiltinType ("Option", [typ])
++
++let names =
++  [ "byte_of_i32"; "i31_of_i32"; "i32_add"; "i32_sub"; "i32_mul";
++    "i64_add"; "i64_sub"; "i64_mul"; "f32_add"; "f32_sub"; "f32_mul";
++    "f64_add"; "f64_sub"; "f64_mul"; "i32_eqz"; "i64_eqz";
++    "i32_gt_u"; "i32_le_s"; "i32_le_u"; "i64_le_u"; "i32_ne";
++    "i32_wrap_i64"; "f32_eq"; "f32_ne"; "f32_le";
++    "f64_eq"; "f64_ne"; "f64_le"; "i32_extend_i8_s";
++    "i32_extend_i16_s"; "i31_get_s"; "bytes_of_i32"; "i32_of_bytes";
++    "i64_of_bytes"; "f32_of_bytes"; "f64_of_bytes"; "v128_of_bytes";
++    "zero_bytes"; "repeat_byte"; "slice_bytes"; "replace_bytes"; "bytes_of_text" ]
++
++let signature name type_parameters =
++  if type_parameters <> [] then
++    Error (name ^ " because its type parameters differ from the SpecTec declaration")
++  else match name with
++  | "byte_of_i32" -> Ok ([nat], byte)
++  | "i31_of_i32" | "i32_eqz" | "i64_eqz" | "i32_wrap_i64"
++  | "i32_extend_i8_s" | "i32_extend_i16_s" | "i31_get_s" -> Ok ([nat], nat)
++  | "i32_add" | "i32_sub" | "i32_mul" | "i64_add" | "i64_sub" | "i64_mul"
++  | "i32_gt_u" | "i32_le_s" | "i32_le_u" | "i64_le_u" | "i32_ne" -> Ok ([nat; nat], nat)
++  | "f32_add" | "f32_sub" | "f32_mul" -> Ok ([f32; f32], f32)
++  | "f64_add" | "f64_sub" | "f64_mul" -> Ok ([f64; f64], f64)
++  | "f32_eq" | "f32_ne" | "f32_le" -> Ok ([f32; f32], nat)
++  | "f64_eq" | "f64_ne" | "f64_le" -> Ok ([f64; f64], nat)
++  | "bytes_of_i32" | "zero_bytes" -> Ok ([nat], list byte)
++  | "i32_of_bytes" | "i64_of_bytes" -> Ok ([list byte], nat)
++  | "f32_of_bytes" -> Ok ([list byte], f32)
++  | "f64_of_bytes" -> Ok ([list byte], f64)
++  | "v128_of_bytes" -> Ok ([list byte], L.Name "v128")
++  | "repeat_byte" -> Ok ([byte; nat], list byte)
++  | "slice_bytes" -> Ok ([list byte; nat; nat], list byte)
++  | "replace_bytes" -> Ok ([list byte; nat; list byte], list byte)
++  | "bytes_of_text" -> Ok ([text], list byte)
++  | _ -> Error (name ^ " because no Wasm scalar implementation is known")
++
++(* Exported for the execution/SIMD builtin module. Its helper has an explicit
++   result type so all generated calls remain part of the ordinary dependency
++   graph and receive the same proof/executable audits as other builtins. *)
++let option_relation name parameters result body : L.declaration list =
++  let helper = name ^ ":option" in
++  let arguments = List.mapi (fun i typ -> L.Variable ("input" ^ string_of_int i, typ)) parameters in
++  let output = L.Variable ("result", result) in
++  let application target args : L.application =
++    { target = L.Global ("$" ^ target); type_arguments = [];
++      instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = []; arguments = args } in
++  let compute : L.builtin =
++    { name = "$" ^ helper; type_parameters = []; equality_parameters = [];
++      print_parameters = []; compare_parameters = []; parameters; result = option result; body } in
++  let rule : L.rule =
++    { name = "success";
++      binders = List.mapi (fun i typ -> "input" ^ string_of_int i, typ) parameters @ ["result", result];
++      premises = [L.Prop (L.Comparison (L.Eq, L.Apply (application helper arguments),
++        L.Native ("Option.some", [output])))];
++      conclusion = application name (arguments @ [output]) } in
++  [L.Builtin compute;
++   L.Relation { name = "$" ^ name; type_parameters = []; equality_parameters = [];
++     print_parameters = []; compare_parameters = []; argument_types = parameters @ [result]; rules = [rule]; notation = None }]
++
++(* These body builders deliberately operate on the complete fmag grammar. The
++   donor rejects only when the arithmetic encoding is outside the unsigned
++   machine word; it does not impose extra normal/subnormal canonicality. *)
++let float_to_bits_body width =
++  let mantissa, exponent, bias = if width = 32 then 23, 8, 127 else 52, 11, 1023 in
++  Printf.sprintf
++    "let magnitude (v : fmag) : Int := match v with | .NORM m e => (e + %d) * (2 ^ %d : Int) + (m : Int) | .SUBNORM m => (m : Int) | .INF => ((2 ^ %d - 1) * 2 ^ %d : Nat) | .NAN m => (((2 ^ %d - 1) * 2 ^ %d : Nat) : Int) + (m : Int); let bits : Int := match arg0 with | .POS mag => magnitude mag | .NEG mag => (2 ^ %d : Int) + magnitude mag; if 0 ≤ bits ∧ bits < (2 ^ %d : Int) then some bits.toNat else none"
++    bias mantissa exponent mantissa exponent mantissa (width - 1) width
++
++let float_from_bits_body width =
++  let mantissa, exponent, bias = if width = 32 then 23, 8, 127 else 52, 11, 1023 in
++  Printf.sprintf
++    "let bits := arg0 %% (2 ^ %d : Nat); let fraction := bits %% (2 ^ %d : Nat); let exponent := bits / (2 ^ %d : Nat) %% (2 ^ %d : Nat); let mag : fmag := if exponent = 0 then .SUBNORM fraction else if exponent = (2 ^ %d - 1 : Nat) then (if fraction = 0 then .INF else .NAN fraction) else .NORM fraction ((exponent : Int) - %d); if bits < (2 ^ %d : Nat) then .POS mag else .NEG mag"
++    width mantissa mantissa exponent exponent bias (width - 1)
++
++let float_locals width =
++  let typ = if width = 32 then "f32" else "f64" in
++  "let toBits (arg0 : " ^ typ ^ ") : Option Nat := " ^ float_to_bits_body width ^ "; "
++  ^ "let fromBits (arg0 : Nat) : " ^ typ ^ " := " ^ float_from_bits_body width ^ "; "
++
++let machine_max = "4611686018427387903"
++(* The native count conversion is signed-machine-int bounded; physical
++   allocation failure remains an execution resource failure. *)
++let decode_bytes = "arg0.foldr (fun byte acc => byte + 256 * acc) 0"
++let valid_bytes = "arg0.all (fun byte => byte < 256)"
++
++let body name = match name with
++  | "byte_of_i32" -> "some (arg0 % 256)"
++  | "i31_of_i32" -> "some (arg0 % 2147483648)"
++  | "i32_add" -> "some ((arg0 + arg1) % 4294967296)"
++  | "i64_add" -> "some ((arg0 + arg1) % 18446744073709551616)"
++  | "i32_sub" -> "some ((((arg0 : Int) - (arg1 : Int)) % 4294967296).toNat)"
++  | "i64_sub" -> "some ((((arg0 : Int) - (arg1 : Int)) % 18446744073709551616).toNat)"
++  | "i32_mul" -> "some ((arg0 * arg1) % 4294967296)"
++  | "i64_mul" -> "some ((arg0 * arg1) % 18446744073709551616)"
++  | "i32_eqz" | "i64_eqz" -> "some (if arg0 = 0 then 1 else 0)"
++  | "i32_gt_u" -> "some (if arg0 > arg1 then 1 else 0)"
++  | "i32_le_u" | "i64_le_u" -> "some (if arg0 ≤ arg1 then 1 else 0)"
++  | "i32_ne" -> "some (if arg0 ≠ arg1 then 1 else 0)"
++  | "i32_le_s" -> "let signed (n : Nat) : Int := let n := n % 4294967296; if n ≥ 2147483648 then (n : Int) - 4294967296 else (n : Int); some (if signed arg0 ≤ signed arg1 then 1 else 0)"
++  | "i32_wrap_i64" -> "some (arg0 % 4294967296)"
++  | "i32_extend_i8_s" -> "let n := arg0 % 256; some (if n ≥ 128 then n + 4294967040 else n)"
++  | "i32_extend_i16_s" -> "let n := arg0 % 65536; some (if n ≥ 32768 then n + 4294901760 else n)"
++  | "i31_get_s" -> "let n := arg0 % 2147483648; some (if n ≥ 1073741824 then n + 2147483648 else n)"
++  | "bytes_of_i32" -> "some ((List.range 4).map (fun i => arg0 / 2 ^ (8 * i) % 256))"
++  | "i32_of_bytes" -> "some ((" ^ decode_bytes ^ ") % 4294967296)"
++  | "i64_of_bytes" -> "some ((" ^ decode_bytes ^ ") % 18446744073709551616)"
++  | "v128_of_bytes" -> "if " ^ valid_bytes ^ " then some (" ^ decode_bytes ^ ") else none"
++  | "f32_of_bytes" | "f64_of_bytes" ->
++      let width = if name = "f32_of_bytes" then 32 else 64 in
++      float_locals width ^ "if " ^ valid_bytes ^ " then some (fromBits (" ^ decode_bytes ^ ")) else none"
++  | "zero_bytes" -> "if arg0 ≤ " ^ machine_max ^ " then some (List.replicate arg0 0) else none"
++  | "repeat_byte" -> "if arg1 ≤ " ^ machine_max ^ " then some (List.replicate arg1 arg0) else none"
++  | "slice_bytes" -> "if arg1 ≤ " ^ machine_max ^ " ∧ arg2 ≤ " ^ machine_max ^ " ∧ arg1 + arg2 ≤ arg0.length then some ((arg0.drop arg1).take arg2) else none"
++  | "replace_bytes" -> "if arg1 ≤ " ^ machine_max ^ " ∧ arg1 + arg2.length ≤ arg0.length then some (arg0.take arg1 ++ arg2 ++ arg0.drop (arg1 + arg2.length)) else none"
++  | "bytes_of_text" -> "some (arg0.toUTF8.data.toList.map UInt8.toNat)"
++  | "f32_add" | "f32_sub" | "f32_mul" | "f64_add" | "f64_sub" | "f64_mul"
++  | "f32_eq" | "f32_ne" | "f32_le" | "f64_eq" | "f64_ne" | "f64_le" ->
++      let width = if String.starts_with ~prefix:"f32" name then 32 else 64 in
++      let op = String.sub name 4 (String.length name - 4) in
++      let call = if List.mem op ["eq"; "ne"; "le"] then
++          Printf.sprintf "some (if _root_.SpecTecWasmFloat.compare %d \"%s\" x y then 1 else 0)" width op
++        else Printf.sprintf "some (fromBits (_root_.SpecTecWasmFloat.binary %d \"%s\" x y))" width op in
++      float_locals width ^ "(toBits arg0).bind (fun x => (toBits arg1).bind (fun y => " ^ call ^ "))"
++  | _ -> invalid_arg ("unknown Wasm scalar builtin " ^ name)
++
++let translate name type_parameters =
++  match signature name type_parameters with
++  | Error message -> Error message
++  | Ok (arguments, result) -> Ok (option_relation name arguments result (body name))
++
++let source = {wasm_scalar|
++/- Exact bit-level implementation of the wasm-ntt Fxx and conversion helpers.
++   Operations on f32 reproduce the donor's intermediate binary64 rounding.
++   No host floating-point primitives, axioms, or compiler replacements are used. -/
++namespace SpecTecWasmFloat
++
++def mantissa (width : Nat) : Nat := if width = 32 then 23 else 52
++def exponent (width : Nat) : Nat := if width = 32 then 8 else 11
++def bias (width : Nat) : Nat := 2 ^ (exponent width - 1) - 1
++def signMask (width : Nat) : Nat := 2 ^ (width - 1)
++def infinity (width : Nat) : Nat := (2 ^ exponent width - 1) * 2 ^ mantissa width
++def quietNaN (width : Nat) : Nat := infinity width + 2 ^ (mantissa width - 1)
++def magnitude (width bits : Nat) : Nat := bits % signMask width
++def negative (width bits : Nat) : Bool := bits / signMask width % 2 == 1
++def isNaN (width bits : Nat) : Bool := magnitude width bits > infinity width
++def isInf (width bits : Nat) : Bool := magnitude width bits == infinity width
++def isZero (width bits : Nat) : Bool := magnitude width bits == 0
++def signedBits (width : Nat) (sign : Bool) (mag : Nat) : Nat :=
++  (if sign then signMask width else 0) + mag
++def quiet (width bits : Nat) : Nat := Nat.lor bits (quietNaN width)
++def binaryNaN (width x y : Nat) : Nat :=
++  quiet width (if isNaN width x then x else if isNaN width y then y else quietNaN width)
++
++/-- Exact unsigned rational value of a finite bit pattern. -/
++def fraction (width bits : Nat) : Nat × Nat :=
++  let m := mantissa width
++  let mag := magnitude width bits
++  let e := mag / 2 ^ m
++  let f := mag % 2 ^ m
++  let significand := if e = 0 then f else 2 ^ m + f
++  let power : Int := (if e = 0 then 1 else (e : Int)) - (bias width : Int) - (m : Int)
++  if power ≥ 0 then (significand * 2 ^ power.toNat, 1)
++  else (significand, 2 ^ (-power).toNat)
++
++def ratioLog2 (n d : Nat) : Int :=
++  let estimate : Int := (n.log2 : Int) - (d.log2 : Int)
++  let below := if estimate ≥ 0 then n < d * 2 ^ estimate.toNat
++    else n * 2 ^ (-estimate).toNat < d
++  if below then estimate - 1 else estimate
++
++def scaledRatio (n d : Nat) (unitPower : Int) : Nat × Nat :=
++  if unitPower ≥ 0 then (n, d * 2 ^ unitPower.toNat)
++  else (n * 2 ^ (-unitPower).toNat, d)
++
++/-- Round a nonnegative rational to the nearest integer, ties to even. -/
++def roundRatio (n d : Nat) : Nat :=
++  let q := n / d
++  let r := n % d
++  if 2 * r > d ∨ (2 * r = d ∧ q % 2 = 1) then q + 1 else q
++
++def packRounded (width : Nat) (sign : Bool) (significand : Nat) (unitPower : Int) : Nat :=
++  let m := mantissa width
++  let (s, power) := if significand ≥ 2 ^ (m + 1)
++    then (significand / 2, unitPower + 1) else (significand, unitPower)
++  let rawExponent : Int := power + (m : Int) + (bias width : Int)
++  let mag := if s < 2 ^ m then s
++    else if rawExponent ≥ (2 ^ exponent width - 1 : Nat) then infinity width
++    else rawExponent.toNat * 2 ^ m + (s - 2 ^ m)
++  signedBits width sign mag
++
++def ofRatio (width : Nat) (sign : Bool) (n d : Nat) : Nat :=
++  if n = 0 then signedBits width sign 0 else
++  let m := mantissa width
++  let minPower : Int := 1 - (bias width : Int) - (m : Int)
++  let unitPower := max (ratioLog2 n d - (m : Int)) minPower
++  let (a, b) := scaledRatio n d unitPower
++  packRounded width sign (roundRatio a b) unitPower
++
++/-- IEEE promote/demote, including the reference interpreter's NaN payload rule. -/
++def convert (srcWidth dstWidth bits : Nat) : Nat :=
++  if srcWidth = dstWidth then bits else
++  let sign := negative srcWidth bits
++  if isNaN srcWidth bits then
++    let payload := magnitude srcWidth bits % 2 ^ mantissa srcWidth
++    let mapped := if mantissa dstWidth ≥ mantissa srcWidth
++      then payload * 2 ^ (mantissa dstWidth - mantissa srcWidth)
++      else payload / 2 ^ (mantissa srcWidth - mantissa dstWidth)
++    signedBits dstWidth sign (Nat.lor (quietNaN dstWidth) mapped)
++  else if isInf srcWidth bits then signedBits dstWidth sign (infinity dstWidth)
++  else let (n, d) := fraction srcWidth bits; ofRatio dstWidth sign n d
++
++def compare (width : Nat) (op : String) (x y : Nat) : Bool :=
++  let op := op.toLower
++  let nan := isNaN width x || isNaN width y
++  let equal := x == y || (isZero width x && isZero width y)
++  let less := if equal then false
++    else if negative width x != negative width y then negative width x
++    else if negative width x then magnitude width x > magnitude width y
++    else magnitude width x < magnitude width y
++  if op == "ne" then nan || !equal
++  else if nan then false
++  else if op == "eq" then equal
++  else if op == "lt" then less
++  else if op == "le" then less || equal
++  else if op == "gt" then !less && !equal
++  else if op == "ge" then !less
++  else false
++
++def finiteArithmetic (width : Nat) (op : String) (x y : Nat) : Nat :=
++  let (nx, dx) := fraction width x
++  let (ny, dy) := fraction width y
++  let sx := negative width x
++  let sy := negative width y != (op == "sub")
++  let intermediateWidth := if width = 32 then 64 else width
++  let result := if op == "mul" then
++      ofRatio intermediateWidth (sx != sy) (nx * ny) (dx * dy)
++    else if op == "div" then
++      ofRatio intermediateWidth (sx != sy) (nx * dy) (dx * ny)
++    else
++      let a : Int := if sx then -(nx * dy : Nat) else (nx * dy : Nat)
++      let b : Int := if sy then -(ny * dx : Nat) else (ny * dx : Nat)
++      let sum := a + b
++      ofRatio intermediateWidth (if sum = 0 then sx && sy else sum < 0) sum.natAbs (dx * dy)
++  convert intermediateWidth width result
++
++def binary (width : Nat) (op : String) (x y : Nat) : Nat :=
++  let op := op.toLower
++  let op := if op == "relaxedmin" then "min" else if op == "relaxedmax" then "max" else op
++  if op == "pmin" then (if compare width "lt" y x then y else x)
++  else if op == "pmax" then (if compare width "lt" x y then y else x)
++  else if op == "copysign" then signedBits width (negative width y) (magnitude width x)
++  else if isNaN width x || isNaN width y then binaryNaN width x y
++  else if op == "min" then
++    if compare width "eq" x y then Nat.lor x y
++    else if compare width "lt" x y then x else y
++  else if op == "max" then
++    if compare width "eq" x y then Nat.land x y
++    else if compare width "gt" x y then x else y
++  else
++    let sx := negative width x
++    let sy := negative width y != (op == "sub")
++    let ix := isInf width x
++    let iy := isInf width y
++    let zx := isZero width x
++    let zy := isZero width y
++    if op == "mul" then
++      if (ix && zy) || (iy && zx) then quietNaN width
++      else if ix || iy then signedBits width (sx != sy) (infinity width)
++      else finiteArithmetic width op x y
++    else if op == "div" then
++      if (ix && iy) || (zx && zy) then quietNaN width
++      else if ix || zy then signedBits width (sx != sy) (infinity width)
++      else if iy then signedBits width (sx != sy) 0
++      else finiteArithmetic width op x y
++    else
++      if ix && iy && sx != sy then quietNaN width
++      else if ix then x
++      else if iy then signedBits width sy (infinity width)
++      else finiteArithmetic width op x y
++
++/-- Integer square root by a bounded binary search; the fuel covers the whole interval. -/
++def sqrtSearch (n : Nat) : Nat → Nat → Nat → Nat
++  | 0, lo, _ => lo
++  | fuel + 1, lo, hi =>
++    let mid := (lo + hi + 1) / 2
++    if mid * mid ≤ n then sqrtSearch n fuel mid hi
++    else sqrtSearch n fuel lo (mid - 1)
++
++def sqrtNat (n : Nat) : Nat :=
++  let bits := n.log2 / 2 + 1
++  sqrtSearch n (bits + 1) 0 (2 ^ bits)
++
++def sqrtRounded (width : Nat) (n d : Nat) : Nat :=
++  if n = 0 then 0 else
++  let m := mantissa width
++  let minPower : Int := 1 - (bias width : Int) - (m : Int)
++  let unitPower := max (ratioLog2 n d / 2 - (m : Int)) minPower
++  let (a, b) := scaledRatio n d (2 * unitPower)
++  let q := sqrtNat (a / b)
++  let midpoint := b * (2 * q + 1) ^ 2
++  let rounded := if 4 * a > midpoint ∨ (4 * a = midpoint ∧ q % 2 = 1) then q + 1 else q
++  packRounded width false rounded unitPower
++
++def unary (width : Nat) (op : String) (x : Nat) : Nat :=
++  let op := op.toLower
++  if op == "abs" then magnitude width x
++  else if op == "neg" then Nat.xor x (signMask width)
++  else if isNaN width x then quiet width x
++  else if isZero width x then x
++  else if op == "sqrt" then
++    if negative width x then quietNaN width
++    else if isInf width x then x
++    else let (n, d) := fraction width x
++         let intermediateWidth := if width = 32 then 64 else width
++         convert intermediateWidth width (sqrtRounded intermediateWidth n d)
++  else if isInf width x then x
++  else
++    let (n, d) := fraction width x
++    let sign := negative width x
++    let q := n / d
++    let remainder := n % d
++    let rounded := if op == "nearest" then roundRatio n d
++      else if (op == "ceil" && !sign) || (op == "floor" && sign)
++        then q + (if remainder = 0 then 0 else 1)
++      else q
++    ofRatio width sign rounded 1
++
++def ofInt (width : Nat) (value : Int) : Nat :=
++  ofRatio width (value < 0) value.natAbs 1
++
++def toInt (srcWidth dstWidth : Nat) (signed saturated : Bool) (bits : Nat) : Option Nat :=
++  let modulus : Int := (2 ^ dstWidth : Nat)
++  let lower : Int := if signed then -(2 ^ (dstWidth - 1) : Nat) else 0
++  let upper : Int := if signed then (2 ^ (dstWidth - 1) : Nat) - 1 else modulus - 1
++  if isNaN srcWidth bits then if saturated then some 0 else none
++  else if isInf srcWidth bits then
++    if saturated then some (((if negative srcWidth bits then lower else upper) % modulus).toNat) else none
++  else
++    let (n, d) := fraction srcWidth bits
++    let value : Int := if negative srcWidth bits then -(n / d : Nat) else (n / d : Nat)
++    if value < lower ∨ value > upper then
++      if saturated then some (((max lower (min upper value)) % modulus).toNat) else none
++    else some ((value % modulus).toNat)
++
++/-- The donor uses a binary64 host fma, then converts to the requested format.
++    Its NaN selection deliberately examines x and y only, including when z is NaN. -/
++def fma (width x y z : Nat) : Nat :=
++  let sx := negative width x
++  let sy := negative width y
++  let sz := negative width z
++  let productSign := sx != sy
++  let ix := isInf width x
++  let iy := isInf width y
++  let iz := isInf width z
++  let invalidProduct := (ix && isZero width y) || (iy && isZero width x)
++  if isNaN width x || isNaN width y || isNaN width z || invalidProduct ||
++      ((ix || iy) && iz && productSign != sz) then binaryNaN width x y
++  else if ix || iy then signedBits width productSign (infinity width)
++  else if iz then z
++  else
++    let (nx, dx) := fraction width x
++    let (ny, dy) := fraction width y
++    let (nz, dz) := fraction width z
++    let product : Int := if productSign then -(nx * ny * dz : Nat) else (nx * ny * dz : Nat)
++    let addend : Int := if sz then -(nz * dx * dy : Nat) else (nz * dx * dy : Nat)
++    let result := product + addend
++    let sign := if result = 0 then productSign && sz else result < 0
++    let intermediateWidth := if width = 32 then 64 else width
++    convert intermediateWidth width (ofRatio intermediateWidth sign result.natAbs (dx * dy * dz))
++
++end SpecTecWasmFloat
++|wasm_scalar}

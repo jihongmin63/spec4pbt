@@ -96,7 +96,8 @@ let instantiate definitions name arguments =
   match definition.body with
   | Alias typ -> Alias (apply typ)
   | Record fields ->
-      if definition.parameters <> [] then fail ("polymorphic record transport is unsupported: " ^ name);
+      (* The backend preserves record parameters. Metadata uses the closed
+         field types; JSON derivation supplies instances for those parameters. *)
       Record (List.map (fun (name, typ) -> name, apply typ) fields)
   | Variant arguments -> Variant (List.map apply arguments)
   | External -> External
