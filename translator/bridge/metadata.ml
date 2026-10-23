@@ -224,20 +224,16 @@ let children = function
 
 let metadata definitions namespace roots relations =
   let entries = ref [] and aliases = ref [] in
-  let rec register ancestry typ =
+  let rec register typ =
     let name = key typ in
     if List.mem_assoc name !entries then name else (
       if List.length !entries >= 4096 then fail "observation type graph exceeds 4096 closed types";
-      (match typ with
-      | Named (name, args) when List.exists (function Named (previous, previous_args) ->
-          name = previous && args <> previous_args | _ -> false) ancestry ->
-          fail ("nonuniform recursive observation type is unsupported: " ^ name)
-      | _ -> ());
+      (* Track complete instantiated types: different arguments can be finite
+         nesting, as in map<text, map<text, nat>>. The graph limit bounds expansion. *)
       let alias = "Type" ^ string_of_int (List.length !entries) in
       let base = ["lean", string (namespace ^ "." ^ alias)] in
       entries := !entries @ [name, `Null];
       aliases := !aliases @ ["abbrev " ^ alias ^ " := " ^ lean_type typ];
-      let register = register (typ :: ancestry) in
       let data = match typ with
         | Primitive _ -> ["kind", string "primitive"]
         | Sequence element | Optional element -> ignore (register element); ["kind", string "opaque"]
@@ -258,9 +254,9 @@ let metadata definitions namespace roots relations =
         | Function -> fail "function-valued observation transport is unsupported" in
       entries := List.map (fun (key, value) -> key, if key = name then object_ (base @ data) else value) !entries;
       name) in
-  List.iter (fun typ -> ignore (register [] typ)) roots;
+  List.iter (fun typ -> ignore (register typ)) roots;
   let relations = List.mapi (fun index relation ->
-    let arguments = List.map (fun typ -> object_ ["type", string (register [] typ)]) relation.arguments in
+    let arguments = List.map (fun typ -> object_ ["type", string (register typ)]) relation.arguments in
     let alias = "Relation" ^ string_of_int index in
     aliases := !aliases @ ["noncomputable abbrev " ^ alias ^ " := _root_.SpecTec." ^ quote relation.name];
     relation.name, object_ ["lean", string (namespace ^ "." ^ alias);
@@ -269,7 +265,7 @@ let metadata definitions namespace roots relations =
     "types", object_ !entries; "relations", object_ relations], !aliases
 
 let codec_declarations definitions codec roots =
-  let visited = ref [] and active = ref [] and derived = ref [] in
+  let visited = ref [] and derived = ref [] in
   let rec visit typ =
     if List.mem typ !visited then () else (
       if List.length !visited >= 4096 then fail "codec dependency graph exceeds 4096 closed types";
@@ -280,13 +276,9 @@ let codec_declarations definitions codec roots =
       | Tuple elements -> List.iter visit elements
       | Function -> fail "function-valued JSON transport is unsupported"
       | Named (name, arguments) ->
-          if List.exists (fun (previous, args) -> name = previous && args <> arguments) !active then
-            fail ("nonuniform recursive codec is unsupported: " ^ name);
-          active := (name, arguments) :: !active;
           List.iter visit arguments;
           let body = instantiate definitions name arguments in
           List.iter visit (children body);
-          active := List.tl !active;
           (match body with
           | Alias _ -> ()
           | External | Record _ | Variant _ ->
@@ -301,14 +293,14 @@ let codec_declarations definitions codec roots =
       " (" ^ lean_type typ ^ ") := inferInstance") (List.sort_uniq compare roots) in
   declarations @ checks
 
-let generate spec_module namespace transport_model property_inputs configuration spec =
+let generate spec_module namespace transport_model property_inputs property_types configuration spec =
   let spec_module = qualified "spec module" spec_module in
   let lean_namespace = qualified "transport namespace" namespace in
   let observations = observations configuration in
   let definitions, relations, _external_types = collect spec in
   let relations, inputs, observed = select definitions relations observations in
   let inputs = property_inputs @ inputs in
-  let manifest, aliases = metadata definitions namespace property_inputs relations in
+  let manifest, aliases = metadata definitions namespace property_types relations in
   let codecs = codec_declarations definitions "ToJson" inputs @
     codec_declarations definitions "FromJson" (inputs @ observed) in
   let transport = String.concat "\n" (["import Lean"; "import " ^ spec_module;
@@ -317,15 +309,26 @@ let generate spec_module namespace transport_model property_inputs configuration
     [""; "end " ^ lean_namespace; ""]) in
   object_ ["manifest", manifest; "transport", string transport]
 
-let property_inputs paths path name =
-  if path = "" && name = "" then [] else (
+let property_types paths path name =
+  if path = "" && name = "" then [], [] else (
     if path = "" || name = "" then fail "--property and --property-name are required together";
     let source, properties, _ = Property_document.load paths path in
     let property = match List.filter (fun ((id:Lang.El.id),_,_,_) -> id.it = name) properties with
       | [property] -> property
       | _ -> fail ("expected one property named " ^ name) in
     match Pass.elab_property source property with
-    | Ok (_,inputs,_,_) -> List.map (fun (_,typ) -> convert typ) inputs
+    | Ok (_,inputs,goal,conditions) ->
+        let inputs = List.map (fun (_,typ) -> convert typ) inputs in
+        let expression_type (expression : S.exp) = convert (expression.note $ expression.at) in
+        let rec premise_types (premise : S.prem) = match premise.it with
+          | RulePr (_,arguments,_) | IfHoldPr (_,arguments) | IfNotHoldPr (_,arguments) ->
+              List.map expression_type (Domain.Mixfix.args arguments)
+          | IfPr expression | DebugPr expression -> [expression_type expression]
+          | LetPr (target,value) -> [expression_type target; expression_type value]
+          | IterPr (inner,_) -> premise_types inner in
+        (* Internal witnesses need type aliases for the contract, while JSON
+           codecs remain restricted to inputs and selected observations. *)
+        inputs, inputs @ List.concat_map premise_types (goal :: conditions)
     | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)))
 
 let main () =
@@ -351,8 +354,8 @@ let main () =
     let channel = open_in_bin path in
     Fun.protect ~finally:(fun () -> close_in channel)
       (fun () -> really_input_string channel (in_channel_length channel))) !model in
-  let inputs = property_inputs !paths !property !property_name in
-  let result = generate !spec_module !namespace transport_model inputs configuration spec in
+  let inputs, types = property_types !paths !property !property_name in
+  let result = generate !spec_module !namespace transport_model inputs types configuration spec in
   print_endline (Yojson.Basic.to_string result)
 
 let () =

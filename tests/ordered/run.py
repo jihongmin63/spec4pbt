@@ -5,7 +5,7 @@ from pathlib import Path
 
 from translator.toolchain import PROJECT
 from tests import ORDERED
-from pbt.property.clause import build_property
+from pbt.property.workflow import emit_property, check_property
 from pbt.property.runner import run_property
 
 EXAMPLES={
@@ -32,13 +32,15 @@ def build_example(name,output):
     contract=base+'.Contract'
     proof=(root/'templates'/proof_template).read_text().replace('@CONTRACT@',contract)
     proof_path.write_text(proof)
-    bundle=build_property(spec_paths=[root/'spec.watsup'],
+    emit_property(spec_paths=[root/'spec.watsup'],
         property_path=root/'properties.watsup',config_path=config,
         external_path=root/'external'/(name+'.toml'),name=name,output=output,
-        proof_module=proof_module,property_proof=proof_namespace+'.property_correct')
+        proof_module=proof_module,property_proof=proof_namespace+'.property_correct',
+        generator_module=base+'.Generator',generator=proof_namespace+'Generator.generator')
     generator=(root/'templates'/generator_template).read_text()
     generator=generator.replace('@CONTRACT@',contract).replace('@PROOF@',proof_module)
-    (bundle.directory/'Generator.lean').write_text(generator)
+    (output/'Generator.lean').write_text(generator)
+    bundle=check_property(output)
     return bundle,base+'.Generator',proof_namespace+'Generator.generator'
 
 
@@ -53,7 +55,7 @@ def main():
     parser.add_argument('--seed',type=int,default=0)
     args=parser.parse_args()
     bundle,module,generator=build_example(args.property,args.bundle)
-    result=run_property(bundle,generator_module=module,generator=generator,
+    result=run_property(bundle,
         implementation=ORDERED/'implementations'/(args.mode+'.toml'),
         output=args.output,count=args.count,size=args.size,seed=args.seed)
     print(json.dumps({'status':result.status,'counts':result.counts,'output':str(result.output)}))

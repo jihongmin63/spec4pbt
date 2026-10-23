@@ -8,7 +8,7 @@ from tests import ROOT
 
 class EntrypointTests(unittest.TestCase):
     def test_property_commands_expose_their_interfaces(self):
-        for action in ('inspect', 'plan', 'build', 'run', 'collect', 'recheck', 'rerun'):
+        for action in ('inspect', 'plan', 'emit', 'check', 'run', 'collect', 'recheck', 'rerun'):
             with self.subTest(action=action):
                 result = subprocess.run(
                     [sys.executable, '-m', 'pbt.property', action, '--help'],

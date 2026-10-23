@@ -6,7 +6,7 @@ import tempfile
 from pbt.property.clause import CertifiedProperty,load_bundle,strict_json,write_json
 from pbt.property.protocol import execute,validate_response
 from pbt.property.implementation import Implementation,load_implementation,validate_snapshot
-from pbt.lean_tools import require_name,require_timeout,rebuild_modules,run_checked
+from pbt.lean_tools import require_name,require_timeout,run_checked
 from pbt.lean_tools import fingerprint_dependencies
 from translator.toolchain import digest, SCRATCH_DIRECTORY
 
@@ -169,24 +169,21 @@ def rerun_case(bundle,case,output,*,implementation,timeout_seconds=10):
     return collect_case(bundle,record['input'],output,implementation=implementation,timeout_seconds=timeout_seconds)
 
 
-def sample_inputs(bundle,generator_module,generator,*,count,size,seed,timeout_seconds):
+def sample_inputs(bundle,generator_module=None,generator=None,*,count,size,seed,timeout_seconds):
+    if not bundle.generator_module or not bundle.generator:
+        raise ValueError('generator is not certified; emit and check both declarations before run')
+    if ((generator_module is not None and generator_module != bundle.generator_module)
+            or (generator is not None and generator != bundle.generator)):
+        raise ValueError('run must use the certified generator; change the selection with emit and check')
+    generator_module=bundle.generator_module
+    generator=bundle.generator
     require_name(generator_module);require_name(generator);require_timeout(timeout_seconds)
     for key,value,minimum in [('count',count,1),('size',size,0),('seed',seed,0)]:
         if type(value) is not int or value<minimum: raise ValueError(f'{key} must be an integer >= {minimum}')
     bundle.assert_fresh()
     ns=bundle.namespace
-    rebuild_modules(bundle.project,['Spec4Pbt.Observable',generator_module,bundle.module],timeout_seconds)
     base=bundle.project/SCRATCH_DIRECTORY;base.mkdir(parents=True,exist_ok=True)
     directory=Path(tempfile.mkdtemp(prefix='sampler-',dir=base))
-    audit=directory/'Audit.lean'
-    audit.write_text(f'''import Spec4Pbt.Observable
-import Spec4Pbt.CorrectGen
-import {bundle.module}
-import {generator_module}
-#spec4pbt_verify {generator} in_module {generator_module} : (CorrectGen {ns}.Premise)
-#spec4pbt_observable_executable {generator}
-#spec4pbt_observable_transport {ns}.encodeInput
-''')
     driver=directory/'Driver.lean'
     driver.write_text(f'''import {bundle.module}
 import {generator_module}
@@ -198,8 +195,9 @@ def main : IO Unit := do
     let value : {ns}.Input ← Plausible.runRandWith ({seed} + index) (SampleM.sampleRand config {generator}.val)
     (← IO.getStdout).putStrLn (Json.mkObj [("index",toJson index),("input",{ns}.encodeInput value)]).compress
 ''')
-    fingerprints=fingerprint_dependencies(bundle.project,[audit,driver],timeout_seconds)
-    run_checked(['lake','env','lean',str(audit)],bundle.project,timeout_seconds)
+    fingerprints=fingerprint_dependencies(bundle.project,[driver],timeout_seconds)
+    fingerprints.update(bundle.fingerprints)
+    bundle.assert_fresh()
     text=run_checked(['lake','env','lean','--run',str(driver)],bundle.project,timeout_seconds)
     fresh(fingerprints)
     samples=[strict_json(line) for line in text.splitlines()]
@@ -210,7 +208,7 @@ def main : IO Unit := do
     return samples,fingerprints
 
 
-def run_property(bundle,*,implementation,generator_module,generator,output,count=100,size=10,seed=0,
+def run_property(bundle,*,implementation,output,generator_module=None,generator=None,count=100,size=10,seed=0,
                  timeout_seconds=120,adapter_timeout_seconds=10):
     bundle=bundle_value(bundle);require_timeout(adapter_timeout_seconds)
     implementation=implementation_value(implementation,bundle)
@@ -219,8 +217,8 @@ def run_property(bundle,*,implementation,generator_module,generator,output,count
     samples,fingerprints=sample_inputs(bundle,generator_module,generator,count=count,size=size,seed=seed,timeout_seconds=timeout_seconds)
     output.mkdir(parents=True)
     write_json(output/'samples.json',samples)
-    write_json(output/'run.json',{'plan_id':bundle.plan['plan_id'],'generator_module':generator_module,
-                                'generator':generator,'count':count,'size':size,'seed':seed,
+    write_json(output/'run.json',{'plan_id':bundle.plan['plan_id'],'generator_module':bundle.generator_module,
+                                'generator':bundle.generator,'count':count,'size':size,'seed':seed,
                                 'adapter_timeout_seconds':adapter_timeout_seconds,'sampler_dependencies':fingerprints,
                                 'implementation':implementation.snapshot})
     counts={k:0 for k in ['pass','fail','error']}

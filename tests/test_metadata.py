@@ -124,6 +124,19 @@ def main : IO Unit := do
   if Lean.toJson decoded != encoded then throw (IO.userError "generic roundtrip")
 ''')
 
+    def test_nested_maps_with_different_arguments_roundtrip(self):
+        _, value = self.compile("nested-map.watsup", config("Copy", "%1"), '''
+def main : IO Unit := do
+  let input : SpecTec.packed := [("outer", [("inner", 7)])]
+  let encoded := Lean.toJson input
+  let .ok decoded := Lean.fromJson? (α := SpecTec.packed) encoded
+    | throw (IO.userError "nested map decode")
+  if decoded != input then throw (IO.userError "nested map roundtrip")
+''')
+        types = value["manifest"]["types"]
+        self.assertIn("map<text,map<text,nat>>", types)
+        self.assertIn("map<text,nat>", types)
+
     def test_nested_alias_field_projection_uses_original_fields(self):
         _, value = self.compile("nested.watsup", config("Get", "%1.INNER.VALUE"), '''
 example : ({ INNER := { VALUE := 42, KEEP := 9 }, TRACE := "hidden" } : SpecTec.outer).INNER.VALUE = 42 := rfl

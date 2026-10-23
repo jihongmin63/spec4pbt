@@ -6,10 +6,11 @@ import tempfile
 import unittest
 
 from pbt.property.clause import build_property
-from tests.external_selection import select_all
+from pbt.property.workflow import emit_property,check_property
 from pbt.property.implementation import load_implementation
 from pbt.property.runner import collect_case,recheck_trace,rerun_case,run_property
 from tests.test_property_clause_build import COPY_SPEC,COPY_PROPERTY
+from tests.external_selection import select_all
 
 from tests import ROOT, FIXTURES, ORDERED, SCRATCH
 CHAIN_PROPERTY='property chain:\n (n : nat)\n w = w\n -- Copy: n ~> v\n -- Copy: v ~> w\n'
@@ -72,15 +73,21 @@ adapter = {command}
             proof=(ORDERED/'templates'/template).read_text()
             proof=proof.replace('@CONTRACT@',cls.base+'.'+label+'.Contract')
             (cls.root/(label+'Proof.lean')).write_text(proof)
-            cls.bundles[label]=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
+            arguments=dict(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
                 property_path=cls.root/(property_name+'.watsup'),config_path=cls.root/'config.toml',
                 external_path=select_all(cls.root/'config.toml'),
                 name=property_name,output=cls.root/label,proof_module=module,
                 property_proof=('ClauseCopy' if label=='Positive' else 'ClauseChain')+'.property_correct',
                 timeout_seconds=120)
-        template=(ORDERED/'templates/copy_positive_generator.lean.in').read_text()
-        (cls.root/'Generator.lean').write_text(template.replace('@CONTRACT@',cls.base+'.Positive.Contract')
-            .replace('@PROOF@',cls.base+'.PositiveProof'))
+            if label=='Positive':
+                emit_property(**arguments,generator_module=cls.base+'.Generator',
+                              generator='ClauseCopyGenerator.generator')
+                template=(ORDERED/'templates/copy_positive_generator.lean.in').read_text()
+                (cls.root/'Generator.lean').write_text(template.replace('@CONTRACT@',cls.base+'.Positive.Contract')
+                    .replace('@PROOF@',cls.base+'.PositiveProof'))
+                cls.bundles[label]=check_property(cls.root/label)
+            else:
+                cls.bundles[label]=build_property(**arguments)
 
     def setUp(self):
         self.mode('correct')

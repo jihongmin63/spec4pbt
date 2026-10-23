@@ -59,12 +59,13 @@ relation = "Copy"
 observe = []
 ''')
             (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
-theorem helper_refl : {base}.Bundle.Contract.SpecProperty := by
+theorem helper_refl : {base}.Bundle.Contract.property := by
   intro input h
   exact h
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                external_path=select_all(folder/'config.toml'),
                 name='reflexive',output=output,proof_module=base+'.Proof',
                 property_proof='helper_refl',timeout_seconds=120)
             self.assertEqual([call['relation'] for call in bundle.plan['calls']], ['Copy','Copy'])
@@ -100,12 +101,13 @@ relation = "Copy"
 observe = []
 ''')
             (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
-theorem negative_refl : {base}.Bundle.Contract.SpecProperty := by
+theorem negative_refl : {base}.Bundle.Contract.property := by
   intro input h
   exact h
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                external_path=select_all(folder/'config.toml'),
                 name='rejection',output=output,proof_module=base+'.Proof',
                 property_proof='negative_refl',timeout_seconds=120)
             self.assertTrue(all(call['invert'] for call in bundle.plan['calls']))
@@ -131,18 +133,20 @@ observe = ["%1"]
             contract=base+'.Bundle.Contract'
             (folder/'Proof.lean').write_text(f'''import {contract}
 namespace BadProof
-theorem property_correct : {contract}.SpecProperty := by sorry
+theorem property_correct : {contract}.property := by sorry
 end BadProof
 ''')
             with self.assertRaisesRegex((ValueError,ChildProcessError),'sorry|forbidden|axiom'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                    property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+                    property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                    external_path=select_all(folder/'config.toml'),
                     name='positive',output=output,proof_module=base+'.Proof',
                     property_proof='BadProof.property_correct',timeout_seconds=90)
             self.assertFalse(output.exists())
 
     def test_property_proof_and_actual_observed_guard_failure(self):
-        from pbt.property.clause import build_property, load_bundle
+        from pbt.property.clause import load_bundle
+        from pbt.property.workflow import emit_property, check_property
         with tempfile.TemporaryDirectory(prefix='ClausePositiveNative',dir=SCRATCH) as tmp:
             folder=Path(tmp);base='out.scratch.'+folder.name;output=folder/'Bundle'
             (folder/'spec.watsup').write_text(COPY_SPEC)
@@ -155,10 +159,16 @@ observe = ["%1"]
 ''')
             proof=(ORDERED/'templates/copy_positive_proof.lean.in').read_text()
             (folder/'Proof.lean').write_text(proof.replace('@CONTRACT@',base+'.Bundle.Contract'))
-            bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+            emit_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                external_path=select_all(folder/'config.toml'),
                 name='positive',output=output,proof_module=base+'.Proof',
-                property_proof='ClauseCopy.property_correct',timeout_seconds=120)
+                property_proof='ClauseCopy.property_correct',timeout_seconds=120,
+                generator_module=base+'.Generator',generator='ClauseCopyGenerator.generator')
+            generator=(ORDERED/'templates/copy_positive_generator.lean.in').read_text()
+            (folder/'Generator.lean').write_text(generator.replace('@CONTRACT@',base+'.Bundle.Contract')
+                .replace('@PROOF@',base+'.Proof'))
+            bundle=check_property(output)
             self.assertEqual(bundle.plan['relation_semantics'],'ordered')
             self.assertEqual(bundle.request({'n':3},[],0),{'ready':True,'input':[3]})
             good=[{'occurrence_id':'condition.0','relation_id':'Copy','input':[3],
@@ -166,9 +176,6 @@ observe = ["%1"]
             self.assertEqual(load_bundle(output).evaluate({'n':3},good),'pass')
             bad=[{**good[0],'observation':{'%1':0}}]
             self.assertEqual(bundle.invoke('check',{'n':3},bad)['reason'],'observed_condition_false')
-            generator=(ORDERED/'templates/copy_positive_generator.lean.in').read_text()
-            (folder/'Generator.lean').write_text(generator.replace('@CONTRACT@',base+'.Bundle.Contract')
-                .replace('@PROOF@',base+'.Proof'))
             from pbt.property.runner import sample_inputs
             samples,_=sample_inputs(bundle,base+'.Generator','ClauseCopyGenerator.generator',
                 count=8,size=8,seed=0,timeout_seconds=120)
@@ -193,7 +200,8 @@ observe = ["%1"]
 ''')
             with self.assertRaisesRegex(ValueError,'proof_module|property_proof'):
                 build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                    property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+                    property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                    external_path=select_all(folder/'config.toml'),
                     name='positive',output=folder/'Bundle',timeout_seconds=90)
 
     def _prove_positive_premise(self,spec,source,config,relation):
@@ -269,9 +277,30 @@ end ContractCheck
         self.assertEqual([x['origin'] for x in plan['checks']],['condition.1'])
         source=property_emit.render_contract(plan,'ClauseContract','ClauseSpec')
         self.assertIn('def Premise',source)
-        self.assertIn('def Conditions',source)
+        self.assertNotIn('def Conditions',source)
         self.assertIn('SpecTec.«Copy»',source)
         self.assertIn('> (0 : Nat)',source)
+
+    def test_contract_definitions_wrap_binders_and_logical_steps(self):
+        from pbt.property.plan import compile_clause
+        from pbt.property import emit as property_emit
+        plan=compile_clause(frontend(COPY_PROPERTY,COPY_SPEC),COPY_CONFIG)
+        contract=property_emit.render_contract(plan,'ClauseContract','ClauseSpec')
+        self.assertNotIn('def Conditions',contract)
+        self.assertIn(
+            'def Goal\n    (input : Input) : Prop :=\n'
+            '  ∀ («v» : Nat),\n'
+            '    (((SpecTec.«Copy» input.«n» «v»)) ∧\n', contract)
+        self.assertIn(
+            'def Premise\n    (input : Input) : Prop :=\n'
+            '  ∃ («v» : Nat),\n'
+            '    ((SpecTec.«Copy» input.«n» «v»)) ∧\n'
+            '      ',contract)
+        self.assertIn(
+            'def property : Prop :=\n'
+            '  ∀ (input : Input),\n'
+            '    Premise input →\n'
+            '      Goal input',contract)
 
     def test_shared_internal_witness_is_under_both_conditions(self):
         from pbt.property.plan import compile_clause
@@ -284,7 +313,13 @@ end ContractCheck
 '''
         plan=compile_clause(frontend(source,COPY_SPEC),{'schema_version':1})
         contract=property_emit.render_contract(plan,'ClauseContract','ClauseSpec')
-        self.assertIn('def Premise (input : Input) : Prop := ∃ («x» : Nat), Conditions input «x»',contract)
+        self.assertIn(
+            'def Goal\n    (input : Input) : Prop :=\n'
+            '  true = true',contract)
+        self.assertIn(
+            'def Premise\n    (input : Input) : Prop :=\n'
+            '  ∃ («x» : Nat),\n'
+            '    ((SpecTec.«Copy» input.«n» «x»))',contract)
         self.assertIn('SpecTec.«Copy»',contract)
         self.assertIn('> (0 : Nat)',contract)
 
@@ -301,7 +336,8 @@ class PropertyBuildTests(unittest.TestCase):
         template=(ORDERED/'templates/copy_positive_proof.lean.in').read_text()
         (cls.root/'Proof.lean').write_text(template.replace('@CONTRACT@',base+'.Bundle.Contract'))
         cls.bundle=build_property(project=ROOT,spec_paths=[cls.root/'spec.watsup'],
-            property_path=cls.root/'property.watsup',config_path=cls.root/'config.toml',external_path=select_all(cls.root/'config.toml'),
+            property_path=cls.root/'property.watsup',config_path=cls.root/'config.toml',
+            external_path=select_all(cls.root/'config.toml'),
             name='positive',output=cls.root/'Bundle',proof_module=base+'.Proof',
             property_proof='ClauseCopy.property_correct',timeout_seconds=120)
 
@@ -339,13 +375,14 @@ class PropertyEdgeBuildTests(unittest.TestCase):
             (folder/'config.toml').write_text('schema_version = 1\nobservations = []\n')
             (folder/'Proof.lean').write_text(f'''import {base}.Bundle.Contract
 namespace PureProof
-theorem property_correct : {base}.Bundle.Contract.SpecProperty := by
+theorem property_correct : {base}.Bundle.Contract.property := by
   intro input _
   exact decide_eq_true rfl
 end PureProof
 ''')
             bundle=build_property(project=ROOT,spec_paths=[folder/'spec.watsup'],
-                property_path=folder/'property.watsup',config_path=folder/'config.toml',external_path=select_all(folder/'config.toml'),
+                property_path=folder/'property.watsup',config_path=folder/'config.toml',
+                external_path=select_all(folder/'config.toml'),
                 name='pure',output=folder/'Bundle',proof_module=base+'.Proof',
                 property_proof='PureProof.property_correct',timeout_seconds=120)
             self.assertEqual(bundle.plan['calls'],[])

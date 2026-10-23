@@ -50,7 +50,7 @@ def contract_audit_source(contract_module, proof_module, property_proof):
     ns=contract_module
     return f'''import Spec4Pbt.GoalTools
 import {proof_module}
-#spec4pbt_verify {property_proof} in_module {proof_module} : {ns}.SpecProperty
+#spec4pbt_verify {property_proof} in_module {proof_module} : {ns}.property
 '''
 
 
@@ -83,6 +83,8 @@ class CertifiedProperty:
     property_name: str
     toolchain: dict
     fingerprints: dict
+    generator_module: str | None = None
+    generator: str | None = None
 
     def assert_fresh(self):
         for file,expected in self.fingerprints.items():
@@ -114,13 +116,10 @@ class CertifiedProperty:
     def validate(self,input_value,trace): return self.invoke('validate',input_value,trace)
 
 
-def build_property(*, spec_paths, property_path, config_path, external_path, name, output,
-                   project=PROJECT, timeout_seconds=120, transport_model=None,
-                   proof_module=None, property_proof=None):
-    for label, value in [('proof_module', proof_module), ('property_proof', property_proof)]:
-        if not value:
-            raise ValueError(f'{label} is required for property certification')
-        require_name(value)
+def generate_property_files(*, spec_paths, property_path, config_path, external_path,
+                            name, output, project=PROJECT, timeout_seconds=120,
+                            transport_model=None, namespace=None, audit_plan=True):
+    """Generate and audit source artifacts without compiling authored declarations."""
     project=Path(project).resolve();timeout=require_timeout(timeout_seconds)
     spec_paths=[Path(p).absolute() for p in spec_paths]
     property_path=Path(property_path).absolute();config_path=Path(config_path).absolute()
@@ -141,64 +140,94 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
         transport_model=Path(transport_model).resolve();origins[str(transport_model)]=digest(transport_model)
     output=Path(output)
     if not output.is_absolute(): output=project/output
-    if os.path.lexists(output): raise FileExistsError('output already exists: '+str(output))
     output=output.resolve()
     if not output.is_relative_to(project) or output==project: raise ValueError('bundle must be inside the Lean project')
-    base='.'.join(output.relative_to(project).parts)
+    base=(namespace.rsplit('.',1)[0] if namespace else '.'.join(output.relative_to(project).parts))
     require_name(base)
     namespace=base+'.Contract'
     module=namespace
-    output.mkdir(parents=True)
-    try:
-        spec=run_checked([str(tool.executable),'--relation-semantics','ordered',
-                          *[str(p) for p in spec_paths],str(property_path)],project,timeout)
-        (output/'Spec.lean').write_text(spec)
-        settings=output/'metadata-config.json'
-        write_json(settings,{'schema_version':1,'observations':config.get('observations',[])})
-        catalog_settings=output/'catalog-config.json'
-        write_json(catalog_settings,catalog)
-        model_args=['--transport-model',str(transport_model)] if transport_model else []
-        catalog_payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec',
-            '--namespace',namespace+'CatalogTransport','--config',str(catalog_settings),
-            *model_args,*[str(p) for p in spec_paths]],project,timeout))
-        write_json(output/'catalog-manifest.json',catalog_payload['manifest'])
-        payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec','--namespace',namespace+'Transport',
-                                        '--config',str(settings),'--property',str(property_path),'--property-name',name,*model_args,*[str(p) for p in spec_paths]],project,timeout))
-        # Validate every selected field's type, even if this clause hides the
-        # enclosing output as an existential witness.
-        observation_config={'schema_version':1,'observations':config.get('observations',[])}
-        profiles={p['relation']:p for p in observation_config['observations']}
-        for call in plan['calls']:
-            selected=validate_observation(observation_config,profiles[call['relation']]['id'],payload['manifest'])
-            present={o['selector'] for o in call['observations']}
-            for selector,view in zip(profiles[call['relation']]['observe'],selected.selectors):
-                if selector not in present:
-                    call['observations'].append({'selector':selector,'type':{'lean':payload['manifest']['types'][view.type_key]['lean']}})
-        # Transport aliases capture the chosen concrete external-type model.
-        # Freeze both relation and value types before leaving that namespace.
-        def bind_transport(value):
-            if isinstance(value,dict):
-                if 'key' in value and 'lean' in value:
-                    entry=payload['manifest']['types'].get(value['key'])
-                    if entry is not None: value['lean']=entry['lean']
-                    elif 'SpecTec.' in value['lean']:
-                        raise ValueError('missing transport type alias: '+value['key'])
-                if value.get('kind')=='relation':
-                    relation=payload['manifest']['relations'].get(value['relation'])
-                    if relation is not None:
-                        value['lean_relation']=relation['lean']
-                for item in value.values(): bind_transport(item)
-            elif isinstance(value,list):
-                for item in value: bind_transport(item)
-        bind_transport(plan)
-        plan['plan_id']=identity({k:v for k,v in plan.items() if k!='plan_id'})
-        (output/'Transport.lean').write_text(payload['transport'])
-        write_json(output/'manifest.json',payload['manifest'])
-        write_json(output/'plan.json',plan)
-        executable=tool.root / PROPERTY_RUN_EXECUTABLE
+    output.mkdir(parents=True,exist_ok=True)
+    spec=run_checked([str(tool.executable),'--relation-semantics','ordered',
+                      *[str(p) for p in spec_paths],str(property_path)],project,timeout)
+    (output/'Spec.lean').write_text(spec)
+    settings=output/'metadata-config.json'
+    write_json(settings,{'schema_version':1,'observations':config.get('observations',[])})
+    catalog_settings=output/'catalog-config.json'
+    write_json(catalog_settings,catalog)
+    model_args=['--transport-model',str(transport_model)] if transport_model else []
+    catalog_payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec',
+        '--namespace',namespace+'CatalogTransport','--config',str(catalog_settings),
+        *model_args,*[str(p) for p in spec_paths]],project,timeout))
+    write_json(output/'catalog-manifest.json',catalog_payload['manifest'])
+    payload=strict_json(run_checked([str(tool.helper),'--spec-module',base+'.Spec','--namespace',namespace+'Transport',
+                                    '--config',str(settings),'--property',str(property_path),'--property-name',name,*model_args,*[str(p) for p in spec_paths]],project,timeout))
+    # Validate every selected field's type, even if this clause hides the
+    # enclosing output as an existential witness.
+    observation_config={'schema_version':1,'observations':config.get('observations',[])}
+    profiles={p['relation']:p for p in observation_config['observations']}
+    for call in plan['calls']:
+        selected=validate_observation(observation_config,profiles[call['relation']]['id'],payload['manifest'])
+        present={o['selector'] for o in call['observations']}
+        for selector,view in zip(profiles[call['relation']]['observe'],selected.selectors):
+            if selector not in present:
+                call['observations'].append({'selector':selector,'type':{'lean':payload['manifest']['types'][view.type_key]['lean']}})
+    # Transport aliases capture the chosen concrete external-type model.
+    # Freeze both relation and value types before leaving that namespace.
+    def bind_transport(value):
+        if isinstance(value,dict):
+            if 'key' in value and 'lean' in value:
+                entry=payload['manifest']['types'].get(value['key'])
+                if entry is not None: value['lean']=entry['lean']
+                elif 'SpecTec.' in value['lean']:
+                    raise ValueError('missing transport type alias: '+value['key'])
+            if value.get('kind')=='relation':
+                relation=payload['manifest']['relations'].get(value['relation'])
+                if relation is not None:
+                    value['lean_relation']=relation['lean']
+            for item in value.values(): bind_transport(item)
+        elif isinstance(value,list):
+            for item in value: bind_transport(item)
+    bind_transport(plan)
+    plan['plan_id']=identity({k:v for k,v in plan.items() if k!='plan_id'})
+    (output/'Transport.lean').write_text(payload['transport'])
+    write_json(output/'manifest.json',payload['manifest'])
+    write_json(output/'plan.json',plan)
+    executable=tool.root / PROPERTY_RUN_EXECUTABLE
+    if audit_plan:
         audit_native_plan(executable,spec_paths,property_path,name,output/'plan.json',
                           plan['plan_id'],project,timeout)
-        (output/'Contract.lean').write_text(property_emit.render_contract(plan,module,base+'.Transport'))
+    (output/'Contract.lean').write_text(property_emit.render_contract(plan,module,base+'.Transport'))
+    if tool.identity()!=initial_toolchain:
+        raise ValueError('translator changed during property emission')
+    return plan, origins, tool
+
+
+def build_property(*, spec_paths, property_path, config_path, external_path, name, output,
+                   project=PROJECT, timeout_seconds=120, transport_model=None,
+                   proof_module=None, property_proof=None):
+    for label, value in [('proof_module', proof_module), ('property_proof', property_proof)]:
+        if not value:
+            raise ValueError(f'{label} is required for property certification')
+        require_name(value)
+    project=Path(project).resolve();timeout=require_timeout(timeout_seconds)
+    spec_paths=[Path(p).absolute() for p in spec_paths]
+    property_path=Path(property_path).absolute()
+    output=Path(output)
+    if not output.is_absolute(): output=project/output
+    if os.path.lexists(output): raise FileExistsError('output already exists: '+str(output))
+    output=output.resolve()
+    if not output.is_relative_to(project) or output==project:
+        raise ValueError('bundle must be inside the Lean project')
+    base='.'.join(output.relative_to(project).parts)
+    require_name(base)
+    namespace=module=base+'.Contract'
+    try:
+        plan, origins, tool=generate_property_files(spec_paths=spec_paths,
+            property_path=property_path,config_path=config_path,external_path=external_path,
+            name=name,output=output,project=project,timeout_seconds=timeout,
+            transport_model=transport_model)
+        initial_toolchain=tool.identity()
+        executable=tool.root / PROPERTY_RUN_EXECUTABLE
         (output/'ContractAudit.lean').write_text(contract_audit_source(
             module,proof_module,property_proof))
         rebuild_modules(project,[module,proof_module],timeout)
@@ -212,7 +241,7 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
         tool_sources = [property_directory / name for name in
                         ['plan.py', 'emit.py', 'clause.py', 'runner.py', 'protocol.py']]
         tool_sources += [property_directory.parent / name for name in
-                         ['lean_tools.py', 'observations.py']]
+                         ['lean_tools.py', '_lean_dependencies.py', 'observations.py']]
         tool_sources += [project / TRANSLATOR_DIRECTORY / 'toolchain.py',
                          project / BRIDGE_DIRECTORY / 'property_document.ml',
                          project / BRIDGE_DIRECTORY / 'property_cli.ml',
@@ -233,13 +262,19 @@ def build_property(*, spec_paths, property_path, config_path, external_path, nam
         bundle.assert_fresh()
         return bundle
     except BaseException:
-        shutil.rmtree(output)
+        if output.exists():
+            shutil.rmtree(output)
         raise
 
 
 def load_bundle(directory, *, timeout_seconds=120):
     directory=Path(directory).resolve()
+    if not (directory/'certificate.json').is_file():
+        raise ValueError('bundle has no certificate; complete the files and run check first')
     cert=strict_json((directory/'certificate.json').read_text())
+    if cert.get('schema_version') == 4:
+        from pbt.property.workflow import load_checked_bundle
+        return load_checked_bundle(directory, cert, timeout_seconds=timeout_seconds)
     plan=strict_json((directory/'plan.json').read_text())
     if cert.get('schema_version')!=3 or type(cert.get('schema_version')) is not int:
         raise ValueError('property certificate schema 3 required; rebuild the bundle with separate implementation metadata')

@@ -13,8 +13,9 @@ users review their meaning and the resulting evidence. Users do not have to
 write property syntax, proofs, or generators themselves.
 
 - `properties/<name>/`: authored property, per-property `external.toml`, `Proof.lean`,
-  and separate `Generator.lean`. Create proof/generator files when implementing
-  them, never empty placeholders or fake full-P4 proofs.
+  and separate `Generator.lean`. `emit` may create explicit failing obligation
+  templates for the author to complete; never treat those as proofs, add empty
+  files, or claim fake full-P4 proofs.
 - `specifications/<spec-id>/observations.toml`: user-provided catalog of all
   permitted external observations for that specification. Do not write it into
   the pinned `p4-spectec/` checkout.
@@ -54,24 +55,30 @@ Run Python module commands from the repository root.
    `--external properties/<name>/external.toml` to classify inputs, internal
    witnesses, external calls, and observation dependencies. Report unsupported
    structures and missing implementation information.
-4. Write `Proof.lean` importing `out.bundles.<name>.Contract`. The contract can be
-   absent initially: `build` generates it before compiling the proof module.
-   Prove the exact `Contract.SpecProperty`, with no extra assumptions, `sorry`,
-   unsupported axioms, or compiler substitutions that bypass certification.
-5. Use `python3 -m pbt.property build` to create and audit the bundle. Rebuild at
-   the same fixed path: remove only the intended `out/bundles/<name>/` first.
-   Confirm the resolved target is that generated bundle before removing it;
-   preserve authored source and existing results. Never repair stale certificate
-   hashes manually. Directory existence is intentionally an error in `build`.
-6. Write `Generator.lean` separately with `CorrectGen Contract.Premise` and exact
-   support. It may import the proof; the proof must not import the generator.
-   Adding generator code to an already certified proof changes its hash and
-   invalidates certification. Do not narrow the input domain to hide failures.
+4. Run `python3 -m pbt.property emit` at the fixed `out/bundles/<name>/` path.
+   This generates the contract and visible audit modules, and creates unfinished
+   `Proof.lean` / `Generator.lean` declarations only when absent. Re-emission
+   preserves authored code and results, refreshes generated files, and invalidates
+   the certificate. A legacy bundle without emission metadata must first be
+   removed after confirming its resolved generated path; preserve source/results.
+5. Complete the exact `Contract.property` proof and `Contract.generator`
+   value (`CorrectGen Contract.Premise`). Use no extra assumptions, `sorry`,
+   unsupported axioms, or compiler substitutions. Exact support must cover the
+   intended input domain. The generator may import the proof; the proof must not
+   import the generator. Keep their source files separate.
+6. Run `python3 -m pbt.property check --bundle out/bundles/<name>` to perform the
+   native AL execution audit, reconstruct and compare generated artifacts,
+   compile the completed files, and audit proof,
+   generator, executable code, and transport before issuing the joint certificate.
+   Check failure preserves authored files and leaves no valid certificate. Changes
+   to either authored module require a new check; source/config/tool changes
+   require emit followed by check. Never repair certificate hashes manually.
 7. Connect the actual implementation and explicit external-type/codec model.
-   Run with `python3 -m pbt.property run`; the generator is audited before use.
-   Save each run to a fresh `out/results/<name>/<run>/` and explain pass/fail/error
-   evidence. Use `recheck` for saved traces, `rerun` for fresh implementation calls.
-   `collect` does not certify the input premise.
+   Run with `python3 -m pbt.property run`; it uses the generator already selected
+   and certified by check, with freshness checks before use. Save each run to a
+   fresh `out/results/<name>/<run>/` and explain pass/fail/error evidence. Use
+   `recheck` for saved traces, `rerun` for fresh implementation calls. `collect`
+   does not certify the input premise.
 8. Report exactly what is proven and executed. Planning and ordered fixture
    success do not establish full-P4 certification. The checked-in
    `instantiation_progress` property currently has no completed proof, generator,

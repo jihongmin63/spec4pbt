@@ -23,8 +23,8 @@ theorem copy_eq (n v : Nat) (h : SpecTec.Copy n v) : v = n := by
   cases heq
   rfl
 
-theorem property_correct : @CONTRACT@.SpecProperty := by
-  intro input v _
+theorem property_correct : @CONTRACT@.property := by
+  intro input _ v _
   change decide (v = v) = true
   exact decide_eq_true rfl
 

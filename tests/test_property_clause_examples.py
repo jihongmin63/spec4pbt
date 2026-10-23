@@ -8,6 +8,7 @@ from pbt.property.runner import collect_case,run_property
 from tests.ordered.run import build_example
 from tests.external_selection import select_all
 from pbt.property.clause import build_property,load_clause
+from pbt.property.workflow import emit_property,check_property
 from pbt.property.plan import compile_clause
 
 from tests import ROOT, FIXTURES, ORDERED, SCRATCH
@@ -82,14 +83,16 @@ class PropertyExamplesTests(unittest.TestCase):
         spec.write_text('extern syntax archState\n' + (ORDERED / 'spec.watsup').read_text())
         proof = (ORDERED / 'templates/progress_proof.lean.in').read_text()
         (folder / 'Proof.lean').write_text(proof.replace('@CONTRACT@', contract))
-        bundle = build_property(spec_paths=[spec],
+        emit_property(spec_paths=[spec],
             property_path=ORDERED / 'properties.watsup', config_path=ORDERED / 'observations.toml',
             external_path=ORDERED / 'external/progress.toml',
             name='progress', output=folder / 'Bundle', proof_module=base + '.Proof',
-            property_proof='ClauseProgress.property_correct')
+            property_proof='ClauseProgress.property_correct',
+            generator_module=base+'.Generator',generator='ClauseProgressGenerator.generator')
         generator = (ORDERED / 'templates/progress_generator.lean.in').read_text()
         (folder / 'Generator.lean').write_text(generator.replace('@CONTRACT@', contract)
             .replace('@PROOF@', base + '.Proof'))
+        bundle = check_property(folder / 'Bundle')
         result = run_property(bundle, generator_module=base + '.Generator',
             generator='ClauseProgressGenerator.generator',
             implementation=ORDERED / 'implementations/correct.toml',
@@ -133,13 +136,13 @@ class PropertyExamplesTests(unittest.TestCase):
             compile_clause(clause,config)
 
     def test_sorry_generator_rejected_before_adapter_execution(self):
-        bundle,_,_=self.example('positive')
-        file=bundle.directory/'BadGenerator.lean'
-        file.write_text(f'import {bundle.module}\nimport Spec4Pbt.CorrectGen\ndef bad : CorrectGen {bundle.namespace}.Premise := by sorry\n')
+        bundle,_,_=build_example('positive',self.root/'SorryGenerator')
+        file=bundle.directory/'Generator.lean'
+        file.write_text(f'import {bundle.module}\nimport Spec4Pbt.CorrectGen\n'
+                        f'def ClauseCopyGenerator.generator : CorrectGen {bundle.namespace}.Premise := by sorry\n')
         with self.assertRaisesRegex(ChildProcessError,'sorry|axiom|forbidden'):
-            run_property(bundle,generator_module=bundle.module.rsplit('.',1)[0]+'.BadGenerator',
-                generator='bad',output=self.root/self._testMethodName,count=1,
-                implementation=ORDERED/'implementations/correct.toml')
+            check_property(bundle.directory)
+        self.assertFalse((bundle.directory/'certificate.json').exists())
 
     def test_zero_count_rejected(self):
         bundle,module,generator=self.example('positive')

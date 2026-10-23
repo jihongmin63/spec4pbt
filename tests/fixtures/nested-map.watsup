@@ -1,0 +1,10 @@
+syntax map<K, V> = (K, V)*
+syntax packed = map<text, map<text, nat>>
+var p : packed
+
+relation Copy
+  : packed ~> packed
+  hint(input %0)
+
+rule Copy/value
+  : p ~> p

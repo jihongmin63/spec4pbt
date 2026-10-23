@@ -2,7 +2,8 @@
 
 from pathlib import Path
 import math
-import hashlib
+import json
+import sys
 import re
 import subprocess
 import tempfile
@@ -72,39 +73,15 @@ def rebuild_modules(project: Path, modules: list[str], timeout_seconds: float) -
     run_checked(["lake", "build", *modules], project, timeout_seconds)
 
 
-def _digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def fingerprint_dependencies(project: Path, roots: list[Path], timeout: float) -> dict[str, str]:
-    """Resolve imports with Lean, retaining the complete local source closure."""
-    pending = list(roots)
-    result = {}
-    for name in ["lakefile.toml", "lakefile.lean", "lake-manifest.json", "lean-toolchain"]:
-        path = project / name
-        if path.exists():
-            result[str(path)] = _digest(path)
-    seen = set()
-    while pending:
-        path = pending.pop().resolve()
-        if path in seen:
-            continue
-        seen.add(path)
-        result[str(path)] = _digest(path)
-        sources = run_checked(["lake", "env", "lean", "--src-deps", str(path)], project, timeout)
-        for line in sources.splitlines():
-            dependency = Path(line).resolve()
-            if dependency.is_relative_to(project) and dependency.exists():
-                pending.append(dependency)
-        objects = run_checked(["lake", "env", "lean", "--deps", str(path)], project, timeout)
-        for line in objects.splitlines():
-            artifact = Path(line).resolve()
-            if artifact.is_file():
-                result[str(artifact)] = _digest(artifact)
-                if artifact.is_relative_to(project):
-                    # Interpreter implementations accompany imported olean files.
-                    for suffix in [".ir", ".olean.private", ".olean.server"]:
-                        companion = artifact.with_suffix(suffix)
-                        if companion.exists():
-                            result[str(companion)] = _digest(companion)
-    return result
+def fingerprint_dependencies(project: Path, roots: list[Path], timeout: float,
+                             *, dependency_graph: dict | None = None) -> dict[str, str]:
+    """Resolve the same complete Lean closure with one Lake environment startup."""
+    project = Path(project).resolve()
+    timeout = require_timeout(timeout)
+    worker = Path(__file__).resolve().with_name('_lean_dependencies.py')
+    result = json.loads(run_checked(
+        ['lake', 'env', sys.executable, str(worker), str(project), str(timeout),
+         *[str(Path(root).resolve()) for root in roots]], project, timeout))
+    if dependency_graph is not None:
+        dependency_graph.update(result['graph'])
+    return result['fingerprints']

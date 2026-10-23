@@ -13,7 +13,8 @@ properties/
   instantiation_progress/
     property.watsup            Agent-proposed property for user review
     external.toml              This property's selection from the shared catalog
-    # Add Proof.lean and Generator.lean only when implementing them
+    Proof.lean                emit creates the property proof obligation
+    Generator.lean            emit creates the generator obligation
 implementations/              Add implementations as needed
   <implementation>.toml        Execution manifest
   <implementation>.py          Adapter
@@ -39,8 +40,9 @@ external observations; each property's `external.toml` selects only what it uses
 Adapters and execution manifests in `implementations/` are shared across properties.
 
 The root contains this guide, [AGENTS.md](AGENTS.md), and the Git/Lake configuration. Lake manages
-its dependencies and compilation cache in `.lake/`. Create `Proof.lean`, `Generator.lean`, and
-implementation files when they are needed; do not add empty examples. The default `lake build` builds
+its dependencies and compilation cache in `.lake/`. `emit` creates unfinished `Proof.lean` and
+`Generator.lean` declarations with explicit failing tactics. Complete them before `check`; they
+are not certified examples. Existing authored files are never overwritten. The default `lake build` builds
 only `Spec4Pbt` and the Lean regression test. Property and `out` modules are built explicitly as needed
 for certification and execution.
 
@@ -100,7 +102,7 @@ passes its inputs unchanged to one primitive call. Such wrappers can be chained
 and can negate a zero-output helper with `:/`. A normal primitive relation failure
 is inverted through negation; an adapter error remains an error. Helpers with
 output constraints, guards, alternative rules, or recursion are reported as
-unsupported at the execution-planning boundary. `build` rejects a plan with
+unsupported at the execution-planning boundary. `emit` rejects a plan with
 unsupported uses. A `:/` premise in a property clause becomes logical negation
 in its Lean contract. At execution time, only a normal `relation_failure` is
 inverted; `abort`, transport errors, and timeouts remain errors. The narrow
@@ -121,6 +123,13 @@ dynamic P4 states. JSON codecs are derived for types needed by the property.
 The intended p4c implementation entry point is `p4test
 --validate`, but a certified conversion from generated `p4program` inputs to
 P4 source text is still needed before an adapter can bind that relation.
+Observation metadata and codec dependency traversal allow nested generic types,
+including `map` with different type arguments, and track complete instantiated
+types under a 4096-type graph limit. Lean must still compile the derived codecs.
+`emit` writes the obligations before native execution auditing. For
+`program_ok_implies_program_inst`, `check` still rejects dynamic function calls
+inside the internal `Program_ok` relation during the native AL effect audit.
+An emitted contract does not constitute a checked bundle.
 
 Linux, Python 3.12 or later, Git, opam/C build tools, and `elan`/`lake` are required. Use the Lean
 version specified by `lean-toolchain`. Run all commands below from the repository root.
@@ -147,57 +156,83 @@ Reuse a compatible opam switch if one already exists. The official specification
 `python3 -m translator.toolchain translate <spec-path> <translator-options>`. Arguments after
 `translate` are passed through to the native translator.
 
-## Agent work and certified execution
+## Emit, check, run
 
-The agent follows [AGENTS.md](AGENTS.md) to:
+The agent follows [AGENTS.md](AGENTS.md) to propose the property and external
+selection, then uses three commands:
 
-1. Analyze the specification, propose a property and a selection from the user's observation catalog, and use `plan` to classify internal witnesses and external calls.
-2. Prove the generated contract's exact `SpecProperty` in the property's `Proof.lean`.
-3. Use `build` to generate the specification and contract, then pass Lean type, module ownership, and axiom-dependency audits.
-4. Write a `CorrectGen Contract.Premise` generator in a separate `Generator.lean`.
-5. Bind an implementation adapter and manifest, then perform a certified `run`.
-6. Save results and traces, and explain failures and unfinished work.
-
-Keep `Proof.lean` and `Generator.lean` separate. Adding generator code to the proof after certification
-changes the proof file's hash and invalidates the certificate. The proof does not import the generator.
-The automation commands do not complete arbitrary property proofs or generators on their own. There is
-no resident AI agent in the repository. A connected coding agent writes the code, while `pbt`, the
-translator, and Lean verify it through a defined procedure.
-
-The commands below show the path convention once a proof, generator, and implementation manifest are
-ready. The proof, generator, and real implementation adapter for the current full-P4 property are
-**not yet complete**. A P4 plan or a passing internal regression fixture is not full-P4 certification.
+1. `emit` generates `Spec.lean`, `Transport.lean`, `Contract.lean`, both audit
+   modules, and `emission.json`. It creates `Proof.lean` and `Generator.lean` beside
+   the property source if those files do not exist.
+2. Fill the proof of `Contract.property` and the value of
+   `Contract.generator`. The generated alias is
+   `abbrev generator := CorrectGen Premise`: the generator must have
+   exactly the support specified by `Premise`.
+3. `check` runs the native AL execution audit, reconstructs generated artifacts
+   from the original inputs and compares their contents, then compiles and audits
+   both authored declarations. Exact type,
+   module ownership, permitted axioms, executable code, and transport audits all
+   precede certificate creation. A failed check preserves the editable files and
+   leaves no valid certificate.
+4. `run` verifies certificate freshness and revalidates the recorded Lean audits
+   when loading the certificate, then samples from the certified generator,
+   calls the selected implementation, and saves traces and verdicts. Generator
+   selection is recorded at emission and certified by check; run has no generator
+   selection flags. Local certificate hashes are editable data, so loading retains
+   independent Lean validation instead of trusting a manually repaired hash list.
 
 ```sh
-python3 -m pbt.property build \
+python3 -m pbt.property emit \
   --spec p4-spectec/spec \
   --property properties/instantiation_progress/property.watsup \
   --name instantiation_progress \
   --config specifications/p4/observations.toml \
   --external properties/instantiation_progress/external.toml \
-  --output out/bundles/instantiation_progress \
-  --proof-module properties.instantiation_progress.Proof \
-  --property-proof InstantiationProgress.property_correct
+  --output out/bundles/instantiation_progress
+
+# Complete properties/instantiation_progress/Proof.lean and Generator.lean.
+
+python3 -m pbt.property check \
+  --bundle out/bundles/instantiation_progress
 
 python3 -m pbt.property run \
   --bundle out/bundles/instantiation_progress \
   --implementation implementations/target.toml \
-  --generator-module properties.instantiation_progress.Generator \
-  --generator InstantiationProgressGenerator.generator \
   --output out/results/instantiation_progress/run-001 \
   --count 100 --size 10 --seed 0
 ```
 
-The proof file imports `out.bundles.instantiation_progress.Contract`. You can write that import before
-the contract exists because `build` generates the contract before compiling the proof module.
-External types and their required codecs are generated automatically. Additional Lean declarations
-can optionally be supplied with `build --transport-model implementations/<implementation>.lean`;
-they cannot replace the generated external types.
+The proof file imports `out.bundles.instantiation_progress.Contract`, which exists
+before authoring begins. Default declaration names are
+`properties.instantiation_progress.Proof.property_correct` and
+`properties.instantiation_progress.Generator.generator`. Existing declarations can
+be selected with emit's `--proof-module`, `--property-proof`, `--generator-module`,
+and `--generator` options. Keep the proof and generator in separate files; the
+proof must not import the generator. The generator may import the proof.
 
-`build` does not overwrite an existing output directory. To recertify, remove only the existing
-`out/bundles/instantiation_progress/` and rebuild at **the same path**. Appending a version to the
-bundle name also changes the proof's import path. Regenerate certificates invalidated by source, tool,
-or binary changes; never edit certificate hashes by hand. Use a new `<run>` for each execution result.
+Re-running `emit` at the same bundle path refreshes generated files and removes
+its certificate, while preserving authored files and unrelated files. Change only
+proof/generator code, then re-run `check`. Change the specification, observations,
+selection, transport model, or translator, then re-run `emit` and `check`. Never
+repair certificate hashes manually. Use a fresh results directory for every run.
+
+`ContractAudit.lean` and `GeneratorAudit.lean` expose the actual verification
+commands. `emission.json` records inputs and declaration names; `certificate.json`
+(schema 4) records the checked pair and dependency fingerprints. An emitted
+bundle without a certificate cannot run. The old CLI `build` command is replaced
+by emit/check; old proof-only bundles must be re-emitted and checked. To migrate a
+bundle without emission metadata, confirm and remove only its generated bundle
+directory first, preserving authored source and results. The legacy Python
+`build_property` helper remains for proof-only regression consumers and cannot
+certify a generator for run.
+
+External types and codecs are generated automatically. Additional declarations
+can be supplied with `emit --transport-model implementations/<implementation>.lean`;
+they cannot replace generated external types.
+
+The full-P4 proof, exact-support generator, and real adapter remain unfinished.
+Emitting obligations or passing a small ordered fixture does not certify full P4.
+The tools check authored proofs and generators; they do not solve them automatically.
 
 ## Binding an implementation and inspecting results
 

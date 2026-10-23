@@ -16,3 +16,8 @@ python3 -m tests.ordered.run --property progress \
 
 `--mode reject` exercises relation failure; `--property positive --mode zero`
 exercises an observation value violation. This does not prove a full-P4 property.
+
+The helper follows the same `emit -> fill -> check -> run` lifecycle as the CLI.
+It fills the emitted declarations from the maintained fixture templates and
+certifies both before sampling. The emitted audit files and joint certificate
+remain in the requested bundle directory for inspection.

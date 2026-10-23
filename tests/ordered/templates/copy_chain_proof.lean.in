@@ -13,8 +13,8 @@ theorem copy_refl (n : Nat) : SpecTec.Copy n n := by
     (.success (.of n)) 0
   exact SpecTecExecution.Eval.pure n
 
-theorem property_correct : @CONTRACT@.SpecProperty := by
-  intro input v w _
+theorem property_correct : @CONTRACT@.property := by
+  intro input _ v w _
   change decide (w = w) = true
   exact decide_eq_true rfl
 

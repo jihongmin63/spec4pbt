@@ -61,21 +61,39 @@ def render_contract(plan, namespace, spec_module):
     outputs = [v for v in plan['variables'].values() if v['producer'] is not None]
     cvars = [v for v in outputs if v['producer'] != 'goal' and v['name'] in source_names]
     gvars = [v for v in outputs if v['producer'] == 'goal' and v['name'] in goal_names]
+    observed_cvars = [v for v in cvars if 'E' in v['sources']]
+    private_cvars = [v for v in cvars if 'E' not in v['sources']]
     names = {x['name']: 'input.' + quote(x['name']) for x in plan['inputs']}
     for value in outputs:
         names[value['name']] = quote(value['name'])
 
-    def binders(values):
-        return ' '.join('(' + names[v['name']] + ' : ' + v['type']['lean'] + ')' for v in values)
+    def binder(value):
+        return '(' + names[value['name']] + ' : ' + value['type']['lean'] + ')'
 
-    def args(values):
-        return ' '.join(names[v['name']] for v in values)
+    def exists(values, body, indent):
+        if not values:
+            return body
+        return (
+            '∃ ' + binder(values[0]) + ',\n' + ' ' * (indent + 2)
+            + exists(values[1:], body, indent + 2)
+        )
 
-    def exists(values, body):
-        return '∃ ' + binders(values) + ', ' + body if values else body
+    def forall(values, body, indent):
+        if not values:
+            return body
+        return (
+            '∀ ' + binder(values[0]) + ',\n' + ' ' * (indent + 2)
+            + forall(values[1:], body, indent + 2)
+        )
 
-    def forall(values, body):
-        return '∀ ' + binders(values) + ', ' + body if values else body
+    def definition(name, values, body):
+        arguments = ['(input : Input)'] + [binder(value) for value in values]
+        return '\n'.join([
+            'def ' + name,
+            *['    ' + argument for argument in arguments[:-1]],
+            '    ' + arguments[-1] + ' : Prop :=',
+            '  ' + body,
+        ])
 
     def atom(node):
         if node['kind'] == 'guard':
@@ -88,15 +106,39 @@ def render_contract(plan, namespace, spec_module):
             return '(' + expression(node['target'], names) + ' = ' + expression(node['value'], names) + ')'
         raise ValueError('unsupported logical AL condition ' + node['kind'])
 
-    def conj(items):
-        return ' ∧ '.join('(' + x + ')' for x in items) if items else 'True'
+    def conj(items, continuation_indent):
+        if not items:
+            return 'True'
+        if len(items) == 1:
+            return items[0]
+        separator = ' ∧\n' + ' ' * continuation_indent
+        return separator.join('(' + x + ')' for x in items)
 
     conditions = plan['all_conditions']
-    body = conj([atom(node) for node in conditions])
-    goal = atom(goal_node)
-    cargs = args(cvars)
+    condition_atoms = [atom(node) for node in conditions]
+    premise_body = conj(condition_atoms, 4 + 2 * len(cvars))
+    goal_atom = atom(goal_node)
+    # Existentially bind only outputs appearing in the goal atom. If it reads
+    # an observed premise output, use the conditions for a pointwise obligation.
+    if any(value['name'] in goal_names for value in observed_cvars):
+        condition_indent = 2 + 2 * len(observed_cvars)
+        condition_body = exists(
+            private_cvars,
+            conj(condition_atoms, condition_indent + 1 + 2 * len(private_cvars)),
+            condition_indent + 1,
+        )
+        goal_body = forall(
+            observed_cvars,
+            '(' + condition_body + ') →\n'
+            + ' ' * (condition_indent + 2)
+            + exists(gvars, goal_atom, condition_indent + 2),
+            2,
+        )
+    else:
+        goal_body = exists(gvars, goal_atom, 2)
     return '\n'.join([
         'import Lean',
+        'import Spec4Pbt.CorrectGen',
         'import ' + spec_module,
         '',
         'set_option autoImplicit false',
@@ -108,11 +150,16 @@ def render_contract(plan, namespace, spec_module):
         '  deriving Lean.FromJson, Lean.ToJson',
         'def encodeInput (input : Input) : Lean.Json := Lean.toJson input',
         '',
-        'def Conditions (input : Input) ' + binders(cvars) + ' : Prop := ' + body,
-        'def Goal (input : Input) ' + binders(cvars + gvars) + ' : Prop := ' + goal,
-        'def Premise (input : Input) : Prop := ' + exists(cvars, 'Conditions input ' + cargs),
-        'def SpecProperty : Prop := ∀ (input : Input), ' +
-            forall(cvars, 'Conditions input ' + cargs + ' → ' + exists(gvars, 'Goal input ' + args(cvars + gvars))),
+        definition('Goal', [], goal_body),
+        '',
+        definition('Premise', [], exists(cvars, premise_body, 2)),
+        '',
+        'abbrev generator := CorrectGen Premise',
+        '',
+        'def property : Prop :=\n'
+        '  ∀ (input : Input),\n'
+        '    Premise input →\n'
+        '      Goal input',
         '',
         'end ' + namespace,
         '',

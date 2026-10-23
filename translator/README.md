@@ -83,9 +83,10 @@ selectors retain source field names, with the donor's Lean field spelling.
 `%0` cannot select an input slot; duplicate/overlapping selections, unknown
 relations/fields, malformed config and wrong schema versions fail explicitly.
 
-Polymorphic records, nonuniform recursive transport, function-valued transport,
-and unrepresentable field names are rejected. The metadata graph has a 4096-type
-limit. JSON derivation must succeed in Lean, including dependencies; no codec or
+Polymorphic records, function-valued transport, and unrepresentable field names
+are rejected. Metadata and codec dependency traversal track complete instantiated
+types, allowing nested generics with different arguments. Both graphs have a
+4096-type limit. JSON derivation must succeed in Lean, including dependencies; no codec or
 semantics is replaced by an axiom. This boundary is distinct from the original
 translator's larger language support.
 

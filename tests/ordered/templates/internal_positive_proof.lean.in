@@ -23,8 +23,8 @@ theorem internal_eq (n x : Nat) (h : SpecTec.Internal n x) : x = n := by
   cases heq
   rfl
 
-theorem property_correct : @CONTRACT@.SpecProperty := by
-  intro input x _
+theorem property_correct : @CONTRACT@.property := by
+  intro input _
   change decide (input.«n» = input.«n») = true
   exact decide_eq_true rfl
 
