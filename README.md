@@ -14,7 +14,7 @@ properties/<name>/
   property.watsup                   Authored property and optional helper relations
   external.toml                     Selection from the shared observation catalog
   Proof.lean                        Authored proof; emit creates an obligation if absent
-  Generator.lean                    Separate exact-support input generator
+  Generator.lean                    Executable generator and separate support proofs
   bundle/                           Generated helpers, transport, contract, audits, certificate (ignored)
   runs/<run>/                       Inputs, implementation observations, verdicts, traces (ignored)
 implementations/                    Shared manifests, adapters, optional JSON declarations
@@ -194,18 +194,21 @@ The agent follows [AGENTS.md](AGENTS.md) to propose the property and external
 selection, then uses three commands:
 
 1. `emit` prepares or reuses the shared specification translation and generates
-   `Helpers.lean`, `Transport.lean`, `Contract.lean`, both audit
+   `Helpers.lean`, `Transport.lean`, `Contract.lean`, `CertifiedGenerator.lean`, both audit
    modules, and `emission.json`. It creates `Proof.lean` and `Generator.lean` beside
    the property source if those files do not exist.
-2. Fill the proof of `Contract.property` and the value of
-   `Contract.generator`. The generated alias is
-   `abbrev generator := CorrectGen Premise`: the generator must have
-   exactly the support specified by `Premise`.
+2. Fill the proof of `Contract.property`, the executable
+   `Contract.generatorValue` (`Gen Input`), and separate
+   `Contract.generatorSound generator` and `Contract.generatorComplete generator`
+   proofs. Together the proofs establish exact support for `Premise`.
+   Palamedes `CorrectGen` values remain usable through `.val` and `.property`.
 3. `check` runs the native AL execution audit, reconstructs generated artifacts
    from the original inputs and compares their contents, then compiles and audits
-   both authored declarations. Exact type,
+   all four authored declarations and their generated `CorrectGen` combination. Exact type,
    module ownership, permitted axioms, executable code, and transport audits all
-   precede certificate creation. A failed check preserves the editable files and
+   precede certificate creation. Classical choice is permitted in proofs; a
+   generator that needs noncomputable choice to produce data cannot compile.
+   A failed check preserves the editable files and
    leaves no valid certificate.
 4. `run` verifies certificate freshness and revalidates the recorded Lean audits
    when loading the certificate, then samples from the certified generator,
@@ -238,7 +241,10 @@ python3 -m scripts.property run \
 The proof file imports `properties.instantiation_progress.bundle.Contract`, which exists
 before authoring begins. Default declaration names are
 `properties.instantiation_progress.Proof.property_correct` and
-`properties.instantiation_progress.Generator.generator`. Existing declarations can
+`properties.instantiation_progress.Generator.generator`,
+`properties.instantiation_progress.Generator.soundness`, and
+`properties.instantiation_progress.Generator.completeness`. The latter two names
+follow the selected generator's namespace. Existing generator and property declarations can
 be selected with emit's `--proof-module`, `--property-proof`, `--generator-module`,
 and `--generator` options. Keep the proof and generator in separate files; the
 proof must not import the generator. The generator may import the proof.
@@ -250,14 +256,22 @@ selection, transport model, or translator, then re-run `emit` and `check`. Never
 repair certificate hashes manually. Use a fresh results directory for every run.
 
 `ContractAudit.lean` and `GeneratorAudit.lean` expose the actual verification
-commands. `emission.json` records inputs and declaration names; `certificate.json`
-(schema 4) records the checked pair and dependency fingerprints. An emitted
+commands. `CertifiedGenerator.lean` builds the compatibility value
+`Contract.certifiedGenerator : CorrectGen Premise` from the three authored
+declarations; `run` samples its `.val`. `emission.json` records inputs and declaration
+names; `certificate.json` (schema 5) records the checked declarations and dependency
+fingerprints. An emitted
 bundle without a certificate cannot run. The old CLI `build` command is replaced
 by emit/check; old proof-only bundles must be re-emitted and checked. To migrate a
 bundle without emission metadata, confirm and remove only its generated bundle
 directory first, preserving authored source and results. The legacy Python
 `build_property` helper remains for proof-only regression consumers and cannot
 certify a generator for run.
+
+Re-emitting preserves an existing `Generator.lean`. If it still declares a
+`CorrectGen Premise` as the selected generator, migrate it to the three obligations
+before `check`. Existing certificates must be re-emitted and checked under the
+new schema; saved runs are preserved.
 
 External types and codecs are generated automatically. Additional declarations
 can be supplied with `emit --transport-model implementations/<implementation>.lean`;

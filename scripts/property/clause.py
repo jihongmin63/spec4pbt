@@ -290,9 +290,11 @@ def load_bundle(directory, *, timeout_seconds=120):
     if not (directory/'certificate.json').is_file():
         raise ValueError('bundle has no certificate; complete the files and run check first')
     cert=strict_json((directory/'certificate.json').read_text())
-    if cert.get('schema_version') == 4:
+    if cert.get('schema_version') == 5:
         from scripts.property.workflow import load_checked_bundle
         return load_checked_bundle(directory, cert, timeout_seconds=timeout_seconds)
+    if cert.get('schema_version') == 4:
+        raise ValueError('joint certificate schema 4 is obsolete; run emit and check again')
     plan=strict_json((directory/'plan.json').read_text())
     if cert.get('schema_version')!=3 or type(cert.get('schema_version')) is not int:
         raise ValueError('property certificate schema 3 required; rebuild the bundle with separate implementation metadata')
@@ -318,7 +320,8 @@ def load_bundle(directory, *, timeout_seconds=120):
     from scripts.property.workflow import GENERATED_FILES, _tool_fingerprints
     scratch=project/SCRATCH_DIRECTORY
     scratch.mkdir(parents=True,exist_ok=True)
-    names=[name for name in GENERATED_FILES if name != 'GeneratorAudit.lean']
+    names=[name for name in GENERATED_FILES
+           if name not in ('GeneratorAudit.lean', 'CertifiedGenerator.lean')]
     with tempfile.TemporaryDirectory(prefix='legacy-check-',dir=scratch) as tmp:
         stage=Path(tmp)
         _,origins,_=generate_property_files(spec_paths=bundle.spec_paths,

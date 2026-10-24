@@ -42,12 +42,19 @@ class PropertyWorkflowTests(unittest.TestCase):
 
     def test_emit_exposes_both_obligations_without_certifying(self):
         self.assertEqual(self.emit(), self.output)
-        self.assertIn('abbrev generator := CorrectGen Premise',
-                      (self.output / 'Contract.lean').read_text())
+        contract = (self.output / 'Contract.lean').read_text()
+        self.assertIn('abbrev generator := CorrectGen Premise', contract)
+        self.assertIn('abbrev generatorValue := Gen Input', contract)
+        self.assertIn('def generatorSound', contract)
+        self.assertIn('def generatorComplete', contract)
         self.assertIn('Contract.property := by', (self.root / 'Proof.lean').read_text())
-        self.assertIn('Contract.generator := by', (self.root / 'Generator.lean').read_text())
+        obligations = (self.root / 'Generator.lean').read_text()
+        self.assertIn('Contract.generatorValue := by', obligations)
+        self.assertIn('Contract.generatorSound generator := by', obligations)
+        self.assertIn('Contract.generatorComplete generator := by', obligations)
         self.assertNotIn('sorry', (self.root / 'Proof.lean').read_text())
         self.assertTrue((self.output / 'ContractAudit.lean').exists())
+        self.assertTrue((self.output / 'CertifiedGenerator.lean').exists())
         self.assertIn('generator', (self.output / 'GeneratorAudit.lean').read_text())
         self.assertFalse((self.output / 'certificate.json').exists())
         with self.assertRaisesRegex((ValueError, OSError), 'check|certificate'):
@@ -137,8 +144,10 @@ class PropertyWorkflowTests(unittest.TestCase):
         self.complete()
         bundle = workflow.check_property(self.output)
         cert = json.loads((self.output / 'certificate.json').read_text())
-        self.assertEqual(cert['schema_version'], 4)
+        self.assertEqual(cert['schema_version'], 5)
         self.assertEqual(cert['generator'], 'ClauseCopyGenerator.generator')
+        self.assertEqual(cert['soundness'], 'ClauseCopyGenerator.soundness')
+        self.assertEqual(cert['completeness'], 'ClauseCopyGenerator.completeness')
         self.assertIn(str(self.root / 'Generator.lean'), cert['fingerprints'])
         changed_selection = {**cert, 'property_name': 'different_property'}
         (self.output / 'certificate.json').write_text(json.dumps(changed_selection))
@@ -179,11 +188,85 @@ class PropertyWorkflowTests(unittest.TestCase):
             workflow.check_property(self.output)
         self.assertFalse((self.output / 'certificate.json').exists())
 
+    def test_classical_soundness_proof_certifies_executable_generator(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        old = ('theorem soundness : generatorSound generator := by\n'
+               '  intro input h\n'
+               '  exact (Iff.of_eq (congrFun certified.property input)).mp h')
+        new = ('theorem soundness : generatorSound generator :=\n'
+               '  Classical.choice ⟨by\n'
+               '    intro input h\n'
+               '    exact (Iff.of_eq (congrFun certified.property input)).mp h\n'
+               '  ⟩')
+        self.assertIn(old, source)
+        path.write_text(source.replace(old, new))
+        bundle = workflow.check_property(self.output)
+        result = run_property(bundle, implementation=ORDERED / 'implementations/correct.toml',
+                              output=self.root / 'classical-results', count=1, size=6, seed=0)
+        self.assertEqual(result.status, 'passed')
+
+    def test_noncomputable_generator_does_not_certify(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        self.assertIn('def generator : generatorValue := certified.val', source)
+        path.write_text(source.replace('def generator : generatorValue := certified.val',
+            'noncomputable def generator : generatorValue := certified.val'))
+        with self.assertRaisesRegex(ChildProcessError, 'noncomputable'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_classical_choice_cannot_supply_generator_data(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        self.assertIn('def generator : generatorValue := certified.val', source)
+        path.write_text(source.replace('def generator : generatorValue := certified.val',
+            'def generator : generatorValue :=\n'
+            '  pure ({ «n» := Classical.choice (show Nonempty Nat from ⟨1⟩) } : Input)'))
+        with self.assertRaisesRegex(ChildProcessError, 'Classical.choice|noncomputable'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_proofs_for_a_different_generator_do_not_certify(self):
+        from scripts.lean_tools import rebuild_modules
+
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        prefix, _ = source.split('theorem soundness : generatorSound generator := by', 1)
+        source = prefix + '''private def other : generatorValue := Gen.pick generator generator
+
+theorem soundness : generatorSound other := by
+  intro input h
+  rcases h with h | h
+  · exact (Iff.of_eq (congrFun certified.property input)).mp h
+  · exact (Iff.of_eq (congrFun certified.property input)).mp h
+
+theorem completeness : generatorComplete other := by
+  intro input h
+  exact Or.inl ((Iff.of_eq (congrFun certified.property input)).mpr h)
+
+end ClauseCopyGenerator
+'''
+        path.write_text(source)
+        rebuild_modules(ROOT, [self.base + '.Generator'], 90)
+        with self.assertRaises(ChildProcessError) as raised:
+            workflow.check_property(self.output)
+        self.assertIn('CertifiedGenerator', str(raised.exception))
+        self.assertFalse((self.output / 'certificate.json').exists())
+
     def test_forged_certificate_cannot_skip_lean_audits(self):
         self.emit()
         emission = json.loads((self.output / 'emission.json').read_text())
         plan = json.loads((self.output / 'plan.json').read_text())
-        forged = dict(schema_version=4, project=str(ROOT), module=self.contract,
+        forged = dict(schema_version=5, project=str(ROOT), module=self.contract,
             namespace=self.contract, plan_id=plan['plan_id'], fingerprints={},
             toolchain=emission['toolchain'], **emission['declarations'],
             spec_paths=emission['request']['spec_paths'],

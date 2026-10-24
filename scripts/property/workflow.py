@@ -20,16 +20,34 @@ from scripts.property.plan import identity
 GENERATED_FILES = (
     'Helpers.lean', 'Transport.lean', 'Contract.lean', 'plan.json', 'manifest.json',
     'metadata-config.json', 'catalog-config.json', 'catalog-manifest.json',
-    'ContractAudit.lean', 'GeneratorAudit.lean',
+    'ContractAudit.lean', 'GeneratorAudit.lean', 'CertifiedGenerator.lean',
 )
 
 
-def generator_audit_source(contract_module, generator_module, generator):
+def certified_generator_source(contract_module, declarations):
+    return f'''import {contract_module}
+import {declarations['generator_module']}
+namespace {contract_module}
+def certifiedGenerator : generator :=
+  ⟨{declarations['generator']}, by
+    funext input
+    exact propext ⟨{declarations['soundness']} input, {declarations['completeness']} input⟩⟩
+end {contract_module}
+'''
+
+
+def generator_audit_source(contract_module, declarations):
+    certified_module = contract_module.rsplit('.', 1)[0] + '.CertifiedGenerator'
+    generator_module = declarations['generator_module']
+    generator = declarations['generator']
     return f'''import Spec4Pbt.Observable
-import {contract_module}
-import {generator_module}
-#spec4pbt_verify {generator} in_module {generator_module} : {contract_module}.generator
+import {certified_module}
+#spec4pbt_verify {generator} in_module {generator_module} : {contract_module}.generatorValue
+#spec4pbt_verify {declarations['soundness']} in_module {generator_module} : {contract_module}.generatorSound {generator}
+#spec4pbt_verify {declarations['completeness']} in_module {generator_module} : {contract_module}.generatorComplete {generator}
+#spec4pbt_verify {contract_module}.certifiedGenerator in_module {certified_module} : {contract_module}.generator
 #spec4pbt_observable_executable {generator}
+#spec4pbt_observable_executable {contract_module}.certifiedGenerator
 #spec4pbt_observable_transport {contract_module}.encodeInput
 '''
 
@@ -71,8 +89,11 @@ def _declarations(project, property_path, proof_module, property_proof, generato
         prefix = '.'.join(parent.relative_to(project).parts)
         proof_module = proof_module or (prefix + '.Proof' if prefix else 'Proof')
         generator_module = generator_module or (prefix + '.Generator' if prefix else 'Generator')
+    generator = generator or generator_module+'.generator'
+    generator_namespace = generator.rpartition('.')[0]
     values = dict(proof_module=proof_module, property_proof=property_proof or proof_module+'.property_correct',
-                  generator_module=generator_module, generator=generator or generator_module+'.generator')
+                  generator_module=generator_module, generator=generator,
+                  soundness=generator_namespace+'.soundness', completeness=generator_namespace+'.completeness')
     for value in values.values():
         require_name(value)
     if proof_module == generator_module:
@@ -93,11 +114,30 @@ def _template(contract, declaration, kind):
     return '\n'.join(lines)
 
 
+def _generator_template(contract, declarations):
+    namespace, _, name = declarations['generator'].rpartition('.')
+    lines = [f'import {contract}', '', '-- Generated unfinished obligations: complete all three declarations.']
+    if namespace:
+        lines += [f'namespace {namespace}', '']
+    lines += [
+        f'def {name} : {contract}.generatorValue := by',
+        '  fail "Fill in the generator obligation before running check"', '',
+        f'theorem soundness : {contract}.generatorSound {name} := by',
+        '  fail "Fill in the soundness obligation before running check"', '',
+        f'theorem completeness : {contract}.generatorComplete {name} := by',
+        '  fail "Fill in the completeness obligation before running check"', '',
+    ]
+    if namespace:
+        lines += [f'end {namespace}', '']
+    return '\n'.join(lines)
+
+
 def _audit_files(directory, module, declarations):
     (directory/'ContractAudit.lean').write_text(contract_audit_source(
         module, declarations['proof_module'], declarations['property_proof']))
+    (directory/'CertifiedGenerator.lean').write_text(certified_generator_source(module, declarations))
     (directory/'GeneratorAudit.lean').write_text(generator_audit_source(
-        module, declarations['generator_module'], declarations['generator']))
+        module, declarations))
 
 
 def _fresh(fingerprints, description):
@@ -148,7 +188,7 @@ def emit_property(*, spec_paths, property_path, config_path, external_path, name
         _, origins, tool = generate_property_files(**request, output=stage, project=project,
             timeout_seconds=timeout, namespace=module, audit_plan=False)
         _audit_files(stage, module, declarations)
-        record = dict(schema_version=1, project=str(project), module=module,
+        record = dict(schema_version=2, project=str(project), module=module,
                       request=request, declarations=declarations, sources=origins,
                       toolchain=tool.identity(),
                       generated={name: digest(stage/name) for name in GENERATED_FILES})
@@ -159,11 +199,13 @@ def emit_property(*, spec_paths, property_path, config_path, external_path, name
             # Replacing the directory entry also preserves any authored file
             # accidentally hardlinked to the previous generated artifact.
             os.replace(stage/name, output/name)
-    for path, kind, key in zip(authored, ['theorem', 'def'], ['property_proof', 'generator']):
+    templates = [_template(module, declarations['property_proof'], 'theorem'),
+                 _generator_template(module, declarations)]
+    for path, source in zip(authored, templates):
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             with path.open('x') as file:
-                file.write(_template(module, declarations[key], kind))
+                file.write(source)
         except FileExistsError:
             pass
     return output
@@ -171,8 +213,8 @@ def emit_property(*, spec_paths, property_path, config_path, external_path, name
 
 def _read_emission(directory):
     record = strict_json((directory/'emission.json').read_text())
-    if type(record.get('schema_version')) is not int or record['schema_version'] != 1:
-        raise ValueError('emission schema 1 required; run emit again')
+    if type(record.get('schema_version')) is not int or record['schema_version'] != 2:
+        raise ValueError('emission schema 2 required; run emit again')
     project = Path(record['project']).resolve()
     if _bundle_path(directory, project) != directory:
         raise ValueError('emission location mismatch')
@@ -222,7 +264,7 @@ def _validate_generated(directory, record, project, timeout):
 
 
 def check_property(directory, *, timeout_seconds=120):
-    """Reconstruct generated source and certify both completed declarations."""
+    """Reconstruct generated source and certify the property and three generator obligations."""
     directory = Path(directory).resolve()
     record, project = _read_emission(directory)
     (directory/'certificate.json').unlink(missing_ok=True)
@@ -230,8 +272,9 @@ def check_property(directory, *, timeout_seconds=120):
     plan, origins, tool = _validate_generated(directory, record, project, timeout)
     module = record['module']
     declarations = record['declarations']
+    certified_module = module.rsplit('.', 1)[0] + '.CertifiedGenerator'
     rebuild_modules(project, ['Spec4Pbt.Observable', module, declarations['proof_module'],
-                              declarations['generator_module']], timeout)
+                              declarations['generator_module'], certified_module], timeout)
     roots = [directory/'ContractAudit.lean', directory/'GeneratorAudit.lean']
     graph = {}
     files = fingerprint_dependencies(project, roots, timeout, dependency_graph=graph)
@@ -247,7 +290,7 @@ def check_property(directory, *, timeout_seconds=120):
     if tool.identity() != record['toolchain']:
         raise ValueError('translator changed during certification')
     request = record['request']
-    certificate = dict(schema_version=4, project=str(project), namespace=module, module=module,
+    certificate = dict(schema_version=5, project=str(project), namespace=module, module=module,
         fingerprints=files, plan_id=plan['plan_id'], toolchain=tool.identity(), **declarations,
         spec_paths=request['spec_paths'], property_path=request['property_path'], property_name=request['name'])
     write_json(directory/'certificate.json', certificate)
@@ -255,11 +298,11 @@ def check_property(directory, *, timeout_seconds=120):
 
 
 def load_checked_bundle(directory, certificate, *, timeout_seconds=120, _just_checked=False):
-    """Load the already checked pair; file freshness binds source and executable artifacts."""
+    """Load checked obligations; freshness binds source and executable artifacts."""
     require_timeout(timeout_seconds)
     record, project = _read_emission(directory)
-    if type(certificate.get('schema_version')) is not int or certificate['schema_version'] != 4:
-        raise ValueError('joint certificate schema 4 required; run check')
+    if type(certificate.get('schema_version')) is not int or certificate['schema_version'] != 5:
+        raise ValueError('joint certificate schema 5 required; run emit and check')
     module = record['module']
     if certificate['module'] != module or certificate['namespace'] != module or certificate['project'] != str(project):
         raise ValueError('certificate module location mismatch')
@@ -287,15 +330,17 @@ def load_checked_bundle(directory, certificate, *, timeout_seconds=120, _just_ch
     if (directory/'ContractAudit.lean').read_text() != contract_audit_source(
             module, declarations['proof_module'], declarations['property_proof']):
         raise ValueError('property audit source mismatch')
-    if (directory/'GeneratorAudit.lean').read_text() != generator_audit_source(
-            module, declarations['generator_module'], declarations['generator']):
+    if (directory/'GeneratorAudit.lean').read_text() != generator_audit_source(module, declarations):
         raise ValueError('generator audit source mismatch')
+    if (directory/'CertifiedGenerator.lean').read_text() != certified_generator_source(module, declarations):
+        raise ValueError('certified generator source mismatch')
     if not _just_checked:
         # Certificates are editable local data. Repeat the Lean audits when
         # loading, so repaired/omitted hashes cannot attest a different proof.
         _, origins, _ = _validate_generated(directory, record, project, timeout_seconds)
+        certified_module = module.rsplit('.', 1)[0] + '.CertifiedGenerator'
         rebuild_modules(project, ['Spec4Pbt.Observable', module, declarations['proof_module'],
-                                  declarations['generator_module']], timeout_seconds)
+                                  declarations['generator_module'], certified_module], timeout_seconds)
         roots = [directory/'ContractAudit.lean', directory/'GeneratorAudit.lean']
         graph = {}
         current = fingerprint_dependencies(project, roots, timeout_seconds, dependency_graph=graph)

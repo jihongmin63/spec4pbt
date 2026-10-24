@@ -5,7 +5,7 @@ namespace ClauseChainGenerator
 open Gen.CorrectGen
 open @CONTRACT@
 
-def generator : CorrectGen Premise :=
+private def certified : CorrectGen Premise :=
   convert (by
     funext input
     apply propext
@@ -15,5 +15,15 @@ def generator : CorrectGen Premise :=
     · intro _
       exact ⟨input.«n», True.intro, by cases input; rfl⟩)
     (s_bind s_arbNat (fun n => s_pure ({ «n» := n } : Input)))
+
+def generator : generatorValue := certified.val
+
+theorem soundness : generatorSound generator := by
+  intro input h
+  exact (Iff.of_eq (congrFun certified.property input)).mp h
+
+theorem completeness : generatorComplete generator := by
+  intro input h
+  exact (Iff.of_eq (congrFun certified.property input)).mpr h
 
 end ClauseChainGenerator

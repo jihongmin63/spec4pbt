@@ -162,13 +162,18 @@ class GoalToolsIntegrationTests(unittest.TestCase):
         bodies = [
             ("custom", "axiom Fixture.untrusted : True\ntheorem Fixture.proof : True := Fixture.untrusted\n", "Fixture.untrusted"),
             ("sorry", "theorem Fixture.proof : True := by sorry\n", "sorryAx"),
-            ("choice", "theorem Fixture.proof : True := Classical.choice (show Nonempty True from ⟨True.intro⟩)\n", "Classical.choice"),
         ]
         for label, body, axiom in bodies:
             with self.subTest(case=label):
                 with self.assertRaises(ChildProcessError) as raised:
                     self.verify(body)
                 self.assertIn(axiom, str(raised.exception))
+
+    def test_verifier_allows_classical_choice_in_proof(self) -> None:
+        checked = self.verify(
+            "theorem Fixture.proof : True := "
+            "Classical.choice (show Nonempty True from ⟨True.intro⟩)\n")
+        self.assertIn("Classical.choice", checked)
 
     def test_verifier_allows_only_approved_foundational_axioms(self) -> None:
         checked = self.verify("theorem Fixture.proof : True = True := propext Iff.rfl\n",

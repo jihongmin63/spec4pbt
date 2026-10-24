@@ -196,14 +196,14 @@ def _sample_inputs(bundle,generator_module=None,generator=None,*,count,size,seed
     with tempfile.TemporaryDirectory(prefix='sampler-',dir=base) as temporary:
         directory=Path(temporary)
         driver=directory/'Driver.lean'
-        driver.write_text(f'''import {bundle.module}
-import {generator_module}
+        certified_module=ns.rsplit('.',1)[0]+'.CertifiedGenerator'
+        driver.write_text(f'''import {certified_module}
 open Lean
 
 def main : IO Unit := do
   let config : SampleConfig := {{ sizeLimit := {size}, backtrackLimit := 100, sizeRetryLimit := 100 }}
   for index in [:{count}] do
-    let value : {ns}.Input ← Plausible.runRandWith ({seed} + index) (SampleM.sampleRand config {generator}.val)
+    let value : {ns}.Input ← Plausible.runRandWith ({seed} + index) (SampleM.sampleRand config {ns}.certifiedGenerator.val)
     (← IO.getStdout).putStrLn (Json.mkObj [("index",toJson index),("input",{ns}.encodeInput value)]).compress
 ''')
         fingerprints=fingerprint_dependencies(bundle.project,[driver],timeout_seconds)

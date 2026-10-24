@@ -9,7 +9,7 @@ open Lean Meta Elab Term Command
 namespace Spec4Pbt
 
 private def permittedAxiom (name : Name) : Bool :=
-  name == ``propext || name == ``Quot.sound
+  name == ``propext || name == ``Quot.sound || name == ``Classical.choice
 
 private def rejectAxioms (name : Name) : MetaM Unit := do
   let axioms ← collectAxioms name

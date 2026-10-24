@@ -155,6 +155,11 @@ def render_contract(plan, namespace, spec_module):
         definition('Premise', [], exists(cvars, premise_body, 2)),
         '',
         'abbrev generator := CorrectGen Premise',
+        'abbrev generatorValue := Gen Input',
+        'def generatorSound (g : generatorValue) : Prop :=',
+        '  ∀ input, Gen.support g input → Premise input',
+        'def generatorComplete (g : generatorValue) : Prop :=',
+        '  ∀ input, Premise input → Gen.support g input',
         '',
         'def property : Prop :=\n'
         '  ∀ (input : Input),\n'

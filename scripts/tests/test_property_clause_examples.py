@@ -138,8 +138,10 @@ class PropertyExamplesTests(unittest.TestCase):
     def test_sorry_generator_rejected_before_adapter_execution(self):
         bundle,_,_=build_example('positive',self.root/'SorryGenerator')
         file=bundle.directory/'Generator.lean'
-        file.write_text(f'import {bundle.module}\nimport Spec4Pbt.CorrectGen\n'
-                        f'def ClauseCopyGenerator.generator : CorrectGen {bundle.namespace}.Premise := by sorry\n')
+        source=file.read_text()
+        sound='  exact (Iff.of_eq (congrFun certified.property input)).mp h'
+        self.assertIn(sound, source)
+        file.write_text(source.replace(sound, '  sorry', 1))
         with self.assertRaisesRegex(ChildProcessError,'sorry|axiom|forbidden'):
             check_property(bundle.directory)
         self.assertFalse((bundle.directory/'certificate.json').exists())
