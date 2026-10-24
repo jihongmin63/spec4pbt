@@ -265,6 +265,52 @@ let metadata definitions namespace roots relations =
   object_ ["schema_version", `Int 1; "namespace", string namespace;
     "types", object_ !entries; "relations", object_ relations], !aliases
 
+let order_codecs definitions derived =
+  (* A DFS over instantiated fields may finish one member of a recursive
+     type group before discovering another member's external dependencies.
+     Deriving for that first member already traverses the whole Lean group.
+     Order the declaration SCCs so every external codec is available first. *)
+  let rec references parameters = function
+    | Named (name, arguments) ->
+        (if List.mem name parameters then [] else [name])
+        @ List.concat_map (references parameters) arguments
+    | Sequence element | Optional element -> references parameters element
+    | Tuple elements -> List.concat_map (references parameters) elements
+    | Primitive _ | Function -> [] in
+  let graph = List.map (fun (name, definition) ->
+    name, List.concat_map (references definition.parameters) (children definition.body)
+      |> List.sort_uniq String.compare) definitions in
+  let next = ref 0 and stack = ref [] and ordered = ref [] in
+  let indices = Hashtbl.create 64 and low = Hashtbl.create 64
+  and active = Hashtbl.create 64 in
+  let rec visit name =
+    if not (Hashtbl.mem indices name) then (
+      let index = !next in incr next;
+      Hashtbl.add indices name index;
+      Hashtbl.add low name index;
+      Hashtbl.replace active name true;
+      stack := name :: !stack;
+      List.iter (fun child ->
+        if List.mem_assoc child graph then (
+          if not (Hashtbl.mem indices child) then (
+            visit child;
+            Hashtbl.replace low name (min (Hashtbl.find low name) (Hashtbl.find low child)))
+          else if Option.value (Hashtbl.find_opt active child) ~default:false then
+            Hashtbl.replace low name (min (Hashtbl.find low name) (Hashtbl.find indices child))))
+        (Option.value (List.assoc_opt name graph) ~default:[]);
+      if Hashtbl.find low name = index then (
+        let rec pop component = match !stack with
+          | member :: rest ->
+              stack := rest;
+              Hashtbl.replace active member false;
+              let component = member :: component in
+              if member = name then component else pop component
+          | [] -> assert false in
+        let component = pop [] in
+        ordered := !ordered @ List.filter (fun name -> List.mem name component) derived)) in
+  List.iter visit derived;
+  !ordered
+
 let codec_declarations definitions codec roots =
   let visited = ref [] and derived = ref [] in
   let rec visit typ =
@@ -288,7 +334,8 @@ let codec_declarations definitions codec roots =
               if not (List.mem name !derived) then
                 derived := !derived @ [name])) in
   List.iter visit roots;
-  let declarations = List.map (fun name -> "deriving instance _root_.Lean." ^ codec ^ " for _root_.SpecTec." ^ quote name) !derived in
+  let declarations = List.map (fun name -> "deriving instance _root_.Lean." ^ codec ^ " for _root_.SpecTec." ^ quote name)
+    (order_codecs definitions !derived) in
   let checks = List.mapi (fun index typ ->
     "private abbrev required" ^ codec ^ string_of_int index ^ " : _root_.Lean." ^ codec ^
       " (" ^ lean_type typ ^ ") := inferInstance") (List.sort_uniq compare roots) in

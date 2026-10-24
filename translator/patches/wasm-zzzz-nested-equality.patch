@@ -1,0 +1,40 @@
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -810,22 +810,27 @@
+   | [] -> "nomatch a"
+   | [ _ ] -> "match a, b with\n" ^ String.concat "\n" cases
+   | _ ->
+-      let mismatches : string list =
+-        List.concat_map
++      (* Keep each match linear in the number of constructors. A single
++         two-scrutinee match with every mismatching pair exhausts Lean's
++         elaborator recursion depth for large instruction types. *)
++      let rows : string list =
++        List.map
+           (fun (left : L.constructor) ->
+-            List.filter_map
++            let same =
++              "      | " ^ constructor_pattern left "y" ^ " =>\n        "
++              ^ equality_result shapes "        " left.arguments in
++            let different = List.filter_map
+               (fun (right : L.constructor) ->
+                 if left.name = right.name then None
+-                else
+-                  Some
+-                    ("    | " ^ constructor_wildcard left ^ ", "
+-                    ^ constructor_wildcard right ^ " => nomatch hc"))
+-              constructors)
++                else Some ("      | " ^ constructor_wildcard right ^ " => nomatch hc"))
++              constructors in
++            "    | " ^ constructor_pattern left "x" ^ " =>\n      match b with\n"
++            ^ String.concat "\n" (same :: different))
+           constructors
+       in
+       "if hc : a.ctorIdx = b.ctorIdx then\n"
+-      ^ "    match a, b with\n"
+-      ^ String.concat "\n" (cases @ mismatches)
++      ^ "    match a with\n"
++      ^ String.concat "\n" rows
+       ^ "\n  else _root_.Decidable.isFalse (fun e => hc (e ▸ rfl))"
+ 
+ let print_structure_equality (shapes : L.equality_shape list)
