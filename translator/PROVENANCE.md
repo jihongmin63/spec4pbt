@@ -104,7 +104,8 @@ native builtin errors as aborts and keeps numeric traps as explicit `NumTrap`
 results. These implementations remain subject to the normal proof, generator,
 dependency, and executable audits.
 
-`patches/wasm-zz-identifiers.patch` quotes the Lean keywords `mut` and `catch`.
+`patches/wasm-zz-identifiers.patch` quotes the Lean keywords `mut`, `catch`, and
+`local`.
 `patches/wasm-zzz-specialization.patch` specializes fixed named callback inputs
 that participate in recursive dependency groups, such as `$free_instr` passed
 to `$free_list`. It retains the generic declarations, clause order, guards,
@@ -112,3 +113,16 @@ and premises, and recomputes typeclass requirements for the specialized
 definitions. Nonuniform recursive instantiation is rejected explicitly.
 The metadata bridge instantiates parameterized record fields before deriving
 JSON transport for closed input types, including Wasm's `memop<A,B>`.
+
+`patches/wasm-zzzz-nested-equality.patch` prints the recursive datatype equality
+decision as two nested constructor matches. It retains the field comparisons,
+constructor-index guard, and impossible-case proofs, while avoiding one flat
+match with a quadratic number of alternatives that exceeds Lean's elaborator
+recursion limit for Wasm's 95-constructor `instr` type.
+
+`patches/wasm-zzzzz-comparison-arguments.patch` normalizes runtime dictionary
+type aliases before compiling ordered clauses, as the declarative ordering
+pass already does. Explicit comparison dictionaries use `inferInstance` for
+primitive and parameter types instead of unsolved named-argument placeholders.
+The metadata bridge orders JSON codec derivations by type dependency components,
+so external dependencies of mutually recursive Wasm types are derived first.
