@@ -66,7 +66,15 @@ theorem support_indexed_exact {α : Type}
   simp only [hcomplete a, true_and]
   exact propext (hvalid a)
 
-def generator : properties.wasm_module_ok.bundle.Contract.generator := by
+def generator : properties.wasm_module_ok.bundle.Contract.generatorValue := by
   fail "Fill in the generator obligation before running check"
+
+theorem soundness :
+    properties.wasm_module_ok.bundle.Contract.generatorSound generator := by
+  fail "Fill in the soundness obligation before running check"
+
+theorem completeness :
+    properties.wasm_module_ok.bundle.Contract.generatorComplete generator := by
+  fail "Fill in the completeness obligation before running check"
 
 end properties.wasm_module_ok.Generator
