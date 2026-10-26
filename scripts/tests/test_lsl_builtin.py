@@ -67,16 +67,15 @@ class LslBuiltinTests(unittest.TestCase):
                              [expected for _, _, expected in CASES])
 
     def test_generated_lean_builtin_and_ordered_execution_match_boundaries(self):
-        result = self.run_command([self.tool.executable, '--executable', FIXTURES / 'lsl.watsup'])
+        result = self.run_command([self.tool.executable, FIXTURES / 'lsl.watsup'])
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         proofs = ['\nopen SpecTecExecution\n']
         for a, b, expected in CASES:
             proofs.append(f'example : SpecTec.«$lsl_» ({a}) ({b}) = ({expected}) := by decide\n')
+            # The ordered clause returns the builtin value without consuming supply.
             proofs.append(
-                'example : runEval SpecTec.specTecExecutableProgram\n'
-                '    (PrimitiveRunner.unavailable _) 20\n'
-                f'    (.call (SpecTec.SpecTecCall.Shift ({a}) ({b}))) 0 =\n'
-                f'    .done (.success ({expected})) 0 := by decide\n')
+                f'example : ∃ v, SpecTec.Shift ({a}) ({b}) v ∧ v = ({expected}) :=\n'
+                '  ⟨_, ⟨0, .call (.orElse_success (.pure _))⟩, by decide⟩\n')
         path = self.folder / 'Check.lean'
         path.write_text(result.stdout + ''.join(proofs))
         checked = self.run_command(['lake', 'env', 'lean', path])

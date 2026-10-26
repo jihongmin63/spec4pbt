@@ -8,6 +8,39 @@
    printer
    module_writer
    execution_support
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -255,8 +255,10 @@ let declarations source ~keep_going =
+     with
+     | Translator.Unsupported_il d ->
+         if keep_going then decls, ds @ [d] else raise (Translator.Unsupported_il d)) ([], []) (List.combine source analyzed) in
+-  env, Translator.equality_parameters
+-    (declarations @ Translator.generated_declarations env source declarations), diagnostics
++  let declarations = Translator.equality_parameters
++    (declarations @ Translator.generated_declarations env source declarations)
++    |> Specialize.program env in
++  env, declarations, diagnostics
+ 
+ let emit source env ordered compiled =
+   let declarations = List.concat_map Printer.declarations_in_group ordered in
+--- a/p4spec/lib/lean-skeleton/pipeline.ml
++++ b/p4spec/lib/lean-skeleton/pipeline.ml
+@@ -6,6 +6,7 @@ let transpile ?(ordered = true) (input : S.spec) :
+     (string, Diagnostic.t) result =
+   if ordered then Execution_translate.transpile input else
+   let* lean_ast = Translator.translate input in
++  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
+   let* ordered = Order.order lean_ast in
+   Ok (Printer.print ordered)
+ 
+@@ -15,6 +16,7 @@ let transpile_all ?(ordered = true) (input : S.spec) : string * Diagnostic.t lis
+       Ast.Lean.located_declaration list * Diagnostic.t list =
+     Translator.translate_all input
+   in
++  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
+   let (ordered, ordering_diagnostics) :
+       Ast.Lean.program * Diagnostic.t list = Order.order_all lean_ast
+   in
 --- /dev/null
 +++ b/p4spec/lib/lean-skeleton/specialize.ml
 @@ -0,0 +1,224 @@
@@ -235,36 +268,3 @@
 +        {source with declaration = L.Relation {r with rules}}
 +    | _ -> source) declarations in
 +  Translator.equality_parameters (rewritten @ List.rev !generated)
---- a/p4spec/lib/lean-skeleton/execution_translate.ml
-+++ b/p4spec/lib/lean-skeleton/execution_translate.ml
-@@ -264,8 +264,10 @@
-     with
-     | Translator.Unsupported_il d ->
-         if keep_going then decls, ds @ [d] else raise (Translator.Unsupported_il d)) ([], []) (List.combine source analyzed) in
--  env, Translator.equality_parameters
--    (declarations @ Translator.generated_declarations env source declarations), diagnostics
-+  let declarations = Translator.equality_parameters
-+    (declarations @ Translator.generated_declarations env source declarations)
-+    |> Specialize.program env in
-+  env, declarations, diagnostics
- 
- let emit ~executable source env ordered compiled =
-   let declarations = List.concat_map Printer.declarations_in_group ordered in
---- a/p4spec/lib/lean-skeleton/pipeline.ml
-+++ b/p4spec/lib/lean-skeleton/pipeline.ml
-@@ -6,6 +6,7 @@
-     (string, Diagnostic.t) result =
-   if ordered then Execution_translate.transpile ~executable input else
-   let* lean_ast = Translator.translate input in
-+  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
-   let* ordered = Order.order lean_ast in
-   Ok (Printer.print ordered)
- 
-@@ -15,6 +16,7 @@
-       Ast.Lean.located_declaration list * Diagnostic.t list =
-     Translator.translate_all input
-   in
-+  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
-   let (ordered, ordering_diagnostics) :
-       Ast.Lean.program * Diagnostic.t list = Order.order_all lean_ast
-   in
