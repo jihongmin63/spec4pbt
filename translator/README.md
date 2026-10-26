@@ -32,7 +32,7 @@ Bootstrap fetches the official [kaist-plrg/p4-spectec](https://github.com/kaist-
 submodule at `2730cfd9e74048bb5439da0f8afcef124079a064`. An optional
 `--source PATH` uses a local Git cache containing that public commit.
 
-The backend was imported from `d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0` and is
+The backend was imported from `8003aba7af8331dfb34f3d20a24f288e8dd2c062` and is
 now tracked under `translator/src/`. Its original revision is provenance; current
 source hashes identify the code being built. The official pin is that revision's
 upstream base, with an identical P4 specification tree. The tracked compatibility
@@ -145,8 +145,7 @@ not compatible with ordered output and must no longer be supplied.
 
 The legacy `--relation-semantics declarative` mode retains the imported backend's
 external-type class and validity models. Property bundles always use ordered mode.
-The local change is applied by `patches/extern-singleton.patch` to the build copy;
-the imported source and its checksums remain unchanged.
+The singleton model is part of the imported backend; no local patch provides it.
 
 ## Using the whole P4 specification
 
@@ -161,11 +160,11 @@ python3 -m scripts.toolchain translate \
   --emit-modules /tmp/P4Modules p4-spectec/spec
 ```
 
-The default is ordered logical output. The original backend deliberately uses
-noncomputable plans for large specifications because a single executable call
-datatype can exceed native compiler limits. Observable property checkers do not
-need an executable reference evaluator: they consume actual implementation
-observations. `--executable` is available for specifications within donor limits.
+The default is ordered logical output. Clause actions are ordinary definitions;
+only those that use a request or data constructor beyond Lean's native
+constructor-tag limit are noncomputable. The backend has no executable reference
+evaluator. Observable property checkers do not need one: they consume actual
+implementation observations.
 
 The earlier integration validation translated the entire P4 specification without `--keep-going`: 11,087,987 bytes
 in a monolith, or 446 modules. That input tree is identical to the official pin's
@@ -191,11 +190,12 @@ python3 -m unittest discover -s scripts/tests -t . -v
 export ELAN_TOOLCHAIN="$(cat lean-toolchain)"
 python3 translator/tests/check_direct_relations.py \
   --exe build/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
+python3 translator/tests/check_ordered_relations.py \
+  --exe build/translator/p4-spectec/_build/default/p4spec/lib/lean-skeleton/main.exe
 ```
 
 From `translator/`, `sha256sum --check SHA256SUMS` verifies the unchanged imported
 backend and original regression files. Maintained integration tests and fixtures live in `scripts/tests/`.
-The archived ordered/case suites in `translator/tests/` describe the donor's
-class-based external model; their old instance proofs are not the singleton
-regressions. Current singleton tests live in `scripts/tests/test_metadata.py` and
+The imported ordered suite checks the singleton external-type model directly.
+Its transport and property use are covered by `scripts/tests/test_metadata.py` and
 `scripts/tests/test_property_clause_examples.py`.

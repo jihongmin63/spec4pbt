@@ -2,7 +2,7 @@
 
 The Lean backend in `src/` was imported byte for byte from the development
 checkout of P4-SpecTec at commit
-`d150aa6e53e3f572bc4b02299c05d6d6cee9d6c0`. That checkout originated from
+`8003aba7af8331dfb34f3d20a24f288e8dd2c062`. That checkout originated from
 `jihongmin63/p4-spectec`; it is source provenance, not a build dependency.
 The backend's original path was `p4spec/lib/lean-skeleton/`.
 
@@ -23,12 +23,11 @@ another definition's directional conversion fails. It makes no other
 frontend or interpreter changes. The build applies this patch to its private
 copy under `../build/translator/p4-spectec/`; the official submodule stays unchanged.
 
-`patches/extern-singleton.patch` changes the copied Lean backend's ordered
-translation of `extern syntax` to independent inductive types with the single
-nullary constructor `mk`. It also permits arbitrary external type names in that
-mode. The declarative backend retains its imported external-type model. The build
-copies `src/` before applying patches so backend adaptations, like frontend
-patches, affect only the disposable build tree.
+The imported backend's ordered translation already represents each
+`extern syntax` declaration as an independent inductive type with the single
+nullary constructor `mk`, so no external-type patch is needed. The build copies
+`src/` before applying patches so backend adaptations, like frontend patches,
+affect only the disposable build tree.
 
 `patches/shared-spec-extension.patch` adds ordered helper extensions over an
 imported specification module. It reuses the base runtime and inlines acyclic
@@ -36,7 +35,7 @@ authored helper plans, preserving failure, abort, and fresh-value supply. The
 maintained native extension regressions compare these outcomes with a combined
 translation. This patch also applies only to the copied backend.
 
-`tests/` retains 33 unchanged files from the development commit's
+`tests/` retains 36 unchanged files from the development commit's
 `p4spec/test/backend-lean/`: three CLI regression suites, the case-corpus
 verification helper, and their required small specifications, programs, and
 Lean proofs. The large P4 oracle corpus and the original Dune test alias are

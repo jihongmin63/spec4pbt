@@ -5,11 +5,11 @@ namespace ClauseChain
 theorem copy_refl (n : Nat) : SpecTec.Copy n n := by
   refine ⟨0, ?_⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Copy_clauses n) ()) 0
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Copy_clauses n)) 0
     (.success (.of n)) 0
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram (.pure n) 0
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body (.pure n) 0
     (.success (.of n)) 0
   exact SpecTecExecution.Eval.pure n
 

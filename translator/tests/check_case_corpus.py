@@ -74,23 +74,22 @@ import Case0001
 import Case0002
 namespace SpecTec
 open SpecTecExecution
-theorem det : PrimitiveDeterministic specTecProgram := by
-  intro _ _ _ h; exact False.elim h
 example : case_0 := by
   constructor
   · exact ⟨0, .call (.orElse_success (.bind_success (.guard_true (by rfl)) (.pure _)))⟩
   · intro output ⟨final, h⟩
-    have known : Eval specTecProgram (.call ⟨p4programIR,
-      SpecTecCall.Program_ok case_0_input⟩) 0 (.success (.of case_0_expected)) 0 :=
-      .call (.orElse_success (.bind_success (.guard_true (by rfl)) (.pure _)))
+    obtain ⟨_, known⟩ : ∃ a : Eval Body (.call ⟨p4programIR,
+      Call.Program_ok case_0_input⟩) 0 (.success (.of case_0_expected)) 0,
+      Functional Body a :=
+      ⟨_, .call (.orElse_success (.bind_success (.guard_true (h := by rfl)) (.pure _)))⟩
     simpa only [Outcome.success.injEq, Value.of.injEq, heq_eq_eq, true_and]
-      using (eval_deterministic det h known).1
+      using ((eval_deterministic known h).1).symm
 example : case_1 := by
   rintro ⟨output, final, h⟩
-  have failure : Eval specTecProgram (.call ⟨p4programIR,
-    SpecTecCall.Program_ok case_1_input⟩) 0 .unmatch 0 :=
-      .call (.orElse_unmatch (.bind_unmatch (.guard_false (by decide))) .unmatch)
-  cases (eval_deterministic det failure h).1
+  obtain ⟨_, failure⟩ : ∃ a : Eval Body (.call ⟨p4programIR,
+    Call.Program_ok case_1_input⟩) 0 .unmatch 0, Functional Body a :=
+    ⟨_, .call (.orElse_unmatch (.bind_unmatch (.guard_false (h := by decide))) .unmatch)⟩
+  cases (eval_deterministic failure h).1
 example (h : case_0) : Program_ok case_0_input case_0_expected := h.1
 example (h : case_0) : ∀ output, Program_ok case_0_input output →
     output = case_0_expected := h.2
@@ -120,15 +119,16 @@ rule Program_ok/fallback: |- _EMPTY : $fresh_typeId()
 ''')
         oracle = self.root / 'oracle.lean.gz'
         with gzip.open(oracle, 'wt') as stream:
-            stream.write('"FRESH__0"\n')
+            # The failed first clause already consumed FRESH__0.
+            stream.write('"FRESH__1"\n')
         self.manifest.write_text(f'accept\t{FIXTURES / "case-empty.p4"}\t{oracle}\n')
         result = self.export()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.lean('''import Case0000
 namespace SpecTec
-example : case_0_expected = "FRESH__0" := rfl
+example : case_0_expected = "FRESH__1" := rfl
 example : Program_ok case_0_input case_0_expected := by
-  refine ⟨1, ?_⟩
+  refine ⟨2, ?_⟩
   apply SpecTecExecution.Eval.call
   apply SpecTecExecution.Eval.orElse_unmatch
   · apply SpecTecExecution.Eval.bind_success
@@ -154,7 +154,11 @@ rule Echo: j ~> j
 ''')
         result = self.export('--case-range', '0', '1')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.lean('import Case0000\n#check @SpecTec.case_0\n')
+        self.lean('''import Case0000
+#check @SpecTec.case_0
+example : SpecTec.json := .mk
+example (x y : SpecTec.json) : x = y := by cases x; cases y; rfl
+''')
 
     def test_existing_destination_is_preserved(self):
         self.directory.mkdir()

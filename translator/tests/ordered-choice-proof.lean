@@ -1,13 +1,13 @@
 namespace SpecTec
 open SpecTecExecution
 
-theorem primitivesDet : PrimitiveDeterministic specTecProgram := by
-  intro _ _ _ h
-  exact False.elim h
-
 theorem choose_first_exec (n supply : Nat) :
-    Eval specTecProgram (.call ⟨Nat, SpecTecCall.Choose n⟩) supply
+    Eval Body (.call ⟨Nat, Call.Choose n⟩) supply
       (.success (.of (1 : Nat))) supply :=
+  .call (.orElse_success (.pure 1))
+
+theorem choose_first_functional (n supply : Nat) :
+    Functional Body (choose_first_exec n supply) :=
   .call (.orElse_success (.pure 1))
 
 theorem choose_first (n : Nat) : Choose n 1 := ⟨0, choose_first_exec n 0⟩
@@ -21,18 +21,18 @@ inductive OldChoose : Nat → Nat → Prop where
 theorem choose_sound (n output : Nat) (h : Choose n output) : OldChoose n output := by
   obtain ⟨final, h⟩ := h
   have equal : output = 1 := by
-    simpa [Value.of.injEq] using (eval_deterministic primitivesDet h (choose_first_exec n 0)).1
+    simpa [Value.of.injEq] using (eval_deterministic (choose_first_functional n 0) h).1.symm
   subst output
   exact .first n
 
 example (n : Nat) : ¬ Choose n 2 := by
   rintro ⟨final, h⟩
-  have e := (eval_deterministic primitivesDet (choose_first_exec n 0) h).1
+  have e := (eval_deterministic (choose_first_functional n 0) h).1
   cases e
 
 example (n : Nat) : ¬ Choose n 9 := by
   rintro ⟨final, h⟩
-  cases (eval_deterministic primitivesDet (choose_first_exec n 0) h).1
+  cases (eval_deterministic (choose_first_functional n 0) h).1
 
 -- Output mismatch fails the caller's clause; the callee never retries output 2.
 example (n : Nat) : Caller n 30 := by

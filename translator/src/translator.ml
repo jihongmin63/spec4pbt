@@ -2244,6 +2244,14 @@ let translate_declaration (env : env) (decl : S.def) : L.declaration list =
                  translate_structure_fields env
                    (StringMap.find id.it env.structures);
              } ]
+    | ExternTypD (id, _) when env.ordered ->
+        let constructor : L.constructor =
+          { name = "mk"; arguments = []; result = L.Name id.it;
+            print_origin = id.it; print_format = L.PrintAbsent }
+        in
+        [ L.Datatype
+            { name = id.it; type_parameters = [];
+              constructors = [constructor] } ]
     | ExternTypD (id, _) ->
         if not (List.mem id.it [ "json"; "archState"; "objectState" ]) then
           unsupported decl.at ("unknown external type declaration " ^ id.it);

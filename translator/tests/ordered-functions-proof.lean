@@ -27,12 +27,12 @@ example : Nonzero 1 true := by
       (.bind_unmatch (.guard_false (by decide))) .unmatch))) (.pure true)))
 
 theorem count_zero_exec (supply : Nat) :
-    Eval specTecProgram (.call ⟨Nat, SpecTecCall.Count 0⟩) supply
+    Eval Body (.call ⟨Nat, Call.Count 0⟩) supply
       (.success (.of (0 : Nat))) supply :=
   .call (.orElse_success (.bind_success (.guard_true rfl) (.pure 0)))
 theorem count_zero : Count 0 0 := ⟨0, count_zero_exec 0⟩
 theorem count_one_exec (supply : Nat) :
-    Eval specTecProgram (.call ⟨Nat, SpecTecCall.Count 1⟩) supply
+    Eval Body (.call ⟨Nat, Call.Count 1⟩) supply
       (.success (.of (1 : Nat))) supply :=
   .call (.orElse_unmatch (.bind_unmatch (.guard_false (by decide)))
     (.orElse_success (.bind_success (.guard_true (by decide))
@@ -41,8 +41,8 @@ theorem count_one_exec (supply : Nat) :
           (.bind_success (count_zero_exec supply) (.pure 1)))))))
 theorem count_one : Count 1 1 := ⟨0, count_one_exec 0⟩
 
-example : ∃ index, Selected specTecProgram () (Count_clauses 1) 0 index (.of (1 : Nat)) 0 :=
-  (firstSuccess_success_iff _ _ _ _ _).mp (eval_call_iff.mp (count_one_exec 0))
+example : ∃ index, Selected Body (Count_clauses 1) 0 index (.of (1 : Nat)) 0 :=
+  (tryClauses_success_iff _ _ _ _).mp (eval_call_iff.mp (count_one_exec 0))
 
 example (n : Nat) : «$before_output» n 1 := by
   refine ⟨0, ?_⟩
@@ -57,7 +57,7 @@ example : «$max_or_default» [3, 5, 4] 5 := by
   refine ⟨0, ?_⟩
   exact .call (.orElse_success (.bind_success
     (.call (.orElse_success (.pure 5))) (.pure 5)))
-example : Eval specTecProgram (.call ⟨Int, SpecTecCall.«$parse_or_default» "bad"⟩) 0
+example : Eval Body (.call ⟨Int, Call.«$parse_or_default» "bad"⟩) 0
     (.abort "builtin $text_to_int failed") 0 := by
   exact .call (.orElse_abort (.bind_abort (.call
     (.orElse_unmatch .unmatch (.orElse_abort (.abort _))))))
@@ -71,12 +71,12 @@ namespace SpecTec
 open SpecTecExecution
 
 theorem left_zero_exec (supply : Nat) :
-    Eval specTecProgram (.call ⟨Nat, SpecTecCall.«$left» 0⟩) supply
+    Eval Body (.call ⟨Nat, Call.«$left» 0⟩) supply
       (.success (.of (0 : Nat))) supply :=
   .call (.orElse_success (.bind_success (.guard_true rfl) (.pure 0)))
 theorem left_zero : «$left» 0 0 := ⟨0, left_zero_exec 0⟩
 theorem right_zero_exec (supply : Nat) :
-    Eval specTecProgram (.call ⟨Nat, SpecTecCall.«$right» 0⟩) supply
+    Eval Body (.call ⟨Nat, Call.«$right» 0⟩) supply
       (.success (.of (0 : Nat))) supply :=
   .call (.orElse_success (.bind_success (left_zero_exec supply) (.pure 0)))
 theorem right_zero : «$right» 0 0 := ⟨0, right_zero_exec 0⟩
@@ -105,20 +105,20 @@ example : «$strip_or_default» "abcd" "ab" "cd" := by
   exact .call (.orElse_success (.bind_success
     (.call (.orElse_success (.bind_success (.guard_true (by decide))
       (.bind_success (.guard_true rfl) (.pure "cd"))))) (.pure "cd")))
-example : Eval specTecProgram (.call ⟨String, SpecTecCall.«$strip_or_default» "abcd" "xyz"⟩) 0
+example : Eval Body (.call ⟨String, Call.«$strip_or_default» "abcd" "xyz"⟩) 0
     (.abort "builtin $strip_prefix failed") 0 := by
   exact .call (.orElse_abort (.bind_abort (.call (.orElse_unmatch
     (.bind_success (.guard_true (by decide)) (.bind_unmatch (.guard_false (by decide))))
     (.orElse_abort (.abort _))))))
 
 -- A callback with Bool output cannot inhabit the Nat callback signature.
-example : Nat → SpecTecCall Nat := SpecTecCall.«$identity»
+example : Nat → Call Nat := Call.«$identity»
 end SpecTec
 
 namespace SpecTec
 open SpecTecExecution
-example : Eval specTecProgram
-    (.call ⟨Nat, SpecTecCall.«$partition_result» [] 4611686018427387904⟩) 0
+example : Eval Body
+    (.call ⟨Nat, Call.«$partition_result» [] 4611686018427387904⟩) 0
     (.abort "builtin $partition_ failed") 0 := by
   exact .call (.orElse_abort (.bind_abort (.call (.orElse_unmatch
     (.bind_unmatch (.guard_false (by decide))) (.orElse_abort (.abort _))))))

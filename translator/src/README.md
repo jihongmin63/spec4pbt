@@ -11,7 +11,10 @@ never negated to implement fallback.
 patterns and premises in execution order, and computes outputs last. It
 reuses `translator.ml` for data, expressions and builtin definitions. Tables
 check each row's own pattern coverage, so a failing row result can reach a
-later wildcard row. `execution_ir.ml` records original input positions and
+later wildcard row. When no row produces a result, the call aborts with
+`table $t did not return a value`, as in the SL interpreter that captures the
+oracles, so the caller cannot select fallback. The AL interpreter reports
+unmatch in that case. `execution_ir.ml` records original input positions and
 output types. Noncontiguous inputs, multiple outputs and predicates with no
 outputs retain their public argument order and arity.
 
@@ -22,41 +25,57 @@ and each variant component uses a generated helper that rebuilds the target's
 cases and returns `none` for the others. A value outside the subtype therefore
 yields `unmatch` and can reach a later clause.
 
-Generated `SpecTecCall O` constructors contain only inputs, and their output
+Generated `Call O` constructors contain only inputs, and their output
 index also checks higher-order callback types. Recursive calls are request
-nodes in `Plan`, interpreted by the common inductive `Eval`; clause functions
+nodes in `Action`, interpreted by the common inductive `Eval`; clause functions
 do not recurse in Lean. A public `R inputs outputs : Prop` means that the call
 has a finite `Eval` derivation from fresh supply zero with those outputs,
 existentially hiding the final supply. Changing the requested
 outputs cannot make the callee retry a later clause. Data values such as
 `FAIL`, `false` and `none` remain successful results.
 
-In default output, the transparent execution definitions are `noncomputable`
-because the native Lean runtime cannot compile a single call datatype with this
-many constructors. Their kernel definitions remain available to proofs.
-`--executable` additionally supports native execution for specifications within
-the runtime's limits, using the typed refinement in
-[`SpecTecRunEval.lean`](lean/SpecTecRunEval.lean); see
-[Executable plans and soundness](#executable-plans-and-soundness).
+Generated definitions use ordinary `def`, including all public relations in
+`Prop`. In large specifications, some call or data constructors exceed Lean's
+native runtime tag limit (243 for constructors with runtime fields). Only clauses
+that reference those constructors, their clause lists, and the dependent `Body` are
+marked `noncomputable` in default output. Nullary calls and unrelated clauses
+keep ordinary `def`; all definitions remain available to kernel proofs.
+
 
 `Eval` supplies execution
-constructors, `firstSuccess_success_iff` identifies the selected clause,
-`firstSuccess_unmatch_iff` characterizes independent `AllUnmatch` attempts,
+constructors, `tryClauses_success_iff` identifies the selected clause,
+`tryClauses_unmatch_iff` characterizes sequential `AllUnmatch` attempts,
 and `eval_deterministic` proves outcome and final-supply uniqueness for the same
-initial supply, assuming deterministic primitive
-executions. A divergent call has neither a success nor an `unmatch` derivation,
+initial supply when the known derivation has `Functional` evidence. This
+evidence requires each `choose` it traverses to admit at most one value.
+A divergent call has neither a success nor an `unmatch` derivation,
 and consequently supplies no evidence for selecting fallback.
 
 Extern relations and functions expose an unconditional inductive relation:
 the `allowed` constructor admits every combination of well-typed arguments,
 including every output. They require no execution model or validity predicates.
-`SpecTecExternTypes` supplies the external types and equality instances only.
-Regular clause calls use a fixed primitive bridge that admits typed successes
-through the extern relation and excludes `unmatch` and abort. This abstraction
-does not select a particular output or supply a concrete external runner. It
-admits multiple outputs for the same input, so primitive determinism and global
-result uniqueness cannot generally be established. A caller may reach fallback
-after its own output pattern or guard rejects a successful extern output.
+Each `extern syntax` declaration becomes a distinct singleton inductive type,
+with one nullary `mk` constructor and derived `DecidableEq`:
+
+```lean
+inductive archState : Type where
+  | mk : archState
+deriving DecidableEq
+```
+
+No `SpecTecExternTypes` instance, user axiom, or external type model is needed
+in ordered mode. Arbitrary external type names are supported. Every value of
+one external type equals its `mk`; values of different external types remain
+separately typed. This chosen model cannot express differences between dynamic
+external states and does not establish full-P4 correctness.
+
+An extern request has a `.choose T (fun output => relation inputs output)`
+body. `Eval.choose` admits exactly typed successes through the extern relation,
+excludes `unmatch` and abort, and leaves the fresh supply unchanged. It
+admits multiple outputs for the same input when the output type has multiple
+values, so global result uniqueness cannot generally be established. A caller
+may reach fallback after its own output pattern or
+guard rejects a successful extern output.
 An empty output type supplies no value to return; totality requires inhabited
 output types.
 
@@ -79,9 +98,9 @@ its source-located rejection of `otherwise`. Existing constructor/cases/inductio
 proofs can use this mode while migrating to `Eval` proofs. Ordinary relation
 names, argument order and notation are preserved in ordered mode. Function
 parameters now accept typed call builders rather than arbitrary propositions.
-Declarative mode retains its previous extern validity models and supported
-extern-name restrictions. Ordered mode accepts external function/relation
-signatures without those restrictions. The entire generated call graph uses
+Declarative mode retains its previous `SpecTecExternTypes` class, extern
+validity models, and supported extern-name restrictions. Ordered mode accepts
+external function/relation signatures without those restrictions. The entire generated call graph uses
 the selected mode.
 
 Ordered mode supports `$fresh_typeId` through the shared fresh supply described
@@ -109,14 +128,14 @@ by Dune once in standalone output or `SpecTecCore`.
 ## Fresh supply and compositional proofs
 
 `Eval program plan initial outcome final` connects fresh supplies in the common
-execution relation. `Plan.freshId` returns the string `FRESH__n` and advances
+execution relation. `Action.freshId` returns the string `FRESH__n` and advances
 `n` to `n + 1`. Calls inherit the current supply; bind starts its continuation
-at the preceding execution's final supply. A failed alternative records its
-consumed supply in its own derivation, but fallback retries from the choice's
-original supply. Negated calls retain allocations in their own outcome, and an
-abort commits its allocations because it does not select fallback.
+at the preceding execution's final supply. A failed alternative passes its
+consumed supply to the next attempt, matching the OCaml interpreters' shared
+counter. Exhausting every alternative also retains all consumed names.
+Negated calls and aborts retain allocations in their own outcome.
 `supply_monotone` proves that execution cannot decrease the supply. Extern
-primitives preserve this supply and retain their original unconditional public
+choices preserve this supply and retain their original unconditional public
 API.
 
 Requests and clauses have no supply parameters. The translator validates
@@ -132,7 +151,7 @@ Ordered debug premises retain expression evaluation, including fresh calls,
 iteration helpers, failure and abort, while discarding the printed value.
 
 A regular public relation has the boundary meaning
-`∃ final, Eval specTecProgram (.call request) 0 (.success output) final`.
+`∃ final, Eval Body (.call request) 0 (.success output) final`.
 Nested executions call requests, not public wrappers, so their supplies never
 reset at relation boundaries. To compose execution proofs, state the lemmas
 using `Eval` with explicit initial and final supplies and connect them with
@@ -146,85 +165,6 @@ Uniqueness concerns generated names within one run. The runtime's `FRESH__`
 prefix policy does not avoid arbitrary input names. Fresh support preserves
 that policy; it does not add input-name scanning or an alpha-equivalence
 quotient. Existing fixed oracle output terms retain their exact strings.
-
-## Executable plans and soundness
-
-Pass `--executable` with ordered translation to generate
-`specTecExecutableProgram`. Its clauses have type
-`ExecutablePlan SpecTecCall α`: calls and binds retain their result type,
-and guards carry constructive `Decidable` instances. The existing clause names,
-`specTecBody`, `specTecProgram`, and public relation predicates remain available
-through erasure into `Plan` and `Eval`. Default output and declarative mode keep
-their existing representation. The executable option is incompatible with
-declarative, obligations-only, corpus export (`--emit-cases`), and oracle modes.
-Standalone and `--emit-modules` output use the same execution library.
-Executable generic guards add the required `DecidableEq` parameters and pass
-them through callers; data argument order is unchanged.
-
-For the generated `ordered-choice.watsup` example:
-
-```lean
-namespace SpecTec
-open SpecTecExecution
-
-def noPrimitives : PrimitiveRunner specTecExecutableProgram := .unavailable _
-
-#eval runEval specTecExecutableProgram noPrimitives 20
-  (.call (SpecTecCall.Caller 7)) 0
--- SpecTecExecution.RunResult.done (SpecTecExecution.Outcome.success 30) 0
-
-example : Caller 7 30 :=
-  ⟨0, runEval_sound specTecExecutableProgram noPrimitives 20
-    (.call (SpecTecCall.Caller 7)) 0 (.success 30) 0 rfl⟩
-end SpecTec
-```
-
-`runEval` is a total definition structurally recursive on `Nat` fuel. At zero it
-returns `RunResult.outOfFuel`; at a successor each subevaluation receives the
-predecessor. Fuel bounds evaluation-tree height, not total instructions or the
-work inside a guard, pure function, or primitive implementation. Computational
-adapters must themselves terminate. The fresh supply is a separate argument.
-
-`RunResult.done outcome finalSupply` records success, unmatch, or abort.
-`unsupportedPrimitive` reports that the primitive runner declined a request.
-Neither fuel exhaustion nor a missing primitive selects fallback or counts as
-successful negation. Only completed unmatch selects fallback, which retries
-from the original supply. Bind and negation preserve the existing supply rules.
-
-Externs remain abstract relations. A `PrimitiveRunner program` provides
-`run : {α : Type} → SpecTecCall α → Option (Outcome α)` plus `sound`, proving that
-every returned answer satisfies `program.primitive` after packing. `none`
-means unavailable, not unmatch. `PrimitiveRunner.unavailable` is sufficient for
-programs without executed extern calls. The primitive relation of generated
-externs permits typed successes only, so a certified implementation cannot
-return semantic unmatch or abort for them.
-
-The shared theorem `runEval_sound` proves:
-
-```lean
-runEval program primitives fuel plan start = .done outcome final →
-  Eval program.erase plan.erase start outcome.pack final
-```
-
-It applies to all completed outcomes, with no determinism assumption and no
-new axioms, `sorry`, unsafe casts, or `native_decide` in its proof. Concrete
-examples use kernel reduction (`rfl`) for the computation premise.
-`runEval_mono` proves that increasing fuel preserves any completed outcome and
-final supply. This is soundness relative to the generated `Eval` semantics and
-the primitive certificate; it is not a formal verification of the OCaml
-translator. Completeness and native execution of the entire P4 specification
-are outside this feature. In particular, `--executable` does not remove Lean's
-large-constructor-datatype runtime limits. Guard compilation must find an
-executable decider; there is no classical fallback.
-
-Run the checked generated example:
-
-```sh
-_build/default/p4spec/lib/lean-skeleton/main.exe --executable \
-  p4spec/test/backend-lean/ordered-choice.watsup > /tmp/run-eval-example.lean
-cat p4spec/test/backend-lean/run-eval-generated-proof.lean >> /tmp/run-eval-example.lean
-ELAN_TOOLCHAIN=leanprover/lean4:v4.34.1 lean /tmp/run-eval-example.lean
-```
 
 ## Modular Lean output
 
@@ -244,72 +184,28 @@ still exits with status 1 if any declarations were rejected. It cannot be
 combined with case propositions. Modular output requires translated semantics
 and therefore cannot be combined with `--obligations-only` or oracle modes.
 
-## Branch history
+## Verification
 
-`il-to-lean4-fresh` retains the original 13 backend commits through `47cfe700`,
-immediately before the WFS implementation. Subsequent commits remove
-otherwise splitting, reapply the independent P4 case/oracle tools and all
-nine corpus data commits, and adapt extern models and modular output to the
-direct inductive API. WFS evaluators, supply/counter threading, fresh-specific
-tests, and their proof interfaces were not carried over. The original
-`analysis/il-to-lean4` branch remains unchanged.
-Ordered execution subsequently adds the shared fresh supply without restoring
-per-relation supply parameters or WFS. The optional typed `runEval` refinement
-adds fuel-based execution while preserving this relation-based proof API.
-
-Verification on this branch used the installed `spectecx` opam switch and
-Lean 4.34.1:
+Use OCaml dependencies from the project's opam environment and Lean 4.34.1:
 
 ```sh
 ELAN_TOOLCHAIN=leanprover/lean4:v4.34.1 opam exec --switch=spectecx -- \
   dune build @backend-lean --profile=release
-opam exec --switch=spectecx -- \
-  dune build p4spec/bin/main.exe p4spec/bin/boot.exe \
-    p4spec/test/lang/test.exe p4spec/test/run/test.exe p4spec/test/sim/test.exe \
-    p4spec/test/parse/test.exe p4spec/test/boot/test.exe \
-    @speclang @micro --profile=release
 ```
 
-The backend suite includes 16 declarative compatibility tests, 31 ordered CLI
-integration tests, standalone execution proofs, and sequential AL/SL oracle
-comparisons. The ordered tests cover first success, callee output mismatch,
-normal `FAIL`/`false`/`none` results, recursion, explicit negative calls,
-unconditional extern outputs, exclusion of extern failure/abort, runtime errors,
-UTF-8 result limitations, higher-order calls, downcasts to instantiated generic
-variants and through tuples, lists and options, pruning of whole definitions,
-fresh names and consumed supplies across nested calls, recursive lists,
-iterations, callback wrappers, transactional failed alternatives, negation,
-debug evaluation and abort,
-standalone/module output, and executable fuel/soundness tests. The latter cover
-native generated calls, recursion, higher-order functions, finite builtin guards,
-generic equality propagation, certified polymorphic primitives, and compatibility
-with existing execution proofs. Existing tuple,
-update, slice, set, table, notation, equality, printer and extern fixtures also
-compile in ordered mode.
-
-Run the slower actual-spec integration separately:
+The suite checks declarative and ordered translation, execution proofs, builtin
+oracles, fresh supply, modular output and corpus export. Run the actual-spec
+integration separately:
 
 ```sh
 ELAN_TOOLCHAIN=leanprover/lean4:v4.34.1 python3 \
   p4spec/test/backend-lean/verify_ordered_spec.py \
   --exe _build/default/p4spec/lib/lean-skeleton/main.exe --spec spec
-
-_build/default/p4spec/test/backend-lean/ordered_oracle.exe \
-  p4spec/test/backend-lean/ordered-choice.watsup \
-  p4spec/test/backend-lean/ordered-functions.watsup spec \
-  p4c/testdata/p4_16_errors/annotation.p4 p4c/p4include
 ```
 
-The first command checks the actual supported spec as a standalone file and
-an import chain, with proofs for `Cast_expl_neq` returning both `OK` and normal
-`FAIL`, and all four `$join_flow` cases. Unsupported declarations remain diagnostics; this does not assert a
-complete `Program_ok` proof. The second compares sequential AL/SL clauses and
-actual casts, and checks the chosen P4 result against deterministic execution.
-Archived corpus answers are never regenerated by these checks.
-
-As root, the existing unreadable-directory language test requires dropping
-`CAP_DAC_OVERRIDE` and `CAP_DAC_READ_SEARCH`, using
-`setpriv --bounding-set=-dac_override,-dac_read_search` with a fresh build directory.
+This checks generated declarations and selected proofs, not a complete
+`Program_ok` correctness theorem. Corpus declaration checks likewise do not
+prove the exported propositions.
 
 ## P4 type-checking proof obligations
 
@@ -339,6 +235,7 @@ only after every selected case succeeds. The package contains:
 - `cases/CaseNNNNData.lean`: parsed P4 input and, for accepted cases, the full
   fixed IR value. These transparent `noncomputable def` values still reduce in
   kernel proofs; they skip runtime code generation for large data constants.
+  Compiling large oracle lists can exceed Lean's recursion-depth limit.
   Only one case is materialized at a time during export.
 - `cases/CaseNNNN.lean`: a short, independently importable `case_N : Prop`.
 - `index.md`: all original sources, data/goal links and the exact logical target.

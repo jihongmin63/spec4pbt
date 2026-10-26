@@ -223,21 +223,21 @@ namespace ContractCheck
 theorem copy_refl (n : Nat) : SpecTec.{relation} n n := by
   refine ⟨0, ?_⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.{relation}_clauses n) ()) 0
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.{relation}_clauses n)) 0
     (.success (.of n)) 0
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram (.pure n) 0
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body (.pure n) 0
     (.success (.of n)) 0
   exact SpecTecExecution.Eval.pure n
 
 theorem copy_eq (n v : Nat) (h : SpecTec.{relation} n v) : v = n := by
   rcases h with ⟨final, h⟩
-  rcases copy_refl n with ⟨_, href⟩
-  have det : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request x y hx
-    cases hx
-  have heq := (SpecTecExecution.eval_deterministic det h href).1
+  obtain ⟨_, known⟩ : ∃ a : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Nat, SpecTec.Call.{relation} n⟩) 0 (.success (.of n)) 0,
+      SpecTecExecution.Functional SpecTec.Body a :=
+    ⟨_, .call (.orElse_success (.pure n))⟩
+  have heq := (SpecTecExecution.eval_deterministic known h).1
   cases heq
   rfl
 

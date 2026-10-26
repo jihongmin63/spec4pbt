@@ -193,7 +193,7 @@ example : Rejected 7 := by
                 (folder / (name + '.lean')).write_text(result.stdout)
             for imported, request in [
                 ('Helpers', 'CrashRejected_plan 7'),
-                ('Combined', 'Plan.call ⟨Unit, SpecTecCall.CrashRejected 7⟩'),
+                ('Combined', 'Action.call ⟨Unit, Call.CrashRejected 7⟩'),
             ]:
                 proof = ('import ' + module + '.' + imported + '\n' + EXECUTION_TACTIC
                          + '''
@@ -202,7 +202,7 @@ example : Rejected 7 := by refine ⟨0, ?_⟩; prove_shared_execution
 example : Pair 7 "FRESH__0" "FRESH__1" := by
   refine ⟨2, ?_⟩; prove_shared_execution
 ''' + f'''
-example : Eval specTecProgram ({request}) 0
+example : Eval Body ({request}) 0
     (.abort "builtin $text_to_int failed") 1 := by prove_shared_execution
 ''')
                 (folder / (imported + 'Proof.lean')).write_text(proof)
