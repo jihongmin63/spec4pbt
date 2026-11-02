@@ -1,0 +1,231 @@
+--- a/p4spec/lib/lean-skeleton/main.ml
++++ b/p4spec/lib/lean-skeleton/main.ml
+@@ -15,10 +15,12 @@
+   emit_modules : string option;
+   emit_cases : string option;
+   module_split_bytes : int option;
++  extension_base : string option;
++  extension_helpers : string list;
+ }
+ 
+ let usage =
+-  "Usage: lean-skeleton [--relation-semantics ordered|declarative] [--executable] [--keep-going] [--obligations-only] \
++  "Usage: lean-skeleton [--extension-base MODULE --extension-helper NAME...] [--relation-semantics ordered|declarative] [--executable] [--keep-going] [--obligations-only] \
+    [--case P4 EXPECTED | --reject-case P4 | --manifest TSV]... \
+    [--case-range START COUNT] \
+    [--emit-modules DIR | --emit-cases DIR] [--module-split-bytes N] \
+@@ -37,6 +39,10 @@
+         loop { options with ordered = mode = "ordered" } rest
+     | "--relation-semantics" :: _ ->
+         Error "--relation-semantics requires ordered or declarative"
++    | "--extension-base" :: name :: rest when name <> "" ->
++        loop { options with extension_base = Some name } rest
++    | "--extension-helper" :: name :: rest when name <> "" ->
++        loop { options with extension_helpers = name :: options.extension_helpers } rest
+     | "--keep-going" :: rest -> loop { options with keep_going = true } rest
+     | "--executable" :: rest -> loop { options with executable = true } rest
+     | "--obligations-only" :: rest ->
+@@ -74,7 +80,8 @@
+         loop { options with includes_p4 = path :: options.includes_p4 } rest
+     | ("--case" | "--reject-case" | "--manifest" | "--dump-output" |
+        "--check-rejection" | "--batch-cases" | "--case-range" |
+-       "--emit-modules" | "--emit-cases" | "--module-split-bytes" | "-I") :: [] -> Error usage
++       "--emit-modules" | "--emit-cases" | "--module-split-bytes" |
++       "--extension-base" | "--extension-helper" | "-I") :: [] -> Error usage
+     | argument :: _ when String.starts_with ~prefix:"-" argument ->
+         Error ("Unknown option: " ^ argument ^ "\n" ^ usage)
+     | path :: rest ->
+@@ -83,7 +90,8 @@
+   loop { paths_spec = []; includes_p4 = []; cases = [];
+          ordered = true; executable = false; keep_going = false; obligations_only = false; dump_output = None;
+          check_rejection = None; batch_cases = None; case_range = None;
+-         emit_modules = None; emit_cases = None; module_split_bytes = None } arguments
++         emit_modules = None; emit_cases = None; module_split_bytes = None;
++         extension_base = None; extension_helpers = [] } arguments
+ 
+ let parse_case includes_p4 (expectation, source, expected_path) =
+   let* value =
+@@ -209,6 +217,17 @@
+     | Ok options -> options
+     | Error message -> prerr_endline message; exit 2
+   in
++  if options.extension_helpers <> [] && options.extension_base = None then (
++    prerr_endline "--extension-helper requires --extension-base MODULE";
++    exit 2);
++  if options.extension_base <> None &&
++     (not options.ordered || options.executable || options.keep_going ||
++      options.obligations_only || options.cases <> [] || options.emit_modules <> None ||
++      options.emit_cases <> None || options.module_split_bytes <> None ||
++      options.dump_output <> None || options.check_rejection <> None ||
++      options.batch_cases <> None) then (
++    prerr_endline "--extension-base requires complete ordered relational translation without case, executable, oracle, or module-splitting options";
++    exit 2);
+   if options.executable &&
+      (not options.ordered || options.obligations_only || options.emit_cases <> None ||
+       options.dump_output <> None || options.check_rejection <> None || options.batch_cases <> None) then (
+@@ -267,7 +286,12 @@
+               options.includes_p4 path in
+             Ok (result, [])
+         | None, None, None ->
+-        if options.emit_cases <> None then (
++        if options.extension_base <> None then (
++          let* lean_code = Execution_translate.transpile_extension
++            ~base_module:(Option.get options.extension_base)
++            ~helpers:options.extension_helpers spec_il in
++          Ok (lean_code, []))
++        else if options.emit_cases <> None then (
+           let* semantics = Pipeline.transpile ~ordered:true spec_il in
+           let entries = Case_manifest.select options.case_range options.cases in
+           try
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -46,7 +46,7 @@
+       "(" ^ String.concat " → " (List.map (call_type bound) args @ ["(SpecTecCall " ^ call_type bound result ^ ")"]) ^ ")"
+   | typ -> Printer.print_type bound typ
+ 
+-let compile ~executable env (signatures : E.signature M.t) (signature : E.signature) (rule : L.rule) at =
++let compile ?(helpers = []) ~executable env (signatures : E.signature M.t) (signature : E.signature) (rule : L.rule) at =
+   let rule = if signature.name = "$partition_"
+     && (match M.find_opt "partition_" env.Translator.functions with Some (Translator.BuiltinRelation _) -> true | _ -> false) then
+     match rule.conclusion.arguments with
+@@ -77,8 +77,9 @@
+       ^ " in " ^ signature.name ^ "/" ^ rule.name) in
+   let guard condition continuation =
+     "(.bind (.guard (" ^ condition ^ ")) (fun (_ : Unit) => " ^ continuation ^ "))" in
+-  let call typ request =
+-    if executable then "(.call (" ^ request ^ "))"
++  let call typ request local =
++    if local then "(" ^ request ^ ")"
++    else if executable then "(.call (" ^ request ^ "))"
+     else "(.call ⟨" ^ call_type bound_types typ ^ ", " ^ request ^ "⟩)" in
+   let value t = match t with
+     | L.FunctionReference (L.Global n) ->
+@@ -152,28 +153,30 @@
+     let inputs, outputs = Lang.Hints.Input.split input_mode app.arguments in
+     List.iter (ensure bound) inputs;
+     let head = match app.target with
++      | L.Global n when List.mem n helpers -> ident (n ^ "_plan")
+       | L.Global n -> "SpecTecCall." ^ ident n
+       | L.Local n -> ident n in
+     let type_args = List.map (Printer.print_type bound_types) app.type_arguments in
+-    String.concat " " (head :: type_args @ List.map value inputs), outputs, E.tuple_type output_types in
++    String.concat " " (head :: type_args @ List.map value inputs), outputs, E.tuple_type output_types,
++      (match app.target with L.Global n -> List.mem n helpers | L.Local _ -> false) in
+   let rec premises bound = function
+     | [] ->
+         let outputs = snd (E.split signature rule.conclusion.arguments) in
+         List.iter (ensure bound) outputs;
+         "(.pure (" ^ term (L.Typed (E.tuple_term outputs, E.tuple_type (E.output_types signature))) ^ "))"
+     | L.Holds app :: rest ->
+-        let request, outputs, typ = request bound app in
++        let request, outputs, typ, local = request bound app in
+         let actual = fresh () in
+         (* Project by output count; this also handles a single tuple-valued output. *)
+         let rec projections actual = function
+           | [] -> [] | [_] -> [actual]
+           | _ :: rest -> ("(" ^ actual ^ ").1") :: projections ("(" ^ actual ^ ").2") rest in
+-        "(.bind " ^ call typ request ^ " (fun (" ^ actual ^ " : "
++        "(.bind " ^ call typ request local ^ " (fun (" ^ actual ^ " : "
+         ^ call_type bound_types typ ^ ") => "
+         ^ patterns bound outputs (projections actual outputs) (fun bound -> premises bound rest) ^ "))"
+     | L.NotHolds (app, _) :: rest ->
+-        let req, _, typ = request bound app in
+-        "(.bind (.notHold " ^ call typ req ^ ") (fun (_ : Unit) => " ^ premises bound rest ^ "))"
++        let req, _, typ, local = request bound app in
++        "(.bind (.notHold " ^ call typ req local ^ ") (fun (_ : Unit) => " ^ premises bound rest ^ "))"
+     | L.Prop (L.Comparison (L.Eq, pattern_, rhs)) :: rest when ground bound rhs ->
+         pattern bound pattern_ (value rhs) (fun bound -> premises bound rest)
+     | L.Prop (L.Comparison (L.Eq, lhs, pattern_)) :: rest when ground bound lhs ->
+@@ -467,3 +470,92 @@
+       else Ok ordered in
+     Ok (emit ~executable source env ordered compiled)
+   with Translator.Unsupported_il d -> Error d
++
++
++(** Acyclic authored relations are plans over the imported base request family.
++    Inline helper calls as plans, never as logical premises: ordered failure,
++    aborts, fallback, and the shared fresh supply are consequently unchanged.
++    In particular notHold still requires Eval ... unmatch, not absence of a
++    successful derivation. The base Program and every base declaration remain
++    the exact imported constants. *)
++let transpile_extension ~base_module ~helpers source =
++  try
++    let identifier text =
++      let alpha = function 'a'..'z' | 'A'..'Z' | '_' -> true | _ -> false in
++      let alnum ch = alpha ch || (ch >= '0' && ch <= '9') || ch = '\'' in
++      String.length text > 0 && alpha text.[0] && String.for_all alnum text in
++    if not (List.for_all identifier (String.split_on_char '.' base_module)) then
++      Translator.unsupported no_region "invalid shared base Lean module name";
++    let helpers = List.sort_uniq String.compare helpers in
++    let env, declarations, _ = declarations source ~keep_going:false in
++    let all = List.map (fun d -> d.L.declaration) declarations in
++    Printer.configure all;
++    let signatures = signatures env (external_names source) all in
++    let local = List.map (fun name ->
++      match List.find_opt (fun d -> Order.defined_name d.L.declaration = name) declarations with
++      | Some ({L.declaration = L.Relation _; _} as d)
++          when not (M.find name signatures).E.external_ -> name, d
++      | _ -> Translator.unsupported no_region
++          ("extension helper is not a defined relation: " ^ name)) helpers in
++    let dependencies d = match d.L.declaration with
++      | L.Relation r -> List.concat_map (fun (rule : L.rule) -> rule.premises) r.rules
++          |> List.map Order.premise_references |> Order.unions
++          |> Order.StringSet.elements |> List.filter (fun n -> List.mem n helpers)
++      | _ -> [] in
++    let rec visit path (seen, ordered) name =
++      if List.mem name path then Translator.unsupported (List.assoc name local).L.at
++        ("recursive helper extension is unsupported: "
++          ^ String.concat " -> " (List.rev (name :: path))
++          ^ "; rewrite helpers without recursion before shared translation");
++      if List.mem name seen then seen, ordered else
++      let d = List.assoc name local in
++      let seen, ordered = List.fold_left (visit (name :: path))
++        (seen, ordered) (dependencies d) in
++      name :: seen, ordered @ [d] in
++    let _, ordered = List.fold_left (visit []) ([], []) helpers in
++    let chunks = ref [] in
++    let add text = chunks := text :: !chunks in
++    let instances eq print = String.concat ""
++      (List.map (fun n -> " [_root_.DecidableEq " ^ ident n ^ "]") eq
++       @ List.map (fun n -> " [_root_.SpecTecPrint " ^ ident n ^ "]") print) in
++    let type_binders names = String.concat ""
++      (List.map (fun n -> " (" ^ ident n ^ " : Type)") names) in
++    let arg_binders bound args = String.concat ""
++      (List.map (fun (n,t) -> " (" ^ n ^ " : " ^ call_type bound t ^ ")") args) in
++    List.iter (fun d -> match d.L.declaration with
++      | L.Relation r ->
++          let s = M.find r.name signatures in
++          let args = List.mapi (fun i typ -> "input" ^ string_of_int i, typ)
++            (E.input_types s) in
++          let shared = type_binders r.type_parameters
++            ^ instances r.equality_parameters r.print_parameters in
++          let applied = String.concat " " (List.map ident r.type_parameters @ List.map fst args) in
++          let clauses = List.mapi (fun i (rule : L.rule) ->
++            let name = ident (r.name ^ ":clause:" ^ string_of_int i) in
++            let params, body, _ = compile ~helpers ~executable:false env signatures s rule d.at in
++            add ("noncomputable def " ^ name ^ shared ^ " " ^ params
++              ^ " : SpecTecExecution.Plan.{1} SpecTecRequest :=\n  " ^ body);
++            "fun (_ : _root_.Unit) => " ^ name ^ " " ^ applied) r.rules in
++          add ("noncomputable def " ^ ident (r.name ^ "_clauses") ^ shared
++            ^ arg_binders r.type_parameters args
++            ^ " : List (SpecTecExecution.Clause.{1, 0} SpecTecRequest _root_.Unit) :=\n  ["
++            ^ String.concat ", " clauses ^ "]");
++          add ("noncomputable def " ^ ident (r.name ^ "_plan") ^ shared
++            ^ arg_binders r.type_parameters args
++            ^ " : SpecTecExecution.Plan.{1} SpecTecRequest :=\n  SpecTecExecution.firstSuccess ("
++            ^ ident (r.name ^ "_clauses") ^ " " ^ applied ^ ") ()");
++          let all = List.mapi (fun i typ -> "arg" ^ string_of_int i, typ) s.arguments in
++          let inputs, outputs = E.split s all in
++          let output = List.map (fun (n,t) -> L.Variable (n,t)) outputs
++            |> E.tuple_term |> Printer.print_term r.type_parameters in
++          add ("noncomputable def " ^ ident r.name ^ shared
++            ^ arg_binders r.type_parameters all ^ " : Prop :=\n  ∃ finalSupply : Nat, "
++            ^ "SpecTecExecution.Eval specTecProgram (" ^ ident (r.name ^ "_plan") ^ " "
++            ^ String.concat " " (List.map ident r.type_parameters @ List.map fst inputs)
++            ^ ") 0 (.success (.of (" ^ output ^ "))) finalSupply"
++            ^ (match r.notation with None -> "" | Some n -> "\n\n" ^ Printer.print_notation r.name n))
++      | _ -> assert false) ordered;
++    Ok ("import " ^ base_module ^ "\n\nset_option autoImplicit false\n"
++      ^ "set_option maxHeartbeats 4000000\nset_option maxRecDepth 4096\n\nnamespace SpecTec\n\n"
++      ^ String.concat "\n\n" (List.rev !chunks) ^ "\n\nend SpecTec\n")
++  with Translator.Unsupported_il d -> Error d

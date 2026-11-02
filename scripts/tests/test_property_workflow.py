@@ -1,0 +1,390 @@
+"""Public emit/edit/check/run lifecycle and its certification boundaries."""
+import json
+import os
+from pathlib import Path
+import tempfile
+import unittest
+import subprocess
+
+from scripts.tests import ROOT, ORDERED, SCRATCH
+from scripts.property import workflow
+from scripts.property.clause import load_bundle
+from scripts.property.runner import run_property
+
+
+class PropertyWorkflowTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='Workflow', dir=SCRATCH)
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.base = '.'.join(self.root.relative_to(ROOT).parts)
+        self.output = self.root / 'Bundle'
+        self.contract = self.base + '.Bundle.Contract'
+        self.arguments = dict(
+            spec_paths=[ORDERED / 'spec.watsup'],
+            property_path=ORDERED / 'properties.watsup',
+            config_path=ORDERED / 'observations.toml',
+            external_path=ORDERED / 'external/positive.toml',
+            name='positive', output=self.output,
+            proof_module=self.base + '.Proof', property_proof='ClauseCopy.property_correct',
+            generator_module=self.base + '.Generator', generator='ClauseCopyGenerator.generator',
+        )
+
+    def emit(self):
+        return workflow.emit_property(**self.arguments)
+
+    def complete(self):
+        proof = (ORDERED / 'templates/copy_positive_proof.lean.in').read_text()
+        generator = (ORDERED / 'templates/copy_positive_generator.lean.in').read_text()
+        (self.root / 'Proof.lean').write_text(proof.replace('@CONTRACT@', self.contract))
+        (self.root / 'Generator.lean').write_text(generator.replace('@CONTRACT@', self.contract)
+            .replace('@PROOF@', self.base + '.Proof'))
+
+    def test_emit_exposes_both_obligations_without_certifying(self):
+        self.assertEqual(self.emit(), self.output)
+        contract = (self.output / 'Contract.lean').read_text()
+        self.assertIn('abbrev generator := CorrectGen Premise', contract)
+        self.assertIn('abbrev generatorValue := Gen Input', contract)
+        self.assertIn('def generatorSound', contract)
+        self.assertIn('def generatorComplete', contract)
+        self.assertIn('Contract.property := by', (self.root / 'Proof.lean').read_text())
+        obligations = (self.root / 'Generator.lean').read_text()
+        self.assertIn('Contract.generatorValue := by', obligations)
+        self.assertIn('Contract.generatorSound generator := by', obligations)
+        self.assertIn('Contract.generatorComplete generator := by', obligations)
+        self.assertNotIn('sorry', (self.root / 'Proof.lean').read_text())
+        self.assertTrue((self.output / 'ContractAudit.lean').exists())
+        self.assertTrue((self.output / 'CertifiedGenerator.lean').exists())
+        self.assertIn('generator', (self.output / 'GeneratorAudit.lean').read_text())
+        self.assertFalse((self.output / 'certificate.json').exists())
+        with self.assertRaisesRegex((ValueError, OSError), 'check|certificate'):
+            load_bundle(self.output)
+
+    def test_two_properties_default_to_local_bundles_and_share_specification(self):
+        imports = []
+        for name in ('positive', 'chain'):
+            folder = self.root/name
+            folder.mkdir()
+            source = folder/'property.watsup'
+            source.write_bytes((ORDERED/'properties.watsup').read_bytes())
+            output = workflow.emit_property(spec_paths=[ORDERED/'spec.watsup'],
+                property_path=source, config_path=ORDERED/'observations.toml',
+                external_path=ORDERED/'external'/(name+'.toml'), name=name)
+            self.assertEqual(output, folder/'bundle')
+            self.assertFalse((output/'Spec.lean').exists())
+            self.assertTrue((folder/'Proof.lean').exists())
+            self.assertTrue((folder/'Generator.lean').exists())
+            imports.append((output/'Helpers.lean').read_text())
+        self.assertEqual(imports[0], imports[1])
+
+    def test_reemit_preserves_authored_sources_and_unrelated_files(self):
+        self.emit()
+        self.complete()
+        before = {name: (self.root / name).read_bytes() for name in ['Proof.lean', 'Generator.lean']}
+        (self.output / 'notes.txt').write_text('keep')
+        (self.output / 'certificate.json').write_text('{}')
+        self.emit()
+        for name, source in before.items():
+            self.assertEqual((self.root / name).read_bytes(), source)
+        self.assertEqual((self.output / 'notes.txt').read_text(), 'keep')
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_reemit_does_not_follow_generated_file_hardlinks(self):
+        self.emit()
+        authored = self.root / 'kept-source.txt'
+        authored.write_text('keep authored content')
+        generated = self.output / 'Helpers.lean'
+        generated.unlink()
+        os.link(authored, generated)
+        self.emit()
+        self.assertEqual(authored.read_text(), 'keep authored content')
+
+    def test_reemit_rejects_generated_file_symlinks(self):
+        self.emit()
+        authored = self.root / 'kept-source.txt'
+        authored.write_text('keep authored content')
+        generated = self.output / 'Helpers.lean'
+        generated.unlink()
+        generated.symlink_to(authored)
+        with self.assertRaisesRegex(ValueError, 'regular file'):
+            self.emit()
+        self.assertEqual(authored.read_text(), 'keep authored content')
+
+    def test_templates_fail_check_and_survive_failure(self):
+        self.emit()
+        with self.assertRaisesRegex(ChildProcessError, 'complete|unsolved|Fill'):
+            workflow.check_property(self.output)
+        self.assertTrue((self.root / 'Proof.lean').exists())
+        self.assertTrue((self.output / 'Contract.lean').exists())
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_invalid_check_timeout_invalidates_previous_certificate(self):
+        self.emit()
+        certificate = self.output / 'certificate.json'
+        certificate.write_text('{}')
+        with self.assertRaisesRegex(ValueError, 'finite and positive'):
+            workflow.check_property(self.output, timeout_seconds=0)
+        self.assertFalse(certificate.exists())
+
+    def test_check_reconstructs_contract_even_if_emission_hash_is_changed(self):
+        self.emit()
+        contract = self.output / 'Contract.lean'
+        contract.write_text(contract.read_text().replace('CorrectGen Premise', 'Nat'))
+        from scripts.toolchain import digest
+        metadata = self.output / 'emission.json'
+        record = json.loads(metadata.read_text())
+        record['generated']['Contract.lean'] = digest(contract)
+        metadata.write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError, 'generated.*mismatch|contract.*mismatch'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_joint_check_run_and_freshness(self):
+        self.emit()
+        self.complete()
+        bundle = workflow.check_property(self.output)
+        cert = json.loads((self.output / 'certificate.json').read_text())
+        self.assertEqual(cert['schema_version'], 5)
+        self.assertEqual(cert['generator'], 'ClauseCopyGenerator.generator')
+        self.assertEqual(cert['soundness'], 'ClauseCopyGenerator.soundness')
+        self.assertEqual(cert['completeness'], 'ClauseCopyGenerator.completeness')
+        self.assertIn(str(self.root / 'Generator.lean'), cert['fingerprints'])
+        changed_selection = {**cert, 'property_name': 'different_property'}
+        (self.output / 'certificate.json').write_text(json.dumps(changed_selection))
+        with self.assertRaisesRegex(ValueError, 'source selection'):
+            load_bundle(self.output)
+        (self.output / 'certificate.json').write_text(json.dumps(cert))
+        loaded = load_bundle(self.output)
+        result = run_property(loaded, implementation=ORDERED / 'implementations/correct.toml',
+                              output=self.root / 'results', count=2, size=6, seed=0)
+        self.assertEqual((result.status, result.counts['pass']), ('passed', 2))
+        with self.assertRaisesRegex(ValueError, 'certified generator'):
+            run_property(bundle, generator_module=self.base + '.Generator', generator='Other.generator',
+                         implementation=ORDERED / 'implementations/correct.toml', output=self.root / 'wrong')
+        file = self.root / 'Generator.lean'
+        file.write_text(file.read_text() + '\n-- changed\n')
+        with self.assertRaisesRegex(ValueError, 'stale'):
+            load_bundle(self.output)
+        file.write_text(f'import {self.contract}\n'
+                        f'def ClauseCopyGenerator.generator : {self.contract}.generator := by sorry\n')
+        from scripts.toolchain import digest
+        cert['fingerprints'][str(file)] = digest(file)
+        (self.output / 'certificate.json').write_text(json.dumps(cert))
+        with self.assertRaisesRegex(ChildProcessError, 'sorry|forbidden|axiom'):
+            load_bundle(self.output)
+        with self.assertRaisesRegex(ChildProcessError, 'sorry|forbidden|axiom'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+        self.assertTrue((self.root / 'results/result.json').exists())
+
+    def test_mismatched_generator_is_rejected_at_check(self):
+        self.emit()
+        self.complete()
+        (self.root / 'Generator.lean').write_text(
+            'import Spec4Pbt.CorrectGen\n'
+            'def ClauseCopyGenerator.generator : CorrectGen (fun n : Nat => n = 0) :=\n'
+            '  Gen.CorrectGen.s_pure 0\n')
+        with self.assertRaisesRegex(ChildProcessError, 'type mismatch|expected exactly'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_classical_soundness_proof_certifies_executable_generator(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        old = ('theorem soundness : generatorSound generator := by\n'
+               '  intro input h\n'
+               '  exact (Iff.of_eq (congrFun certified.property input)).mp h')
+        new = ('theorem soundness : generatorSound generator :=\n'
+               '  Classical.choice ⟨by\n'
+               '    intro input h\n'
+               '    exact (Iff.of_eq (congrFun certified.property input)).mp h\n'
+               '  ⟩')
+        self.assertIn(old, source)
+        path.write_text(source.replace(old, new))
+        bundle = workflow.check_property(self.output)
+        result = run_property(bundle, implementation=ORDERED / 'implementations/correct.toml',
+                              output=self.root / 'classical-results', count=1, size=6, seed=0)
+        self.assertEqual(result.status, 'passed')
+
+    def test_noncomputable_generator_does_not_certify(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        self.assertIn('def generator : generatorValue := certified.val', source)
+        path.write_text(source.replace('def generator : generatorValue := certified.val',
+            'noncomputable def generator : generatorValue := certified.val'))
+        with self.assertRaisesRegex(ChildProcessError, 'noncomputable'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_classical_choice_cannot_supply_generator_data(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        self.assertIn('def generator : generatorValue := certified.val', source)
+        path.write_text(source.replace('def generator : generatorValue := certified.val',
+            'def generator : generatorValue :=\n'
+            '  pure ({ «n» := Classical.choice (show Nonempty Nat from ⟨1⟩) } : Input)'))
+        with self.assertRaisesRegex(ChildProcessError, 'Classical.choice|noncomputable'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_proofs_for_a_different_generator_do_not_certify(self):
+        from scripts.lean_tools import rebuild_modules
+
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        prefix, _ = source.split('theorem soundness : generatorSound generator := by', 1)
+        source = prefix + '''private def other : generatorValue := Gen.pick generator generator
+
+theorem soundness : generatorSound other := by
+  intro input h
+  rcases h with h | h
+  · exact (Iff.of_eq (congrFun certified.property input)).mp h
+  · exact (Iff.of_eq (congrFun certified.property input)).mp h
+
+theorem completeness : generatorComplete other := by
+  intro input h
+  exact Or.inl ((Iff.of_eq (congrFun certified.property input)).mpr h)
+
+end ClauseCopyGenerator
+'''
+        path.write_text(source)
+        rebuild_modules(ROOT, [self.base + '.Generator'], 90)
+        with self.assertRaises(ChildProcessError) as raised:
+            workflow.check_property(self.output)
+        self.assertIn('CertifiedGenerator', str(raised.exception))
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_forged_certificate_cannot_skip_lean_audits(self):
+        self.emit()
+        emission = json.loads((self.output / 'emission.json').read_text())
+        plan = json.loads((self.output / 'plan.json').read_text())
+        forged = dict(schema_version=5, project=str(ROOT), module=self.contract,
+            namespace=self.contract, plan_id=plan['plan_id'], fingerprints={},
+            toolchain=emission['toolchain'], **emission['declarations'],
+            spec_paths=emission['request']['spec_paths'],
+            property_path=emission['request']['property_path'], property_name='positive')
+        (self.output / 'certificate.json').write_text(json.dumps(forged))
+        with self.assertRaises((ChildProcessError, ValueError)):
+            load_bundle(self.output)
+
+    def test_proof_cannot_import_generator_transitively(self):
+        self.emit()
+        self.complete()
+        proof = (self.root / 'Proof.lean').read_text().replace('property_correct', 'helper_correct')
+        generator = '\n'.join(line for line in (self.root / 'Generator.lean').read_text().splitlines()
+                              if not line.startswith('import '))
+        (self.root / 'Generator.lean').write_text(proof + '\n' + generator)
+        (self.root / 'Helper.lean').write_text('import '+self.base+'.Generator\n')
+        (self.root / 'Proof.lean').write_text(
+            f'import {self.base}.Helper\n'
+            f'theorem ClauseCopy.property_correct : {self.contract}.property := ClauseCopy.helper_correct\n')
+        with self.assertRaisesRegex(ValueError, 'proof.*depend.*generator'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_output_cannot_replace_authored_directory(self):
+        args = {**self.arguments, 'output': ROOT / 'properties'}
+        with self.assertRaisesRegex(ValueError, 'out|generated'):
+            workflow.emit_property(**args)
+
+    def test_legacy_build_preserves_frontend_error_diagnostic(self):
+        from scripts.property.clause import build_property
+        broken = self.root / 'broken.watsup'
+        broken.write_text('not a valid SpecTec declaration\n')
+        arguments = {key: value for key, value in self.arguments.items()
+                     if key not in ('generator_module', 'generator')}
+        arguments['property_path'] = broken
+        with self.assertRaises(ChildProcessError):
+            build_property(**arguments)
+        self.assertFalse(self.output.exists())
+
+    def test_certificate_must_cover_native_configuration_dependencies(self):
+        self.emit()
+        self.complete()
+        workflow.check_property(self.output)
+        path = self.output/'certificate.json'
+        cert = json.loads(path.read_text())
+        del cert['fingerprints'][str(ORDERED/'observations.toml')]
+        path.write_text(json.dumps(cert))
+        with self.assertRaisesRegex(ValueError, 'dependency closure'):
+            load_bundle(self.output)
+
+    def test_legacy_build_reconstructs_shared_translation(self):
+        from scripts.specification import prepare_translation
+        from scripts.toolchain import digest
+        from scripts.property.clause import build_property
+        shared = prepare_translation(self.arguments['spec_paths'], self.arguments['config_path'], project=ROOT)
+        source = shared.directory/'Spec.lean'
+        identity_path = shared.directory/'identity.json'
+        before_source, before_identity = source.read_bytes(), identity_path.read_bytes()
+        try:
+            source.write_bytes(before_source+b'\n-- edited shared specification\n')
+            record = json.loads(before_identity)
+            record['generated']['Spec.lean'] = digest(source)
+            identity_path.write_text(json.dumps(record))
+            self.complete()
+            args = {k:v for k,v in self.arguments.items() if k not in ('generator_module','generator')}
+            with self.assertRaisesRegex(ValueError, 'shared translation.*mismatch'):
+                build_property(**args)
+        finally:
+            source.write_bytes(before_source)
+            identity_path.write_bytes(before_identity)
+
+    def test_legacy_load_reconstructs_shared_translation_despite_repaired_hashes(self):
+        from scripts.specification import prepare_translation
+        from scripts.toolchain import digest
+        from scripts.property.clause import build_property
+        self.complete()
+        args = {k:v for k,v in self.arguments.items() if k not in ('generator_module','generator')}
+        build_property(**args)
+        self.assertEqual(load_bundle(self.output).property_name, 'positive')
+        shared = prepare_translation(self.arguments['spec_paths'], self.arguments['config_path'], project=ROOT)
+        source, identity_path = shared.directory/'Spec.lean', shared.directory/'identity.json'
+        before_source, before_identity = source.read_bytes(), identity_path.read_bytes()
+        try:
+            source.write_bytes(before_source+b'\n-- edited shared specification\n')
+            record = json.loads(before_identity)
+            record['generated']['Spec.lean'] = digest(source)
+            identity_path.write_text(json.dumps(record))
+            path = self.output/'certificate.json'
+            cert = json.loads(path.read_text())
+            cert['fingerprints'].update({str(p):digest(p) for p in (source, identity_path)})
+            path.write_text(json.dumps(cert))
+            with self.assertRaisesRegex(ValueError, 'shared translation.*mismatch'):
+                load_bundle(self.output)
+        finally:
+            source.write_bytes(before_source)
+            identity_path.write_bytes(before_identity)
+
+    def test_cli_exposes_emit_check_and_run_uses_certificate_selection(self):
+        command = ['python3', '-m', 'scripts.property', 'emit']
+        for key, value in self.arguments.items():
+            flag = {'spec_paths': '--spec', 'property_path': '--property',
+                    'config_path': '--config', 'external_path': '--external'}.get(
+                        key, '--' + key.replace('_', '-'))
+            for item in value if isinstance(value, list) else [value]:
+                command += [flag, str(item)]
+        result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)['status'], 'emitted')
+        check = subprocess.run(['python3', '-m', 'scripts.property', 'check', '--help'],
+                               cwd=ROOT, capture_output=True, text=True)
+        self.assertEqual(check.returncode, 0, check.stderr)
+        run = subprocess.run(['python3', '-m', 'scripts.property', 'run', '--help'],
+                             cwd=ROOT, capture_output=True, text=True)
+        self.assertNotIn('--generator-module', run.stdout)
+        old = subprocess.run(['python3', '-m', 'scripts.property', 'build', '--help'],
+                             cwd=ROOT, capture_output=True, text=True)
+        self.assertNotEqual(old.returncode, 0)
+
+
+if __name__ == '__main__':
+    unittest.main()

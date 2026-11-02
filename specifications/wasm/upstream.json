@@ -1,0 +1,10 @@
+{
+  "repository": "https://github.com/kaist-plrg/wasm-ntt.git",
+  "branch": "wantt",
+  "revision": "4773b2b7abe56e61f279ec2340ac0d3c836b5033",
+  "source_directory": "spec-wasm",
+  "destination_directory": "spec",
+  "license_source": "LICENSE",
+  "imported_on": "2026-10-23",
+  "modifications": []
+}

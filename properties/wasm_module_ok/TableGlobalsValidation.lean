@@ -1,0 +1,118 @@
+import properties.wasm_module_ok.FuncGlobalsValidation
+
+set_option autoImplicit false
+
+namespace properties.wasm_module_ok.TableGlobalsValidation
+
+theorem table_ok_globals (c result : SpecTec.context)
+    (t : SpecTec.table) (n finalSupply : Nat)
+    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Table_ok c t⟩)
+      n (.success (.of result)) finalSupply) :
+    result.GLOBALS = c.GLOBALS := by
+  cases hcall with
+  | call hbody =>
+    change SpecTecExecution.Eval SpecTec.specTecProgram
+      (SpecTecExecution.firstSuccess (SpecTec.Table_ok_clauses c t) ())
+      n (.success (.of result)) finalSupply at hbody
+    cases hbody with
+    | orElse_success hclause =>
+      unfold SpecTec.«Table_ok:clause:0» at hclause
+      cases hclause with
+      | bind_success _ htail =>
+        cases htail with
+        | bind_success _ hpure =>
+          cases hpure with
+          | pure => rfl
+    | orElse_unmatch _ hnone => cases hnone
+
+theorem tables_ok_globals (c result : SpecTec.context)
+    (ts : List SpecTec.table) (n finalSupply : Nat)
+    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tables_ok c ts⟩)
+      n (.success (.of result)) finalSupply) :
+    result.GLOBALS = c.GLOBALS := by
+  induction ts generalizing c n finalSupply result with
+  | nil =>
+      cases hcall with
+      | call hbody =>
+        change SpecTecExecution.Eval SpecTec.specTecProgram
+          (.orElse (SpecTec.«Tables_ok:clause:0» c [])
+            (fun _ => SpecTecExecution.firstSuccess
+              [fun _ => SpecTec.«Tables_ok:clause:1» c []] ()))
+          n (.success (.of result)) finalSupply at hbody
+        cases hbody with
+        | orElse_success hfirst =>
+          unfold SpecTec.«Tables_ok:clause:0» at hfirst
+          cases hfirst with
+          | bind_success hguard _ =>
+            cases hguard with
+            | guard_true hcond => simp at hcond
+        | orElse_unmatch _ htail =>
+          change SpecTecExecution.Eval SpecTec.specTecProgram
+            (.orElse (SpecTec.«Tables_ok:clause:1» c [])
+              (fun _ => .unmatch))
+            n (.success (.of result)) finalSupply at htail
+          cases htail with
+          | orElse_success hsecond =>
+            unfold SpecTec.«Tables_ok:clause:1» at hsecond
+            cases hsecond with
+            | bind_success _ hpure =>
+              cases hpure with
+              | pure => rfl
+          | orElse_unmatch _ hnone => cases hnone
+  | cons t rest ih =>
+      cases hcall with
+      | call hbody =>
+        change SpecTecExecution.Eval SpecTec.specTecProgram
+          (.orElse (SpecTec.«Tables_ok:clause:0» c (t :: rest))
+            (fun _ => SpecTecExecution.firstSuccess
+              [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)] ()))
+          n (.success (.of result)) finalSupply at hbody
+        cases hbody with
+        | orElse_success hfirst =>
+          unfold SpecTec.«Tables_ok:clause:0» at hfirst
+          cases hfirst with
+          | bind_success hguard htail =>
+            cases hguard with
+            | guard_true _ =>
+              cases htail with
+              | bind_success hhead htail =>
+                rename_i middle c₁
+                cases htail with
+                | bind_success hrest hpure =>
+                  cases hpure with
+                  | pure =>
+                    exact (ih c₁ result middle finalSupply hrest).trans
+                      (table_ok_globals c c₁ t n middle hhead)
+        | orElse_unmatch _ htail =>
+          change SpecTecExecution.Eval SpecTec.specTecProgram
+            (.orElse (SpecTec.«Tables_ok:clause:1» c (t :: rest))
+              (fun _ => .unmatch))
+            n (.success (.of result)) finalSupply at htail
+          cases htail with
+          | orElse_success hsecond =>
+            unfold SpecTec.«Tables_ok:clause:1» at hsecond
+            cases hsecond with
+            | bind_success hguard _ =>
+              cases hguard with
+              | guard_true hcond => simp at hcond
+          | orElse_unmatch _ hnone => cases hnone
+
+theorem tables_success_no_bot_candidate
+    (c out : SpecTec.context) (ts : List SpecTec.table)
+    (start fin : Nat)
+    (hinput : SpecTec.valtype.BotT ∉
+      FiniteValidTypes.candidateUniverse c)
+    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+      (.call ⟨SpecTec.context,
+        SpecTec.SpecTecCall.Tables_ok c ts⟩)
+      start (.success (.of out)) fin) :
+    SpecTec.valtype.BotT ∉
+      FiniteValidTypes.candidateUniverse out := by
+  intro hb
+  obtain ⟨m, hm⟩ := (ConstCandidateBot.bot_mem_candidate_iff out).1 hb
+  rw [tables_ok_globals c out ts start fin h] at hm
+  exact hinput ((ConstCandidateBot.bot_mem_candidate_iff c).2 ⟨m, hm⟩)
+
+end properties.wasm_module_ok.TableGlobalsValidation

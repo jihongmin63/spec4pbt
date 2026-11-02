@@ -18,17 +18,19 @@
  %type<El.spec> spec
  %type<El.typ> check_typ
  %type<bool> check_atom
-@@ -781,3 +783,19 @@
+@@ -781,3 +783,20 @@
  
  spec :
-   | NL2* def* EOF { $2 }
+-  | NL2* def* EOF { $2 }
++  | NL2* property_document EOF { fst $2 }
 +
-+(* Property clauses reuse the ordinary expression and premise grammar. *)
++(* Property documents share the ordinary definition and premise grammar. *)
 +properties :
-+  | NL2* property_list EOF { $2 }
-+property_list :
-+  | (* empty *) { [] }
-+  | property_clause NL2* property_list { $1 :: $3 }
++  | NL2* property_document EOF { snd $2 }
++property_document :
++  | (* empty *) { ([], []) }
++  | def property_document { let defs, props = $2 in ($1 :: defs, props) }
++  | property_clause NL2* property_document { let defs, props = $3 in (defs, $1 :: props) }
 +property_clause :
 +  | PROPERTY id COLON enter_scope property_inputs property_goal prem_list exit_scope
 +    { ($2 @@@ $loc($2), $5, $6, $7) }
@@ -92,7 +94,7 @@
 +      let typ = Elab.elab_plaintyp ctx typ in
 +      let ctx = {ctx with menv = Domain.Lib.IdMap.remove (Lang.Xl.Var.strip_var_suffix id) ctx.menv} in Ctx.add_metavar ctx id typ, (id, typ)) ctx inputs in
 +    let elaborate ctx p =
-+      (match p.it with El.IfPr _ | El.RulePr _ | El.VarPr _ -> ()
++      (match p.it with El.IfPr _ | El.RulePr _ | El.RuleNotPr _ | El.VarPr _ -> ()
 +        | _ -> Error.error p.at "unsupported property premise");
 +      let ctx, p = Elab.elab_prem ctx p in
 +      ctx, Elab.externalize_prem p in

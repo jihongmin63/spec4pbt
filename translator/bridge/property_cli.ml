@@ -61,34 +61,53 @@ let prem (p:S.prem) =
   match p.it with
   | RulePr (id,ne,inputs) -> obj ["kind",str "relation"; "relation",str id.it; "inputs",arr (fun i -> `Int i) inputs; "arguments",arr exp (Domain.Mixfix.args ne); "location",loc p.at]
   | IfHoldPr (id,ne) -> let args=Domain.Mixfix.args ne in obj ["kind",str "relation";"relation",str id.it;"inputs",arr (fun i -> `Int i) (List.init (List.length args) Fun.id);"arguments",arr exp args;"location",loc p.at]
+  | IfNotHoldPr (id,ne) -> let args=Domain.Mixfix.args ne in obj ["kind",str "not_relation";"relation",str id.it;"inputs",arr (fun i -> `Int i) (List.init (List.length args) Fun.id);"arguments",arr exp args;"location",loc p.at]
   | IfPr x -> obj ["kind",str "guard";"expression",exp x;"location",loc p.at]
   | LetPr (target,value) -> obj ["kind",str "let";"target",exp target;"value",exp value;"location",loc p.at]
   | _ -> fail p.at "unsupported property premise"
 let binding origin ((id:S.id),t) = obj ["name",str id.it;"type",typ t;
   "producer",str origin;"location",loc id.at]
-let property spec ((id:S.id),inputs,goal,conditions as clause) =
+let rec dependencies (prem:S.prem) = match prem.it with
+  | RulePr (id,_,_) | IfHoldPr (id,_) | IfNotHoldPr (id,_) -> [id.it]
+  | IterPr (inner,_) -> dependencies inner
+  | IfPr _ | LetPr _ | DebugPr _ -> []
+let helper_graph spec names =
+  let helpers = List.filter_map (fun (definition:S.def) -> match definition.it with
+    | RelD (id,_,_,groups,else_group,_) when List.mem id.it names ->
+        let rules = List.concat_map (fun (group:S.rulegroup) ->
+          let _, rules = group.it in rules) groups in
+        let rules = rules @ (match else_group with None -> [] | Some group ->
+          let _, rule = group.it in [rule]) in
+        let fields = ["name",str id.it; "rules",arr (fun (rule:S.rule) ->
+          let _,_,prems = rule.it in
+          obj ["dependencies",arr str (List.sort_uniq String.compare
+            (List.concat_map dependencies prems))]) rules] in
+        let fields = match Property_document.delegate definition with
+          | Some (target, negative) -> fields @ ["delegate",str target; "negative",`Bool negative]
+          | None -> fields in
+        Some (obj fields)
+    | _ -> None) spec in
+  helpers
+let property spec helpers ((id:S.id),inputs,goal,conditions as clause) =
   let blocks, goal_nodes = match Pass.algo_property spec clause with
     | Ok x -> x | Error d -> failwith (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton d)) in
   let condition_blocks = List.mapi (fun index nodes ->
     let source = List.nth conditions index in
-    let kind = match source.it with RulePr _ | IfHoldPr _ -> "relation" | _ -> "guard" in
+    let kind = match source.it with RulePr _ | IfHoldPr _ | IfNotHoldPr _ -> "relation" | _ -> "guard" in
     Property_al.block prem binding ("condition." ^ string_of_int index) kind nodes) blocks in
-  let goal_kind = match goal.it with RulePr _ | IfHoldPr _ -> "relation" | _ -> "guard" in
-  obj ["name",str id.it;"location",loc id.at;"inputs",arr (fun ((id:S.id),t)->obj["name",str id.it;"type",typ t;"location",loc id.at]) inputs;"goal",prem goal;"conditions",arr prem conditions;
+  let goal_kind = match goal.it with RulePr _ | IfHoldPr _ | IfNotHoldPr _ -> "relation" | _ -> "guard" in
+  obj ["name",str id.it;"location",loc id.at;"helpers",`List helpers;"inputs",arr (fun ((id:S.id),t)->obj["name",str id.it;"type",typ t;"location",loc id.at]) inputs;"goal",prem goal;"conditions",arr prem conditions;
        "condition_blocks",`List condition_blocks;"goal_block",Property_al.block prem binding "goal" goal_kind goal_nodes]
-let read path = let ic=open_in path in Fun.protect ~finally:(fun()->close_in ic) (fun()->really_input_string ic (in_channel_length ic))
 let report d = Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton d)
 let () = try
   let specs=ref [] and path=ref "" in
   Arg.parse ["--spec",Arg.String(fun x->specs:= !specs@[x]),"SpecTec source";"--property",Arg.Set_string path,"property file"] (fun _ -> fail no_region "unexpected argument") "property_cli --spec FILE --property FILE";
   if !specs=[] || !path="" then fail no_region "--spec and --property are required";
-  let spec = match Pass.parse !specs with Ok x -> x | Error d -> failwith(report d) in
-  let lex=Lexing.from_string (read !path) in
-  lex.lex_curr_p <- {lex.lex_curr_p with pos_fname= !path};
-  let props = try Frontend.Parser.properties Frontend.Lexer.token lex with Frontend.Parser.Error -> fail (Frontend.Lexer.region lex) "invalid property clause syntax" in
+  let spec, props, helper_names = Property_document.load !specs !path in
   let names=Hashtbl.create 8 in
-  let spec_il = match Pass.elab !specs with Ok x -> x | Error d -> failwith(report d) in
-  let props=List.map (fun ((id:El.id),_,_,_ as p)->if Hashtbl.mem names id.it then fail id.at "duplicate property name";Hashtbl.add names id.it (); property spec_il (match Pass.elab_property spec p with Ok p -> p | Error d -> failwith(report d))) props in
+  let spec_il = match Pass.elab_spec spec with Ok x -> x | Error d -> failwith(report d) in
+  let helpers = helper_graph spec_il helper_names in
+  let props=List.map (fun ((id:El.id),_,_,_ as p)->if Hashtbl.mem names id.it then fail id.at "duplicate property name";Hashtbl.add names id.it (); property spec_il helpers (match Pass.elab_property spec p with Ok p -> p | Error d -> failwith(report d))) props in
   print_endline (Yojson.Basic.to_string(obj ["schema_version",`Int 2;"engine",str "spectec-al";"properties",`List props]))
 with
 | Failure s | Sys_error s -> prerr_endline s; exit 1

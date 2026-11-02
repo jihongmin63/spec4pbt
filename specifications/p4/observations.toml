@@ -1,0 +1,13 @@
+schema_version = 1
+
+# Migrated from the two existing P4 property observation profiles.
+# Add other permitted relations when their concrete profiles are supplied.
+[[observations]]
+id = "instantiation"
+relation = "Program_inst"
+observe = []
+
+[[observations]]
+id = "program_typecheck"
+relation = "Program_ok"
+observe = []

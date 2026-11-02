@@ -96,7 +96,8 @@ let instantiate definitions name arguments =
   match definition.body with
   | Alias typ -> Alias (apply typ)
   | Record fields ->
-      if definition.parameters <> [] then fail ("polymorphic record transport is unsupported: " ^ name);
+      (* The backend preserves record parameters. Metadata uses the closed
+         field types; JSON derivation supplies instances for those parameters. *)
       Record (List.map (fun (name, typ) -> name, apply typ) fields)
   | Variant arguments -> Variant (List.map apply arguments)
   | External -> External
@@ -224,20 +225,16 @@ let children = function
 
 let metadata definitions namespace roots relations =
   let entries = ref [] and aliases = ref [] in
-  let rec register ancestry typ =
+  let rec register typ =
     let name = key typ in
     if List.mem_assoc name !entries then name else (
       if List.length !entries >= 4096 then fail "observation type graph exceeds 4096 closed types";
-      (match typ with
-      | Named (name, args) when List.exists (function Named (previous, previous_args) ->
-          name = previous && args <> previous_args | _ -> false) ancestry ->
-          fail ("nonuniform recursive observation type is unsupported: " ^ name)
-      | _ -> ());
+      (* Track complete instantiated types: different arguments can be finite
+         nesting, as in map<text, map<text, nat>>. The graph limit bounds expansion. *)
       let alias = "Type" ^ string_of_int (List.length !entries) in
       let base = ["lean", string (namespace ^ "." ^ alias)] in
       entries := !entries @ [name, `Null];
       aliases := !aliases @ ["abbrev " ^ alias ^ " := " ^ lean_type typ];
-      let register = register (typ :: ancestry) in
       let data = match typ with
         | Primitive _ -> ["kind", string "primitive"]
         | Sequence element | Optional element -> ignore (register element); ["kind", string "opaque"]
@@ -258,9 +255,9 @@ let metadata definitions namespace roots relations =
         | Function -> fail "function-valued observation transport is unsupported" in
       entries := List.map (fun (key, value) -> key, if key = name then object_ (base @ data) else value) !entries;
       name) in
-  List.iter (fun typ -> ignore (register [] typ)) roots;
+  List.iter (fun typ -> ignore (register typ)) roots;
   let relations = List.mapi (fun index relation ->
-    let arguments = List.map (fun typ -> object_ ["type", string (register [] typ)]) relation.arguments in
+    let arguments = List.map (fun typ -> object_ ["type", string (register typ)]) relation.arguments in
     let alias = "Relation" ^ string_of_int index in
     aliases := !aliases @ ["noncomputable abbrev " ^ alias ^ " := _root_.SpecTec." ^ quote relation.name];
     relation.name, object_ ["lean", string (namespace ^ "." ^ alias);
@@ -268,20 +265,54 @@ let metadata definitions namespace roots relations =
   object_ ["schema_version", `Int 1; "namespace", string namespace;
     "types", object_ !entries; "relations", object_ relations], !aliases
 
-let rec depends_on_external definitions visited typ =
-  if List.mem typ visited then false else
-  let visited = typ :: visited in
-  match typ with
-  | Primitive _ | Function -> false
-  | Sequence typ | Optional typ -> depends_on_external definitions visited typ
-  | Tuple types -> List.exists (depends_on_external definitions visited) types
-  | Named (name, arguments) ->
-      match instantiate definitions name arguments with
-      | External -> true
-      | body -> List.exists (depends_on_external definitions visited) (arguments @ children body)
+let order_codecs definitions derived =
+  (* A DFS over instantiated fields may finish one member of a recursive
+     type group before discovering another member's external dependencies.
+     Deriving for that first member already traverses the whole Lean group.
+     Order the declaration SCCs so every external codec is available first. *)
+  let rec references parameters = function
+    | Named (name, arguments) ->
+        (if List.mem name parameters then [] else [name])
+        @ List.concat_map (references parameters) arguments
+    | Sequence element | Optional element -> references parameters element
+    | Tuple elements -> List.concat_map (references parameters) elements
+    | Primitive _ | Function -> [] in
+  let graph = List.map (fun (name, definition) ->
+    name, List.concat_map (references definition.parameters) (children definition.body)
+      |> List.sort_uniq String.compare) definitions in
+  let next = ref 0 and stack = ref [] and ordered = ref [] in
+  let indices = Hashtbl.create 64 and low = Hashtbl.create 64
+  and active = Hashtbl.create 64 in
+  let rec visit name =
+    if not (Hashtbl.mem indices name) then (
+      let index = !next in incr next;
+      Hashtbl.add indices name index;
+      Hashtbl.add low name index;
+      Hashtbl.replace active name true;
+      stack := name :: !stack;
+      List.iter (fun child ->
+        if List.mem_assoc child graph then (
+          if not (Hashtbl.mem indices child) then (
+            visit child;
+            Hashtbl.replace low name (min (Hashtbl.find low name) (Hashtbl.find low child)))
+          else if Option.value (Hashtbl.find_opt active child) ~default:false then
+            Hashtbl.replace low name (min (Hashtbl.find low name) (Hashtbl.find indices child))))
+        (Option.value (List.assoc_opt name graph) ~default:[]);
+      if Hashtbl.find low name = index then (
+        let rec pop component = match !stack with
+          | member :: rest ->
+              stack := rest;
+              Hashtbl.replace active member false;
+              let component = member :: component in
+              if member = name then component else pop component
+          | [] -> assert false in
+        let component = pop [] in
+        ordered := !ordered @ List.filter (fun name -> List.mem name component) derived)) in
+  List.iter visit derived;
+  !ordered
 
 let codec_declarations definitions codec roots =
-  let visited = ref [] and active = ref [] and derived = ref [] in
+  let visited = ref [] and derived = ref [] in
   let rec visit typ =
     if List.mem typ !visited then () else (
       if List.length !visited >= 4096 then fail "codec dependency graph exceeds 4096 closed types";
@@ -292,38 +323,32 @@ let codec_declarations definitions codec roots =
       | Tuple elements -> List.iter visit elements
       | Function -> fail "function-valued JSON transport is unsupported"
       | Named (name, arguments) ->
-          if List.exists (fun (previous, args) -> name = previous && args <> arguments) !active then
-            fail ("nonuniform recursive codec is unsupported: " ^ name);
-          active := (name, arguments) :: !active;
           List.iter visit arguments;
           let body = instantiate definitions name arguments in
           List.iter visit (children body);
-          active := List.tl !active;
           (match body with
-          | Alias _ | External -> ()
-          | Record _ | Variant _ ->
-              (* Deriving against a class-parameterized datatype would quantify
-                 over its abstract external types again. Concrete model codecs
-                 must be supplied by the caller, not guessed by this bridge. *)
-              if not (List.mem name !derived) && not (depends_on_external definitions [] typ) then
+          | Alias _ -> ()
+          | External | Record _ | Variant _ ->
+              (* Ordered translation emits each external type as a singleton
+                 inductive, so its codecs and dependent record codecs derive. *)
+              if not (List.mem name !derived) then
                 derived := !derived @ [name])) in
   List.iter visit roots;
-  let declarations = List.map (fun name -> "deriving instance _root_.Lean." ^ codec ^ " for _root_.SpecTec." ^ quote name) !derived in
+  let declarations = List.map (fun name -> "deriving instance _root_.Lean." ^ codec ^ " for _root_.SpecTec." ^ quote name)
+    (order_codecs definitions !derived) in
   let checks = List.mapi (fun index typ ->
     "private abbrev required" ^ codec ^ string_of_int index ^ " : _root_.Lean." ^ codec ^
       " (" ^ lean_type typ ^ ") := inferInstance") (List.sort_uniq compare roots) in
   declarations @ checks
 
-let generate spec_module namespace transport_model property_inputs configuration spec =
+let generate spec_module namespace transport_model property_inputs property_types configuration spec =
   let spec_module = qualified "spec module" spec_module in
   let lean_namespace = qualified "transport namespace" namespace in
   let observations = observations configuration in
-  let definitions, relations, external_types = collect spec in
-  if external_types && transport_model = None then
-    fail "abstract external type class parameters require a concrete --transport-model and its JSON instances";
+  let definitions, relations, _external_types = collect spec in
   let relations, inputs, observed = select definitions relations observations in
   let inputs = property_inputs @ inputs in
-  let manifest, aliases = metadata definitions namespace property_inputs relations in
+  let manifest, aliases = metadata definitions namespace property_types relations in
   let codecs = codec_declarations definitions "ToJson" inputs @
     codec_declarations definitions "FromJson" (inputs @ observed) in
   let transport = String.concat "\n" (["import Lean"; "import " ^ spec_module;
@@ -332,24 +357,26 @@ let generate spec_module namespace transport_model property_inputs configuration
     [""; "end " ^ lean_namespace; ""]) in
   object_ ["manifest", manifest; "transport", string transport]
 
-let property_inputs paths path name =
-  if path = "" && name = "" then [] else (
+let property_types paths path name =
+  if path = "" && name = "" then [], [] else (
     if path = "" || name = "" then fail "--property and --property-name are required together";
-    let source = match Pass.parse paths with
-      | Ok spec -> spec
-      | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
-    let channel = open_in_bin path in
-    let text = Fun.protect ~finally:(fun () -> close_in channel)
-      (fun () -> really_input_string channel (in_channel_length channel)) in
-    let lex = Lexing.from_string text in
-    lex.lex_curr_p <- {lex.lex_curr_p with pos_fname = path};
-    let properties = try Frontend.Parser.properties Frontend.Lexer.token lex
-      with Frontend.Parser.Error -> fail ("invalid property syntax: " ^ path) in
+    let source, properties, _ = Property_document.load paths path in
     let property = match List.filter (fun ((id:Lang.El.id),_,_,_) -> id.it = name) properties with
       | [property] -> property
       | _ -> fail ("expected one property named " ^ name) in
     match Pass.elab_property source property with
-    | Ok (_,inputs,_,_) -> List.map (fun (_,typ) -> convert typ) inputs
+    | Ok (_,inputs,goal,conditions) ->
+        let inputs = List.map (fun (_,typ) -> convert typ) inputs in
+        let expression_type (expression : S.exp) = convert (expression.note $ expression.at) in
+        let rec premise_types (premise : S.prem) = match premise.it with
+          | RulePr (_,arguments,_) | IfHoldPr (_,arguments) | IfNotHoldPr (_,arguments) ->
+              List.map expression_type (Domain.Mixfix.args arguments)
+          | IfPr expression | DebugPr expression -> [expression_type expression]
+          | LetPr (target,value) -> [expression_type target; expression_type value]
+          | IterPr (inner,_) -> premise_types inner in
+        (* Internal witnesses need type aliases for the contract, while JSON
+           codecs remain restricted to inputs and selected observations. *)
+        inputs, inputs @ List.concat_map premise_types (goal :: conditions)
     | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)))
 
 let main () =
@@ -364,15 +391,19 @@ let main () =
     (fun path -> paths := !paths @ [path]) "metadata --spec-module MODULE --namespace NAME --config CONFIG_JSON SPEC...";
   if !spec_module = "" || !namespace = "" || !config = "" || !paths = [] then fail "required metadata arguments are missing";
   let configuration = Yojson.Basic.from_file !config in
-  let spec = match Pass.elab !paths with
+  let spec = if !property = "" then match Pass.elab !paths with
     | Ok spec -> spec
-    | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
+    | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic))
+    else let source, _, _ = Property_document.load !paths !property in
+      match Pass.elab_spec source with
+      | Ok spec -> spec
+      | Error diagnostic -> fail (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton diagnostic)) in
   let transport_model = Option.map (fun path ->
     let channel = open_in_bin path in
     Fun.protect ~finally:(fun () -> close_in channel)
       (fun () -> really_input_string channel (in_channel_length channel))) !model in
-  let inputs = property_inputs !paths !property !property_name in
-  let result = generate !spec_module !namespace transport_model inputs configuration spec in
+  let inputs, types = property_types !paths !property !property_name in
+  let result = generate !spec_module !namespace transport_model inputs types configuration spec in
   print_endline (Yojson.Basic.to_string result)
 
 let () =

@@ -1,0 +1,307 @@
+{
+  "repository": "https://github.com/kaist-plrg/wasm-ntt",
+  "revision": "4773b2b7abe56e61f279ec2340ac0d3c836b5033",
+  "license": "Apache-2.0",
+  "files": [
+    {
+      "source": "p4spec/lib/interface/builtin/call.ml",
+      "target": "p4spec/lib/interface/builtin/call.ml",
+      "sha256": "548d5053ff3c7896cf71eaf2b6533f4eb96e7ddd772671cf5cc12e873b1c2404",
+      "modified": false,
+      "integrated_sha256": "548d5053ff3c7896cf71eaf2b6533f4eb96e7ddd772671cf5cc12e873b1c2404"
+    },
+    {
+      "source": "p4spec/lib/interface/builtin/nats.ml",
+      "target": "p4spec/lib/interface/builtin/nats.ml",
+      "sha256": "cd14ee4722f6e71fc2708bdb7dcf37cd47ab7be41115a529d19a15b1411d662d",
+      "modified": true,
+      "integrated_sha256": "dda3c48a2d7bd560545b9c13a98a2194f565a7a28460be88534839e40112332c"
+    },
+    {
+      "source": "p4spec/lib/interface/builtin/texts.ml",
+      "target": "p4spec/lib/interface/builtin/texts.ml",
+      "sha256": "314ec90e334c8fa3fd79a0bdcd47424561430c3014a9c6c9c7a29d045a7aacce",
+      "modified": false,
+      "integrated_sha256": "314ec90e334c8fa3fd79a0bdcd47424561430c3014a9c6c9c7a29d045a7aacce"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/builtin_hooks.ml",
+      "target": "p4spec/lib/wasm-builtin-hooks/builtin_hooks.ml",
+      "sha256": "60cd6376ac487e9877c2981008a4d83d6df929069b0e247e3be9be8387891648",
+      "modified": false,
+      "integrated_sha256": "60cd6376ac487e9877c2981008a4d83d6df929069b0e247e3be9be8387891648"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/construct.ml",
+      "target": "p4spec/lib/wasm-builtin-hooks/construct.ml",
+      "sha256": "f94a64cffa01c53217821c5c545b17bae0c7405350883aa0337106f08d515fea",
+      "modified": true,
+      "integrated_sha256": "3b17b6edabb58a1eea0d85bb3699cf4bc7888ae9413663881bd722e8f3b5af44"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/deconstruct.ml",
+      "target": "p4spec/lib/wasm-builtin-hooks/deconstruct.ml",
+      "sha256": "87d6ef62451d2e2981233ecf200804beb3609ad6aed6a430eba6e45b335bdb47",
+      "modified": false,
+      "integrated_sha256": "87d6ef62451d2e2981233ecf200804beb3609ad6aed6a430eba6e45b335bdb47"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/wrap.ml",
+      "target": "p4spec/lib/wasm-builtin-hooks/wrap.ml",
+      "sha256": "06406594d965fbfe618e89c76a2dbae76157e5506208066cceafc8d40f575e5b",
+      "modified": true,
+      "integrated_sha256": "1e17a00f4978d06739c03e7340b1e92673ca3d0bd290a575afffc1209914c7e5"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/binary/utf8.ml",
+      "target": "p4spec/lib/wasm-numeric/binary/utf8.ml",
+      "sha256": "384e17420081511a24c640a634772c1fbca2db3dfd7b4179484a81725e084288",
+      "modified": false,
+      "integrated_sha256": "384e17420081511a24c640a634772c1fbca2db3dfd7b4179484a81725e084288"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/binary/utf8.mli",
+      "target": "p4spec/lib/wasm-numeric/binary/utf8.mli",
+      "sha256": "48c5a44fb130a652444e21b8e24bf6a2a7f39217e93c67ae75340cdcacf473c7",
+      "modified": false,
+      "integrated_sha256": "48c5a44fb130a652444e21b8e24bf6a2a7f39217e93c67ae75340cdcacf473c7"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/eval_num.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/eval_num.ml",
+      "sha256": "491973d1759cb2dd34a223717243726c01603c34ae622aa3fe1dacb4553c5bf4",
+      "modified": false,
+      "integrated_sha256": "491973d1759cb2dd34a223717243726c01603c34ae622aa3fe1dacb4553c5bf4"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/eval_num.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/eval_num.mli",
+      "sha256": "d9bf44c27b7d7b68c53170d483b198313d6eeff10d0b4d93ccdf18b1bcfa7e78",
+      "modified": false,
+      "integrated_sha256": "d9bf44c27b7d7b68c53170d483b198313d6eeff10d0b4d93ccdf18b1bcfa7e78"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/eval_vec.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/eval_vec.ml",
+      "sha256": "29e19480cfa9dac1b44b806ea1e126e60560b6b44d893b15a968057a35773197",
+      "modified": false,
+      "integrated_sha256": "29e19480cfa9dac1b44b806ea1e126e60560b6b44d893b15a968057a35773197"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/eval_vec.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/eval_vec.mli",
+      "sha256": "c78aceddbd8620b1e8dd37adfef6a6189a9616d849bdde3a1575b2c93bb4bce8",
+      "modified": false,
+      "integrated_sha256": "c78aceddbd8620b1e8dd37adfef6a6189a9616d849bdde3a1575b2c93bb4bce8"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f32.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/f32.ml",
+      "sha256": "5f9d05d0fbffc32821689eda6d68db49c6797756b57b7f71b743b832c88dba54",
+      "modified": false,
+      "integrated_sha256": "5f9d05d0fbffc32821689eda6d68db49c6797756b57b7f71b743b832c88dba54"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f32_convert.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/f32_convert.ml",
+      "sha256": "a8efa3e5f9520c97021377ca4d50976b442b3bbd605a2d8666dd5843c044f1f3",
+      "modified": false,
+      "integrated_sha256": "a8efa3e5f9520c97021377ca4d50976b442b3bbd605a2d8666dd5843c044f1f3"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f32_convert.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/f32_convert.mli",
+      "sha256": "dc328faa20305cf886317e40b6a778500dd51cc7f1d6a739992405852055d401",
+      "modified": false,
+      "integrated_sha256": "dc328faa20305cf886317e40b6a778500dd51cc7f1d6a739992405852055d401"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f64.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/f64.ml",
+      "sha256": "9a37fd72ca259f863b376b203a5a8b619ba44e1bb8f9bfa7da9c91dfa862ff0a",
+      "modified": false,
+      "integrated_sha256": "9a37fd72ca259f863b376b203a5a8b619ba44e1bb8f9bfa7da9c91dfa862ff0a"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f64_convert.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/f64_convert.ml",
+      "sha256": "f7b07c01bebe5fe8863c708a9ce1799e6c04e425eadc29095ca187e4c9c03973",
+      "modified": false,
+      "integrated_sha256": "f7b07c01bebe5fe8863c708a9ce1799e6c04e425eadc29095ca187e4c9c03973"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/f64_convert.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/f64_convert.mli",
+      "sha256": "c33441c1885ba7af464d2edcc65b8f8adb8274ee54d431c47efd6c83afd1ef94",
+      "modified": false,
+      "integrated_sha256": "c33441c1885ba7af464d2edcc65b8f8adb8274ee54d431c47efd6c83afd1ef94"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/fxx.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/fxx.ml",
+      "sha256": "7182b786fc20001a8ca88b91956f5f1d0948edcb36504187cce158664999e1f4",
+      "modified": false,
+      "integrated_sha256": "7182b786fc20001a8ca88b91956f5f1d0948edcb36504187cce158664999e1f4"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i16.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i16.ml",
+      "sha256": "372deb08f974324f2a2728001bbc144c22c9a4339e912a170f8cb782e3e18c6f",
+      "modified": false,
+      "integrated_sha256": "372deb08f974324f2a2728001bbc144c22c9a4339e912a170f8cb782e3e18c6f"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i32.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i32.ml",
+      "sha256": "3c6c4cb99f03cd0fa8d1afce3516917b211168598451bf6ca7a36bc11818a4fd",
+      "modified": false,
+      "integrated_sha256": "3c6c4cb99f03cd0fa8d1afce3516917b211168598451bf6ca7a36bc11818a4fd"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i32_convert.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i32_convert.ml",
+      "sha256": "771f43f3e77c4ddeaeeb7ecddb11f87849920de280feac8317ccefccd6401b5f",
+      "modified": false,
+      "integrated_sha256": "771f43f3e77c4ddeaeeb7ecddb11f87849920de280feac8317ccefccd6401b5f"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i32_convert.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/i32_convert.mli",
+      "sha256": "2bf9f124a41b6c35b3a1b10718fc806d2bf8b6af1b602a26b6ff3ae8d3441aa3",
+      "modified": false,
+      "integrated_sha256": "2bf9f124a41b6c35b3a1b10718fc806d2bf8b6af1b602a26b6ff3ae8d3441aa3"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i64.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i64.ml",
+      "sha256": "afb44edd03664f1e6d9c856563d8ed17146bbae51c3409eacd610c8245dd09d7",
+      "modified": false,
+      "integrated_sha256": "afb44edd03664f1e6d9c856563d8ed17146bbae51c3409eacd610c8245dd09d7"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i64_convert.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i64_convert.ml",
+      "sha256": "0c48029dcf5ea241bd83975b9d1146dd938028fa06a82fcba5a6f0900325c24b",
+      "modified": false,
+      "integrated_sha256": "0c48029dcf5ea241bd83975b9d1146dd938028fa06a82fcba5a6f0900325c24b"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i64_convert.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/i64_convert.mli",
+      "sha256": "26a539285c5705b8810c6761b8082f595bef974a6a5ec9fc5b2841bf3e02fcdb",
+      "modified": false,
+      "integrated_sha256": "26a539285c5705b8810c6761b8082f595bef974a6a5ec9fc5b2841bf3e02fcdb"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/i8.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/i8.ml",
+      "sha256": "21b64b0828d20648e3ad247cb8dbae65caa9d4ae0956cdab908f12ff6cf4a1fa",
+      "modified": false,
+      "integrated_sha256": "21b64b0828d20648e3ad247cb8dbae65caa9d4ae0956cdab908f12ff6cf4a1fa"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/ixx.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/ixx.ml",
+      "sha256": "f965614e19cbddeab9312aa29cc47f2694a5efae5e09110be448710bc98cab50",
+      "modified": false,
+      "integrated_sha256": "f965614e19cbddeab9312aa29cc47f2694a5efae5e09110be448710bc98cab50"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/v128.ml",
+      "target": "p4spec/lib/wasm-numeric/exec/v128.ml",
+      "sha256": "9ac5f17f70f12bb730ec391b94d123c33b6db0f4d6b6f8c847a4d1781d31e09a",
+      "modified": false,
+      "integrated_sha256": "9ac5f17f70f12bb730ec391b94d123c33b6db0f4d6b6f8c847a4d1781d31e09a"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/exec/v128.mli",
+      "target": "p4spec/lib/wasm-numeric/exec/v128.mli",
+      "sha256": "2bde75f8efb30c237b662844cffcea97530a77a7d759c5a671c66de0bb324d4e",
+      "modified": false,
+      "integrated_sha256": "2bde75f8efb30c237b662844cffcea97530a77a7d759c5a671c66de0bb324d4e"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/runtime/value.ml",
+      "target": "p4spec/lib/wasm-numeric/runtime/value.ml",
+      "sha256": "68ac0f6bf6120300cc56c9741f2b1312b7b731782e8c081c5c838563a295f68b",
+      "modified": false,
+      "integrated_sha256": "68ac0f6bf6120300cc56c9741f2b1312b7b731782e8c081c5c838563a295f68b"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/syntax/ast.ml",
+      "target": "p4spec/lib/wasm-numeric/syntax/ast.ml",
+      "sha256": "ff6c33f8a9d3b8294423b95db3e96b6f52c9c4f5fefb108b04d685da168d952c",
+      "modified": false,
+      "integrated_sha256": "ff6c33f8a9d3b8294423b95db3e96b6f52c9c4f5fefb108b04d685da168d952c"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/syntax/pack.ml",
+      "target": "p4spec/lib/wasm-numeric/syntax/pack.ml",
+      "sha256": "062540004f2910c93b9d3c6b98c297e9684afe328bb25c3d3b323228734894cb",
+      "modified": false,
+      "integrated_sha256": "062540004f2910c93b9d3c6b98c297e9684afe328bb25c3d3b323228734894cb"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/syntax/types.ml",
+      "target": "p4spec/lib/wasm-numeric/syntax/types.ml",
+      "sha256": "82aba00dad0608074eebb51ebe5df1cb1837759cb8f702ced12fe808fed69358",
+      "modified": false,
+      "integrated_sha256": "82aba00dad0608074eebb51ebe5df1cb1837759cb8f702ced12fe808fed69358"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/util/lib.ml",
+      "target": "p4spec/lib/wasm-numeric/util/lib.ml",
+      "sha256": "2bf878a456ddd64162c49558241000398ad3eea9d10f7ce1f08c7fc3064b3c16",
+      "modified": false,
+      "integrated_sha256": "2bf878a456ddd64162c49558241000398ad3eea9d10f7ce1f08c7fc3064b3c16"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/util/lib.mli",
+      "target": "p4spec/lib/wasm-numeric/util/lib.mli",
+      "sha256": "37dd7879615281d6f4f56c2132a31d76a6e888bfa4df65ddf31fb7200fdd3f7c",
+      "modified": false,
+      "integrated_sha256": "37dd7879615281d6f4f56c2132a31d76a6e888bfa4df65ddf31fb7200fdd3f7c"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/util/source.ml",
+      "target": "p4spec/lib/wasm-numeric/util/source.ml",
+      "sha256": "89a8c77319a4c311ff49455fd1bf537dbaf5a87eb78266fa92fe516d9d7fbccf",
+      "modified": false,
+      "integrated_sha256": "89a8c77319a4c311ff49455fd1bf537dbaf5a87eb78266fa92fe516d9d7fbccf"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/util/source.mli",
+      "target": "p4spec/lib/wasm-numeric/util/source.mli",
+      "sha256": "39f29a4470a23fd01985cab55b7d45fec5275a05fbd3e8f627dfa05df749a1d6",
+      "modified": false,
+      "integrated_sha256": "39f29a4470a23fd01985cab55b7d45fec5275a05fbd3e8f627dfa05df749a1d6"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/valid/match.ml",
+      "target": "p4spec/lib/wasm-numeric/valid/match.ml",
+      "sha256": "578dbb80855a88df29ad33b1562f0e384a13731186c4bfd336dd33356391a351",
+      "modified": false,
+      "integrated_sha256": "578dbb80855a88df29ad33b1562f0e384a13731186c4bfd336dd33356391a351"
+    },
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/valid/match.mli",
+      "target": "p4spec/lib/wasm-numeric/valid/match.mli",
+      "sha256": "1ddd84be5b7cb4ec4bf92a9f7ba2880ee657d5622d33c9d3c07d14a8ead76eb4",
+      "modified": false,
+      "integrated_sha256": "1ddd84be5b7cb4ec4bf92a9f7ba2880ee657d5622d33c9d3c07d14a8ead76eb4"
+    }
+  ],
+  "adaptations": [
+    "Nats.Value.get_list_array delegates to Get.list for the pinned list-backed runtime.",
+    "A list-backed Builtin.Value_array compatibility module implements only of_list, init, length, sub and replace_slice.",
+    "Wrap and Construct qualify their Value_array calls through Builtin.Value_array.",
+    "Library Dune files replace upstream CLI, JS and regression targets with the numeric dependency closure and hook library."
+  ],
+  "license_files": [
+    {
+      "source": "p4spec/lib/interface-wasm/interpreter/LICENSE",
+      "target": "p4spec/lib/wasm-numeric/LICENSE",
+      "sha256": "c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08"
+    }
+  ]
+}

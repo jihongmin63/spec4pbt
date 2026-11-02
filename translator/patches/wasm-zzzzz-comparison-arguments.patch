@@ -1,0 +1,26 @@
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -279,7 +279,8 @@
+   let annotated body = "({ key := " ^ body ^ " } : _root_.SpecTecCompareKey "
+     ^ print_type bound typ ^ ")" in
+   match typ with
+-  | TypeParameter _ | BuiltinType (_, []) -> "_"
++  | TypeParameter _ | BuiltinType (_, []) ->
++      "(inferInstance : _root_.SpecTecCompareKey " ^ print_type bound typ ^ ")"
+   | BuiltinType ("List", [element]) ->
+       annotated ("fun values => .node 8 (values.map (fun value => " ^ key element "value" ^ "))")
+   | BuiltinType ("Option", [element]) ->
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -267,6 +267,11 @@
+   let declarations = Translator.equality_parameters
+     (declarations @ Translator.generated_declarations env source declarations)
+     |> Specialize.program env in
++  (* Clause strings are compiled before Order emits groups. Normalize the
++     explicit runtime dictionaries here too, so aliases use the underlying
++     comparison/print implementation rather than nonexistent alias helpers. *)
++  let graph = Order.make_graph declarations in
++  let declarations = List.map (Order.expand_print_instance_arguments graph) declarations in
+   env, declarations, diagnostics
+ 
+ let emit ~executable source env ordered compiled =
