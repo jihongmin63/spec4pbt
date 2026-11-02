@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "contract_module": "properties.wasm_module_ok.PlanReference.Contract",
+  "imports": [
+    "properties.wasm_module_ok.Validity"
+  ],
+  "values": [
+    {
+      "id": "headers",
+      "type": "List SpecTec.func"
+    },
+    {
+      "id": "prelude",
+      "type": "SpecTec.module"
+    },
+    {
+      "id": "free",
+      "type": "SpecTec.free"
+    },
+    {
+      "id": "ctx",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "functions",
+      "type": "List SpecTec.func"
+    },
+    {
+      "id": "start",
+      "type": "Option SpecTec.start"
+    },
+    {
+      "id": "module",
+      "type": "properties.wasm_module_ok.PlanReference.Contract.Input"
+    }
+  ],
+  "components": [
+    {
+      "id": "prefix",
+      "input": [],
+      "output": [
+        "headers"
+      ],
+      "require": "True",
+      "ensure": "v_headers = v_headers",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "prefixGen"
+      }
+    },
+    {
+      "id": "sections",
+      "input": [
+        "headers"
+      ],
+      "output": [
+        "prelude"
+      ],
+      "require": "True",
+      "ensure": "v_prelude.FUNCS = v_headers",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate"
+      }
+    },
+    {
+      "id": "free_context",
+      "input": [
+        "headers",
+        "prelude"
+      ],
+      "output": [
+        "free",
+        "ctx"
+      ],
+      "require": "v_prelude.FUNCS = v_headers",
+      "ensure": "v_ctx.REFS = v_free",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "finalContext"
+      }
+    },
+    {
+      "id": "bodies",
+      "input": [
+        "headers",
+        "prelude",
+        "free",
+        "ctx"
+      ],
+      "output": [
+        "functions"
+      ],
+      "require": "v_prelude.FUNCS = v_headers ∧ v_ctx.REFS = v_free",
+      "ensure": "v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE)",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+        "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+        "symbol": "generate"
+      }
+    },
+    {
+      "id": "start",
+      "input": [
+        "free",
+        "ctx"
+      ],
+      "output": [
+        "start"
+      ],
+      "require": "v_ctx.REFS = v_free",
+      "ensure": "SpecTec.Start_ok v_ctx v_start",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleStart.lean",
+        "sha256": "6464b1e6daadceb1a7cf4a52387a1898bf8822a7b901293b4596e6088cb7eda2",
+        "symbol": "generate"
+      }
+    },
+    {
+      "id": "assembly",
+      "input": [
+        "prelude",
+        "free",
+        "ctx",
+        "headers",
+        "functions",
+        "start"
+      ],
+      "output": [
+        "module"
+      ],
+      "require": "v_prelude.FUNCS = v_headers ∧ v_ctx.REFS = v_free ∧ v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE) ∧ SpecTec.Start_ok v_ctx v_start",
+      "ensure": "Nonempty (properties.wasm_module_ok.Validity.ModuleOkTrace v_module.m)",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+        "symbol": "generate"
+      }
+    }
+  ],
+  "connections": [
+    {
+      "target": "prefix",
+      "sources": [],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "sections",
+      "sources": [],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "free_context",
+      "sources": [
+        "sections"
+      ],
+      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; simpa [require_free_context, ensure_sections] using h"
+    },
+    {
+      "target": "bodies",
+      "sources": [
+        "sections",
+        "free_context"
+      ],
+      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; rcases h with ⟨hs, hf⟩; exact ⟨hs, hf⟩"
+    },
+    {
+      "target": "start",
+      "sources": [
+        "free_context"
+      ],
+      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; simpa [require_start, ensure_free_context] using h"
+    },
+    {
+      "target": "assembly",
+      "sources": [
+        "sections",
+        "free_context",
+        "bodies",
+        "start"
+      ],
+      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; rcases h with ⟨hs, hf, hb, hstart⟩; exact ⟨hs, hf, hb, hstart⟩"
+    }
+  ],
+  "final": {
+    "output": "module",
+    "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; exact properties.wasm_module_ok.Validity.module_ok_of_full_trace _ h.2.2.2.2.2"
+  },
+  "target": {
+    "spec": "specifications/wasm/spec",
+    "property": "properties/wasm_module_ok/property.watsup",
+    "name": "wasm_module_ok",
+    "config": "specifications/wasm/observations.toml",
+    "external": "properties/wasm_module_ok/external.toml",
+    "type_aliases": {
+      "module": "properties.wasm_module_ok.PlanReference.ContractTransport.Type0"
+    },
+    "source_sha256": {
+      "specifications/wasm/spec/0-aux.watsup": "98acbb7f8284d9c3ee806bcf458ae1f0dfccc6b7e470204bf6d9bba793846724",
+      "specifications/wasm/spec/1.1.1-syntax.values.watsup": "14e614424815ffbb4c69f19d73512f4fe7cbf860c54118477e8e7c53b6e3d717",
+      "specifications/wasm/spec/1.1.2-syntax.values-aux.watsup": "4e81415e24fa53693c2d647c0bbaccf1d5188850e1421c05e5401b203f400af0",
+      "specifications/wasm/spec/1.2-syntax.types.watsup": "b04baa62021c76115c06a0e3351c47e7b3d39b0bb98a46f0b363fdc990a2ff32",
+      "specifications/wasm/spec/1.3.1-syntax.instructions.watsup": "a5441fada6df0a5efe8c2b2eb4ff01599c9c1ab43912cba268dad4a11d603a75",
+      "specifications/wasm/spec/1.3.2-syntax.instructions-aux.watsup": "36466820d0a18a6933a74bf4a6aa8c77156ce6d9ae15911ea7e4ef847d152c57",
+      "specifications/wasm/spec/1.4-syntax.modules.watsup": "9062479dbfe05e4505a2808fa73592022c2ba8ffd8f3afb8e6939d729a4757cb",
+      "specifications/wasm/spec/1.5-syntax.free.watsup": "90fae9e0ae2d3a5364ff685a72aa5fc753888ccfdf6521675143102d88081fb1",
+      "specifications/wasm/spec/2.0-validation.match.watsup": "362f4e0727a877153bfe1476cbb6d39139b17d7bd2ddbf925f0eac52f2b909fe",
+      "specifications/wasm/spec/2.1-validation.contexts.watsup": "a1a410a4808e4dfbd78427ce3795e0ca5513a575dc71a0983f3e2b11e3595cba",
+      "specifications/wasm/spec/2.2-validation.types.watsup": "091318cf6b671b36f3e10442bbe1fdec37b3570849fb9491f53eb7c1ce79ed1a",
+      "specifications/wasm/spec/2.4-validation.instructions.watsup": "c3f49c937de50a942a380f1c9449164342cf963563bc70ba678f69ef107ae2e3",
+      "specifications/wasm/spec/2.5-validation.modules.watsup": "ef04fcfa756c68787ce23b8c854796971245d496a53e983b564a096f44d1e543",
+      "specifications/wasm/spec/4.0-execution.configurations.watsup": "9486d9406bf89856b315ac4fcce8aac52b08b22b87e6cd3dc793f2b857f8a5ef",
+      "specifications/wasm/spec/4.1-execution.values.watsup": "69b4352600f6a47a2b9030e6e0f7ccbc133731356d42e33bd6f5934591c4da5b",
+      "specifications/wasm/spec/4.2-execution.types.watsup": "1281494e955145b196ff1e3ca2e3143862bfea31dce27d0112898439c7e8985f",
+      "specifications/wasm/spec/4.3-execution.instructions.watsup": "b92285d8c7e33fa1c774bd8d9b564b99371a1b9a0412f5f9084c74984d8cf71d",
+      "specifications/wasm/spec/4.4-execution.modules.watsup": "cb7e3ede5b14d9494ffbd852e836f3974a6465f34f714b3acaa757ba08d77d32"
+    },
+    "lean_sha256": {
+      "specifications/wasm/PlanReference/Spec.lean": "29460cc8274204692084ed05f108e7d7fbe3dc41a2bd8a6346cd8a989c683fb2",
+      "properties/wasm_module_ok/PlanReference/Helpers.lean": "8ce5714dbfe191bcf2451be8b611cbdf86ef057e1505164cf154bb47836667d9",
+      "properties/wasm_module_ok/PlanReference/Transport.lean": "fdbc6ef9bf677310f3c54a29f53a480aa644f7fcb186d9f2a687a2334659bfcd",
+      "properties/wasm_module_ok/PlanReference/Contract.lean": "b8296a0166890e490d5b5302a3207b5c2a4c817b4ccaee1acb28537e13383c77",
+      "properties/wasm_module_ok/Validity.lean": "741fe66309fa4ad6f62876165f788149c5387c6b7dc515bcc6999906dce50b73"
+    }
+  },
+  "implementation_refs": [
+    {
+      "path": "scripts/tests/fixtures/wasm_plan_reference/Generator.lean",
+      "sha256": "ad750de138fe49fa651c56c88eeb1c44e3fa3fb2e96c493baeb747db57febcbf",
+      "symbol": "generator"
+    },
+    {
+      "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+      "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+      "symbol": "modules"
+    }
+  ]
+}
