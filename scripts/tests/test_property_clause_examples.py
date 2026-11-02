@@ -4,7 +4,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.property.runner import collect_case,run_property
+from scripts.property.runner import collect_case,generate_inputs,run_property
 from scripts.tests.ordered.run import build_example
 from scripts.tests.external_selection import select_all
 from scripts.property.clause import build_property,load_clause
@@ -53,6 +53,16 @@ class PropertyExamplesTests(unittest.TestCase):
         self.assertEqual((result.status,result.counts['pass']),('passed',2))
         samples=json.loads((result.output/'samples.json').read_text())
         self.assertTrue(all(sample['input']['n']>0 for sample in samples))
+
+    def test_generate_saves_run_inputs_without_implementation(self):
+        bundle,_,_=self.example('positive')
+        run=self.run_example('positive')
+        generated=generate_inputs(bundle,output=self.root/self._testMethodName,count=2,size=6,seed=0)
+        self.assertEqual(generated.status,'generated')
+        samples=json.loads((generated.output/'samples.json').read_text())
+        self.assertEqual(samples,json.loads((run.output/'samples.json').read_text()))
+        self.assertTrue(all(sample['input']['n']>0 for sample in samples))
+        self.assertFalse(any(generated.output.glob('case-*')))
 
     def test_wrong_observation_fails_even_with_tautological_goal(self):
         result=self.run_example('positive','zero')

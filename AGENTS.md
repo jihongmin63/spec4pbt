@@ -86,7 +86,8 @@ Run Python module commands from the repository root.
    and certified by check, with freshness checks before use. Save each run to a
    fresh `properties/<name>/runs/<run>/` and explain pass/fail/error evidence. Use
    `recheck` for saved traces, `rerun` for fresh implementation calls. `collect`
-   does not certify the input premise.
+   does not certify the input premise. Use `generate` to save certified premise
+   inputs to a fresh `properties/<name>/runs/<run>/` without implementation calls.
 8. Report exactly what is proven and executed. Planning and ordered fixture
    success do not establish full-P4 certification. The checked-in
    `instantiation_progress` property currently has no completed proof, generator,

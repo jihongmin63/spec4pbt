@@ -30,6 +30,13 @@ class RunSummary:
     output: Path
 
 
+@dataclass(frozen=True)
+class GenerationSummary:
+    status: str
+    count: int
+    output: Path
+
+
 def bundle_value(bundle):
     return bundle if isinstance(bundle,CertifiedProperty) else load_bundle(bundle)
 
@@ -217,6 +224,21 @@ def main : IO Unit := do
             if set(s)!={'index','input'} or type(s['index']) is not int or s['index']!=i:
                 raise ValueError('sampler protocol mismatch')
         yield samples,fingerprints
+
+
+def generate_inputs(bundle,*,output,count=100,size=10,seed=0,timeout_seconds=120):
+    """Save certified premise inputs with run's sampler, without implementation calls."""
+    bundle=bundle_value(bundle)
+    output=Path(output).resolve()
+    if os.path.lexists(output):raise FileExistsError('generation output already exists: '+str(output))
+    with _sample_inputs(bundle,count=count,size=size,seed=seed,
+                        timeout_seconds=timeout_seconds) as (samples,fingerprints):
+        output.mkdir(parents=True)
+        write_json(output/'samples.json',samples)
+        write_json(output/'generation.json',{'plan_id':bundle.plan['plan_id'],'generator_module':bundle.generator_module,
+                                           'generator':bundle.generator,'count':count,'size':size,'seed':seed,
+                                           'sampler_dependencies':fingerprints})
+    return GenerationSummary('generated',count,output)
 
 
 def run_property(bundle,*,implementation,output,generator_module=None,generator=None,count=100,size=10,seed=0,

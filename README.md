@@ -238,6 +238,20 @@ python3 -m scripts.property run \
   --count 100 --size 10 --seed 0
 ```
 
+`generate` saves premise-satisfying inputs without an implementation. It applies the same
+certificate and freshness checks and the same certified sampler as `run`, then writes
+`samples.json` (the `{index, input}` records that `run` saves) and `generation.json` (plan,
+generator, count, size, seed, and sampler dependency hashes) to a fresh output directory. The same
+`--count`, `--size`, and `--seed` reproduce the inputs of `run`. A generator failure, such as
+exhausted backtracking, leaves no output directory.
+
+```sh
+python3 -m scripts.property generate \
+  --bundle properties/instantiation_progress/bundle \
+  --output properties/instantiation_progress/runs/inputs-001 \
+  --count 100 --size 10 --seed 0
+```
+
 The proof file imports `properties.instantiation_progress.bundle.Contract`, which exists
 before authoring begins. Default declaration names are
 `properties.instantiation_progress.Proof.property_correct` and
@@ -340,7 +354,8 @@ python3 -m scripts.property rerun \
 
 `recheck` checks a saved trace without calling the implementation again; `rerun` makes fresh calls to
 the specified implementation. `collect --input FILE` uses manual input and does not certify the input
-premise. Use `run` for certified inputs. Limit execution time with `--timeout` and `--adapter-timeout`.
+premise. Use `run` for certified inputs, or `generate` to save them without implementation calls.
+Limit execution time with `--timeout` and `--adapter-timeout`.
 
 ## Tool verification
 

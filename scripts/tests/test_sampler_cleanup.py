@@ -1,4 +1,6 @@
 """Sampler scratch ownership must not outlive a call or invalidate an active run."""
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 import sys
@@ -8,7 +10,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts.property.clause import CertifiedProperty
-from scripts.property import runner
+from scripts.property import cli, runner
 from scripts.toolchain import SCRATCH_DIRECTORY, digest
 
 
@@ -81,6 +83,9 @@ print(json.dumps(reply))
         return runner.run_property(self.bundle, implementation=self.implementation, output=self.output,
                                    count=2, size=4, seed=0, timeout_seconds=10)
 
+    def generate(self):
+        return runner.generate_inputs(self.bundle, output=self.output, count=2, size=4, seed=0, timeout_seconds=10)
+
     def assert_clean(self):
         self.assertEqual(list(self.scratch.glob('sampler-*')), [])
         self.assertTrue(self.dependency.is_file())
@@ -90,6 +95,53 @@ print(json.dumps(reply))
         self.assertEqual(samples, self.samples)
         self.assertIn(str(self.dependency), fingerprints)
         self.assert_clean()
+
+    def test_generate_saves_certified_samples_without_implementation_calls(self):
+        with patch.object(CertifiedProperty, 'invoke', side_effect=AssertionError('native execution')):
+            result = self.generate()
+        self.assertEqual((result.status, result.count, result.output), ('generated', 2, self.output.resolve()))
+        self.assert_clean()
+        self.assertEqual(sorted(path.name for path in self.output.iterdir()), ['generation.json', 'samples.json'])
+        self.assertEqual(json.loads((self.output / 'samples.json').read_text()), self.samples)
+        record = json.loads((self.output / 'generation.json').read_text())
+        self.assertEqual((record['plan_id'], record['generator'], record['count'], record['size'], record['seed']),
+                         ('cleanup-fixture', 'Fixture.generator', 2, 4, 0))
+        self.assertIn(str(self.driver), record['sampler_dependencies'])
+        self.assertIn(str(self.dependency), record['sampler_dependencies'])
+
+    def test_generate_rejects_existing_output_and_saves_nothing_after_sampling_failure(self):
+        self.output.mkdir()
+        with self.assertRaisesRegex(FileExistsError, 'generation output already exists'):
+            self.generate()
+        self.output.rmdir()
+        original_output = self.sample_output
+
+        def mutate(command, project, timeout):
+            result = original_output(command, project, timeout)
+            self.dependency.write_text('changed sampler dependency')
+            return result
+
+        failures = [
+            ('generator failure', ChildProcessError('Generation failure:backtracked too many times')),
+            ('stale dependency', mutate),
+        ]
+        for label, failure in failures:
+            with self.subTest(label=label):
+                with patch.object(runner, 'run_checked', side_effect=failure):
+                    with self.assertRaises((ChildProcessError, ValueError)):
+                        self.generate()
+                self.assertFalse(self.output.exists())
+                self.assert_clean()
+
+    def test_generate_command_needs_no_implementation(self):
+        argv = ['scripts.property', 'generate', '--bundle', str(self.root), '--output', str(self.output),
+                '--count', '2', '--size', '4', '--seed', '0']
+        stdout = io.StringIO()
+        with patch.object(sys, 'argv', argv), patch.object(cli, 'load_bundle', return_value=self.bundle), \
+                redirect_stdout(stdout):
+            self.assertEqual(cli.main(), 0)
+        self.assertEqual(json.loads(stdout.getvalue())['status'], 'generated')
+        self.assertEqual(json.loads((self.output / 'samples.json').read_text()), self.samples)
 
     def test_sampling_errors_remove_scratch(self):
         failures = [
