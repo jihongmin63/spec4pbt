@@ -1,76 +1,8 @@
 import properties.wasm_module_ok.bundle.Helpers
-import Mathlib.Tactic.DeriveEncodable
+import properties.wasm_module_not_ok.TypeFamilyCodec
 import Mathlib.Logic.Equiv.List
 
 set_option autoImplicit false
-
--- Constructive encodings for the nonrecursive leaves of the full Wasm AST.
--- Recursive type and instruction families are separate outstanding obligations.
-deriving instance Encodable for SpecTec.set
-deriving instance Encodable for SpecTec.fmag
-deriving instance Encodable for SpecTec.f32
-deriving instance Encodable for SpecTec.f64
-deriving instance Encodable for SpecTec.externidx
-deriving instance Encodable for SpecTec.null
-deriving instance Encodable for SpecTec.«mut»
-deriving instance Encodable for SpecTec.init
-deriving instance Encodable for SpecTec.final
-deriving instance Encodable for SpecTec.limits
-deriving instance Encodable for SpecTec.typevar
-deriving instance Encodable for SpecTec.typevarConcrete
-deriving instance Encodable for SpecTec.addrtype
-deriving instance Encodable for SpecTec.numtype
-deriving instance Encodable for SpecTec.vectype
-deriving instance Encodable for SpecTec.heaptypeVar
-deriving instance Encodable for SpecTec.heaptypeConcrete
-deriving instance Encodable for SpecTec.packtype
-deriving instance Encodable for SpecTec.ftestop
-deriving instance Encodable for SpecTec.extension
-deriving instance Encodable for SpecTec.packshape
-deriving instance Encodable for SpecTec.vextension
-deriving instance Encodable for SpecTec.vecop
-deriving instance Encodable for SpecTec.laneop
-deriving instance Encodable for SpecTec.op
-deriving instance Encodable for SpecTec.memop
-deriving instance Encodable for SpecTec.iunop
-deriving instance Encodable for SpecTec.funop
-deriving instance Encodable for SpecTec.ibinop
-deriving instance Encodable for SpecTec.fbinop
-deriving instance Encodable for SpecTec.irelop
-deriving instance Encodable for SpecTec.frelop
-deriving instance Encodable for SpecTec.itestop
-deriving instance Encodable for SpecTec.icvtop
-deriving instance Encodable for SpecTec.fcvtop
-deriving instance Encodable for SpecTec.void
-deriving instance Encodable for SpecTec.vitestop
-deriving instance Encodable for SpecTec.viunop
-deriving instance Encodable for SpecTec.vfunop
-deriving instance Encodable for SpecTec.vibinop
-deriving instance Encodable for SpecTec.vfbinop
-deriving instance Encodable for SpecTec.viternop
-deriving instance Encodable for SpecTec.vfternop
-deriving instance Encodable for SpecTec.virelop
-deriving instance Encodable for SpecTec.vfrelop
-deriving instance Encodable for SpecTec.vicvtop
-deriving instance Encodable for SpecTec.vfcvtop
-deriving instance Encodable for SpecTec.vishiftop
-deriving instance Encodable for SpecTec.vibitmaskop
-deriving instance Encodable for SpecTec.vvtestop
-deriving instance Encodable for SpecTec.vvunop
-deriving instance Encodable for SpecTec.vvbinop
-deriving instance Encodable for SpecTec.vvternop
-deriving instance Encodable for SpecTec.vnsplatop
-deriving instance Encodable for SpecTec.vnextractop
-deriving instance Encodable for SpecTec.vnreplaceop
-deriving instance Encodable for SpecTec.externop_
-deriving instance Encodable for SpecTec.initop_
-deriving instance Encodable for SpecTec.memtype
-deriving instance Encodable for SpecTec.memory
-deriving instance Encodable for SpecTec.tag
-deriving instance Encodable for SpecTec.start
-deriving instance Encodable for SpecTec.exportdesc
-deriving instance Encodable for SpecTec.«export»
-deriving instance Encodable for SpecTec.«catch»
 
 namespace properties.wasm_module_ok.Enumeration
 

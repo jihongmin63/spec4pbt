@@ -129,4 +129,24 @@ theorem expanddt_deterministic (dt : SpecTec.deftype)
   exact SpecTecExecution.eval_deterministic hdet h
     (expanddt_total dt n)
 
+theorem expanddt_success_iff_result (dt : SpecTec.deftype)
+    (st : SpecTec.strtype) (n finalSupply : Nat) :
+    SpecTecExecution.Eval SpecTec.specTecProgram
+      (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+      n (.success (.of st)) finalSupply ↔
+    expandResult dt = some st ∧ finalSupply = n := by
+  constructor
+  · intro h
+    obtain ⟨hout, hsupply⟩ :=
+      expanddt_deterministic dt n finalSupply _ h
+    cases hresult : expandResult dt with
+    | none => simp [expandOutcome, hresult] at hout
+    | some actual =>
+        simp only [expandOutcome, hresult] at hout
+        cases hout
+        exact ⟨rfl, hsupply⟩
+  · rintro ⟨hresult, rfl⟩
+    simpa [expandOutcome, hresult] using
+      expanddt_total dt finalSupply
+
 end properties.wasm_module_ok.UnrollInterface
