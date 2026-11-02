@@ -56,14 +56,15 @@ theorem local_iter_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Funcbody_ok:rule:iter:1:clause:0» c (l :: ls))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls)]))
+            [SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
         change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of result)) finalSupply at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls))
             (fun _ => .unmatch))
@@ -79,7 +80,7 @@ theorem local_iter_cons_success_iff
               rename_i rest
               cases hpure with
               | pure => exact ⟨lt, rest, middle, rfl, hlocal, hrest⟩
-        | orElse_unmatch _ hlast => cases hlast
+        | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨lt, rest, middle, rfl, hlocal, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

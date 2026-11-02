@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.DeclarationRefsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,7 +25,7 @@ theorem table_ok_types (c result : SpecTec.context)
         | bind_success _ hpure =>
           cases hpure with
           | pure => rfl
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem global_ok_types (c result : SpecTec.context)
     (g : SpecTec.global) (n finalSupply : Nat)
@@ -46,7 +47,7 @@ theorem global_ok_types (c result : SpecTec.context)
         | bind_success _ hpure =>
           cases hpure with
           | pure => rfl
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem elem_ok_types (c result : SpecTec.context)
     (e : SpecTec.elem) (n finalSupply : Nat)
@@ -70,7 +71,7 @@ theorem elem_ok_types (c result : SpecTec.context)
           | bind_success _ hpure =>
             cases hpure with
             | pure => rfl
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem data_ok_types (c result : SpecTec.context)
     (d : SpecTec.data) (n finalSupply : Nat)
@@ -90,7 +91,7 @@ theorem data_ok_types (c result : SpecTec.context)
       | bind_success _ hpure =>
         cases hpure with
         | pure => rfl
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem tables_ok_types (c result : SpecTec.context)
     (ts : List SpecTec.table) (n finalSupply : Nat)
@@ -105,7 +106,7 @@ theorem tables_ok_types (c result : SpecTec.context)
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Tables_ok:clause:0» c [])
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Tables_ok:clause:1» c []]))
+              [SpecTec.«Tables_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -114,7 +115,8 @@ theorem tables_ok_types (c result : SpecTec.context)
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:1» c [])
               (fun _ => .unmatch))
@@ -126,14 +128,14 @@ theorem tables_ok_types (c result : SpecTec.context)
             | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Tables_ok:clause:0» c (t :: rest))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
+              [SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -151,7 +153,8 @@ theorem tables_ok_types (c result : SpecTec.context)
                   | pure =>
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (table_ok_types c c₁ t n middle hhead)
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
@@ -163,7 +166,7 @@ theorem tables_ok_types (c result : SpecTec.context)
             | bind_success hguard _ =>
               cases hguard with
               | guard_true hcond => simp at hcond
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem globals_ok_types (c result : SpecTec.context)
     (ts : List SpecTec.global) (n finalSupply : Nat)
@@ -178,7 +181,7 @@ theorem globals_ok_types (c result : SpecTec.context)
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Globals_ok:clause:0» c [])
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Globals_ok:clause:1» c []]))
+              [SpecTec.«Globals_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -187,7 +190,8 @@ theorem globals_ok_types (c result : SpecTec.context)
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:1» c [])
               (fun _ => .unmatch))
@@ -199,14 +203,14 @@ theorem globals_ok_types (c result : SpecTec.context)
             | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Globals_ok:clause:0» c (t :: rest))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Globals_ok:clause:1» c (t :: rest)]))
+              [SpecTec.«Globals_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -224,7 +228,8 @@ theorem globals_ok_types (c result : SpecTec.context)
                   | pure =>
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (global_ok_types c c₁ t n middle hhead)
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
@@ -236,7 +241,7 @@ theorem globals_ok_types (c result : SpecTec.context)
             | bind_success hguard _ =>
               cases hguard with
               | guard_true hcond => simp at hcond
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem elems_ok_types (c result : SpecTec.context)
     (ts : List SpecTec.elem) (n finalSupply : Nat)
@@ -251,7 +256,7 @@ theorem elems_ok_types (c result : SpecTec.context)
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elems_ok:clause:0» c [])
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Elems_ok:clause:1» c []]))
+              [SpecTec.«Elems_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -260,7 +265,8 @@ theorem elems_ok_types (c result : SpecTec.context)
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Elems_ok:clause:1» c [])
               (fun _ => .unmatch))
@@ -272,14 +278,14 @@ theorem elems_ok_types (c result : SpecTec.context)
             | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elems_ok:clause:0» c (t :: rest))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Elems_ok:clause:1» c (t :: rest)]))
+              [SpecTec.«Elems_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -297,7 +303,8 @@ theorem elems_ok_types (c result : SpecTec.context)
                   | pure =>
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (elem_ok_types c c₁ t n middle hhead)
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Elems_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
@@ -309,7 +316,7 @@ theorem elems_ok_types (c result : SpecTec.context)
             | bind_success hguard _ =>
               cases hguard with
               | guard_true hcond => simp at hcond
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem datas_ok_types (c result : SpecTec.context)
     (ts : List SpecTec.data) (n finalSupply : Nat)
@@ -324,7 +331,7 @@ theorem datas_ok_types (c result : SpecTec.context)
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Datas_ok:clause:0» c [])
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Datas_ok:clause:1» c []]))
+              [SpecTec.«Datas_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -333,7 +340,8 @@ theorem datas_ok_types (c result : SpecTec.context)
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Datas_ok:clause:1» c [])
               (fun _ => .unmatch))
@@ -345,14 +353,14 @@ theorem datas_ok_types (c result : SpecTec.context)
             | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Datas_ok:clause:0» c (t :: rest))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Datas_ok:clause:1» c (t :: rest)]))
+              [SpecTec.«Datas_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -370,7 +378,8 @@ theorem datas_ok_types (c result : SpecTec.context)
                   | pure =>
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (data_ok_types c c₁ t n middle hhead)
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Datas_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
@@ -382,6 +391,6 @@ theorem datas_ok_types (c result : SpecTec.context)
             | bind_success hguard _ =>
               cases hguard with
               | guard_true hcond => simp at hcond
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.DeclarationTypesValidation

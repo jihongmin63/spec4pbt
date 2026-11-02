@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.UnrollInterface
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -62,7 +63,7 @@ theorem array_type_success_iff
                     | DefArrayT arr' =>
                       cases htail with
                       | pure => exact ⟨dt, rfl, hexpand⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨dt, hget, hexpand⟩
     have hindex : x < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1

@@ -103,7 +103,7 @@ theorem reftype_success_iff (c : SpecTec.context)
         | bind_success hheap hpure =>
           cases hpure with
           | pure => exact hheap
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · intro hheap
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body
@@ -136,9 +136,9 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
         (.orElse (SpecTec.«Valtype_ok:clause:0» c
             (.RefT (.«% %» null ht)))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Valtype_ok:clause:1» c
+            [SpecTec.«Valtype_ok:clause:1» c
               (.RefT (.«% %» null ht)),
-             fun _ => SpecTec.«Valtype_ok:clause:2» c
+              SpecTec.«Valtype_ok:clause:2» c
               (.RefT (.«% %» null ht))]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
@@ -149,12 +149,13 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
           cases hguard with
           | guard_true hcond =>
             simp [SpecTec.«exec:match:valtype:NumT»] at hcond
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Valtype_ok:clause:1» c
               (.RefT (.«% %» null ht)))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Valtype_ok:clause:2» c
+              [SpecTec.«Valtype_ok:clause:2» c
                 (.RefT (.«% %» null ht))]))
           n (.success (.of ())) finalSupply at htail
         cases htail with
@@ -165,7 +166,8 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
             cases hguard with
             | guard_true hcond =>
               simp [SpecTec.«exec:match:valtype:VecT»] at hcond
-        | orElse_unmatch _ hlast =>
+        | orElse_unmatch hfailedSupply hlast =>
+          restore_supply hfailedSupply at hlast
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Valtype_ok:clause:2» c
                 (.RefT (.«% %» null ht)))
@@ -183,7 +185,7 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
                   cases hpure with
                   | pure =>
                     exact (reftype_success_iff c null ht n finalSupply).1 href
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · intro hheap
     have href := (reftype_success_iff c null ht n finalSupply).2 hheap
     apply SpecTecExecution.Eval.call
@@ -235,8 +237,8 @@ theorem valtype_bot_no_success (c : SpecTec.context)
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Valtype_ok:clause:0» c .BotT)
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Valtype_ok:clause:1» c .BotT,
-           fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT]))
+          [SpecTec.«Valtype_ok:clause:1» c .BotT,
+            SpecTec.«Valtype_ok:clause:2» c .BotT]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -246,11 +248,12 @@ theorem valtype_bot_no_success (c : SpecTec.context)
         cases hguard with
         | guard_true hcond =>
           simp [SpecTec.«exec:match:valtype:NumT»] at hcond
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Valtype_ok:clause:1» c .BotT)
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT]))
+            [SpecTec.«Valtype_ok:clause:2» c .BotT]))
         n (.success (.of ())) finalSupply at htail
       cases htail with
       | orElse_success hsecond =>
@@ -260,7 +263,8 @@ theorem valtype_bot_no_success (c : SpecTec.context)
           cases hguard with
           | guard_true hcond =>
             simp [SpecTec.«exec:match:valtype:VecT»] at hcond
-      | orElse_unmatch _ hlast =>
+      | orElse_unmatch hfailedSupply hlast =>
+        restore_supply hfailedSupply at hlast
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Valtype_ok:clause:2» c .BotT)
             (fun _ => .unmatch))
@@ -273,7 +277,7 @@ theorem valtype_bot_no_success (c : SpecTec.context)
             cases hguard with
             | guard_true hcond =>
               simp [SpecTec.«exec:match:valtype:RefT»] at hcond
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem valtype_success_iff_valid (c : SpecTec.context)
     (t : SpecTec.valtype) (n finalSupply : Nat) :

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.FreeListValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -44,7 +45,7 @@ theorem free_elem_init_ref_func
                   e.EINIT init hinit href initFree n middle₁ hlist
               exact free_union_preserves_funcs initFree modeFree result x
                 middle₂ finalSupply hunion (.inl hpart)
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_elems_init_ref_func
     (es : List SpecTec.elem) (e : SpecTec.elem)

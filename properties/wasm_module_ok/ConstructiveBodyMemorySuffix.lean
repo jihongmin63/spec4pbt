@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveBodyMemoryOperands
 import properties.wasm_module_ok.ConstructiveBodyEvalReduction
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyMemorySuffix
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEvalReduction ConstructiveBodyMemoryOperands
@@ -11,7 +12,7 @@ def addrTest : addrtype → addrtype → Bool
 theorem addrTest_eq (want addr : addrtype) : addrTest want addr=true ↔ addr=want := by
   cases want <;> cases addr <;> decide
 
-def tail {α : Type} (c : context) (want : addrtype) (offset : Nat) (value : α) : Plan Request :=
+def tail {α : Type} (c : context) (want : addrtype) (offset : Nat) (value : α) : Action Request :=
   .bind (.guard (0<c.MEMS.length)) fun (_ : Unit) =>
     match (c.MEMS[0]? : Option memtype) with
     | some mt =>
@@ -46,7 +47,7 @@ theorem pack_original (size : Nat) (pt : packtype) (n finish : Nat)
     (h : Eval SpecTec.Body (.call ⟨Unit,Call.Pack_ok (Int.ofNat size) pt⟩) n (.success (.of ())) finish) :
     ConstructiveBodyScalarSizes.packSize pt<Int.ofNat size ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨k,hs⟩ := (tryClauses_success_iff (SpecTec.Pack_ok_clauses (Int.ofNat size) pt) n (.of ()) finish).1 h
+    obtain ⟨k,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Pack_ok_clauses (Int.ofNat size) pt) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Pack_ok:clause:0» at h

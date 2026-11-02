@@ -100,14 +100,15 @@ theorem funcbody_iter_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Module_ok:rule:iter:2:clause:0» c (f :: fs))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Module_ok:rule:iter:2:clause:1» c (f :: fs)]))
+            [SpecTec.«Module_ok:rule:iter:2:clause:1» c (f :: fs)]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
         change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of ())) finalSupply at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Module_ok:rule:iter:2:clause:1» c (f :: fs))
             (fun _ => .unmatch))
@@ -121,7 +122,7 @@ theorem funcbody_iter_cons_success_iff
             | bind_success hrest hpure =>
               cases hpure with
               | pure => exact ⟨_, hfunc, hrest⟩
-        | orElse_unmatch _ hlast => cases hlast
+        | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨middle, hfunc, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

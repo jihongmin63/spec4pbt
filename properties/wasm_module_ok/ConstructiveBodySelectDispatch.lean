@@ -12,12 +12,13 @@ theorem original_cases (c : context) (stack : inferresulttype) (ts : Option (Lis
   cases h with | call h =>
    change SpecTecExecution.Eval SpecTec.Body
      (SpecTecExecution.tryClauses (SpecTec.Instr_ok_clauses c stack (.SELECT ts))) n _ finish at h
-   obtain ⟨j,hs⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
+   obtain ⟨j,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
    obtain ⟨hj,he⟩ := ConstructiveBodyRoute.selected_get _ n finish j (.of effect) hs
    have ho : ConstructiveBodyOpcode.ruleOpcode j=3 := by
      by_contra hn
      have hm := ConstructiveBodyOpcode.other c stack (.SELECT ts) n j hj (by simpa [instr.ctorIdx] using Ne.symm hn)
-     have hc := (properties.wasm_module_ok.Execution.eval_deterministic he hm).1
+     have hc := (properties.wasm_module_ok.Execution.eval_deterministic he hm
+       (Execution.plain_clause ⟨_,Call.Instr_ok c stack (.SELECT ts)⟩ (List.getElem_mem _))).1
      cases hc
    have which : ∀k : Fin 100,ConstructiveBodyOpcode.ruleOpcode k.val=3 → k.val=3 ∨ k.val=4 := by decide
    rcases which ⟨j,hj⟩ ho with heq|heq

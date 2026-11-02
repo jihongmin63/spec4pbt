@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ElemDataCallValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -35,7 +36,7 @@ theorem elem_ok_initializer_and_mode
           cases htail with
           | bind_success hmode _ =>
             exact ⟨⟨_, _, hiter⟩, ⟨_, _, hmode⟩⟩
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem data_ok_mode
     (c result : SpecTec.context) (d : SpecTec.data)
@@ -57,7 +58,7 @@ theorem data_ok_mode
       unfold SpecTec.«Data_ok:clause:0» at hclause
       cases hclause with
       | bind_success hmode _ => exact ⟨_, _, hmode⟩
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem elem_iter_cons_success_iff
     (c : SpecTec.context) (rt : SpecTec.reftype)
@@ -81,14 +82,15 @@ theorem elem_iter_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Elem_ok:rule:iter:0:clause:0» c rt (init :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Elem_ok:rule:iter:0:clause:1»
+            [SpecTec.«Elem_ok:rule:iter:0:clause:1»
               c rt (init :: rest)]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
         unfold SpecTec.«Elem_ok:rule:iter:0:clause:0» at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elem_ok:rule:iter:0:clause:1» c rt (init :: rest))
             (fun _ => .unmatch))
@@ -102,7 +104,7 @@ theorem elem_iter_cons_success_iff
             | bind_success hrest hpure =>
               cases hpure with
               | pure => exact ⟨_, hconst, hrest⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨middle, hconst, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.CandidateStaticMatchResult
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -41,7 +42,7 @@ theorem iter0_cons_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses»
             c x strt (ht :: hts))
           n (.of ()) finish).1 hbody
@@ -94,7 +95,7 @@ theorem subtype_sub_success_iff_iter0
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_sub_ok_clauses at hselected

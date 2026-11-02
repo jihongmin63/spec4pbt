@@ -92,10 +92,11 @@ theorem tables_cons_success_iff
               | bind_success hrest hpure =>
                 cases hpure with
                 | pure => exact ⟨next, middle, hhead, hrest⟩
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Tables_ok:clause:1» c (g :: rest)])
+            [SpecTec.«Tables_ok:clause:1» c (g :: rest)])
           start (.success (.of out)) finish at htail
         cases htail with
         | orElse_success hsecond =>
@@ -104,7 +105,7 @@ theorem tables_cons_success_iff
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨next, middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.FreeConstValidation
 import properties.wasm_module_ok.FreeElemValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,7 +25,7 @@ theorem free_elemmode_active_ref_func
         (SpecTec.«$free_elemmode:clause:0»
           SpecTec.Call.«$update_tables» (.Active a))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«$free_elemmode:clause:1»
+          [SpecTec.«$free_elemmode:clause:1»
             SpecTec.Call.«$update_tables» (.Active a)]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
@@ -34,7 +35,8 @@ theorem free_elemmode_active_ref_func
       | bind_success hguard _ =>
         cases hguard with
         | guard_true hfalse => simp at hfalse
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«$free_elemmode:clause:1»
@@ -62,7 +64,7 @@ theorem free_elemmode_active_ref_func
                       result x middle₂ finalSupply hunion
                       (.inr (free_const_ref_func a.OFFSET x constFree
                         middle₁ middle₂ href hconst))
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_datamode_active_ref_func
     (a : SpecTec.active) (x : SpecTec.funcidx)
@@ -80,7 +82,7 @@ theorem free_datamode_active_ref_func
         (SpecTec.«$free_datamode:clause:0»
           SpecTec.Call.«$update_mems» (.Active a))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«$free_datamode:clause:1»
+          [SpecTec.«$free_datamode:clause:1»
             SpecTec.Call.«$update_mems» (.Active a)]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
@@ -90,7 +92,8 @@ theorem free_datamode_active_ref_func
       | bind_success hguard _ =>
         cases hguard with
         | guard_true hfalse => simp at hfalse
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«$free_datamode:clause:1»
@@ -118,7 +121,7 @@ theorem free_datamode_active_ref_func
                       result x middle₂ finalSupply hunion
                       (.inr (free_const_ref_func a.OFFSET x constFree
                         middle₁ middle₂ href hconst))
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_elem_active_offset_ref_func
     (e : SpecTec.elem) (a : SpecTec.active)
@@ -152,7 +155,7 @@ theorem free_elem_active_offset_ref_func
                   href (hmode ▸ hmodecall)
               exact free_union_preserves_funcs initFree modeFree result x
                 middle₂ finalSupply hunion (.inr hmodefree)
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_data_active_offset_ref_func
     (d : SpecTec.data) (a : SpecTec.active)
@@ -177,7 +180,7 @@ theorem free_data_active_offset_ref_func
         | pure =>
           exact free_datamode_active_ref_func a x result n finalSupply
             href (hmode ▸ hmodecall)
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_elems_active_offset_ref_func
     (es : List SpecTec.elem) (e : SpecTec.elem)

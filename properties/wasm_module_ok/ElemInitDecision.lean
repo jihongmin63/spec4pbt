@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstExpressionDecision
 import properties.wasm_module_ok.ElemDataConstValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -28,16 +29,17 @@ theorem elem_iter_nil_success_iff
         unfold SpecTec.«Elem_ok:rule:iter:0:clause:0» at hclause
         cases hclause
         rfl
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Elem_ok:rule:iter:0:clause:1» c rt []])
+            [SpecTec.«Elem_ok:rule:iter:0:clause:1» c rt []])
           start (.success (.of ())) finish at htail
         cases htail with
         | orElse_success hclause =>
           unfold SpecTec.«Elem_ok:rule:iter:0:clause:1» at hclause
           cases hclause
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · intro hsame
     subst finish
     apply SpecTecExecution.Eval.call

@@ -57,7 +57,7 @@ theorem iter_cons_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$match_resulttype:case_1:iter:0_clauses»
             dts (t₁ :: ts₁) (t₂ :: ts₂))
           n (.of ()) finish).1 hbody
@@ -190,7 +190,7 @@ theorem match_resulttype_true_iff_iter
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂)
           n (.of true) finish).1 hbody
       unfold SpecTec.«$match_resulttype_clauses» at hselected
@@ -209,7 +209,7 @@ theorem match_resulttype_true_iff_iter
         cases hrest with
         | here hsecond =>
           change SpecTecExecution.Eval SpecTec.Body
-            (.pure false) n (.success (.of true)) finish at hsecond
+            (.pure false) _ (.success (.of true)) finish at hsecond
           cases hsecond
         | next _ hnone => cases hnone
   · rintro ⟨hlen, hiter⟩

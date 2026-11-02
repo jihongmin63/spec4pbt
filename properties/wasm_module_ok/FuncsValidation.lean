@@ -60,7 +60,7 @@ theorem funcs_cons_success_iff (c : SpecTec.context)
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Funcs_ok:clause:0» c (f :: fs))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Funcs_ok:clause:1» c (f :: fs)]))
+            [SpecTec.«Funcs_ok:clause:1» c (f :: fs)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -76,7 +76,8 @@ theorem funcs_cons_success_iff (c : SpecTec.context)
               | bind_success hrest hpure =>
                 cases hpure with
                 | pure => exact ⟨c₁, middle, hhead, hrest⟩
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Funcs_ok:clause:1» c (f :: fs))
             (fun _ => .unmatch))
@@ -88,7 +89,7 @@ theorem funcs_cons_success_iff (c : SpecTec.context)
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨c₁, middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

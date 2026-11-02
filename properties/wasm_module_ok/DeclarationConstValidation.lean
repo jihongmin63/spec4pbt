@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstNestedValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -29,7 +30,7 @@ theorem table_ok_initializer_const
         | bind_success _ htail =>
           cases htail with
           | bind_success hconst _ => exact ⟨.RefT rt, _, _, hconst⟩
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem global_ok_initializer_const
     (c result : SpecTec.context) (g : SpecTec.global)
@@ -56,7 +57,7 @@ theorem global_ok_initializer_const
         | bind_success _ htail =>
           cases htail with
           | bind_success hconst _ => exact ⟨vt, _, _, hconst⟩
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem tables_ok_member_const
     (c result : SpecTec.context) (ts : List SpecTec.table)
@@ -79,7 +80,7 @@ theorem tables_ok_member_const
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Tables_ok:clause:0» c (head :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Tables_ok:clause:1» c (head :: rest)]))
+            [SpecTec.«Tables_ok:clause:1» c (head :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -99,7 +100,8 @@ theorem tables_ok_member_const
                     table_ok_initializer_const c c₁ t n middle hhead
                   exact ⟨c, vt, start, finish, hconst⟩
                 · exact ih c₁ _ middle _ hrest hrestmem
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Tables_ok:clause:1» c (head :: rest))
             (fun _ => .unmatch))
@@ -111,7 +113,7 @@ theorem tables_ok_member_const
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem globals_ok_member_const
     (c result : SpecTec.context) (gs : List SpecTec.global)
@@ -134,7 +136,7 @@ theorem globals_ok_member_const
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Globals_ok:clause:0» c (head :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Globals_ok:clause:1» c (head :: rest)]))
+            [SpecTec.«Globals_ok:clause:1» c (head :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -154,7 +156,8 @@ theorem globals_ok_member_const
                     global_ok_initializer_const c c₁ g n middle hhead
                   exact ⟨c, vt, start, finish, hconst⟩
                 · exact ih c₁ _ middle _ hrest hrestmem
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Globals_ok:clause:1» c (head :: rest))
             (fun _ => .unmatch))
@@ -166,6 +169,6 @@ theorem globals_ok_member_const
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.DeclarationConstValidation

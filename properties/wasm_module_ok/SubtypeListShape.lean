@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.SubtypeSupertypeShape
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -27,7 +28,7 @@ theorem subtype_sub_iter_all_static
             (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl)))
           start (.success (.of ())) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.tryClauses_success_iff
+          (properties.wasm_module_ok.Execution.tryClauses_success_iff
             (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl))
             start (.of ()) finish).1 hbody
         unfold SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» at hselected

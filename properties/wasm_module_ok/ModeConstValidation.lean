@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ElemDataConstValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -19,7 +20,7 @@ theorem datamode_active_const
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Datamode_ok:clause:0» c (.Active a))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Datamode_ok:clause:1» c (.Active a)]))
+          [SpecTec.«Datamode_ok:clause:1» c (.Active a)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -29,7 +30,8 @@ theorem datamode_active_const
         cases hguard with
         | guard_true hfalse =>
           simp [SpecTec.«exec:match:datamode:Passive»] at hfalse
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Datamode_ok:clause:1» c (.Active a))
           (fun _ => .unmatch))
@@ -56,7 +58,7 @@ theorem datamode_active_const
                       cases htail with
                       | bind_success hconst _ =>
                         exact ⟨_, _, _, hconst⟩
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem elemmode_active_const
     (c : SpecTec.context) (rt : SpecTec.reftype)
@@ -73,8 +75,8 @@ theorem elemmode_active_const
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Elemmode_ok:clause:0» c rt (.Active a))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Elemmode_ok:clause:1» c rt (.Active a),
-           fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
+          [SpecTec.«Elemmode_ok:clause:1» c rt (.Active a),
+            SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -84,11 +86,12 @@ theorem elemmode_active_const
         cases hguard with
         | guard_true hfalse =>
           simp [SpecTec.«exec:match:elemmode:Passive»] at hfalse
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Elemmode_ok:clause:1» c rt (.Active a))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
+            [SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
         n (.success (.of ())) finalSupply at htail
       cases htail with
       | orElse_success hactive =>
@@ -118,7 +121,8 @@ theorem elemmode_active_const
                             cases htail with
                             | bind_success hconst _ =>
                               exact ⟨_, _, _, hconst⟩
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elemmode_ok:clause:2» c rt (.Active a))
             (fun _ => .unmatch))
@@ -131,6 +135,6 @@ theorem elemmode_active_const
             cases hguard with
             | guard_true hfalse =>
               simp [SpecTec.«exec:match:elemmode:Declarative»] at hfalse
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.ModeConstValidation

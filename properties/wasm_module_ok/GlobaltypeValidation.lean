@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ValtypeTotal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -33,7 +34,7 @@ theorem globaltype_success_iff_valid (c : SpecTec.context)
               simpa [globaltypeValid] using
                 (ValtypeValidation.valtype_success_iff_valid
                   c t n finalSupply).1 hval
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
     · rintro ⟨hv, rfl⟩
       apply SpecTecExecution.Eval.call
       change SpecTecExecution.Eval SpecTec.Body

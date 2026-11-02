@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.SubtypeListShape
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,7 +25,7 @@ theorem subtype_subtype_all_static
           (SpecTec.subtype.SubT fin hts strt)))
       start (.success (.of ())) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Subtype_sub_ok_clauses c x
           (SpecTec.subtype.SubT fin hts strt))
         start (.of ()) finish).1 hbody

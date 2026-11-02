@@ -354,7 +354,7 @@ theorem pop_has_match (c : context) (need available r : inferresulttype) (start 
    change SpecTecExecution.Eval SpecTec.Body
      (SpecTecExecution.tryClauses (SpecTec.«$pop_clauses» c (ne,ns) (ae,as)))
      start (.success (.of r)) finish at h
-   obtain ⟨idx,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
+   obtain ⟨idx,h⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.«$pop_clauses» at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩⟩
    · cases ne <;> cases ae

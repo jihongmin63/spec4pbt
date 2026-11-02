@@ -82,7 +82,7 @@ theorem instrs_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Instrs_ok:clause:0» c irt (instr :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Instrs_ok:clause:1» c irt
+            [SpecTec.«Instrs_ok:clause:1» c irt
               (instr :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
@@ -92,7 +92,8 @@ theorem instrs_cons_success_iff
         | bind_success hguard _ =>
           cases hguard with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Instrs_ok:clause:1» c irt
               (instr :: rest))
@@ -123,7 +124,7 @@ theorem instrs_cons_success_iff
                         | pure => exact ⟨iit, c₁, popped, pushed,
                             middle₁, middle₂, middle₃, middle₄,
                             hinstr, hinit, hpop, hpush, hrest⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨iit, c₁, popped, pushed,
       middle₁, middle₂, middle₃, middle₄,
       hinstr, hinit, hpop, hpush, hrest⟩

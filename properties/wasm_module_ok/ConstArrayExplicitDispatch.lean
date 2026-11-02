@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstArrayExplicitEffect
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -425,7 +426,7 @@ theorem array_new_explicit_clause_of_dispatch
           (SpecTec.Instr_ok_clauses c irt (.«ARRAY.NEW» x .Explicit)))
         n (.success (.of iit)) fin at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Instr_ok_clauses c irt (.«ARRAY.NEW» x .Explicit))
           n (.of iit) fin).1 hbody
       unfold SpecTec.Instr_ok_clauses at hselected

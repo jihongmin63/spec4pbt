@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -82,7 +83,7 @@ theorem limits_success_iff_valid (c : SpecTec.context)
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Limits_ok:clause:0» c range lim)
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Limits_ok:clause:1» c range lim]))
+            [SpecTec.«Limits_ok:clause:1» c range lim]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -100,7 +101,8 @@ theorem limits_success_iff_valid (c : SpecTec.context)
                   have hmax : lim.MAX = none := by
                     cases hm : lim.MAX <;> simp [hm] at hnone ⊢
                   exact ⟨by simp [limitsValid, hmax, hmin], rfl⟩
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Limits_ok:clause:1» c range lim)
             (fun _ => .unmatch))
@@ -125,7 +127,7 @@ theorem limits_success_iff_valid (c : SpecTec.context)
                       have hv : lim.MIN ≤ range ∧ max ≤ range ∧ lim.MIN ≤ max :=
                         ⟨hvalid.1.1, hvalid.1.2, hvalid.2⟩
                       exact ⟨by simp [limitsValid, hm, hv], rfl⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨hvalid, rfl⟩
     cases hm : lim.MAX with
     | none =>

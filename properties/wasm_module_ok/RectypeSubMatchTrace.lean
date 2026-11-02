@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.SubtypeIterMatchTrace
 import properties.wasm_module_ok.RectypeSourceValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -32,7 +33,7 @@ theorem rectype_iter6_member
                     c x (headN :: tailN) (headSt :: tailSt)))
                 start (.success (.of ())) finish at hbody
               obtain ⟨idx, hselected⟩ :=
-                (SpecTecExecution.tryClauses_success_iff
+                (properties.wasm_module_ok.Execution.tryClauses_success_iff
                   (SpecTec.«Rectype_ok:rule:iter:6_clauses»
                     c x (headN :: tailN) (headSt :: tailSt))
                   start (.of ()) finish).1 hbody
@@ -87,7 +88,7 @@ theorem rectype_ok_extract_sub_iters
           (SpecTec.Rectype_ok_clauses before (.RecT sts)))
         start (.success (.of after)) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Rectype_ok_clauses before (.RecT sts))
           start (.of after) finish).1 hbody
       unfold SpecTec.Rectype_ok_clauses at hselected

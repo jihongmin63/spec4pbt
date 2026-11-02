@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ActualSupertypeCases
 import properties.wasm_module_ok.MatchHeaptypeBasic
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -20,7 +21,7 @@ theorem subtype_sub_ok_prime_shape
           (SpecTec.Subtype_sub_ok'_clauses c x strt ht))
         start (.success (.of ())) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Subtype_sub_ok'_clauses c x strt ht)
           start (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_sub_ok'_clauses at hselected

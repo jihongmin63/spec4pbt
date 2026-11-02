@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.CandidateStaticSuperList
 import properties.wasm_module_ok.CandidateSourceChecks
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -43,7 +44,7 @@ theorem iter6_cons_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«Rectype_ok:rule:iter:6_clauses»
             c base (i :: is) (st :: sts))
           n (.of ()) finish).1 hbody

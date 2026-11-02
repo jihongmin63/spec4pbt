@@ -60,9 +60,10 @@ theorem iter_covered (c : context) (env : Env c) (outputs : List valtype)
        start (.success (.of ())) finish at h
      cases h with
      | orElse_success h => cases h
-     | orElse_unmatch _ h =>
+     | orElse_unmatch hfailedSupply h =>
+       restore_supply hfailedSupply at h
        cases h with
-       | orElse_unmatch _ h => cases h
+       | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
        | orElse_success h =>
          cases h with | bind_success hh h =>
           cases h with | bind_success ht hp =>

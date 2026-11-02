@@ -1732,7 +1732,7 @@ theorem subtype_sub_ok_static_lt
         (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))))
       start (.success (.of ())) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y)))
         start (.of ()) fin).1 hbody
     unfold SpecTec.Subtype_sub_ok'_clauses at hselected
@@ -1787,7 +1787,7 @@ theorem subtype_sub_iter_static_lt
             (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl)))
           start (.success (.of ())) fin at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.tryClauses_success_iff
+          (properties.wasm_module_ok.Execution.tryClauses_success_iff
             (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl))
             start (.of ()) fin).1 hbody
         unfold SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» at hselected
@@ -1829,7 +1829,7 @@ theorem subtype_subtype_static_lt
           (SpecTec.subtype.SubT fin hts strt)))
       start (.success (.of ())) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Subtype_sub_ok_clauses c x
           (SpecTec.subtype.SubT fin hts strt))
         start (.of ()) finish).1 hbody
@@ -1872,7 +1872,7 @@ theorem rectype_sub_iter_static_lt
                   c x (n₀ :: ns) (st₀ :: sts)))
               start (.success (.of ())) finish at hbody
             obtain ⟨idx, hselected⟩ :=
-              (SpecTecExecution.tryClauses_success_iff
+              (properties.wasm_module_ok.Execution.tryClauses_success_iff
                 (SpecTec.«Rectype_ok:rule:iter:6_clauses»
                   c x (n₀ :: ns) (st₀ :: sts))
                 start (.of ()) finish).1 hbody
@@ -1925,7 +1925,7 @@ theorem rectype_ok_extract_sub_iter
         (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected

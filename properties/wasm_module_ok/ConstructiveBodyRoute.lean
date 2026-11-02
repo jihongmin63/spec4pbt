@@ -6,9 +6,9 @@ open SpecTec properties.wasm_module_ok
 
 theorem selected_get (clauses : List (SpecTecExecution.Action.{1} Request))
     (start finish k : Nat) (value : SpecTecExecution.Value)
-    (h : SpecTecExecution.Selected SpecTec.Body () clauses start k value finish) :
+    (h : properties.wasm_module_ok.Execution.Selected clauses start k value finish) :
     ∃hk : k<clauses.length,SpecTecExecution.Eval SpecTec.Body
-      (clauses[k] ()) start (.success value) finish := by
+      clauses[k] start (.success value) finish := by
   induction h with
   | here h => exact ⟨by simp,h⟩
   | next _ _ ih =>
@@ -17,9 +17,9 @@ theorem selected_get (clauses : List (SpecTecExecution.Action.{1} Request))
 
 theorem first_at (clauses : List (SpecTecExecution.Action.{1} Request))
     (k : Nat) (hk : k<clauses.length) (start finish : Nat) (value : SpecTecExecution.Value)
-    (he : SpecTecExecution.Eval SpecTec.Body (clauses[k] ()) start (.success value) finish)
+    (he : SpecTecExecution.Eval SpecTec.Body clauses[k] start (.success value) finish)
     (hp : ∀j,(hj : j<k) → SpecTecExecution.Eval SpecTec.Body
-      ((clauses[j]'(Nat.lt_trans hj hk)) ()) start .unmatch start) :
+      ((clauses[j]'(Nat.lt_trans hj hk))) start .unmatch start) :
     SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses clauses)
       start (.success value) finish := by
   induction clauses generalizing k with
@@ -40,7 +40,7 @@ theorem unique_rule (c : context) (stack : inferresulttype) (i : instr)
       (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       start (.success (.of result)) finish ↔
     SpecTecExecution.Eval SpecTec.Body
-      (((SpecTec.Instr_ok_clauses c stack i)[k]'(by exact hk)) ())
+      (((SpecTec.Instr_ok_clauses c stack i)[k]'(by exact hk)))
       start (.success (.of result)) finish := by
   constructor
   · intro h
@@ -48,13 +48,14 @@ theorem unique_rule (c : context) (stack : inferresulttype) (i : instr)
      change SpecTecExecution.Eval SpecTec.Body
        (SpecTecExecution.tryClauses (SpecTec.Instr_ok_clauses c stack i))
        start (.success (.of result)) finish at h
-     obtain ⟨j,hs⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
+     obtain ⟨j,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
      obtain ⟨hj,he⟩ := selected_get _ start finish j (.of result) hs
      have hj' : j<100 := hj
      have ho : i.ctorIdx=ConstructiveBodyOpcode.ruleOpcode j := by
        by_contra hn
        have hm := ConstructiveBodyOpcode.other c stack i start j hj' hn
-       have hc := (properties.wasm_module_ok.Execution.eval_deterministic he hm).1
+       have hc := (properties.wasm_module_ok.Execution.eval_deterministic he hm
+         (Execution.plain_clause ⟨_,Call.Instr_ok c stack i⟩ (List.getElem_mem _))).1
        cases hc
      have hjk := hu ⟨j,hj'⟩ (ho.symm.trans hi)
      change j=k at hjk

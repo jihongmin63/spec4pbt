@@ -2,6 +2,7 @@ import properties.wasm_module_ok.FunctionTypeValidation
 import properties.wasm_module_ok.FunctionBodyValidation
 import properties.wasm_module_ok.LocalListValidation
 import properties.wasm_module_ok.BlockTrace
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -67,7 +68,7 @@ theorem funcbody_success_iff
                   cases hpure with
                   | pure => exact ⟨args, results, locals, middle₁,
                       middle₂, htype, hlocals, hblock⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨args, results, locals, middle₁, middle₂,
       htype, hlocals, hblock⟩
     apply SpecTecExecution.Eval.call

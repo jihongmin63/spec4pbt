@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ResulttypeListValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -26,7 +27,7 @@ theorem resulttype_success_iff_iter
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Resulttype_ok_clauses c ts)
           n (.of ()) finish).1 hbody
       unfold SpecTec.Resulttype_ok_clauses at hselected
@@ -82,7 +83,7 @@ theorem functype_success_iff_results
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Functype_ok_clauses c (.FuncT inputs outputs))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Functype_ok_clauses at hselected

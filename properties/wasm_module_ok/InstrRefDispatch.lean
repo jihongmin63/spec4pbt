@@ -354,7 +354,8 @@ theorem ref_func_clause_of_dispatch
     cases hbody with
     | orElse_success hfirst =>
         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-    | orElse_unmatch _ hbody =>
+    | orElse_unmatch hfailedSupply hbody =>
+      restore_supply hfailedSupply at hbody
       have hunmatch : SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Instr_ok:clause:1» c irt (.«REF.FUNC» x)) n .unmatch n := by
         unfold SpecTec.«Instr_ok:clause:1»
@@ -363,7 +364,8 @@ theorem ref_func_clause_of_dispatch
       cases hbody with
       | orElse_success hfirst =>
           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-      | orElse_unmatch _ hbody =>
+      | orElse_unmatch hfailedSupply hbody =>
+        restore_supply hfailedSupply at hbody
         have hunmatch : SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Instr_ok:clause:2» c irt (.«REF.FUNC» x)) n .unmatch n := by
           unfold SpecTec.«Instr_ok:clause:2»
@@ -372,7 +374,8 @@ theorem ref_func_clause_of_dispatch
         cases hbody with
         | orElse_success hfirst =>
             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-        | orElse_unmatch _ hbody =>
+        | orElse_unmatch hfailedSupply hbody =>
+          restore_supply hfailedSupply at hbody
           have hunmatch : SpecTecExecution.Eval SpecTec.Body
               (SpecTec.«Instr_ok:clause:3» c irt (.«REF.FUNC» x)) n .unmatch n := by
             unfold SpecTec.«Instr_ok:clause:3»
@@ -381,7 +384,8 @@ theorem ref_func_clause_of_dispatch
           cases hbody with
           | orElse_success hfirst =>
               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-          | orElse_unmatch _ hbody =>
+          | orElse_unmatch hfailedSupply hbody =>
+            restore_supply hfailedSupply at hbody
             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                 (SpecTec.«Instr_ok:clause:4» c irt (.«REF.FUNC» x)) n .unmatch n := by
               unfold SpecTec.«Instr_ok:clause:4»
@@ -390,7 +394,8 @@ theorem ref_func_clause_of_dispatch
             cases hbody with
             | orElse_success hfirst =>
                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-            | orElse_unmatch _ hbody =>
+            | orElse_unmatch hfailedSupply hbody =>
+              restore_supply hfailedSupply at hbody
               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                   (SpecTec.«Instr_ok:clause:5» c irt (.«REF.FUNC» x)) n .unmatch n := by
                 unfold SpecTec.«Instr_ok:clause:5»
@@ -399,7 +404,8 @@ theorem ref_func_clause_of_dispatch
               cases hbody with
               | orElse_success hfirst =>
                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-              | orElse_unmatch _ hbody =>
+              | orElse_unmatch hfailedSupply hbody =>
+                restore_supply hfailedSupply at hbody
                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                     (SpecTec.«Instr_ok:clause:6» c irt (.«REF.FUNC» x)) n .unmatch n := by
                   unfold SpecTec.«Instr_ok:clause:6»
@@ -408,7 +414,8 @@ theorem ref_func_clause_of_dispatch
                 cases hbody with
                 | orElse_success hfirst =>
                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                | orElse_unmatch _ hbody =>
+                | orElse_unmatch hfailedSupply hbody =>
+                  restore_supply hfailedSupply at hbody
                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                       (SpecTec.«Instr_ok:clause:7» c irt (.«REF.FUNC» x)) n .unmatch n := by
                     unfold SpecTec.«Instr_ok:clause:7»
@@ -417,7 +424,8 @@ theorem ref_func_clause_of_dispatch
                   cases hbody with
                   | orElse_success hfirst =>
                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                  | orElse_unmatch _ hbody =>
+                  | orElse_unmatch hfailedSupply hbody =>
+                    restore_supply hfailedSupply at hbody
                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                         (SpecTec.«Instr_ok:clause:8» c irt (.«REF.FUNC» x)) n .unmatch n := by
                       unfold SpecTec.«Instr_ok:clause:8»
@@ -426,7 +434,8 @@ theorem ref_func_clause_of_dispatch
                     cases hbody with
                     | orElse_success hfirst =>
                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                    | orElse_unmatch _ hbody =>
+                    | orElse_unmatch hfailedSupply hbody =>
+                      restore_supply hfailedSupply at hbody
                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                           (SpecTec.«Instr_ok:clause:9» c irt (.«REF.FUNC» x)) n .unmatch n := by
                         unfold SpecTec.«Instr_ok:clause:9»
@@ -435,7 +444,8 @@ theorem ref_func_clause_of_dispatch
                       cases hbody with
                       | orElse_success hfirst =>
                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                      | orElse_unmatch _ hbody =>
+                      | orElse_unmatch hfailedSupply hbody =>
+                        restore_supply hfailedSupply at hbody
                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                             (SpecTec.«Instr_ok:clause:10» c irt (.«REF.FUNC» x)) n .unmatch n := by
                           unfold SpecTec.«Instr_ok:clause:10»
@@ -444,7 +454,8 @@ theorem ref_func_clause_of_dispatch
                         cases hbody with
                         | orElse_success hfirst =>
                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                        | orElse_unmatch _ hbody =>
+                        | orElse_unmatch hfailedSupply hbody =>
+                          restore_supply hfailedSupply at hbody
                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                               (SpecTec.«Instr_ok:clause:11» c irt (.«REF.FUNC» x)) n .unmatch n := by
                             unfold SpecTec.«Instr_ok:clause:11»
@@ -453,7 +464,8 @@ theorem ref_func_clause_of_dispatch
                           cases hbody with
                           | orElse_success hfirst =>
                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                          | orElse_unmatch _ hbody =>
+                          | orElse_unmatch hfailedSupply hbody =>
+                            restore_supply hfailedSupply at hbody
                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                 (SpecTec.«Instr_ok:clause:12» c irt (.«REF.FUNC» x)) n .unmatch n := by
                               unfold SpecTec.«Instr_ok:clause:12»
@@ -462,7 +474,8 @@ theorem ref_func_clause_of_dispatch
                             cases hbody with
                             | orElse_success hfirst =>
                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                            | orElse_unmatch _ hbody =>
+                            | orElse_unmatch hfailedSupply hbody =>
+                              restore_supply hfailedSupply at hbody
                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                   (SpecTec.«Instr_ok:clause:13» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                 unfold SpecTec.«Instr_ok:clause:13»
@@ -471,7 +484,8 @@ theorem ref_func_clause_of_dispatch
                               cases hbody with
                               | orElse_success hfirst =>
                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                              | orElse_unmatch _ hbody =>
+                              | orElse_unmatch hfailedSupply hbody =>
+                                restore_supply hfailedSupply at hbody
                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                     (SpecTec.«Instr_ok:clause:14» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                   unfold SpecTec.«Instr_ok:clause:14»
@@ -480,7 +494,8 @@ theorem ref_func_clause_of_dispatch
                                 cases hbody with
                                 | orElse_success hfirst =>
                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                | orElse_unmatch _ hbody =>
+                                | orElse_unmatch hfailedSupply hbody =>
+                                  restore_supply hfailedSupply at hbody
                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                       (SpecTec.«Instr_ok:clause:15» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                     unfold SpecTec.«Instr_ok:clause:15»
@@ -489,7 +504,8 @@ theorem ref_func_clause_of_dispatch
                                   cases hbody with
                                   | orElse_success hfirst =>
                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                  | orElse_unmatch _ hbody =>
+                                  | orElse_unmatch hfailedSupply hbody =>
+                                    restore_supply hfailedSupply at hbody
                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                         (SpecTec.«Instr_ok:clause:16» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                       unfold SpecTec.«Instr_ok:clause:16»
@@ -498,7 +514,8 @@ theorem ref_func_clause_of_dispatch
                                     cases hbody with
                                     | orElse_success hfirst =>
                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                    | orElse_unmatch _ hbody =>
+                                    | orElse_unmatch hfailedSupply hbody =>
+                                      restore_supply hfailedSupply at hbody
                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                           (SpecTec.«Instr_ok:clause:17» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                         unfold SpecTec.«Instr_ok:clause:17»
@@ -507,7 +524,8 @@ theorem ref_func_clause_of_dispatch
                                       cases hbody with
                                       | orElse_success hfirst =>
                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                      | orElse_unmatch _ hbody =>
+                                      | orElse_unmatch hfailedSupply hbody =>
+                                        restore_supply hfailedSupply at hbody
                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                             (SpecTec.«Instr_ok:clause:18» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                           unfold SpecTec.«Instr_ok:clause:18»
@@ -516,7 +534,8 @@ theorem ref_func_clause_of_dispatch
                                         cases hbody with
                                         | orElse_success hfirst =>
                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                        | orElse_unmatch _ hbody =>
+                                        | orElse_unmatch hfailedSupply hbody =>
+                                          restore_supply hfailedSupply at hbody
                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                               (SpecTec.«Instr_ok:clause:19» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                             unfold SpecTec.«Instr_ok:clause:19»
@@ -525,7 +544,8 @@ theorem ref_func_clause_of_dispatch
                                           cases hbody with
                                           | orElse_success hfirst =>
                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                          | orElse_unmatch _ hbody =>
+                                          | orElse_unmatch hfailedSupply hbody =>
+                                            restore_supply hfailedSupply at hbody
                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                 (SpecTec.«Instr_ok:clause:20» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                               unfold SpecTec.«Instr_ok:clause:20»
@@ -534,7 +554,8 @@ theorem ref_func_clause_of_dispatch
                                             cases hbody with
                                             | orElse_success hfirst =>
                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                            | orElse_unmatch _ hbody =>
+                                            | orElse_unmatch hfailedSupply hbody =>
+                                              restore_supply hfailedSupply at hbody
                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                   (SpecTec.«Instr_ok:clause:21» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                 unfold SpecTec.«Instr_ok:clause:21»
@@ -543,7 +564,8 @@ theorem ref_func_clause_of_dispatch
                                               cases hbody with
                                               | orElse_success hfirst =>
                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                              | orElse_unmatch _ hbody =>
+                                              | orElse_unmatch hfailedSupply hbody =>
+                                                restore_supply hfailedSupply at hbody
                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                     (SpecTec.«Instr_ok:clause:22» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                   unfold SpecTec.«Instr_ok:clause:22»
@@ -552,7 +574,8 @@ theorem ref_func_clause_of_dispatch
                                                 cases hbody with
                                                 | orElse_success hfirst =>
                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                | orElse_unmatch _ hbody =>
+                                                | orElse_unmatch hfailedSupply hbody =>
+                                                  restore_supply hfailedSupply at hbody
                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                       (SpecTec.«Instr_ok:clause:23» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                     unfold SpecTec.«Instr_ok:clause:23»
@@ -561,7 +584,8 @@ theorem ref_func_clause_of_dispatch
                                                   cases hbody with
                                                   | orElse_success hfirst =>
                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                  | orElse_unmatch _ hbody =>
+                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                    restore_supply hfailedSupply at hbody
                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                         (SpecTec.«Instr_ok:clause:24» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                       unfold SpecTec.«Instr_ok:clause:24»
@@ -570,7 +594,8 @@ theorem ref_func_clause_of_dispatch
                                                     cases hbody with
                                                     | orElse_success hfirst =>
                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                    | orElse_unmatch _ hbody =>
+                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                      restore_supply hfailedSupply at hbody
                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                           (SpecTec.«Instr_ok:clause:25» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                         unfold SpecTec.«Instr_ok:clause:25»
@@ -579,7 +604,8 @@ theorem ref_func_clause_of_dispatch
                                                       cases hbody with
                                                       | orElse_success hfirst =>
                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                      | orElse_unmatch _ hbody =>
+                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                        restore_supply hfailedSupply at hbody
                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                             (SpecTec.«Instr_ok:clause:26» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                           unfold SpecTec.«Instr_ok:clause:26»
@@ -588,7 +614,8 @@ theorem ref_func_clause_of_dispatch
                                                         cases hbody with
                                                         | orElse_success hfirst =>
                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                        | orElse_unmatch _ hbody =>
+                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                          restore_supply hfailedSupply at hbody
                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                               (SpecTec.«Instr_ok:clause:27» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                             unfold SpecTec.«Instr_ok:clause:27»
@@ -597,7 +624,8 @@ theorem ref_func_clause_of_dispatch
                                                           cases hbody with
                                                           | orElse_success hfirst =>
                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                          | orElse_unmatch _ hbody =>
+                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                            restore_supply hfailedSupply at hbody
                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                 (SpecTec.«Instr_ok:clause:28» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                               unfold SpecTec.«Instr_ok:clause:28»
@@ -606,7 +634,8 @@ theorem ref_func_clause_of_dispatch
                                                             cases hbody with
                                                             | orElse_success hfirst =>
                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                            | orElse_unmatch _ hbody =>
+                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                              restore_supply hfailedSupply at hbody
                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                   (SpecTec.«Instr_ok:clause:29» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                 unfold SpecTec.«Instr_ok:clause:29»
@@ -615,7 +644,8 @@ theorem ref_func_clause_of_dispatch
                                                               cases hbody with
                                                               | orElse_success hfirst =>
                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                              | orElse_unmatch _ hbody =>
+                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                restore_supply hfailedSupply at hbody
                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                     (SpecTec.«Instr_ok:clause:30» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                   unfold SpecTec.«Instr_ok:clause:30»
@@ -624,7 +654,8 @@ theorem ref_func_clause_of_dispatch
                                                                 cases hbody with
                                                                 | orElse_success hfirst =>
                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                | orElse_unmatch _ hbody =>
+                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                  restore_supply hfailedSupply at hbody
                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                       (SpecTec.«Instr_ok:clause:31» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                     unfold SpecTec.«Instr_ok:clause:31»
@@ -633,7 +664,8 @@ theorem ref_func_clause_of_dispatch
                                                                   cases hbody with
                                                                   | orElse_success hfirst =>
                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                  | orElse_unmatch _ hbody =>
+                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                    restore_supply hfailedSupply at hbody
                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                         (SpecTec.«Instr_ok:clause:32» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                       unfold SpecTec.«Instr_ok:clause:32»
@@ -642,7 +674,8 @@ theorem ref_func_clause_of_dispatch
                                                                     cases hbody with
                                                                     | orElse_success hfirst =>
                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                    | orElse_unmatch _ hbody =>
+                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                      restore_supply hfailedSupply at hbody
                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                           (SpecTec.«Instr_ok:clause:33» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                         unfold SpecTec.«Instr_ok:clause:33»
@@ -651,7 +684,8 @@ theorem ref_func_clause_of_dispatch
                                                                       cases hbody with
                                                                       | orElse_success hfirst =>
                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                      | orElse_unmatch _ hbody =>
+                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                        restore_supply hfailedSupply at hbody
                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                             (SpecTec.«Instr_ok:clause:34» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                           unfold SpecTec.«Instr_ok:clause:34»
@@ -660,7 +694,8 @@ theorem ref_func_clause_of_dispatch
                                                                         cases hbody with
                                                                         | orElse_success hfirst =>
                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                        | orElse_unmatch _ hbody =>
+                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                          restore_supply hfailedSupply at hbody
                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                               (SpecTec.«Instr_ok:clause:35» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                             unfold SpecTec.«Instr_ok:clause:35»
@@ -669,7 +704,8 @@ theorem ref_func_clause_of_dispatch
                                                                           cases hbody with
                                                                           | orElse_success hfirst =>
                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                          | orElse_unmatch _ hbody =>
+                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                            restore_supply hfailedSupply at hbody
                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                 (SpecTec.«Instr_ok:clause:36» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                               unfold SpecTec.«Instr_ok:clause:36»
@@ -678,7 +714,8 @@ theorem ref_func_clause_of_dispatch
                                                                             cases hbody with
                                                                             | orElse_success hfirst =>
                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                            | orElse_unmatch _ hbody =>
+                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                              restore_supply hfailedSupply at hbody
                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                   (SpecTec.«Instr_ok:clause:37» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                 unfold SpecTec.«Instr_ok:clause:37»
@@ -687,7 +724,8 @@ theorem ref_func_clause_of_dispatch
                                                                               cases hbody with
                                                                               | orElse_success hfirst =>
                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                              | orElse_unmatch _ hbody =>
+                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                restore_supply hfailedSupply at hbody
                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                     (SpecTec.«Instr_ok:clause:38» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                   unfold SpecTec.«Instr_ok:clause:38»
@@ -696,7 +734,8 @@ theorem ref_func_clause_of_dispatch
                                                                                 cases hbody with
                                                                                 | orElse_success hfirst =>
                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                | orElse_unmatch _ hbody =>
+                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                  restore_supply hfailedSupply at hbody
                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                       (SpecTec.«Instr_ok:clause:39» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                     unfold SpecTec.«Instr_ok:clause:39»
@@ -705,7 +744,8 @@ theorem ref_func_clause_of_dispatch
                                                                                   cases hbody with
                                                                                   | orElse_success hfirst =>
                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                  | orElse_unmatch _ hbody =>
+                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                    restore_supply hfailedSupply at hbody
                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                         (SpecTec.«Instr_ok:clause:40» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                       unfold SpecTec.«Instr_ok:clause:40»
@@ -714,7 +754,8 @@ theorem ref_func_clause_of_dispatch
                                                                                     cases hbody with
                                                                                     | orElse_success hfirst =>
                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                    | orElse_unmatch _ hbody =>
+                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                      restore_supply hfailedSupply at hbody
                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                           (SpecTec.«Instr_ok:clause:41» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                         unfold SpecTec.«Instr_ok:clause:41»
@@ -723,7 +764,8 @@ theorem ref_func_clause_of_dispatch
                                                                                       cases hbody with
                                                                                       | orElse_success hfirst =>
                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                      | orElse_unmatch _ hbody =>
+                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                        restore_supply hfailedSupply at hbody
                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                             (SpecTec.«Instr_ok:clause:42» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                           unfold SpecTec.«Instr_ok:clause:42»
@@ -732,7 +774,8 @@ theorem ref_func_clause_of_dispatch
                                                                                         cases hbody with
                                                                                         | orElse_success hfirst =>
                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                        | orElse_unmatch _ hbody =>
+                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                          restore_supply hfailedSupply at hbody
                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                               (SpecTec.«Instr_ok:clause:43» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                             unfold SpecTec.«Instr_ok:clause:43»
@@ -741,7 +784,8 @@ theorem ref_func_clause_of_dispatch
                                                                                           cases hbody with
                                                                                           | orElse_success hfirst =>
                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                          | orElse_unmatch _ hbody =>
+                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                            restore_supply hfailedSupply at hbody
                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                 (SpecTec.«Instr_ok:clause:44» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                               unfold SpecTec.«Instr_ok:clause:44»
@@ -750,7 +794,8 @@ theorem ref_func_clause_of_dispatch
                                                                                             cases hbody with
                                                                                             | orElse_success hfirst =>
                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                            | orElse_unmatch _ hbody =>
+                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                              restore_supply hfailedSupply at hbody
                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                   (SpecTec.«Instr_ok:clause:45» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                 unfold SpecTec.«Instr_ok:clause:45»
@@ -759,7 +804,8 @@ theorem ref_func_clause_of_dispatch
                                                                                               cases hbody with
                                                                                               | orElse_success hfirst =>
                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                              | orElse_unmatch _ hbody =>
+                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                restore_supply hfailedSupply at hbody
                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                     (SpecTec.«Instr_ok:clause:46» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                   unfold SpecTec.«Instr_ok:clause:46»
@@ -768,7 +814,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                 cases hbody with
                                                                                                 | orElse_success hfirst =>
                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                       (SpecTec.«Instr_ok:clause:47» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                     unfold SpecTec.«Instr_ok:clause:47»
@@ -777,7 +824,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                   cases hbody with
                                                                                                   | orElse_success hfirst =>
                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                         (SpecTec.«Instr_ok:clause:48» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                       unfold SpecTec.«Instr_ok:clause:48»
@@ -786,7 +834,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                     cases hbody with
                                                                                                     | orElse_success hfirst =>
                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                           (SpecTec.«Instr_ok:clause:49» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                         unfold SpecTec.«Instr_ok:clause:49»
@@ -795,7 +844,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                       cases hbody with
                                                                                                       | orElse_success hfirst =>
                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                             (SpecTec.«Instr_ok:clause:50» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                           unfold SpecTec.«Instr_ok:clause:50»
@@ -804,10 +854,12 @@ theorem ref_func_clause_of_dispatch
                                                                                                         cases hbody with
                                                                                                         | orElse_success hfirst =>
                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                           cases hbody with
                                                                                                           | orElse_success hclause => exact hclause
-                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                 (SpecTec.«Instr_ok:clause:52» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                               unfold SpecTec.«Instr_ok:clause:52»
@@ -816,7 +868,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                             cases hbody with
                                                                                                             | orElse_success hfirst =>
                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                   (SpecTec.«Instr_ok:clause:53» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                 unfold SpecTec.«Instr_ok:clause:53»
@@ -825,7 +878,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                               cases hbody with
                                                                                                               | orElse_success hfirst =>
                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                     (SpecTec.«Instr_ok:clause:54» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                   unfold SpecTec.«Instr_ok:clause:54»
@@ -834,7 +888,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                 cases hbody with
                                                                                                                 | orElse_success hfirst =>
                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                       (SpecTec.«Instr_ok:clause:55» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                     unfold SpecTec.«Instr_ok:clause:55»
@@ -843,7 +898,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                   cases hbody with
                                                                                                                   | orElse_success hfirst =>
                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                         (SpecTec.«Instr_ok:clause:56» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                       unfold SpecTec.«Instr_ok:clause:56»
@@ -852,7 +908,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                     cases hbody with
                                                                                                                     | orElse_success hfirst =>
                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                           (SpecTec.«Instr_ok:clause:57» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                         unfold SpecTec.«Instr_ok:clause:57»
@@ -861,7 +918,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                       cases hbody with
                                                                                                                       | orElse_success hfirst =>
                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                             (SpecTec.«Instr_ok:clause:58» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                           unfold SpecTec.«Instr_ok:clause:58»
@@ -870,7 +928,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                         cases hbody with
                                                                                                                         | orElse_success hfirst =>
                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                               (SpecTec.«Instr_ok:clause:59» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                             unfold SpecTec.«Instr_ok:clause:59»
@@ -879,7 +938,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                           cases hbody with
                                                                                                                           | orElse_success hfirst =>
                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                 (SpecTec.«Instr_ok:clause:60» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                               unfold SpecTec.«Instr_ok:clause:60»
@@ -888,7 +948,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                             cases hbody with
                                                                                                                             | orElse_success hfirst =>
                                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                   (SpecTec.«Instr_ok:clause:61» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                 unfold SpecTec.«Instr_ok:clause:61»
@@ -897,7 +958,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                               cases hbody with
                                                                                                                               | orElse_success hfirst =>
                                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                     (SpecTec.«Instr_ok:clause:62» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                   unfold SpecTec.«Instr_ok:clause:62»
@@ -906,7 +968,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                 cases hbody with
                                                                                                                                 | orElse_success hfirst =>
                                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                       (SpecTec.«Instr_ok:clause:63» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                     unfold SpecTec.«Instr_ok:clause:63»
@@ -915,7 +978,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                   cases hbody with
                                                                                                                                   | orElse_success hfirst =>
                                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                         (SpecTec.«Instr_ok:clause:64» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                       unfold SpecTec.«Instr_ok:clause:64»
@@ -924,7 +988,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                     cases hbody with
                                                                                                                                     | orElse_success hfirst =>
                                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                           (SpecTec.«Instr_ok:clause:65» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                         unfold SpecTec.«Instr_ok:clause:65»
@@ -933,7 +998,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                       cases hbody with
                                                                                                                                       | orElse_success hfirst =>
                                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                             (SpecTec.«Instr_ok:clause:66» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                           unfold SpecTec.«Instr_ok:clause:66»
@@ -942,7 +1008,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                         cases hbody with
                                                                                                                                         | orElse_success hfirst =>
                                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                               (SpecTec.«Instr_ok:clause:67» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                             unfold SpecTec.«Instr_ok:clause:67»
@@ -951,7 +1018,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                           cases hbody with
                                                                                                                                           | orElse_success hfirst =>
                                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                 (SpecTec.«Instr_ok:clause:68» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                               unfold SpecTec.«Instr_ok:clause:68»
@@ -960,7 +1028,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                             cases hbody with
                                                                                                                                             | orElse_success hfirst =>
                                                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                   (SpecTec.«Instr_ok:clause:69» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                 unfold SpecTec.«Instr_ok:clause:69»
@@ -969,7 +1038,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                               cases hbody with
                                                                                                                                               | orElse_success hfirst =>
                                                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                     (SpecTec.«Instr_ok:clause:70» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                   unfold SpecTec.«Instr_ok:clause:70»
@@ -978,7 +1048,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                 cases hbody with
                                                                                                                                                 | orElse_success hfirst =>
                                                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                       (SpecTec.«Instr_ok:clause:71» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                     unfold SpecTec.«Instr_ok:clause:71»
@@ -987,7 +1058,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                   cases hbody with
                                                                                                                                                   | orElse_success hfirst =>
                                                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                         (SpecTec.«Instr_ok:clause:72» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                       unfold SpecTec.«Instr_ok:clause:72»
@@ -996,7 +1068,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                     cases hbody with
                                                                                                                                                     | orElse_success hfirst =>
                                                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                           (SpecTec.«Instr_ok:clause:73» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                         unfold SpecTec.«Instr_ok:clause:73»
@@ -1005,7 +1078,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                       cases hbody with
                                                                                                                                                       | orElse_success hfirst =>
                                                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                             (SpecTec.«Instr_ok:clause:74» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                           unfold SpecTec.«Instr_ok:clause:74»
@@ -1014,7 +1088,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                         cases hbody with
                                                                                                                                                         | orElse_success hfirst =>
                                                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                               (SpecTec.«Instr_ok:clause:75» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                             unfold SpecTec.«Instr_ok:clause:75»
@@ -1023,7 +1098,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                           cases hbody with
                                                                                                                                                           | orElse_success hfirst =>
                                                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                 (SpecTec.«Instr_ok:clause:76» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                               unfold SpecTec.«Instr_ok:clause:76»
@@ -1032,7 +1108,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                             cases hbody with
                                                                                                                                                             | orElse_success hfirst =>
                                                                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                   (SpecTec.«Instr_ok:clause:77» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                 unfold SpecTec.«Instr_ok:clause:77»
@@ -1041,7 +1118,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                               cases hbody with
                                                                                                                                                               | orElse_success hfirst =>
                                                                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                     (SpecTec.«Instr_ok:clause:78» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                   unfold SpecTec.«Instr_ok:clause:78»
@@ -1050,7 +1128,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                 cases hbody with
                                                                                                                                                                 | orElse_success hfirst =>
                                                                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                       (SpecTec.«Instr_ok:clause:79» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                     unfold SpecTec.«Instr_ok:clause:79»
@@ -1059,7 +1138,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                   cases hbody with
                                                                                                                                                                   | orElse_success hfirst =>
                                                                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                         (SpecTec.«Instr_ok:clause:80» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                       unfold SpecTec.«Instr_ok:clause:80»
@@ -1068,7 +1148,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                     cases hbody with
                                                                                                                                                                     | orElse_success hfirst =>
                                                                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                           (SpecTec.«Instr_ok:clause:81» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                         unfold SpecTec.«Instr_ok:clause:81»
@@ -1077,7 +1158,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                       cases hbody with
                                                                                                                                                                       | orElse_success hfirst =>
                                                                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                             (SpecTec.«Instr_ok:clause:82» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                           unfold SpecTec.«Instr_ok:clause:82»
@@ -1086,7 +1168,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                         cases hbody with
                                                                                                                                                                         | orElse_success hfirst =>
                                                                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                               (SpecTec.«Instr_ok:clause:83» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                             unfold SpecTec.«Instr_ok:clause:83»
@@ -1095,7 +1178,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                           cases hbody with
                                                                                                                                                                           | orElse_success hfirst =>
                                                                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                 (SpecTec.«Instr_ok:clause:84» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                               unfold SpecTec.«Instr_ok:clause:84»
@@ -1104,7 +1188,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                             cases hbody with
                                                                                                                                                                             | orElse_success hfirst =>
                                                                                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                   (SpecTec.«Instr_ok:clause:85» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                 unfold SpecTec.«Instr_ok:clause:85»
@@ -1113,7 +1198,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                               cases hbody with
                                                                                                                                                                               | orElse_success hfirst =>
                                                                                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                     (SpecTec.«Instr_ok:clause:86» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                   unfold SpecTec.«Instr_ok:clause:86»
@@ -1122,7 +1208,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                 cases hbody with
                                                                                                                                                                                 | orElse_success hfirst =>
                                                                                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                       (SpecTec.«Instr_ok:clause:87» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                     unfold SpecTec.«Instr_ok:clause:87»
@@ -1131,7 +1218,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                   cases hbody with
                                                                                                                                                                                   | orElse_success hfirst =>
                                                                                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                         (SpecTec.«Instr_ok:clause:88» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                       unfold SpecTec.«Instr_ok:clause:88»
@@ -1140,7 +1228,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                     cases hbody with
                                                                                                                                                                                     | orElse_success hfirst =>
                                                                                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                           (SpecTec.«Instr_ok:clause:89» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                         unfold SpecTec.«Instr_ok:clause:89»
@@ -1149,7 +1238,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                       cases hbody with
                                                                                                                                                                                       | orElse_success hfirst =>
                                                                                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                             (SpecTec.«Instr_ok:clause:90» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                           unfold SpecTec.«Instr_ok:clause:90»
@@ -1158,7 +1248,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                         cases hbody with
                                                                                                                                                                                         | orElse_success hfirst =>
                                                                                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                               (SpecTec.«Instr_ok:clause:91» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                             unfold SpecTec.«Instr_ok:clause:91»
@@ -1167,7 +1258,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                           cases hbody with
                                                                                                                                                                                           | orElse_success hfirst =>
                                                                                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                                                                                             have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                 (SpecTec.«Instr_ok:clause:92» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                               unfold SpecTec.«Instr_ok:clause:92»
@@ -1176,7 +1268,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                             cases hbody with
                                                                                                                                                                                             | orElse_success hfirst =>
                                                                                                                                                                                                 exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                            | orElse_unmatch _ hbody =>
+                                                                                                                                                                                            | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                              restore_supply hfailedSupply at hbody
                                                                                                                                                                                               have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                   (SpecTec.«Instr_ok:clause:93» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                 unfold SpecTec.«Instr_ok:clause:93»
@@ -1185,7 +1278,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                               cases hbody with
                                                                                                                                                                                               | orElse_success hfirst =>
                                                                                                                                                                                                   exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                              | orElse_unmatch _ hbody =>
+                                                                                                                                                                                              | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                restore_supply hfailedSupply at hbody
                                                                                                                                                                                                 have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                     (SpecTec.«Instr_ok:clause:94» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                   unfold SpecTec.«Instr_ok:clause:94»
@@ -1194,7 +1288,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                 cases hbody with
                                                                                                                                                                                                 | orElse_success hfirst =>
                                                                                                                                                                                                     exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                  restore_supply hfailedSupply at hbody
                                                                                                                                                                                                   have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                       (SpecTec.«Instr_ok:clause:95» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                     unfold SpecTec.«Instr_ok:clause:95»
@@ -1203,7 +1298,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                   cases hbody with
                                                                                                                                                                                                   | orElse_success hfirst =>
                                                                                                                                                                                                       exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                  | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                  | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                    restore_supply hfailedSupply at hbody
                                                                                                                                                                                                     have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                         (SpecTec.«Instr_ok:clause:96» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                       unfold SpecTec.«Instr_ok:clause:96»
@@ -1212,7 +1308,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                     cases hbody with
                                                                                                                                                                                                     | orElse_success hfirst =>
                                                                                                                                                                                                         exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                    | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                    | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                      restore_supply hfailedSupply at hbody
                                                                                                                                                                                                       have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                           (SpecTec.«Instr_ok:clause:97» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                         unfold SpecTec.«Instr_ok:clause:97»
@@ -1221,7 +1318,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                       cases hbody with
                                                                                                                                                                                                       | orElse_success hfirst =>
                                                                                                                                                                                                           exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                      | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                      | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                        restore_supply hfailedSupply at hbody
                                                                                                                                                                                                         have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                             (SpecTec.«Instr_ok:clause:98» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                           unfold SpecTec.«Instr_ok:clause:98»
@@ -1230,7 +1328,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                         cases hbody with
                                                                                                                                                                                                         | orElse_success hfirst =>
                                                                                                                                                                                                             exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                        | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                        | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                          restore_supply hfailedSupply at hbody
                                                                                                                                                                                                           have hunmatch : SpecTecExecution.Eval SpecTec.Body
                                                                                                                                                                                                               (SpecTec.«Instr_ok:clause:99» c irt (.«REF.FUNC» x)) n .unmatch n := by
                                                                                                                                                                                                             unfold SpecTec.«Instr_ok:clause:99»
@@ -1239,7 +1338,8 @@ theorem ref_func_clause_of_dispatch
                                                                                                                                                                                                           cases hbody with
                                                                                                                                                                                                           | orElse_success hfirst =>
                                                                                                                                                                                                               exact (properties.wasm_module_ok.Execution.unmatch_excludes_success hunmatch _ hfirst).elim
-                                                                                                                                                                                                          | orElse_unmatch _ hbody =>
+                                                                                                                                                                                                          | orElse_unmatch hfailedSupply hbody =>
+                                                                                                                                                                                                            restore_supply hfailedSupply at hbody
                                                                                                                                                                                                             cases hbody
 
 theorem ref_func_dispatch_requires_membership

@@ -51,7 +51,7 @@ theorem fields_cons_success_iff
         (.orElse
           (SpecTec.«Instr_ok:struct.new.explicit:iter:1:clause:0» (ft :: ys))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Instr_ok:struct.new.explicit:iter:1:clause:1»
+            [SpecTec.«Instr_ok:struct.new.explicit:iter:1:clause:1»
               (ft :: ys)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
@@ -59,7 +59,8 @@ theorem fields_cons_success_iff
         change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of result)) finalSupply at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse
             (SpecTec.«Instr_ok:struct.new.explicit:iter:1:clause:1» (ft :: ys))
@@ -76,7 +77,7 @@ theorem fields_cons_success_iff
               rename_i rest
               cases hpure with
               | pure => exact ⟨t, rest, middle, rfl, hunpack, hrest⟩
-        | orElse_unmatch _ hlast => cases hlast
+        | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨t, rest, middle, rfl, hunpack, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

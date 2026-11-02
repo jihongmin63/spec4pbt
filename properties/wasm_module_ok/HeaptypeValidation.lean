@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -95,7 +96,7 @@ theorem heaptype_success_iff (c : SpecTec.context)
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Heaptype_ok:clause:0» c ht)
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Heaptype_ok:clause:1» c ht]))
+            [SpecTec.«Heaptype_ok:clause:1» c ht]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -106,7 +107,8 @@ theorem heaptype_success_iff (c : SpecTec.context)
           | guard_true hbase =>
             cases hpure with
             | pure => exact ⟨Or.inl (by simpa [baseHeaptypes] using hbase), rfl⟩
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Heaptype_ok:clause:1» c ht)
             (fun _ => .unmatch))
@@ -120,7 +122,7 @@ theorem heaptype_success_iff (c : SpecTec.context)
             | guard_true hsub_true =>
               cases ht <;>
                 simp [SpecTec.«sub:heaptype:heaptypeVar»] at hsub_true
-              case VarHT _ _ a _ =>
+              case VarHT _ _ a =>
                 cases a with
                 | RecX x =>
                   cases htail with
@@ -139,7 +141,7 @@ theorem heaptype_success_iff (c : SpecTec.context)
                         | guard_true hbounds =>
                           cases hpure with
                           | pure => exact ⟨Or.inr ⟨x, rfl, hbounds.2⟩, rfl⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨hvalid, rfl⟩
     cases hvalid with
     | inl hbase => exact heaptype_base_success c ht finalSupply hbase

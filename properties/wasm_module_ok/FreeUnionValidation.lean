@@ -286,7 +286,7 @@ theorem free_instr_list_cons_success_iff
           (SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959:clause:0»
             (instr :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ =>
+            [
               SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959:clause:1»
                 (instr :: rest)]))
         n (.success (.of result)) finalSupply at hbody
@@ -297,7 +297,8 @@ theorem free_instr_list_cons_success_iff
         | bind_success hguard _ =>
           cases hguard with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse
             (SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959:clause:1»
@@ -321,7 +322,7 @@ theorem free_instr_list_cons_success_iff
                     cases hpure with
                     | pure => exact ⟨headFree, tailFree,
                         middle₁, middle₂, hhead, hrest, hfold⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨headFree, tailFree, middle₁, middle₂,
       hhead, hrest, hfold⟩
     apply SpecTecExecution.Eval.call

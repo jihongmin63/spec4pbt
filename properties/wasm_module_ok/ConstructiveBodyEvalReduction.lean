@@ -5,22 +5,23 @@ namespace properties.wasm_module_ok.ConstructiveBodyEvalReduction
 open SpecTec properties.wasm_module_ok SpecTecExecution
 
 
-theorem bind_known {α : Type} (p : Plan Request) (k : α → Plan Request)
+theorem bind_known {α : Type} (p : Action Request) (k : α → Action Request)
     (x : α) (n finish : Nat) (out : Outcome Value)
-    (hp : Eval SpecTec.Body p n (.success (.of x)) n) :
+    (hp : Eval SpecTec.Body p n (.success (.of x)) n)
+    (plain : Execution.Plain p := by wasm_plain) :
     Eval SpecTec.Body (.bind p k) n out finish ↔
     Eval SpecTec.Body (k x) n out finish := by
   constructor
   · intro h
     cases h with
     | bind_success hfirst hrest =>
-      obtain ⟨he,hn⟩ := properties.wasm_module_ok.Execution.eval_deterministic hfirst hp
+      obtain ⟨he,hn⟩ := properties.wasm_module_ok.Execution.eval_deterministic hfirst hp plain
       cases he; cases hn; exact hrest
-    | bind_unmatch hfirst => cases (properties.wasm_module_ok.Execution.eval_deterministic hfirst hp).1
-    | bind_abort hfirst => cases (properties.wasm_module_ok.Execution.eval_deterministic hfirst hp).1
+    | bind_unmatch hfirst => cases (properties.wasm_module_ok.Execution.eval_deterministic hfirst hp plain).1
+    | bind_abort hfirst => cases (properties.wasm_module_ok.Execution.eval_deterministic hfirst hp plain).1
   · exact Eval.bind_success hp
 
-theorem bind_guard (p : Prop) (k : Unit → Plan Request) (n finish : Nat) (v : Value) :
+theorem bind_guard (p : Prop) (k : Unit → Action Request) (n finish : Nat) (v : Value) :
     Eval SpecTec.Body (.bind (.guard p) k) n (.success v) finish ↔
     p ∧ Eval SpecTec.Body (k ()) n (.success v) finish := by
   constructor
