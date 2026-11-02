@@ -42,13 +42,13 @@ private theorem singleton_clause_success_inv
       (SpecTecExecution.tryClauses [clause]) start
       (.success value) finalSupply) :
     SpecTecExecution.Eval SpecTec.Body
-      (clause ()) start (.success value) finalSupply := by
+      clause start (.success value) finalSupply := by
   change SpecTecExecution.Eval SpecTec.Body
-    (.orElse (clause ()) (fun _ => .unmatch)) start
+    (.orElse clause (fun _ => .unmatch)) start
     (.success value) finalSupply at h
   cases h with
   | orElse_success hc => exact hc
-  | orElse_unmatch _ htail => cases htail
+  | orElse_unmatch hfailedSupply htail => restore_supply hfailedSupply at htail; cases htail
 
 theorem module_clause_success_iff (m : SpecTec.module) :
     SpecTec.Module_ok m ↔
@@ -82,8 +82,8 @@ theorem module_clause_success_iff (m : SpecTec.module) :
       (.success (.of ())) finalSupply
     simpa only [SpecTec.Module_ok_clauses] using
       (SpecTecExecution.tryClauses_cons_success
-        (clause := fun _ : Unit => SpecTec.«Module_ok:clause:0» m)
-        (rest := []) (input := ()) hclause)
+        (clause := SpecTec.«Module_ok:clause:0» m)
+        (rest := []) hclause)
 
 theorem not_module_ok_iff_no_clause_success (m : SpecTec.module) :
     ¬ SpecTec.Module_ok m ↔

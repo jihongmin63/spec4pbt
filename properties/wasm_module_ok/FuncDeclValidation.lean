@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.FunctionTypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -53,7 +54,7 @@ theorem func_ok_success_iff_result
                 cases htail with
                 | pure =>
                   exact ⟨by simp [funcDeclResult, hget, hdt], rfl⟩
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨hresult, rfl⟩
     cases hget : c.TYPES[f.FTYPE]? with
     | none => simp [funcDeclResult, hget] at hresult

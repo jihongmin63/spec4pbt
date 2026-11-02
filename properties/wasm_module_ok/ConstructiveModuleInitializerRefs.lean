@@ -5,6 +5,7 @@ import properties.wasm_module_ok.TablesDecision
 import properties.wasm_module_ok.GlobalsDecision
 import properties.wasm_module_ok.CandidateProvenanceGlobals
 import properties.wasm_module_ok.CandidateProvenancePreGlobals
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModuleInitializerRefs
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructivePreludeRefs
@@ -38,7 +39,7 @@ theorem table_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.ta
           apply Eval.bind_success ht'
           apply Eval.bind_success (ConstructiveRefs.const_ok_replace_refs c refs (.RefT rt) code n1 finish ha hc)
           exact Eval.pure _
-    | orElse_unmatch _ h => cases h
+    | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
 
 theorem tables_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.table) (n finish : Nat)
     (ha : ∀item∈xs,Available refs item.TINIT)
@@ -96,7 +97,7 @@ theorem global_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.g
           apply Eval.bind_success ht'
           apply Eval.bind_success (ConstructiveRefs.const_ok_replace_refs c refs (t) code n1 finish ha hc)
           exact Eval.pure _
-    | orElse_unmatch _ h => cases h
+    | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
 
 theorem globals_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.global) (n finish : Nat)
     (ha : ∀item∈xs,Available refs item.GINIT)
@@ -134,7 +135,7 @@ theorem global_ok_funcs
               | bind_success _ hpure =>
                   cases hpure with
                   | pure => rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 
 theorem globals_bounded (c out : context) (xs : List SpecTec.global) (n finish : Nat)

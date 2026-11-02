@@ -60,7 +60,7 @@ theorem iter_cons_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$match_structtype:case_1:iter:0_clauses»
             dts (a :: as) (b :: bs))
           n (.of ()) finish).1 hbody
@@ -295,7 +295,7 @@ theorem match_structtype_true_iff_iter
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$match_structtype_clauses»
             dts (.StructT as) (.StructT bs))
           n (.of true) finish).1 hbody
@@ -328,7 +328,7 @@ theorem match_structtype_true_iff_iter
         cases hrest with
         | here hsecond =>
           change SpecTecExecution.Eval SpecTec.Body
-            (.pure false) n (.success (.of true)) finish at hsecond
+            (.pure false) _ (.success (.of true)) finish at hsecond
           cases hsecond
         | next _ hnone => cases hnone
   · rintro ⟨hwidth, hiter⟩

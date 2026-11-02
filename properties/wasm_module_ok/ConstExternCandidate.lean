@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstExternConvertDispatch
 import properties.wasm_module_ok.FiniteValidTypes
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -18,7 +19,7 @@ theorem type_externop_output
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«$type_externop:clause:0» op)
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«$type_externop:clause:1» op]))
+          [SpecTec.«$type_externop:clause:1» op]))
       start (.success (.of (ht1, ht2))) fin at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -27,7 +28,8 @@ theorem type_externop_output
       | bind_success _ hpure =>
         cases hpure with
         | pure => exact Or.inl rfl
-    | orElse_unmatch _ hrest =>
+    | orElse_unmatch hfailedSupply hrest =>
+      restore_supply hfailedSupply at hrest
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$type_externop:clause:1» op)
           (fun _ => .unmatch))
@@ -39,7 +41,7 @@ theorem type_externop_output
         | bind_success _ hpure =>
           cases hpure with
           | pure => exact Or.inr rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem extern_convert_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)

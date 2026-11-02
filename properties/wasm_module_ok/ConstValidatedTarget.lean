@@ -3,6 +3,7 @@ import properties.wasm_module_ok.CandidateValMembership
 import properties.wasm_module_ok.GlobaltypeValidation
 import properties.wasm_module_ok.TabletypeValidation
 import properties.wasm_module_ok.ElemDataConstValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -86,7 +87,7 @@ theorem elem_target_in_extended_and_table
         have hvalid := (ReftypeTotal.reftype_success_iff_valid
           c e.ETYPE _ _).1 href
         exact reftype_target_in_extended_and_table c e.ETYPE hvalid.1
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem numeric_target_in_extended_and_table
     (c : SpecTec.context) (num : SpecTec.numtype) :

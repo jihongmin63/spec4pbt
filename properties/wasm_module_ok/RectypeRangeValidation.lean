@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.MatchHeaptypeBasic
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -27,7 +28,7 @@ theorem rectype_ok_extract_range_and_sub_iter
         (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected

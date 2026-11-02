@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.CandidateTypesStateStage
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,7 +25,7 @@ theorem empty_context_types_nil
           | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem initial_validated
     (m : SpecTec.module) (tr : Validity.ModuleOkTrace m) :

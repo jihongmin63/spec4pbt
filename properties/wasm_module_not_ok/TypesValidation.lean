@@ -79,7 +79,7 @@ theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c (t :: ts))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)]))
+          [SpecTec.«Types_ok:clause:1» c (t :: ts)]))
       start (.success (.of c2)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -94,7 +94,8 @@ theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
             | bind_success hrest hpure =>
               cases hpure with
               | pure => exact ⟨_, _, ht, hrest⟩
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c (t :: ts))
           (fun _ => .unmatch))
@@ -106,7 +107,7 @@ theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
         | bind_success hguard _ =>
           cases hguard with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
 
 
 theorem types_ok_nil_deterministic (c : SpecTec.context) (start finalSupply : Nat)
@@ -161,7 +162,7 @@ theorem type_ok_success_iff_rectype_ok (c c1 : SpecTec.context)
         | bind_success hrect hpure =>
           cases hpure with
           | pure => exact hrect
-      | orElse_unmatch _ htail => cases htail
+      | orElse_unmatch hfailedSupply htail => restore_supply hfailedSupply at htail; cases htail
   · intro hrect
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

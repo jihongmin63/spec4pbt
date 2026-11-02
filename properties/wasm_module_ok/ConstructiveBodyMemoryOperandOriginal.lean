@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstructiveBodyMemorySuffix
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyMemoryOperandOriginal
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEvalReduction ConstructiveBodyMemoryOperands ConstructiveBodyMemorySuffix ConstructiveBodyMemoryBounds ConstructiveBodyScalarSizes
@@ -10,7 +11,7 @@ theorem loadop_ok_some (c : context) (ty : numtype) (align offset : Nat) (pt : p
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤packLog pt ∧ packSize pt<Int.ofNat (2^numLog ty) ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Loadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some (pt,ext) } : loadop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Loadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some (pt,ext) } : loadop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Loadop_ok:clause:0» at h
@@ -68,7 +69,7 @@ theorem loadop_ok_none (c : context) (ty : numtype) (align offset : Nat)
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤numLog ty ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Loadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : loadop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Loadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : loadop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Loadop_ok:clause:0» at h
@@ -112,7 +113,7 @@ theorem storeop_ok_some (c : context) (ty : numtype) (align offset : Nat) (pt : 
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤packLog pt ∧ packSize pt<Int.ofNat (2^numLog ty) ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Storeop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some pt } : storeop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Storeop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some pt } : storeop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Storeop_ok:clause:0» at h
@@ -170,7 +171,7 @@ theorem storeop_ok_none (c : context) (ty : numtype) (align offset : Nat)
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤numLog ty ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Storeop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : storeop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Storeop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : storeop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Storeop_ok:clause:0» at h
@@ -214,7 +215,7 @@ theorem vloadop_ok_some (c : context) (ty : vectype) (align offset : Nat) (pt : 
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤packLog pt ∧ packSize pt<Int.ofNat (2^4) ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Vloadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some (pt,ext) } : vloadop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Vloadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=some (pt,ext) } : vloadop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Vloadop_ok:clause:0» at h
@@ -272,7 +273,7 @@ theorem vloadop_ok_none (c : context) (ty : vectype) (align offset : Nat)
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤4 ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Vloadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : vloadop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Vloadop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=none } : vloadop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Vloadop_ok:clause:0» at h
@@ -316,7 +317,7 @@ theorem vstoreop_ok_void (c : context) (ty : vectype) (align offset : Nat)
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤4 ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Vstoreop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=.VOID } : vstoreop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Vstoreop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=.VOID } : vstoreop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Vstoreop_ok:clause:0» at h
@@ -346,7 +347,7 @@ theorem vlaneop_ok_pack (c : context) (ty : vectype) (align offset : Nat) (pt : 
     ∃addr lim,c.MEMS[0]?=some (.MemoryT addr lim) ∧ OffsetBound addr offset ∧
       align≤packLog pt ∧ packSize pt<Int.ofNat (2^4) ∧ got=ty ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨idx,hs⟩ := (tryClauses_success_iff (SpecTec.Vlaneop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=pt } : vlaneop_)) n (.of got) finish).1 h
+    obtain ⟨idx,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Vlaneop_ok_clauses c ({ TYPE:=ty,ALIGN:=align,OFFSET:=offset,PACK:=pt } : vlaneop_)) n (.of got) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Vlaneop_ok:clause:0» at h

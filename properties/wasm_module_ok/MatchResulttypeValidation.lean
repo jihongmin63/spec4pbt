@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -43,7 +44,7 @@ theorem match_iter_cons_success_iff
         (.orElse (SpecTec.«Match_resulttype:rule:iter:0:clause:0»
             c (t₁ :: rest₁) (t₂ :: rest₂))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Match_resulttype:rule:iter:0:clause:1»
+            [SpecTec.«Match_resulttype:rule:iter:0:clause:1»
               c (t₁ :: rest₁) (t₂ :: rest₂)]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
@@ -51,7 +52,8 @@ theorem match_iter_cons_success_iff
         change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of ())) finalSupply at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Match_resulttype:rule:iter:0:clause:1»
               c (t₁ :: rest₁) (t₂ :: rest₂))
@@ -72,7 +74,7 @@ theorem match_iter_cons_success_iff
                 | bind_success hrest hpure =>
                   cases hpure with
                   | pure => exact ⟨middle, hmatch, hrest⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨middle, hmatch, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body
@@ -130,7 +132,7 @@ theorem match_resulttype_success_iff
             | bind_success hiter hpure =>
               cases hpure with
               | pure => exact ⟨hlength, hiter⟩
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨hlength, hiter⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

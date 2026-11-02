@@ -48,6 +48,23 @@ theorem body_plain (request : SpecTec.Request) : Plain (SpecTec.Body request) :=
   obtain ⟨_, call⟩ := request
   cases call <;> wasm_plain
 
+theorem plain_of_tryClauses : ∀ {clauses : List (SpecTecExecution.Action.{1} SpecTec.Request)},
+    Plain (SpecTecExecution.tryClauses clauses) → ∀ clause ∈ clauses, Plain clause
+  | [], _, _, member => by cases member
+  | head :: rest, plain, clause, member => by
+    have plain : Plain head ∧ Plain (SpecTecExecution.tryClauses rest) := plain
+    rcases List.mem_cons.mp member with rfl | member
+    · exact plain.1
+    · exact plain_of_tryClauses plain.2 clause member
+
+/-- Every clause of a request's body is plain. -/
+theorem plain_clause (request : SpecTec.Request)
+    {clauses : List (SpecTecExecution.Action.{1} SpecTec.Request)}
+    {clause : SpecTecExecution.Action.{1} SpecTec.Request} (member : clause ∈ clauses)
+    (body : SpecTec.Body request = SpecTecExecution.tryClauses clauses := by rfl) :
+    Plain clause :=
+  plain_of_tryClauses (body ▸ body_plain request) clause member
+
 /-- Without `choose` or `freshId`, every derivation is functional and keeps its supply. -/
 theorem eval_plain {plan : SpecTecExecution.Action.{1} SpecTec.Request}
     {start final : Nat} {outcome : SpecTecExecution.Outcome SpecTecExecution.Value}
@@ -99,6 +116,53 @@ theorem eval_supply {plan : SpecTecExecution.Action.{1} SpecTec.Request}
     (h : SpecTecExecution.Eval SpecTec.Body plan start outcome final)
     (plain : Plain plan := by wasm_plain) : final = start :=
   (eval_plain h plain).2
+
+/-- Clause selection in which every failed clause restarts from the same supply.
+For plain clauses this agrees with `SpecTecExecution.Selected`. -/
+inductive Selected : List (SpecTecExecution.Action.{1} SpecTec.Request) → Nat → Nat →
+    SpecTecExecution.Value → Nat → Prop where
+  | here {clause : SpecTecExecution.Action.{1} SpecTec.Request}
+      {rest : List (SpecTecExecution.Action.{1} SpecTec.Request)}
+      {value : SpecTecExecution.Value} {start final : Nat} :
+      SpecTecExecution.Eval SpecTec.Body clause start (.success value) final →
+      Selected (clause :: rest) start 0 value final
+  | next {clause : SpecTecExecution.Action.{1} SpecTec.Request}
+      {rest : List (SpecTecExecution.Action.{1} SpecTec.Request)}
+      {index : Nat} {value : SpecTecExecution.Value} {start failedFinal final : Nat} :
+      SpecTecExecution.Eval SpecTec.Body clause start .unmatch failedFinal →
+      Selected rest start index value final →
+      Selected (clause :: rest) start (index + 1) value final
+
+theorem tryClauses_success_iff (clauses : List (SpecTecExecution.Action.{1} SpecTec.Request))
+    (start : Nat) (value : SpecTecExecution.Value) (final : Nat)
+    (plain : Plain (SpecTecExecution.tryClauses clauses) := by wasm_plain) :
+    SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses clauses) start
+      (.success value) final ↔ ∃ index, Selected clauses start index value final := by
+  rw [SpecTecExecution.tryClauses_success_iff]
+  have members := plain_of_tryClauses plain
+  clear plain
+  constructor
+  · rintro ⟨index, selected⟩
+    refine ⟨index, ?_⟩
+    induction selected with
+    | here h => exact .here h
+    | next failed _ ih =>
+      have supply := eval_supply failed (members _ List.mem_cons_self)
+      subst supply
+      exact .next failed (ih fun clause member => members clause (List.mem_cons_of_mem _ member))
+  · rintro ⟨index, selected⟩
+    refine ⟨index, ?_⟩
+    induction selected with
+    | here h => exact .here h
+    | next failed _ ih =>
+      have supply := eval_supply failed (members _ List.mem_cons_self)
+      subst supply
+      exact .next failed (ih fun clause member => members clause (List.mem_cons_of_mem _ member))
+
+/-- After a failed alternative, continue `rest` from the supply the alternative started with.
+Does nothing when `rest` does not mention the failed attempt's final supply. -/
+macro "restore_supply " failed:ident " at " rest:ident : tactic =>
+  `(tactic| try rw [properties.wasm_module_ok.Execution.eval_supply $failed] at $rest:ident)
 
 theorem eval_deterministic {plan : SpecTecExecution.Action.{1} SpecTec.Request}
     {start leftFinal rightFinal : Nat}

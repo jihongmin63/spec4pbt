@@ -53,7 +53,7 @@ theorem func_type_success_iff
                     | DefFuncT ft' =>
                       cases htail with
                       | pure => exact ⟨dt, rfl, hexpand⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨dt, hget, hexpand⟩
     have hindex : x < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1

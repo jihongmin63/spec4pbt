@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.FreeUnionValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -30,7 +31,7 @@ theorem free_block_ref_func
           | pure =>
             simpa [HasFunc] using
               (free_instr_list_ref_func xs x listFree n middle₁ hmem hlist)
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_const_ref_func
     (xs : List SpecTec.instr) (x : SpecTec.funcidx)
@@ -51,6 +52,6 @@ theorem free_const_ref_func
       | bind_success hblock hpure =>
         cases hpure with
         | pure => exact free_block_ref_func xs x result n finalSupply hmem hblock
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.FreeConstValidation

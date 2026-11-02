@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ValtypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,7 +25,7 @@ theorem val_storage_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Storagetype_ok_clauses c (.ValStorageT t))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Storagetype_ok_clauses at hselected
@@ -79,7 +80,7 @@ theorem pack_storage_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Storagetype_ok_clauses c (.PackStorageT pt))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Storagetype_ok_clauses at hselected

@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveBodyBlocktypes
 import properties.wasm_module_ok.ConstructiveBodyEnvironment
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyBlocktypeCoverage
 open SpecTec properties.wasm_module_ok ConstructiveBodyBlocktypes ConstructiveBodyEnvironment
@@ -15,7 +16,7 @@ theorem source_cases (c : context) (bt : blocktype) (result : instrtype) (start 
    change SpecTecExecution.Eval SpecTec.Body
      (SpecTecExecution.tryClauses (SpecTec.Blocktype_ok_clauses c bt))
      start (.success (.of result)) finish at h
-   obtain ⟨k,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
+   obtain ⟨k,h⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.Blocktype_ok_clauses at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩
    · unfold SpecTec.«Blocktype_ok:clause:0» at h

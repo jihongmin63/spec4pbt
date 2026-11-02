@@ -7,20 +7,21 @@ open SpecTec properties.wasm_module_ok SpecTecExecution
 theorem pair_rule (c : context) (stack : inferresulttype) (i : instr) (k other : Fin 100)
     (hi : i.ctorIdx=ConstructiveBodyOpcode.ruleOpcode k.val)
     (hu : ∀j : Fin 100,ConstructiveBodyOpcode.ruleOpcode j.val=ConstructiveBodyOpcode.ruleOpcode k.val → j=k ∨ j=other)
-    (hm : ∀n,Eval SpecTec.Body (((SpecTec.Instr_ok_clauses c stack i)[other.val]'other.isLt) ()) n .unmatch n)
+    (hm : ∀n,Eval SpecTec.Body (((SpecTec.Instr_ok_clauses c stack i)[other.val]'other.isLt)) n .unmatch n)
     (effect : inferinstrtype) (n finish : Nat) :
     Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩) n (.success (.of effect)) finish ↔
-    Eval SpecTec.Body (((SpecTec.Instr_ok_clauses c stack i)[k.val]'k.isLt) ()) n (.success (.of effect)) finish := by
+    Eval SpecTec.Body (((SpecTec.Instr_ok_clauses c stack i)[k.val]'k.isLt)) n (.success (.of effect)) finish := by
   constructor
   · intro h
     cases h with | call h =>
       change Eval SpecTec.Body (tryClauses (SpecTec.Instr_ok_clauses c stack i)) n _ finish at h
-      obtain ⟨j,hs⟩ := (tryClauses_success_iff _ _ _ _).1 h
+      obtain ⟨j,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
       obtain ⟨hj,he⟩ := ConstructiveBodyRoute.selected_get _ n finish j (.of effect) hs
       have ho : i.ctorIdx=ConstructiveBodyOpcode.ruleOpcode j := by
         by_contra hn
         have hx := ConstructiveBodyOpcode.other c stack i n j hj hn
-        cases (properties.wasm_module_ok.Execution.eval_deterministic he hx).1
+        cases (properties.wasm_module_ok.Execution.eval_deterministic he hx
+          (Execution.plain_clause ⟨_,Call.Instr_ok c stack i⟩ (List.getElem_mem _))).1
       rcases hu ⟨j,hj⟩ (ho.symm.trans hi) with eqk|eqother
       · have hjk := congrArg Fin.val eqk
         change j=k.val at hjk
@@ -28,7 +29,8 @@ theorem pair_rule (c : context) (stack : inferresulttype) (i : instr) (k other :
       · have hjo := congrArg Fin.val eqother
         change j=other.val at hjo
         subst j
-        cases (properties.wasm_module_ok.Execution.eval_deterministic he (hm n)).1
+        cases (properties.wasm_module_ok.Execution.eval_deterministic he (hm n)
+          (Execution.plain_clause ⟨_,Call.Instr_ok c stack i⟩ (List.getElem_mem _))).1
   · intro h
     apply Eval.call
     change Eval SpecTec.Body (tryClauses (SpecTec.Instr_ok_clauses c stack i)) n _ finish

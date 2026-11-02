@@ -2,6 +2,7 @@ import properties.wasm_module_ok.CandidateProvenanceSeed
 import properties.wasm_module_ok.DeclarationTypesValidation
 import properties.wasm_module_ok.ContextTypesValidation
 import properties.wasm_module_ok.MemGlobalsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -28,7 +29,7 @@ theorem table_ok_funcs
               | bind_success _ hpure =>
                   cases hpure with
                   | pure => rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem tables_ok_funcs
     (c out : SpecTec.context) (ts : List SpecTec.table)
@@ -44,7 +45,7 @@ theorem tables_ok_funcs
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:0» c [])
               (fun _ => SpecTecExecution.tryClauses
-                [fun _ => SpecTec.«Tables_ok:clause:1» c []]))
+                [SpecTec.«Tables_ok:clause:1» c []]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -53,7 +54,8 @@ theorem tables_ok_funcs
               | bind_success hguard _ =>
                   cases hguard with
                   | guard_true hcond => simp at hcond
-          | orElse_unmatch _ htail =>
+          | orElse_unmatch hfailedSupply htail =>
+              restore_supply hfailedSupply at htail
               change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Tables_ok:clause:1» c [])
                   (fun _ => .unmatch))
@@ -65,14 +67,14 @@ theorem tables_ok_funcs
                   | bind_success _ hpure =>
                       cases hpure with
                       | pure => rfl
-              | orElse_unmatch _ hnone => cases hnone
+              | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases h with
       | call hbody =>
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:0» c (t :: rest))
               (fun _ => SpecTecExecution.tryClauses
-                [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
+                [SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -90,7 +92,8 @@ theorem tables_ok_funcs
                               | pure =>
                                   exact (ih next out middle finish hrest).trans
                                     (table_ok_funcs c next t start middle hhead)
-          | orElse_unmatch _ htail =>
+          | orElse_unmatch hfailedSupply htail =>
+              restore_supply hfailedSupply at htail
               change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Tables_ok:clause:1» c (t :: rest))
                   (fun _ => .unmatch))
@@ -102,7 +105,7 @@ theorem tables_ok_funcs
                   | bind_success hguard _ =>
                       cases hguard with
                       | guard_true hcond => simp at hcond
-              | orElse_unmatch _ hnone => cases hnone
+              | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem mems_result_funcs
     (c out : SpecTec.context) (ms : List SpecTec.memory)

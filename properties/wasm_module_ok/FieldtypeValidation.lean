@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.StoragetypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,7 +23,7 @@ theorem fieldtype_storage_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Fieldtype_ok_clauses c (.FieldT m zt))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Fieldtype_ok_clauses at hselected

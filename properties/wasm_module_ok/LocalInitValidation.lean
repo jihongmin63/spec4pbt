@@ -35,7 +35,7 @@ theorem local_lookup_success_iff
               rw [hget] at htail
               cases htail with
               | pure => exact ⟨rfl, rfl⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨hget, rfl⟩
     have hbound : x < c.LOCALS.length :=
       (List.getElem?_eq_some_iff.mp hget).1
@@ -146,7 +146,7 @@ theorem init_local_success_iff
               properties.wasm_module_ok.Execution.eval_deterministic hgiven hcanonical
             cases hout
             exact ⟨by simp [initLocalResult, hget], hsupply⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨hresult, rfl⟩
     cases hget : c.LOCALS[x]? with
     | none => simp [initLocalResult, hget] at hresult
@@ -227,7 +227,7 @@ theorem init_locals_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$init_locals:clause:0» c (x :: xs))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«$init_locals:clause:1» c (x :: xs)]))
+            [SpecTec.«$init_locals:clause:1» c (x :: xs)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -236,7 +236,8 @@ theorem init_locals_cons_success_iff
         | bind_success hguard _ =>
           cases hguard with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«$init_locals:clause:1» c (x :: xs))
             (fun _ => .unmatch))
@@ -255,7 +256,7 @@ theorem init_locals_cons_success_iff
                 | bind_success hrest hpure =>
                   cases hpure with
                   | pure => exact ⟨c₁, middle, hhead, hrest⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨c₁, middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

@@ -200,7 +200,7 @@ theorem ordered_call_syntax
           (SpecTec.«$is_const_clauses» c i))
         n (.success (.of true)) fin at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$is_const_clauses» c i) n
           (.of true) fin).1 hbody
       unfold SpecTec.«$is_const_clauses» at hselected

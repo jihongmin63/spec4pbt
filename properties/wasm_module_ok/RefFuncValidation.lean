@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ModuleRefsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -31,7 +32,7 @@ theorem hasFunc_of_in_set_true
         · simpa only [HasFunc, hs] using hx
         · simp [hx] at hclause
           cases hclause
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem ref_func_clause_success_of_membership
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)

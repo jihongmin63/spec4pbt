@@ -136,7 +136,7 @@ theorem original_covered (c : context) (env : Env c) (outputs : List valtype)
    change SpecTecExecution.Eval SpecTec.Body
      (SpecTecExecution.tryClauses (SpecTec.Catch_ok_clauses c outputs raw))
      start (.success (.of ())) finish at h
-   obtain ⟨k,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
+   obtain ⟨k,h⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.Catch_ok_clauses at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩⟩
    · exact clause0_covered c env outputs raw start finish h

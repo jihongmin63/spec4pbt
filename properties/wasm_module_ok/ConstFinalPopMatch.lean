@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstFinalPopShape
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -26,7 +27,7 @@ theorem final_const_pop_matches
           (.NoEllipses, [t]) (.NoEllipses, [u])))
       start (.success (.of (ellipses, []))) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
           (.NoEllipses, [t]) (.NoEllipses, [u]))
         start (.of (ellipses, [])) fin).1 hbody

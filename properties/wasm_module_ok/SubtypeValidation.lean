@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.SubtypeHeadListValidation
 import properties.wasm_module_ok.StrtypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -33,7 +34,7 @@ theorem subtype_success_iff_calls
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Subtype_ok_clauses c (.SubT fin hts st))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_ok_clauses at hselected

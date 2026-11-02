@@ -39,7 +39,7 @@ theorem elem_replace (refs : SpecTec.free) (c : context) (rt : reftype) (mode : 
     subst finish;exact ElemModeBaseDecision.declarative_total _ rt n
   | Active a =>
     cases h with | call h =>
-      obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
+      obtain ⟨_,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
       cases hs with
       | here h =>
         unfold SpecTec.«Elemmode_ok:clause:0» at h

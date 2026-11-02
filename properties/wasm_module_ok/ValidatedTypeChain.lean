@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.TypesPrefixValidation
 import properties.wasm_module_ok.RectypeLengthValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -27,7 +28,7 @@ theorem types_ok_nil_eq
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c [])
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Types_ok:clause:1» c []]))
+          [SpecTec.«Types_ok:clause:1» c []]))
       start (.success (.of result)) finish at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -36,7 +37,8 @@ theorem types_ok_nil_eq
       | bind_success hguard _ =>
         cases hguard with
         | guard_true hcond => simp at hcond
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c [])
           (fun _ => .unmatch))
@@ -48,7 +50,7 @@ theorem types_ok_nil_eq
         | bind_success _ hpure =>
           cases hpure
           rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem types_ok_preserves
     (c result : SpecTec.context) (ts : List SpecTec.type)

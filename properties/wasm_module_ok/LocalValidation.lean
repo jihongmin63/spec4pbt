@@ -21,20 +21,21 @@ theorem local_of_valtype_success
     SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
       n (.success (.of (localType l))) finalSupply := by
+  obtain rfl : n = finalSupply := (Execution.eval_supply hval).symm
   apply SpecTecExecution.Eval.call
   change SpecTecExecution.Eval SpecTec.Body
     (SpecTecExecution.tryClauses (SpecTec.Local_ok_clauses c l))
-    n (.success (.of (localType l))) finalSupply
+    n (.success (.of (localType l))) n
   cases hdef : DefaultableValidation.defaultable l.LTYPE with
   | true =>
     apply SpecTecExecution.tryClauses_cons_success
     change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Local_ok:clause:0» c l)
-      n (.success (.of (localType l))) finalSupply
+      n (.success (.of (localType l))) n
     unfold SpecTec.«Local_ok:clause:0»
     apply SpecTecExecution.Eval.bind_success hval
     apply SpecTecExecution.Eval.bind_success
-      (DefaultableValidation.defaultable_total l.LTYPE finalSupply)
+      (DefaultableValidation.defaultable_total l.LTYPE n)
     apply SpecTecExecution.Eval.bind_success
     · apply SpecTecExecution.Eval.guard_true
       simp [hdef]
@@ -45,22 +46,22 @@ theorem local_of_valtype_success
     apply SpecTecExecution.tryClauses_cons_unmatch
     · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Local_ok:clause:0» c l)
-        n .unmatch finalSupply
+        n .unmatch n
       unfold SpecTec.«Local_ok:clause:0»
       apply SpecTecExecution.Eval.bind_success hval
       apply SpecTecExecution.Eval.bind_success
-        (DefaultableValidation.defaultable_total l.LTYPE finalSupply)
+        (DefaultableValidation.defaultable_total l.LTYPE n)
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [hdef]
     · apply SpecTecExecution.tryClauses_cons_success
       change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Local_ok:clause:1» c l)
-        n (.success (.of (localType l))) finalSupply
+        n (.success (.of (localType l))) n
       unfold SpecTec.«Local_ok:clause:1»
       apply SpecTecExecution.Eval.bind_success hval
       apply SpecTecExecution.Eval.bind_success
-        (DefaultableValidation.defaultable_total l.LTYPE finalSupply)
+        (DefaultableValidation.defaultable_total l.LTYPE n)
       apply SpecTecExecution.Eval.bind_success
       · apply SpecTecExecution.Eval.guard_true
         simp [hdef]
@@ -83,14 +84,15 @@ theorem local_success_inv_valtype
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Local_ok:clause:0» c l)
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Local_ok:clause:1» c l]))
+          [SpecTec.«Local_ok:clause:1» c l]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
       unfold SpecTec.«Local_ok:clause:0» at hfirst
       cases hfirst with
       | bind_success hval _ => exact ⟨_, hval⟩
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Local_ok:clause:1» c l)
           (fun _ => .unmatch))
@@ -100,7 +102,7 @@ theorem local_success_inv_valtype
         unfold SpecTec.«Local_ok:clause:1» at hsecond
         cases hsecond with
         | bind_success hval _ => exact ⟨_, hval⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
 
 theorem local_success_iff
     (c : SpecTec.context) (l : SpecTec.«local»)

@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.FunctypeValidation
 import properties.wasm_module_ok.StructArrayValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -25,7 +26,7 @@ theorem struct_success_iff_child
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Strtype_ok_clauses c (.DefStructT st))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected
@@ -89,7 +90,7 @@ theorem array_success_iff_child
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Strtype_ok_clauses c (.DefArrayT arr))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected
@@ -161,7 +162,7 @@ theorem func_success_iff_child
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Strtype_ok_clauses c (.DefFuncT ft))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected

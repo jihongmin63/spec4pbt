@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.StackValidation
 import properties.wasm_module_ok.InstrsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -74,7 +75,7 @@ theorem block_success_iff
                           cases hempty
                           exact ⟨irt, indices, ellipses, middle,
                             hinstr, hpop⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨irt, indices, ellipses, middle, hinstr, hpop⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

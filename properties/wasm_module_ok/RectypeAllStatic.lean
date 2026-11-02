@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.SubtypeWrapperShape
 import properties.wasm_module_ok.RectypeRangeValidation
 import properties.wasm_module_ok.RangeZipPosition
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -37,7 +38,7 @@ theorem rectype_sub_iter_all_static
                   c x (n₀ :: ns) (st₀ :: sts)))
               start (.success (.of ())) finish at hbody
             obtain ⟨idx, hselected⟩ :=
-              (SpecTecExecution.tryClauses_success_iff
+              (properties.wasm_module_ok.Execution.tryClauses_success_iff
                 (SpecTec.«Rectype_ok:rule:iter:6_clauses»
                   c x (n₀ :: ns) (st₀ :: sts))
                 start (.of ()) finish).1 hbody

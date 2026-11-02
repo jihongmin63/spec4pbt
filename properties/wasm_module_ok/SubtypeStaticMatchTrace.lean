@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.CandidateNestedReady
 import properties.wasm_module_ok.SubtypeSupertypeShape
 import properties.wasm_module_ok.SourceReferenceLookup
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -34,7 +35,7 @@ theorem subtype_sub_ok_static_match_trace
         (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))))
       start (.success (.of ())) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y)))
         start (.of ()) finish).1 hbody
     unfold SpecTec.Subtype_sub_ok'_clauses at hselected

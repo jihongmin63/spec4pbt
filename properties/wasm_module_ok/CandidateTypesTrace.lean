@@ -44,7 +44,7 @@ theorem types_ok_cons_of_calls
   change SpecTecExecution.Eval SpecTec.Body
     (.orElse (SpecTec.«Types_ok:clause:0» c (t :: ts))
       (fun _ => SpecTecExecution.tryClauses
-        [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)]))
+        [SpecTec.«Types_ok:clause:1» c (t :: ts)]))
     start (.success (.of result)) finish
   apply SpecTecExecution.Eval.orElse_success
   unfold SpecTec.«Types_ok:clause:0»

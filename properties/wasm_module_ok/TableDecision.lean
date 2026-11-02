@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstExpressionDecision
 import properties.wasm_module_ok.ConstValidatedTarget
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -109,6 +110,6 @@ theorem table_result_iff_call
                     exact ⟨by simpa [tableValid, htypeResult.1,
                       hconstResult.1], rfl⟩
                   · exact hconstResult.2.trans htypeResult.2
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.TableDecision

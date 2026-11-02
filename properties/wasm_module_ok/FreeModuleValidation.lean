@@ -2,6 +2,7 @@ import properties.wasm_module_ok.FreeListValidation
 import properties.wasm_module_ok.Validity
 import properties.wasm_module_ok.FreeElemValidation
 import properties.wasm_module_ok.FreeOffsetValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -109,7 +110,7 @@ theorem free_module_trace (m : SpecTec.module)
                               elems := helems, datas := hdatas,
                               unions := hunions
                             }⟩
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_module_global_ref_func
     (m : SpecTec.module) (g : SpecTec.global)

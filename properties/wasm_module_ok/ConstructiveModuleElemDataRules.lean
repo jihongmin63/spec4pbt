@@ -27,7 +27,7 @@ theorem elems_original (c out : context) (e : SpecTec.elem) (es : List SpecTec.e
       Eval Body (.call ⟨context,Call.Elem_ok c e⟩) n (.success (.of next)) middle ∧
       Eval Body (.call ⟨context,Call.Elems_ok next es⟩) middle (.success (.of out)) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Elems_ok_clauses c (e::es)) n (.of out) finish).1 h
+    obtain ⟨_,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Elems_ok_clauses c (e::es)) n (.of out) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Elems_ok:clause:0» at h
@@ -64,7 +64,7 @@ theorem datas_original (c out : context) (e : SpecTec.data) (es : List SpecTec.d
       Eval Body (.call ⟨context,Call.Data_ok c e⟩) n (.success (.of next)) middle ∧
       Eval Body (.call ⟨context,Call.Datas_ok next es⟩) middle (.success (.of out)) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Datas_ok_clauses c (e::es)) n (.of out) finish).1 h
+    obtain ⟨_,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Datas_ok_clauses c (e::es)) n (.of out) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Datas_ok:clause:0» at h
@@ -106,7 +106,7 @@ theorem elem_original (c out : context) (e : SpecTec.elem) (n finish : Nat)
         cases h with | bind_success hi h =>
           cases h with | bind_success hm hp =>
             cases hp;exact ⟨_,_,hr,hi,hm,rfl⟩
-    | orElse_unmatch _ h => cases h
+    | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
 
 theorem data (c : context) (e : SpecTec.data) (n : Nat)
     (hm : Eval Body (.call ⟨Unit,Call.Datamode_ok c e.DMODE⟩) n (.success (.of ())) n) :
@@ -128,7 +128,7 @@ theorem data_original (c out : context) (e : SpecTec.data) (n finish : Nat)
       unfold SpecTec.«Data_ok:clause:0» at h
       cases h with | bind_success hm hp =>
         cases hp;exact ⟨hm,rfl⟩
-    | orElse_unmatch _ h => cases h
+    | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
 
 #print axioms elems_original
 #print axioms datas_original

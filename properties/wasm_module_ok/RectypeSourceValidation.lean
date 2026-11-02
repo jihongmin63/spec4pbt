@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.RollReferenceProvenance
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -26,7 +27,7 @@ theorem rectype_ok_extract_validation_iter
           (SpecTec.Rectype_ok_clauses before (.RecT sts)))
         start (.success (.of after)) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Rectype_ok_clauses before (.RecT sts))
           start (.of after) finish).1 hbody
       unfold SpecTec.Rectype_ok_clauses at hselected
@@ -82,7 +83,7 @@ theorem validation_iter_member
               (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (head :: tail)))
             start (.success (.of ())) finish at hbody
           obtain ⟨idx, hselected⟩ :=
-            (SpecTecExecution.tryClauses_success_iff
+            (properties.wasm_module_ok.Execution.tryClauses_success_iff
               (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (head :: tail))
               start (.of ()) finish).1 hbody
           unfold SpecTec.«Rectype_ok:rule:iter:5_clauses» at hselected

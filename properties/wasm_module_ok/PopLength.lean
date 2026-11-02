@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.PopGeneralValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,7 +23,7 @@ theorem pop_noellipses_success_requires_length
           (.NoEllipses, need) (.NoEllipses, available)))
       start (.success (.of result)) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
           (.NoEllipses, need) (.NoEllipses, available))
         start (.of result) fin).1 hbody

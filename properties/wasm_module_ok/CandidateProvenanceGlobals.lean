@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.CandidateProvenanceSteps
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -37,7 +38,7 @@ theorem global_ok_provenance
                               c (.GlobalT mutation t) start _).mp hgt).1
                           exact CandidateProvenanceSteps.append_valid_global
                             c (.GlobalT mutation t) hprov hvalid
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem globals_ok_provenance
     (c out : SpecTec.context) (gs : List SpecTec.global)
@@ -54,7 +55,7 @@ theorem globals_ok_provenance
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c [])
               (fun _ => SpecTecExecution.tryClauses
-                [fun _ => SpecTec.«Globals_ok:clause:1» c []]))
+                [SpecTec.«Globals_ok:clause:1» c []]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -63,7 +64,8 @@ theorem globals_ok_provenance
               | bind_success hguard _ =>
                   cases hguard with
                   | guard_true hcond => simp at hcond
-          | orElse_unmatch _ htail =>
+          | orElse_unmatch hfailedSupply htail =>
+              restore_supply hfailedSupply at htail
               change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c [])
                   (fun _ => .unmatch))
@@ -75,14 +77,14 @@ theorem globals_ok_provenance
                   | bind_success _ hpure =>
                       cases hpure with
                       | pure => exact hprov
-              | orElse_unmatch _ hnone => cases hnone
+              | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons g rest ih =>
       cases h with
       | call hbody =>
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c (g :: rest))
               (fun _ => SpecTecExecution.tryClauses
-                [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)]))
+                [SpecTec.«Globals_ok:clause:1» c (g :: rest)]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -101,7 +103,8 @@ theorem globals_ok_provenance
                                   exact ih next out middle finish
                                     (global_ok_provenance c next g start middle
                                       hprov hhead) hrest
-          | orElse_unmatch _ htail =>
+          | orElse_unmatch hfailedSupply htail =>
+              restore_supply hfailedSupply at htail
               change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c (g :: rest))
                   (fun _ => .unmatch))
@@ -113,6 +116,6 @@ theorem globals_ok_provenance
                   | bind_success hguard _ =>
                       cases hguard with
                       | guard_true hcond => simp at hcond
-              | orElse_unmatch _ hnone => cases hnone
+              | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.CandidateProvenanceGlobals

@@ -7,7 +7,7 @@ open SpecTec properties.wasm_module_ok
 theorem skip_head (head : SpecTecExecution.Action.{1} Request)
     (rest : List (SpecTecExecution.Action.{1} Request)) (start finish : Nat)
     (value : SpecTecExecution.Value) (h : SpecTecExecution.Eval SpecTec.Body
-      (head ()) start .unmatch start) :
+      head start .unmatch start) (plain : Execution.Plain head) :
     SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses (head::rest))
       start (.success value) finish ↔
     SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses rest)
@@ -16,25 +16,29 @@ theorem skip_head (head : SpecTecExecution.Action.{1} Request)
   · intro hs
     cases hs with
     | orElse_success hs =>
-      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h).1
+      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h plain).1
       cases hc
-    | orElse_unmatch _ hs => exact hs
+    | orElse_unmatch hfailedSupply hs =>
+      rw [Execution.eval_supply hfailedSupply plain] at hs
+      exact hs
   · exact SpecTecExecution.tryClauses_cons_unmatch h
 
 theorem keep_head (head : SpecTecExecution.Action.{1} Request)
     (rest : List (SpecTecExecution.Action.{1} Request)) (start finish : Nat)
     (value : SpecTecExecution.Value)
     (h : SpecTecExecution.Eval SpecTec.Body
-      (SpecTecExecution.tryClauses rest) start .unmatch start) :
+      (SpecTecExecution.tryClauses rest) start .unmatch start)
+    (plainHead : Execution.Plain head) (plainRest : Execution.Plain (SpecTecExecution.tryClauses rest)) :
     SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses (head::rest))
       start (.success value) finish ↔
-    SpecTecExecution.Eval SpecTec.Body (head ()) start (.success value) finish := by
+    SpecTecExecution.Eval SpecTec.Body head start (.success value) finish := by
   constructor
   · intro hs
     cases hs with
     | orElse_success hs => exact hs
-    | orElse_unmatch _ hs =>
-      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h).1
+    | orElse_unmatch hfailedSupply hs =>
+      rw [Execution.eval_supply hfailedSupply plainHead] at hs
+      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h plainRest).1
       cases hc
   · exact SpecTecExecution.tryClauses_cons_success
 

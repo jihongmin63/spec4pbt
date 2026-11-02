@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.RectypeLengthValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -31,7 +32,7 @@ theorem rectype_subst_iter_position
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.tryClauses_success_iff
+          (properties.wasm_module_ok.Execution.tryClauses_success_iff
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl))
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected

@@ -23,9 +23,10 @@ theorem iter_complete (c : context) (env : Env c) (actual : List valtype)
        start (.success (.of ())) finish at h
      cases h with
      | orElse_success h => cases h
-     | orElse_unmatch _ h =>
+     | orElse_unmatch hfailedSupply h =>
+       restore_supply hfailedSupply at h
        cases h with
-       | orElse_unmatch _ h => cases h
+       | orElse_unmatch hfailedSupply h => restore_supply hfailedSupply at h; cases h
        | orElse_success h =>
          unfold SpecTec.«Instr_ok:br_table:iter:4:clause:1» at h
          cases hx : c.LABELS[x]? with

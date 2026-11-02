@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.RectypeRangeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -21,7 +22,7 @@ theorem type_ok_types_prefix
           (SpecTec.Type_ok_clauses c (.RecT sts)))
         start (.success (.of result)) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.Type_ok_clauses c (.RecT sts))
           start (.of result) finish).1 hbody
       unfold SpecTec.Type_ok_clauses at hselected
@@ -55,7 +56,7 @@ theorem type_ok_rectype_trace
         (SpecTec.Type_ok_clauses c (.RecT sts)))
       start (.success (.of result)) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Type_ok_clauses c (.RecT sts))
         start (.of result) finish).1 hbody
     unfold SpecTec.Type_ok_clauses at hselected
@@ -83,7 +84,7 @@ theorem types_ok_types_prefix
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c [])
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Types_ok:clause:1» c []]))
+              [SpecTec.«Types_ok:clause:1» c []]))
           start (.success (.of result)) finish at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -92,7 +93,8 @@ theorem types_ok_types_prefix
           | bind_success hguard _ =>
             cases hguard with
             | guard_true hcond => simp at hcond
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c [])
               (fun _ => .unmatch))
@@ -104,14 +106,14 @@ theorem types_ok_types_prefix
             | bind_success _ hpure =>
               cases hpure with
               | pure => exact ⟨[], by simp⟩
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   | cons t rest ih =>
       cases h with
       | call hbody =>
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c (t :: rest))
             (fun _ => SpecTecExecution.tryClauses
-              [fun _ => SpecTec.«Types_ok:clause:1» c (t :: rest)]))
+              [SpecTec.«Types_ok:clause:1» c (t :: rest)]))
           start (.success (.of result)) finish at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -132,7 +134,8 @@ theorem types_ok_types_prefix
                     obtain ⟨tail, htailprefix⟩ :=
                       ih c₁ result middle finish hrest
                     exact ⟨head ++ tail, by rw [htailprefix, hheadprefix, List.append_assoc]⟩
-        | orElse_unmatch _ htail =>
+        | orElse_unmatch hfailedSupply htail =>
+          restore_supply hfailedSupply at htail
           change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
@@ -144,7 +147,7 @@ theorem types_ok_types_prefix
             | bind_success hguard _ =>
               cases hguard with
               | guard_true hcond => simp at hcond
-          | orElse_unmatch _ hnone => cases hnone
+          | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem types_ok_cons_trace
     (c result : SpecTec.context)
@@ -166,7 +169,7 @@ theorem types_ok_cons_trace
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c (t :: ts))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)]))
+          [SpecTec.«Types_ok:clause:1» c (t :: ts)]))
       start (.success (.of result)) finish at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -182,7 +185,8 @@ theorem types_ok_cons_trace
             | bind_success hrest hpure =>
               cases hpure with
               | pure => exact ⟨middle, next, hhead, hrest⟩
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c (t :: ts))
           (fun _ => .unmatch))
@@ -194,6 +198,6 @@ theorem types_ok_cons_trace
         | bind_success hguard _ =>
           cases hguard with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.TypesPrefixValidation

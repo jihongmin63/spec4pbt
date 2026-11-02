@@ -44,7 +44,7 @@ theorem iter5_cons_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (st :: sts))
           n (.of ()) finish).1 hbody
       unfold SpecTec.«Rectype_ok:rule:iter:5_clauses» at hselected

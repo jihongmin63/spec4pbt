@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -62,7 +63,7 @@ theorem functype_of_strtype_success_iff
             | DefFuncT ft' =>
               cases htail with
               | pure => exact ⟨rfl, rfl⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨hshape, hsupply⟩
     subst st
     subst finalSupply
@@ -137,7 +138,7 @@ theorem start_some_success_inv
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Start_ok:clause:0» c (some s))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Start_ok:clause:1» c (some s)]))
+          [SpecTec.«Start_ok:clause:1» c (some s)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -175,7 +176,8 @@ theorem start_some_success_inv
                           | pure => exact ⟨dt, rfl, hexpand⟩
                         | cons _ _ => cases htail
                       | cons _ _ => cases htail
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Start_ok:clause:1» c (some s))
           (fun _ => .unmatch))
@@ -187,7 +189,7 @@ theorem start_some_success_inv
         | bind_success hnone _ =>
           cases hnone with
           | guard_true hcond => simp at hcond
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
 
 theorem start_some_success_iff
     (c : SpecTec.context) (s : SpecTec.start)
@@ -238,7 +240,7 @@ theorem expanddt_success_iff_unrolldt
           | SubT fin supers strt =>
             cases htail with
             | pure => exact ⟨fin, supers, hunroll⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
   · rintro ⟨fin, supers, hunroll⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body

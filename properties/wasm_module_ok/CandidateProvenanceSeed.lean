@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.CandidateProvenanceImports
 import properties.wasm_module_ok.CandidateTypesTraceIntegration
 import properties.wasm_module_ok.TypeGlobalsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -26,7 +27,7 @@ theorem empty_context_funcs_nil
           | bind_success _ hpure =>
               cases hpure with
               | pure => rfl
-      | orElse_unmatch _ hnone => cases hnone
+      | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem candidate_context_funcs
     (c out : SpecTec.context) (sts : List SpecTec.subtype)

@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.RectypeRangeValidation
 import properties.wasm_module_not_ok.RolldtValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -47,7 +48,7 @@ theorem rectype_subst_iter_length
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.tryClauses_success_iff
+          (properties.wasm_module_ok.Execution.tryClauses_success_iff
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c [])
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected
@@ -70,7 +71,7 @@ theorem rectype_subst_iter_length
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.tryClauses_success_iff
+          (properties.wasm_module_ok.Execution.tryClauses_success_iff
             (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl))
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected
@@ -107,7 +108,7 @@ theorem rectype_ok_appended_types_length
         (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected

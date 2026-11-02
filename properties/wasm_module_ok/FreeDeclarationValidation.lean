@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.FreeConstValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -36,7 +37,7 @@ theorem free_global_ref_func
                 middle₂ finalSupply hunion
                 (.inr (free_const_ref_func g.GINIT x constFree middle₁ middle₂
                   hmem hconst))
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 theorem free_table_ref_func
     (t : SpecTec.table) (x : SpecTec.funcidx)
@@ -67,6 +68,6 @@ theorem free_table_ref_func
                 middle₂ finalSupply hunion
                 (.inr (free_const_ref_func t.TINIT x constFree middle₁ middle₂
                   hmem hconst))
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.FreeDeclarationValidation

@@ -2,6 +2,7 @@ import properties.wasm_module_ok.ConstructiveModuleOffsetPlans
 import properties.wasm_module_ok.ConstructiveBodyEvalReduction
 import properties.wasm_module_ok.ElemModeBaseDecision
 import properties.wasm_module_ok.CandidateReftypeMatch
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModuleModeRules
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironment ConstructiveBodyEvalReduction
@@ -39,7 +40,7 @@ theorem data_active_original (c : context) (a : active) (n finish : Nat)
       Eval Body (.call ⟨Unit,Call.Const_ok c
         (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Datamode_ok_clauses c (.Active a)) n (.of ()) finish).1 h
+    obtain ⟨_,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Datamode_ok_clauses c (.Active a)) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Datamode_ok:clause:0» at h
@@ -91,7 +92,7 @@ theorem elem_active_original (c : context) (env : Env c) (rt : reftype)
       Eval Body (.call ⟨Unit,Call.Const_ok c
         (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
+    obtain ⟨_,hs⟩ := (properties.wasm_module_ok.Execution.tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Elemmode_ok:clause:0» at h

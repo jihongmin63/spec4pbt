@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.RefCycleDirect
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -24,13 +25,14 @@ theorem const_iter_cons_success_iff
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Const_ok:rule:iter:0:clause:0» c (i :: rest))
           (fun _ => SpecTecExecution.tryClauses
-            [fun _ => SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest)]))
+            [SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest)]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
         unfold SpecTec.«Const_ok:rule:iter:0:clause:0» at hfirst
         cases hfirst
-      | orElse_unmatch _ htail =>
+      | orElse_unmatch hfailedSupply htail =>
+        restore_supply hfailedSupply at htail
         change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest))
             (fun _ => .unmatch))
@@ -50,7 +52,7 @@ theorem const_iter_cons_success_iff
                 | bind_success hrest hpure =>
                   cases hpure with
                   | pure => exact ⟨middle, his, hrest⟩
-        | orElse_unmatch _ hnone => cases hnone
+        | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
   · rintro ⟨middle, his, hrest⟩
     apply SpecTecExecution.Eval.call
     change SpecTecExecution.Eval SpecTec.Body
@@ -117,6 +119,6 @@ theorem const_ok_member_is_const
       cases hclause with
       | bind_success hiter _ =>
         exact const_iter_member_is_const c xs n _ hiter i hmem
-    | orElse_unmatch _ hnone => cases hnone
+    | orElse_unmatch hfailedSupply hnone => restore_supply hfailedSupply at hnone; cases hnone
 
 end properties.wasm_module_ok.ConstSyntaxValidation

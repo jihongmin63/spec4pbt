@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.SubstOfValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -77,14 +78,15 @@ theorem rectype_iter5_cons_success_inv (c : SpecTec.context)
     change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Rectype_ok:rule:iter:5:clause:0» c (st :: sts))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Rectype_ok:rule:iter:5:clause:1» c (st :: sts)]))
+          [SpecTec.«Rectype_ok:rule:iter:5:clause:1» c (st :: sts)]))
       start (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
       change SpecTecExecution.Eval SpecTec.Body .unmatch
         start (.success (.of ())) finalSupply at hfirst
       cases hfirst
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Rectype_ok:rule:iter:5:clause:1» c (st :: sts))
           (fun _ => .unmatch))
@@ -98,7 +100,7 @@ theorem rectype_iter5_cons_success_inv (c : SpecTec.context)
           | bind_success htail hpure =>
             cases hpure with
             | pure => exact ⟨_, hhead, htail⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
 
 theorem rectype_iter5_cons_success_iff (c : SpecTec.context)
     (st : SpecTec.subtype) (sts : List SpecTec.subtype)
@@ -199,7 +201,7 @@ theorem rectype_iter6_cons_success_inv (c : SpecTec.context)
       (.orElse
         (SpecTec.«Rectype_ok:rule:iter:6:clause:0» c x (n :: ns) (st :: sts))
         (fun _ => SpecTecExecution.tryClauses
-          [fun _ => SpecTec.«Rectype_ok:rule:iter:6:clause:1»
+          [SpecTec.«Rectype_ok:rule:iter:6:clause:1»
             c x (n :: ns) (st :: sts)]))
       start (.success (.of ())) finalSupply at hbody
     cases hbody with
@@ -207,7 +209,8 @@ theorem rectype_iter6_cons_success_inv (c : SpecTec.context)
       change SpecTecExecution.Eval SpecTec.Body .unmatch
         start (.success (.of ())) finalSupply at hfirst
       cases hfirst
-    | orElse_unmatch _ htail =>
+    | orElse_unmatch hfailedSupply htail =>
+      restore_supply hfailedSupply at htail
       change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«Rectype_ok:rule:iter:6:clause:1» c x (n :: ns) (st :: sts))
@@ -222,7 +225,7 @@ theorem rectype_iter6_cons_success_inv (c : SpecTec.context)
           | bind_success htail hpure =>
             cases hpure with
             | pure => exact ⟨_, hhead, htail⟩
-      | orElse_unmatch _ hlast => cases hlast
+      | orElse_unmatch hfailedSupply hlast => restore_supply hfailedSupply at hlast; cases hlast
 
 theorem rectype_iter6_cons_success_iff (c : SpecTec.context)
     (x n : Nat) (ns : List Nat)

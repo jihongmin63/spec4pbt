@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -11,13 +12,13 @@ private theorem singleton_clause_success_inv
       (SpecTecExecution.tryClauses [clause]) start
       (.success value) finalSupply) :
     SpecTecExecution.Eval SpecTec.Body
-      (clause ()) start (.success value) finalSupply := by
+      clause start (.success value) finalSupply := by
   change SpecTecExecution.Eval SpecTec.Body
-    (.orElse (clause ()) (fun _ => .unmatch)) start
+    (.orElse clause (fun _ => .unmatch)) start
     (.success value) finalSupply at h
   cases h with
   | orElse_success hc => exact hc
-  | orElse_unmatch _ htail => cases htail
+  | orElse_unmatch hfailedSupply htail => restore_supply hfailedSupply at htail; cases htail
 
 theorem module_ok_clause_success (m : SpecTec.module) :
     SpecTec.Module_ok m →

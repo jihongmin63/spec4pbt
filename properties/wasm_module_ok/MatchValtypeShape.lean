@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstTargetCandidate
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -25,7 +26,7 @@ theorem match_valtype_true_shape
         (SpecTec.«$match_valtype_clauses» c.TYPES u t))
       start (.success (.of true)) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.tryClauses_success_iff
+      (properties.wasm_module_ok.Execution.tryClauses_success_iff
         (SpecTec.«$match_valtype_clauses» c.TYPES u t)
         start (.of true) fin).1 hbody
     unfold SpecTec.«$match_valtype_clauses» at hselected

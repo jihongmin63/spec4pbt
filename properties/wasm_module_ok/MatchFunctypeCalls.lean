@@ -30,7 +30,7 @@ theorem match_functype_success_iff_calls
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.tryClauses_success_iff
+        (properties.wasm_module_ok.Execution.tryClauses_success_iff
           (SpecTec.«$match_functype_clauses» dts
             (.FuncT inputs outputs) (.FuncT inputs' outputs'))
           n (.of result) finish).1 hbody
