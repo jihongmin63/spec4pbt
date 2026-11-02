@@ -8,9 +8,9 @@ theorem rectype_predecessor_lookup
     (before after c : SpecTec.context)
     (sts : List SpecTec.subtype) (start finish i k : Nat)
     (dts tail : List SpecTec.deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hafter : after = {before with TYPES := before.TYPES ++ dts})

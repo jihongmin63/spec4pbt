@@ -7,13 +7,13 @@ namespace properties.wasm_module_ok.ElemDataCallValidation
 theorem elems_ok_member_call
     (c result : SpecTec.context) (es : List SpecTec.elem)
     (e : SpecTec.elem) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elems_ok c es⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Elems_ok c es⟩)
       n (.success (.of result)) finalSupply)
     (hmem : e ∈ es) :
     ∃ (localContext produced : SpecTec.context) (start finish : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elem_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Elem_ok
           localContext e⟩)
         start (.success (.of produced)) finish := by
   induction es generalizing c result n finalSupply with
@@ -21,10 +21,10 @@ theorem elems_ok_member_call
   | cons head rest ih =>
     cases hcall with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Elems_ok:clause:0» c (head :: rest))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Elems_ok:clause:1» c (head :: rest)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Elems_ok:clause:1» c (head :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -43,7 +43,7 @@ theorem elems_ok_member_call
                   exact ⟨c, c₁, n, middle, hhead⟩
                 · exact ih c₁ _ middle _ hrest hrestmem
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elems_ok:clause:1» c (head :: rest))
             (fun _ => .unmatch))
           n (.success (.of result)) finalSupply at htail
@@ -59,13 +59,13 @@ theorem elems_ok_member_call
 theorem datas_ok_member_call
     (c result : SpecTec.context) (ds : List SpecTec.data)
     (d : SpecTec.data) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Datas_ok c ds⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Datas_ok c ds⟩)
       n (.success (.of result)) finalSupply)
     (hmem : d ∈ ds) :
     ∃ (localContext produced : SpecTec.context) (start finish : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Data_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Data_ok
           localContext d⟩)
         start (.success (.of produced)) finish := by
   induction ds generalizing c result n finalSupply with
@@ -73,10 +73,10 @@ theorem datas_ok_member_call
   | cons head rest ih =>
     cases hcall with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Datas_ok:clause:0» c (head :: rest))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Datas_ok:clause:1» c (head :: rest)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Datas_ok:clause:1» c (head :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -95,7 +95,7 @@ theorem datas_ok_member_call
                   exact ⟨c, c₁, n, middle, hhead⟩
                 · exact ih c₁ _ middle _ hrest hrestmem
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Datas_ok:clause:1» c (head :: rest))
             (fun _ => .unmatch))
           n (.success (.of result)) finalSupply at htail

@@ -62,8 +62,8 @@ def functionTables (c : context) : List (FunctionTable c) :=
       else []
 
 theorem FunctionTable.match_call {c : context} (tab : FunctionTable c) (env : Env c) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$match_reftype» c.TYPES tab.rt (.«% %» .Null .FuncHT)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$match_reftype» c.TYPES tab.rt (.«% %» .Null .FuncHT)⟩)
       n (.success (.of true)) n := by
   rw [←tab.matched]
   exact ConstructiveBodyReferenceMatcher.total c tab.rt (.«% %» .Null .FuncHT) n env.ready

@@ -20,9 +20,9 @@ theorem rollDeftypes_length (x : Nat) (sts : List SpecTec.subtype) :
 
 theorem rolldt_success_length (x : Nat) (sts : List SpecTec.subtype)
     (dts : List SpecTec.deftype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.deftype,
-        SpecTec.SpecTecCall.«$rolldt» x (.RecT sts)⟩)
+        SpecTec.Call.«$rolldt» x (.RecT sts)⟩)
       start (.success (.of dts)) finish) :
     dts.length = sts.length := by
   obtain ⟨hout, _⟩ := rolldt_deterministic x (.RecT sts)
@@ -33,22 +33,22 @@ theorem rolldt_success_length (x : Nat) (sts : List SpecTec.subtype)
 theorem rectype_subst_iter_length
     (c : SpecTec.context) (rolled substituted : List SpecTec.deftype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.deftype,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:2» c rolled⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:2» c rolled⟩)
       start (.success (.of substituted)) finish) :
     substituted.length = rolled.length := by
   induction rolled generalizing substituted start finish with
   | nil =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.firstSuccess_success_iff
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []) ()
+          (SpecTecExecution.tryClauses_success_iff
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c [])
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected
         cases hselected with
@@ -65,13 +65,13 @@ theorem rectype_subst_iter_length
   | cons hd tl ih =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.firstSuccess_success_iff
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)) ()
+          (SpecTecExecution.tryClauses_success_iff
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl))
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected
         cases hselected with
@@ -93,22 +93,22 @@ theorem rectype_subst_iter_length
 theorem rectype_ok_appended_types_length
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧
       dts.length = sts.length := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected
     cases hselected with

@@ -96,16 +96,16 @@ theorem generate_complete (c result : context) (items : List SpecTec.«import»)
   exact ⟨out,⟨items.length,by simp,hg⟩,hi,ho⟩
 
 theorem execute (c : context) (out : Result c) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Imports_ok c out.items⟩) n (.success (.of out.after)) n :=
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Imports_ok c out.items⟩) n (.success (.of out.after)) n :=
   (ImportsValidation.imports_success_iff_result c out.items out.after n n).2 ⟨out.correct,rfl⟩
 
 /-- Exact original import-section support, all five descriptor kinds, all
 names and arbitrary finite length. No assumptions on the incoming context. -/
 theorem values_exact (c : context) (items : List SpecTec.«import») (n : Nat) :
     Gen.support (values c) items ↔ ∃ result : context,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨context,SpecTec.SpecTecCall.Imports_ok c items⟩) n (.success (.of result)) n := by
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨context,SpecTec.Call.Imports_ok c items⟩) n (.success (.of result)) n := by
   constructor
   · rintro ⟨out,_,rfl⟩; exact ⟨out.after,execute c out n⟩
   · rintro ⟨result,h⟩

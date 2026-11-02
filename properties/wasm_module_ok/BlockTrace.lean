@@ -10,20 +10,20 @@ theorem block_success_iff
     (inputs outputs : List SpecTec.valtype)
     (localIndices : List SpecTec.localidx)
     (body : SpecTec.const) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Block_ok c
         (.InstrT inputs outputs localIndices) body⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ (irt : SpecTec.inferresulttype) (indices : List SpecTec.idx)
       (ellipses : SpecTec.ellipses) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, inputs) body⟩)
         n (.success (.of (irt, indices))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.ellipses × SpecTec.resulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, outputs) irt⟩)
         middle (.success (.of (ellipses, ([] : List SpecTec.valtype))))
           finalSupply := by
@@ -31,7 +31,7 @@ theorem block_success_iff
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Block_ok:clause:0» c
             (.InstrT inputs outputs localIndices) body)
           (fun _ => .unmatch))
@@ -77,13 +77,13 @@ theorem block_success_iff
       | orElse_unmatch _ hlast => cases hlast
   · rintro ⟨irt, indices, ellipses, middle, hinstr, hpop⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.Block_ok_clauses c
-          (.InstrT inputs outputs localIndices) body) ())
+          (.InstrT inputs outputs localIndices) body))
       n (.success (.of ())) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Block_ok:clause:0» c
         (.InstrT inputs outputs localIndices) body)
       n (.success (.of ())) finalSupply

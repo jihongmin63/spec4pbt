@@ -159,8 +159,8 @@ theorem const_ok_global_output_mem_candidateUniverse
     (c : SpecTec.context) (target : SpecTec.valtype)
     (xs : SpecTec.const) (x : SpecTec.globalidx)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c target xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c target xs⟩)
       n (.success (.of ())) finalSupply)
     (hmem : SpecTec.instr.«GLOBAL.GET» x ∈ xs) :
     ∃ t : SpecTec.valtype,

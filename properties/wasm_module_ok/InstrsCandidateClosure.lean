@@ -12,9 +12,9 @@ theorem instrs_candidate_entries_closed
         (iit : SpecTec.inferinstrtype) (n fin : Nat),
       FiniteValidTypes.candidateUniverse c =
         FiniteValidTypes.candidateUniverse base →
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+          SpecTec.Call.Instr_ok c irt i⟩)
         n (.success (.of iit)) fin →
       ∃ need outs : List SpecTec.valtype,
         iit.1.INS = (.NoEllipses, need) ∧
@@ -25,9 +25,9 @@ theorem instrs_candidate_entries_closed
       (start fin : Nat),
     FiniteValidTypes.candidateUniverse c =
       FiniteValidTypes.candidateUniverse base →
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c (.NoEllipses, stack) xs⟩)
+        SpecTec.Call.Instrs_ok c (.NoEllipses, stack) xs⟩)
       start (.success (.of result)) fin →
     (∀ t ∈ stack, t ∈ FiniteValidTypes.candidateUniverse base) →
     result.1.1 = .NoEllipses ∧
@@ -51,15 +51,15 @@ theorem instrs_candidate_entries_closed
     obtain ⟨need, outs, hins, houts, hclosed⟩ :=
       hstep i (by simp) c (.NoEllipses, stack) iit
         start middle₁ hc hinstr
-    have hpop' : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpop' : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, need) (.NoEllipses, stack)⟩)
         middle₂ (.success (.of popped)) middle₃ := by
       simpa [hins] using hpop
-    have hpush' : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpush' : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$push» c
+          SpecTec.Call.«$push» c
             (.NoEllipses, outs) popped⟩)
         middle₃ (.success (.of pushed)) middle₄ := by
       simpa [houts] using hpush
@@ -92,9 +92,9 @@ theorem instrs_candidate_entries_closed
             (iit : SpecTec.inferinstrtype) (n fin : Nat),
           FiniteValidTypes.candidateUniverse c =
             FiniteValidTypes.candidateUniverse base →
-          SpecTecExecution.Eval SpecTec.specTecProgram
+          SpecTecExecution.Eval SpecTec.Body
             (.call ⟨SpecTec.inferinstrtype,
-              SpecTec.SpecTecCall.Instr_ok c irt j⟩)
+              SpecTec.Call.Instr_ok c irt j⟩)
             n (.success (.of iit)) fin →
           ∃ need outs : List SpecTec.valtype,
             iit.1.INS = (.NoEllipses, need) ∧

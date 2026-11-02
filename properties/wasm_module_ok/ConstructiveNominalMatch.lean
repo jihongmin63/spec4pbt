@@ -52,7 +52,7 @@ theorem single_parent_original (c : context) (p q parent : Nat)
     (ha : c.TYPES[parent]? = some ancestor) (hlt : parent < p)
     (hu : unrollDeftypeResult source = some (.SubT fin [.DefHT ancestor] st))
     (n : Nat) :
-    Eval specTecProgram (.call ⟨Bool, SpecTecCall.«$match_heaptype» c.TYPES
+    Eval Body (.call ⟨Bool, Call.«$match_heaptype» c.TYPES
       (.DefHT source) (.DefHT target)⟩)
       n (.success (.of (decide (source = target) || matchIndex c parent q))) n := by
   have h := ReadyMatchHeaptypeIndex.ready_match_heaptype_def_pair_total c p q n source target

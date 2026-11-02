@@ -44,9 +44,9 @@ theorem tags_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Tags_ok c ts⟩)
+        SpecTec.Call.Tags_ok c ts⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by

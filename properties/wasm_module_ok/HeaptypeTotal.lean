@@ -9,8 +9,8 @@ open HeaptypeValidation
 theorem heaptype_invalid_unmatch (c : SpecTec.context)
     (ht : SpecTec.heaptype) (n : Nat)
     (hvalid : heaptypeValid c ht = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n .unmatch n := by
   have hnotbase : ht ∉ baseHeaptypes := by
     intro hb
@@ -19,19 +19,19 @@ theorem heaptype_invalid_unmatch (c : SpecTec.context)
     rw [hvalid] at hv
     cases hv
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Heaptype_ok_clauses c ht) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Heaptype_ok_clauses c ht))
     n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Heaptype_ok:clause:0» c ht) n .unmatch n
     unfold SpecTec.«Heaptype_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simpa [baseHeaptypes] using hnotbase
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Heaptype_ok:clause:1» c ht) n .unmatch n
       cases ht with
       | VarHT tv =>
@@ -72,7 +72,7 @@ theorem heaptype_invalid_unmatch (c : SpecTec.context)
       | ExternHT => exact (hnotbase (by simp [baseHeaptypes])).elim
       | NoExternHT => exact (hnotbase (by simp [baseHeaptypes])).elim
       | BotHT => exact (hnotbase (by simp [baseHeaptypes])).elim
-    · exact SpecTecExecution.firstSuccess_nil () n
+    · exact SpecTecExecution.tryClauses_nil n
 
 def heaptypeOutcome (c : SpecTec.context) (ht : SpecTec.heaptype) :
     SpecTecExecution.Outcome SpecTecExecution.Value :=
@@ -80,8 +80,8 @@ def heaptypeOutcome (c : SpecTec.context) (ht : SpecTec.heaptype) :
 
 theorem heaptype_total (c : SpecTec.context)
     (ht : SpecTec.heaptype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (heaptypeOutcome c ht) n := by
   cases hv : heaptypeValid c ht with
   | false =>

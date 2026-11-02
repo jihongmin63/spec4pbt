@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.CompoundUnrollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,23 +13,23 @@ def unrollStrtype (strt : SpecTec.strtype) (rect : SpecTec.rectype) : SpecTec.st
 
 theorem subst_strtype_unroll_total (strt : SpecTec.strtype)
     (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.strtype,
-        SpecTec.SpecTecCall.«$subst_strtype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» strt⟩)
+        SpecTec.Call.«$subst_strtype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» strt⟩)
       start (.success (.of (unrollStrtype strt rect))) start := by
   cases strt with
   | DefStructT st =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_strtype_clauses» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefStructT st)) ())
+            SpecTec.Call.«$s_unroll» (.DefStructT st)))
         start (.success (.of (unrollStrtype (.DefStructT st) rect))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_strtype:clause:0» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.DefStructT st))
+          SpecTec.Call.«$s_unroll» (.DefStructT st))
         start (.success (.of (unrollStrtype (.DefStructT st) rect))) start
       unfold SpecTec.«$subst_strtype:clause:0»
       apply SpecTecExecution.Eval.bind_success
@@ -40,23 +41,23 @@ theorem subst_strtype_unroll_total (strt : SpecTec.strtype)
           (SpecTec.strtype.DefStructT (unrollStructtype st rect))
   | DefArrayT arrayTy =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_strtype_clauses» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefArrayT arrayTy)) ())
+            SpecTec.Call.«$s_unroll» (.DefArrayT arrayTy)))
         start (.success (.of (unrollStrtype (.DefArrayT arrayTy) rect))) start
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$subst_strtype:clause:0» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefArrayT arrayTy)) start .unmatch start
+            SpecTec.Call.«$s_unroll» (.DefArrayT arrayTy)) start .unmatch start
         unfold SpecTec.«$subst_strtype:clause:0»
         apply SpecTecExecution.Eval.bind_unmatch
         exact SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:strtype:DefStructT»])
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$subst_strtype:clause:1» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefArrayT arrayTy))
+            SpecTec.Call.«$s_unroll» (.DefArrayT arrayTy))
           start (.success (.of (unrollStrtype (.DefArrayT arrayTy) rect))) start
         unfold SpecTec.«$subst_strtype:clause:1»
         apply SpecTecExecution.Eval.bind_success
@@ -68,31 +69,31 @@ theorem subst_strtype_unroll_total (strt : SpecTec.strtype)
             (SpecTec.strtype.DefArrayT (unrollArraytype arrayTy rect))
   | DefFuncT ft =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_strtype_clauses» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefFuncT ft)) ())
+            SpecTec.Call.«$s_unroll» (.DefFuncT ft)))
         start (.success (.of (unrollStrtype (.DefFuncT ft) rect))) start
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$subst_strtype:clause:0» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.DefFuncT ft)) start .unmatch start
+            SpecTec.Call.«$s_unroll» (.DefFuncT ft)) start .unmatch start
         unfold SpecTec.«$subst_strtype:clause:0»
         apply SpecTecExecution.Eval.bind_unmatch
         exact SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:strtype:DefStructT»])
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$subst_strtype:clause:1» SpecTec.rectype rect
-              SpecTec.SpecTecCall.«$s_unroll» (.DefFuncT ft)) start .unmatch start
+              SpecTec.Call.«$s_unroll» (.DefFuncT ft)) start .unmatch start
           unfold SpecTec.«$subst_strtype:clause:1»
           apply SpecTecExecution.Eval.bind_unmatch
           exact SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:strtype:DefArrayT»])
-        · apply SpecTecExecution.firstSuccess_cons_success
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_success
+          change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$subst_strtype:clause:2» SpecTec.rectype rect
-              SpecTec.SpecTecCall.«$s_unroll» (.DefFuncT ft))
+              SpecTec.Call.«$s_unroll» (.DefFuncT ft))
             start (.success (.of (unrollStrtype (.DefFuncT ft) rect))) start
           unfold SpecTec.«$subst_strtype:clause:2»
           apply SpecTecExecution.Eval.bind_success
@@ -106,13 +107,13 @@ theorem subst_strtype_unroll_total (strt : SpecTec.strtype)
 theorem subst_strtype_unroll_deterministic (strt : SpecTec.strtype)
     (rect : SpecTec.rectype) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.strtype,
-        SpecTec.SpecTecCall.«$subst_strtype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» strt⟩)
+        SpecTec.Call.«$subst_strtype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» strt⟩)
       start outcome finalSupply) :
     outcome = .success (.of (unrollStrtype strt rect)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_strtype_unroll_total strt rect start)
 
 end properties.wasm_module_not_ok.Rejection

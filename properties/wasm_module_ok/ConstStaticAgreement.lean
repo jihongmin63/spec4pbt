@@ -20,9 +20,9 @@ theorem after_init_locals
     (origin current next : SpecTec.context)
     (indices : List SpecTec.idx) (start finish : Nat)
     (hstatic : StaticAgreement origin current)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» current indices⟩)
+        SpecTec.Call.«$init_locals» current indices⟩)
       start (.success (.of next)) finish) :
     StaticAgreement origin next := by
   obtain ⟨ht, hf, hg, hr⟩ :=

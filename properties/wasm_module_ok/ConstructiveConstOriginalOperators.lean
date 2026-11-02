@@ -9,11 +9,11 @@ open properties.wasm_module_ok.ConstructiveConstOriginalLeaves
 
 theorem i31_node (c : context) (hr : CandidateTypeReady.Ready c) (table : List (Entry c))
     (u : valtype) (children : List Tree) (need : List valtype)
-    (hi : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,outputs children) .«REF.I31»⟩)
+    (hi : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,outputs children) .«REF.I31»⟩)
       0 (.success (.of (effect need u))) 0)
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (i31Entries c hr table) (.node .«REF.I31» u children) := by
@@ -27,8 +27,8 @@ theorem arithmetic_node (c : context) (hr : CandidateTypeReady.Ready c) (table :
     (op : binop_) (hop : .BINOP op∈ConstArithmeticValidation.arithmeticOps)
     (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.arithmeticResult op=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (allArithmetic c hr table) (.node (.BINOP op) u children) := by
@@ -42,8 +42,8 @@ theorem arithmetic_node (c : context) (hr : CandidateTypeReady.Ready c) (table :
 theorem extern_node (c : context) (hr : CandidateTypeReady.Ready c) (table : List (Entry c))
     (op : externop_) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.externConvertResult op (.NoEllipses,outputs children)=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (externEntries c hr table op) (.node (.«EXTERN.CONVERT» op) u children) := by

@@ -8,9 +8,9 @@ namespace properties.wasm_module_ok.CandidateUniverseStatic
 theorem candidateUniverse_of_init_locals
     (c c₁ : SpecTec.context) (indices : List SpecTec.idx)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of c₁)) fin) :
     FiniteValidTypes.candidateUniverse c₁ =
       FiniteValidTypes.candidateUniverse c := by

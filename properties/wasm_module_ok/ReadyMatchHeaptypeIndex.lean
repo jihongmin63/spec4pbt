@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ReadyMatchIndexResult
 import properties.wasm_module_ok.ReadyMatchTotal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,18 +13,18 @@ theorem ready_match_heaptype_def_pair_index_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       start (.success (.of result)) start ↔
     result = ValidatedMatchIndexFuel.matchIndex c p q := by
   have hbridge :
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
           (.DefHT dtP) (.DefHT dtQ)⟩)
         start (.success (.of result)) start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
         start (.success (.of result)) start := by
     constructor
     · intro hheap
@@ -33,11 +34,8 @@ theorem ready_match_heaptype_def_pair_index_iff
       have hheap' :=
         MatchHeaptypeBasic.match_heaptype_def_def_total_of_match_deftype
           c.TYPES dtP dtQ r start hdeftype
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨hout, _⟩ :=
-        SpecTecExecution.eval_deterministic hdet hheap hheap'
+        properties.wasm_module_ok.Execution.eval_deterministic hheap hheap'
       cases hout
       exact hdeftype
     · intro hdeftype
@@ -54,8 +52,8 @@ theorem ready_match_heaptype_def_pair_total
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       start (.success (.of (ValidatedMatchIndexFuel.matchIndex c p q))) start := by
   exact (ready_match_heaptype_def_pair_index_iff
@@ -187,8 +185,8 @@ theorem ready_match_heaptype_indexed_value_total
     (start : Nat) (result : Bool)
     (hready : CandidateTypeReady.Ready c)
     (hresult : indexedDefMatch c dtP dtQ = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       start (.success (.of result)) start := by
   unfold indexedDefMatch at hresult
@@ -214,8 +212,8 @@ theorem ready_match_heaptype_indexed_value_success_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       start (.success (.of result)) finish ↔
     indexedDefMatch c dtP dtQ = some result ∧ finish = start := by
@@ -223,11 +221,8 @@ theorem ready_match_heaptype_indexed_value_success_iff
   · intro heval
     have hknown := ready_match_heaptype_def_pair_total
       c p q start dtP dtQ hready hp hq hP hQ
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hx
-      cases hx
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet heval hknown
+      properties.wasm_module_ok.Execution.eval_deterministic heval hknown
     cases hout
     exact ⟨indexedDefMatch_of_positions c p q start dtP dtQ
       hready hp hq hP hQ, hsupply⟩

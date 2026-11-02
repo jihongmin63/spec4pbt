@@ -39,8 +39,8 @@ theorem struct_explicit_node (c : context) (hr : CandidateTypeReady.Ready c)
     (hn : CandidateNestedReady.nestedTableReady c=true) (table : List (Entry c))
     (x : Nat) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.structExplicitResult c x=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (structEntries c hr hn table) (.node (.«STRUCT.NEW» x .Explicit) u children) := by
@@ -61,8 +61,8 @@ theorem struct_explicit_node (c : context) (hr : CandidateTypeReady.Ready c)
 theorem struct_implicit_node (c : context) (hp : CandidateUniverseReady.Provenance c)
     (x : Nat) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.structImplicitResult c x=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n) :
     Covers (implicitStructEntries c hp) (.node (.«STRUCT.NEW» x .Implicit) u children) := by
   cases hs : StructTypeDecision.structTypeResult c x with
@@ -87,8 +87,8 @@ theorem array_explicit_node (c : context) (hr : CandidateTypeReady.Ready c)
     (hn : CandidateNestedReady.nestedTableReady c=true) (table : List (Entry c))
     (x : Nat) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.arrayExplicitResult c x=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (arrayEntries c hr hn table) (.node (.«ARRAY.NEW» x .Explicit) u children) := by
@@ -110,8 +110,8 @@ theorem array_implicit_node (c : context) (hr : CandidateTypeReady.Ready c)
     (hn : CandidateNestedReady.nestedTableReady c=true) (table : List (Entry c))
     (x : Nat) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.arrayImplicitResult c x=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (arrayEntries c hr hn table) (.node (.«ARRAY.NEW» x .Implicit) u children) := by
@@ -136,8 +136,8 @@ theorem array_fixed_node (c : context) (hr : CandidateTypeReady.Ready c)
     (hn : CandidateNestedReady.nestedTableReady c=true) (table : List (Entry c))
     (x count : Nat) (u : valtype) (children : List Tree) (need : List valtype)
     (hi : ConstInstrDecision.arrayFixedResult c x count=some (effect need u))
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (emptyArrayEntries c hp ++ arrayEntries c hr hn table) (.node (.«ARRAY.NEW_FIXED» x count) u children) := by

@@ -60,8 +60,8 @@ theorem signatures_sound (c : context) (env : List (Signature c))
     (es : List Entry) (he : Allowed (headers c env) es) (sts : List SpecTec.subtype)
     (hs : Gen.support (signatures c env es he) sts)
     (hb : GroupBound (c.TYPES.length+sts.length) sts) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of (extended c sts hb))) n := by
   have hlen : env.length = c.TYPES.length := by simpa [headers] using hmeta.1
   have ht := signatures_trace c env es he sts hs
@@ -99,8 +99,8 @@ theorem fresh_sound (c : context) (env : List (Signature c))
     (hc : CandidateTypeReady.Ready c) (hn : CandidateNestedReady.nestedTableReady c = true)
     (hmeta : Tracks c (headers c env)) (hdenote : Describes c c env)
     (rt : rectype) (hg : Gen.support (fresh c env) rt) (n : Nat) :
-    ∃ out : context, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c rt⟩) n (.success (.of out)) n := by
+    ∃ out : context, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c rt⟩) n (.success (.of out)) n := by
   obtain ⟨es,_,sts,hs,rfl⟩ := hg
   have hlen : env.length = c.TYPES.length := by simpa [headers] using hmeta.1
   have hb := signatures_bound c env hlen es.val es.property sts hs

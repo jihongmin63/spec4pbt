@@ -35,9 +35,9 @@ theorem table_instr_ok_iff_bound
     (ht : t ∈ m.TABLES) (hi : i ∈ t.TINIT)
     (hocc : ConstNestedValidation.RefOccurs i x) :
     (∃ (result : SpecTec.inferinstrtype) (finalSupply : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok tr.c2 irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok tr.c2 irt (.«REF.FUNC» x)⟩)
         n (.success (.of result)) finalSupply) ↔
       x < tr.c2.FUNCS.length :=
   RefCycleDirect.instr_ok_iff_bound m tr tr.c2 x irt n
@@ -50,9 +50,9 @@ theorem global_instr_ok_iff_bound
     (hg : g ∈ m.GLOBALS) (hi : i ∈ g.GINIT)
     (hocc : ConstNestedValidation.RefOccurs i x) :
     (∃ (result : SpecTec.inferinstrtype) (finalSupply : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok tr.c4 irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok tr.c4 irt (.«REF.FUNC» x)⟩)
         n (.success (.of result)) finalSupply) ↔
       x < tr.c4.FUNCS.length :=
   RefCycleDirect.instr_ok_iff_bound m tr tr.c4 x irt n

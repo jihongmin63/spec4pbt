@@ -13,13 +13,13 @@ theorem free_elem_init_ref_func
     (n finalSupply : Nat)
     (hinit : init ∈ e.EINIT)
     (href : SpecTec.instr.«REF.FUNC» x ∈ init)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_elem» e⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_elem» e⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_elem_clauses» e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_elem_clauses» e))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -35,7 +35,7 @@ theorem free_elem_init_ref_func
             cases hpure with
             | pure =>
               have hpart : HasFunc initFree x :=
-                free_list_preserves_funcs SpecTec.SpecTecCall.«$free_const»
+                free_list_preserves_funcs SpecTec.Call.«$free_const»
                   (fun a : SpecTec.const =>
                     SpecTec.instr.«REF.FUNC» x ∈ a) x
                   (by intro item out start finish hm hc
@@ -52,12 +52,12 @@ theorem free_elems_init_ref_func
     (result : SpecTec.free) (n finalSupply : Nat)
     (he : e ∈ es) (hinit : init ∈ e.EINIT)
     (href : SpecTec.instr.«REF.FUNC» x ∈ init)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» SpecTec.elem
-          SpecTec.SpecTecCall.«$free_elem» es⟩)
+        SpecTec.Call.«$free_list» SpecTec.elem
+          SpecTec.Call.«$free_elem» es⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
-  exact free_list_preserves_funcs SpecTec.SpecTecCall.«$free_elem»
+  exact free_list_preserves_funcs SpecTec.Call.«$free_elem»
     (fun a : SpecTec.elem =>
       ∃ init : SpecTec.const, init ∈ a.EINIT ∧
         SpecTec.instr.«REF.FUNC» x ∈ init) x

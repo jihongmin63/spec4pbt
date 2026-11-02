@@ -7,7 +7,7 @@ abbrev Ready (c : context) (xs : List Nat) := ∀x∈xs,(FunctionTypeValidation.
 structure Result (c : context) (xs : List Nat) where
   items : List SpecTec.func
   headers : items.map (·.FTYPE)=xs
-  correct : ∀n,Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Module_ok:rule:iter:2» c items⟩) n (.success (.of ())) n
+  correct : ∀n,Eval Body (.call ⟨Unit,Call.«Module_ok:rule:iter:2» c items⟩) n (.success (.of ())) n
 
 def done (c : context) : Result c [] := ⟨[],rfl,FunctionBodyValidation.funcbody_iter_nil_success c⟩
 def cons (c : context) (x : Nat) (xs : List Nat) (f : ConstructiveModuleFunctions.Result c x) (tail : Result c xs) : Result c (x::xs) :=
@@ -23,7 +23,7 @@ def generate (c : context) (env : Env c) : (xs : List Nat) → Ready c xs → Au
 
 theorem complete (c : context) (env : Env c) (fs : List SpecTec.func) (hr : Ready c (fs.map (·.FTYPE)))
     (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Module_ok:rule:iter:2» c fs⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.«Module_ok:rule:iter:2» c fs⟩) n (.success (.of ())) finish) :
     ∃out : Result c (fs.map (·.FTYPE)),Gen.support (generate c env _ hr).generator out ∧ out.items=fs := by
   induction fs generalizing n with
   | nil => exact ⟨done c,rfl,rfl⟩

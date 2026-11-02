@@ -12,11 +12,11 @@ theorem match_storage_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts a b⟩)
       n (.success (.of
         (MatchStorageConditional.storageMatch heapMatch a b))) n := by
   cases a with
@@ -24,15 +24,15 @@ theorem match_storage_total_of_local_heap_at
     cases b with
     | ValStorageT b =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_storagetype_clauses» dts
-            (.ValStorageT a) (.ValStorageT b)) ())
+            (.ValStorageT a) (.ValStorageT b)))
         n (.success (.of
           (MatchStorageConditional.storageMatch heapMatch
             (.ValStorageT a) (.ValStorageT b)))) n
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_storagetype:clause:0» dts
           (.ValStorageT a) (.ValStorageT b))
         n (.success (.of
@@ -69,11 +69,11 @@ theorem match_storage_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts a b⟩)
       n (.success (.of
         (MatchStorageConditional.storageMatch heapMatch a b))) n := by
   apply match_storage_total_of_local_heap_at

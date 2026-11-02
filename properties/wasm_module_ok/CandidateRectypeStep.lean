@@ -11,9 +11,9 @@ theorem passes_of_success
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     CandidateRectypeDecision.rectypePasses c sts = true ∧
       CandidateRectypeTable.candidateContext c sts = some result := by
@@ -43,9 +43,9 @@ theorem success_of_passes
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hpass : CandidateRectypeDecision.rectypePasses c sts = true)
     (hcontext : CandidateRectypeTable.candidateContext c sts = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of result)) n := by
   obtain ⟨result', hrect⟩ :=
     (CandidateRectypeDecision.rectypePasses_iff_success c sts n hc).mp hpass

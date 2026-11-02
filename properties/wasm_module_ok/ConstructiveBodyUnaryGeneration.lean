@@ -36,11 +36,11 @@ theorem payloads_complete (op : unop_) (h : legal op=true) :
   ConstructiveBodyCertifiedChoice.complete _ _ _ _ (covered op h)
 
 theorem unary (c : context) (stack : inferresulttype) (op : unop_) (n : Nat) (h : legal op=true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.UNARY op)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.UNARY op)⟩)
       n (.success (.of (ConstructiveBodyControl.effect [.NumT (numericType op)] [.NumT (numericType op)] []))) n := by
   apply (ConstructiveBodyRoute.unique_rule c stack (.UNARY op) 81 (by decide) rfl (by decide) _ n n).2
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Instr_ok:clause:81» c stack (.UNARY op)) n (.success (.of _)) n
   unfold SpecTec.«Instr_ok:clause:81»
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
@@ -49,13 +49,13 @@ theorem unary (c : context) (stack : inferresulttype) (op : unop_) (n : Nat) (h 
   exact SpecTecExecution.Eval.pure _
 
 theorem original (c : context) (stack : inferresulttype) (op : unop_) (result : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.UNARY op)⟩)
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.UNARY op)⟩)
       n (.success (.of result)) finish) :
     legal op=true ∧ result=ConstructiveBodyControl.effect [.NumT (numericType op)] [.NumT (numericType op)] [] ∧ finish=n := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.UNARY op) 81 (by decide) rfl (by decide) result n finish).1 h
   have hl : legal op=true := by
-    change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:81» c stack (.UNARY op)) n _ finish at hs
+    change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:81» c stack (.UNARY op)) n _ finish at hs
     unfold SpecTec.«Instr_ok:clause:81» at hs
     cases hs with | bind_success hg tail =>
      cases hg

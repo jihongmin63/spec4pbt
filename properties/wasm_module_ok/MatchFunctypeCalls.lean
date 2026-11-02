@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,18 +11,18 @@ theorem match_functype_success_iff_calls
     (dts : List SpecTec.deftype)
     (inputs outputs inputs' outputs' : SpecTec.resulttype)
     (n finish : Nat) (result : Bool) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_functype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_functype» dts
         (.FuncT inputs outputs) (.FuncT inputs' outputs')⟩)
       n (.success (.of result)) finish ↔
     ∃ middle : Nat, ∃ inputMatch outputMatch : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_resulttype» dts inputs' inputs⟩)
+          SpecTec.Call.«$match_resulttype» dts inputs' inputs⟩)
         n (.success (.of inputMatch)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_resulttype» dts outputs outputs'⟩)
+          SpecTec.Call.«$match_resulttype» dts outputs outputs'⟩)
         middle (.success (.of outputMatch)) finish ∧
       result = (inputMatch && outputMatch) := by
   constructor
@@ -29,9 +30,9 @@ theorem match_functype_success_iff_calls
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
+        (SpecTecExecution.tryClauses_success_iff
           (SpecTec.«$match_functype_clauses» dts
-            (.FuncT inputs outputs) (.FuncT inputs' outputs')) ()
+            (.FuncT inputs outputs) (.FuncT inputs' outputs'))
           n (.of result) finish).1 hbody
       unfold SpecTec.«$match_functype_clauses» at hselected
       cases hselected with
@@ -50,13 +51,13 @@ theorem match_functype_success_iff_calls
   · rintro ⟨middle, inputMatch, outputMatch,
       hinputs, houtputs, rfl⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$match_functype_clauses» dts
-          (.FuncT inputs outputs) (.FuncT inputs' outputs')) ())
+          (.FuncT inputs outputs) (.FuncT inputs' outputs')))
       n (.success (.of (inputMatch && outputMatch))) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_functype:clause:0» dts
         (.FuncT inputs outputs) (.FuncT inputs' outputs'))
       n (.success (.of (inputMatch && outputMatch))) finish
@@ -75,14 +76,14 @@ theorem match_functype_total_of_resulttype
     (dts : List SpecTec.deftype)
     (resulttypeMatch : SpecTec.resulttype → SpecTec.resulttype → Bool)
     (hresult : ∀ ts₁ ts₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+          SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
         n (.success (.of (resulttypeMatch ts₁ ts₂))) n)
     (ft₁ ft₂ : SpecTec.functype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+        SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of
         (matchFunctypeResult resulttypeMatch ft₁ ft₂))) n := by
   cases ft₁ with
@@ -101,26 +102,22 @@ theorem match_functype_success_iff_of_resulttype
     (dts : List SpecTec.deftype)
     (resulttypeMatch : SpecTec.resulttype → SpecTec.resulttype → Bool)
     (hresult : ∀ ts₁ ts₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+          SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
         n (.success (.of (resulttypeMatch ts₁ ts₂))) n)
     (ft₁ ft₂ : SpecTec.functype) (result : Bool)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+        SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of result)) finish ↔
     result = matchFunctypeResult resulttypeMatch ft₁ ft₂ ∧
       finish = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (match_functype_total_of_resulttype
           dts resulttypeMatch hresult ft₁ ft₂ n)
     cases hout

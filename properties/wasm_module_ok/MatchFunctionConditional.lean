@@ -24,14 +24,14 @@ theorem resulttype_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (ts₁ ts₂ : SpecTec.resulttype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
       n (.success (.of (resultMatch heapMatch ts₁ ts₂))) n := by
   exact MatchResulttypeConditional.match_resulttype_total_of_valtype
     dts (valMatch heapMatch)
@@ -43,14 +43,14 @@ theorem functype_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (ft₁ ft₂ : SpecTec.functype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+        SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of (functionMatch heapMatch ft₁ ft₂))) n := by
   exact MatchFunctypeCalls.match_functype_total_of_resulttype
     dts (resultMatch heapMatch)
@@ -61,15 +61,15 @@ theorem functype_success_iff_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (ft₁ ft₂ : SpecTec.functype) (result : Bool)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+        SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of result)) finish ↔
     result = functionMatch heapMatch ft₁ ft₂ ∧ finish = n := by
   exact MatchFunctypeCalls.match_functype_success_iff_of_resulttype

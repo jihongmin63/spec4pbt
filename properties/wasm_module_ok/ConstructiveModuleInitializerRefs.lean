@@ -14,12 +14,12 @@ abbrev Available (refs : SpecTec.free) (xs : List instr) :=
 
 theorem table_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.table) (n finish : Nat)
     (ha : Available refs item.TINIT)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Table_ok c item⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Table_ok (replace refs c) item⟩)
+    (h : Eval Body (.call ⟨context,Call.Table_ok c item⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Table_ok (replace refs c) item⟩)
       n (.success (.of (replace refs out))) finish := by
   rcases item with ⟨⟨addr,lim,rt⟩,code⟩
   cases h with | call h =>
-    change Eval specTecProgram (.orElse (SpecTec.«Table_ok:clause:0» c _) (fun _ => .unmatch)) n _ finish at h
+    change Eval Body (.orElse (SpecTec.«Table_ok:clause:0» c _) (fun _ => .unmatch)) n _ finish at h
     cases h with
     | orElse_success h =>
       unfold SpecTec.«Table_ok:clause:0» at h
@@ -32,8 +32,8 @@ theorem table_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.ta
           have ht' := (TabletypeValidation.tabletype_success_iff_valid (replace refs c) (.TableT addr lim rt) n n1).2
             ⟨by rw [tabletype_replace];exact ht.1,ht.2⟩
           apply Eval.call
-          change Eval specTecProgram (firstSuccess (SpecTec.Table_ok_clauses (replace refs c) _) ()) n _ finish
-          apply firstSuccess_cons_success
+          change Eval Body (tryClauses (SpecTec.Table_ok_clauses (replace refs c) _)) n _ finish
+          apply tryClauses_cons_success
           unfold SpecTec.«Table_ok:clause:0»
           apply Eval.bind_success ht'
           apply Eval.bind_success (ConstructiveRefs.const_ok_replace_refs c refs (.RefT rt) code n1 finish ha hc)
@@ -42,8 +42,8 @@ theorem table_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.ta
 
 theorem tables_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.table) (n finish : Nat)
     (ha : ∀item∈xs,Available refs item.TINIT)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Tables_ok c xs⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Tables_ok (replace refs c) xs⟩)
+    (h : Eval Body (.call ⟨context,Call.Tables_ok c xs⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Tables_ok (replace refs c) xs⟩)
       n (.success (.of (replace refs out))) finish := by
   induction xs generalizing c n with
   | nil =>
@@ -56,7 +56,7 @@ theorem tables_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTe
         ih next middle (fun item hm => ha item (by simp [hm])) ht⟩
 
 theorem tables_bounded (c out : context) (xs : List SpecTec.table) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Tables_ok c xs⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Tables_ok c xs⟩) n (.success (.of out)) finish) :
     ∀item∈xs,∀x,instr.«REF.FUNC» x∈item.TINIT → x<c.FUNCS.length := by
   induction xs generalizing c n with
   | nil => simp
@@ -72,12 +72,12 @@ theorem tables_bounded (c out : context) (xs : List SpecTec.table) (n finish : N
 
 theorem global_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.global) (n finish : Nat)
     (ha : Available refs item.GINIT)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Global_ok c item⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Global_ok (replace refs c) item⟩)
+    (h : Eval Body (.call ⟨context,Call.Global_ok c item⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Global_ok (replace refs c) item⟩)
       n (.success (.of (replace refs out))) finish := by
   rcases item with ⟨⟨mu,t⟩,code⟩
   cases h with | call h =>
-    change Eval specTecProgram (.orElse (SpecTec.«Global_ok:clause:0» c _) (fun _ => .unmatch)) n _ finish at h
+    change Eval Body (.orElse (SpecTec.«Global_ok:clause:0» c _) (fun _ => .unmatch)) n _ finish at h
     cases h with
     | orElse_success h =>
       unfold SpecTec.«Global_ok:clause:0» at h
@@ -90,8 +90,8 @@ theorem global_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.g
           have ht' := (GlobaltypeValidation.globaltype_success_iff_valid (replace refs c) (.GlobalT mu t) n n1).2
             ⟨by rw [globaltype_replace];exact ht.1,ht.2⟩
           apply Eval.call
-          change Eval specTecProgram (firstSuccess (SpecTec.Global_ok_clauses (replace refs c) _) ()) n _ finish
-          apply firstSuccess_cons_success
+          change Eval Body (tryClauses (SpecTec.Global_ok_clauses (replace refs c) _)) n _ finish
+          apply tryClauses_cons_success
           unfold SpecTec.«Global_ok:clause:0»
           apply Eval.bind_success ht'
           apply Eval.bind_success (ConstructiveRefs.const_ok_replace_refs c refs (t) code n1 finish ha hc)
@@ -100,8 +100,8 @@ theorem global_replace (refs : SpecTec.free) (c out : context) (item : SpecTec.g
 
 theorem globals_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.global) (n finish : Nat)
     (ha : ∀item∈xs,Available refs item.GINIT)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Globals_ok c xs⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Globals_ok (replace refs c) xs⟩)
+    (h : Eval Body (.call ⟨context,Call.Globals_ok c xs⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Globals_ok (replace refs c) xs⟩)
       n (.success (.of (replace refs out))) finish := by
   induction xs generalizing c n with
   | nil =>
@@ -116,14 +116,14 @@ theorem globals_replace (refs : SpecTec.free) (c out : context) (xs : List SpecT
 theorem global_ok_funcs
     (c out : SpecTec.context) (t : SpecTec.global)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Global_ok c t⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Global_ok c t⟩)
       start (.success (.of out)) finish) :
     out.FUNCS = c.FUNCS := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Global_ok_clauses c t) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Global_ok_clauses c t))
         start (.success (.of out)) finish at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -138,7 +138,7 @@ theorem global_ok_funcs
 
 
 theorem globals_bounded (c out : context) (xs : List SpecTec.global) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Globals_ok c xs⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Globals_ok c xs⟩) n (.success (.of out)) finish) :
     ∀item∈xs,∀x,instr.«REF.FUNC» x∈item.GINIT → x<c.FUNCS.length := by
   induction xs generalizing c n with
   | nil => simp

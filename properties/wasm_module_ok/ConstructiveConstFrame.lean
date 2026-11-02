@@ -43,12 +43,12 @@ The classifier above is used only inside this proof. -/
 theorem original_instruction_suffix (c : context) (pref suffix newer : List valtype)
     (i : instr) (iit : inferinstrtype) (start finish n : Nat)
     (hsyntax : ConstAdditionalSyntaxValidation.Syntax c i)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,pref++suffix) i⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,pref++suffix) i⟩)
       start (.success (.of iit)) finish)
     (hl : iit.1.INS.2.length≤suffix.length) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,newer++suffix) i⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,newer++suffix) i⟩)
       n (.success (.of iit)) n := by
   have hs := (ConstSyntaxDecision.syntaxAllowed_iff c i).2 hsyntax
   have hv := ((ConstInstrDecision.constant_instruction_result_iff c _ i iit start finish).2 ⟨hs,h⟩).1

@@ -5,17 +5,17 @@ namespace properties.wasm_module_ok.ConstructiveBodyBlocktypeCoverage
 open SpecTec properties.wasm_module_ok ConstructiveBodyBlocktypes ConstructiveBodyEnvironment
 
 theorem source_cases (c : context) (bt : blocktype) (result : instrtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨instrtype,SpecTecCall.Blocktype_ok c bt⟩) start (.success (.of result)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨instrtype,Call.Blocktype_ok c bt⟩) start (.success (.of result)) finish) :
     finish=start ∧
       ((bt=.ValBlockType none ∧ result=.InstrT [] [] []) ∨
       (∃t,bt=.ValBlockType (some t) ∧ ValtypeValidation.valtypeValid c t=true ∧ result=.InstrT [] [t] []) ∨
       (∃x ins outs,bt=.VarBlockType x ∧ FunctionTypeValidation.funcTypeResult c x=some (.FuncT ins outs) ∧ result=.InstrT ins outs [])) := by
   cases h with | call h =>
-   change SpecTecExecution.Eval SpecTec.specTecProgram
-     (SpecTecExecution.firstSuccess (SpecTec.Blocktype_ok_clauses c bt) ())
+   change SpecTecExecution.Eval SpecTec.Body
+     (SpecTecExecution.tryClauses (SpecTec.Blocktype_ok_clauses c bt))
      start (.success (.of result)) finish at h
-   obtain ⟨k,h⟩ := (SpecTecExecution.firstSuccess_success_iff _ _ _ _ _).1 h
+   obtain ⟨k,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.Blocktype_ok_clauses at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩
    · unfold SpecTec.«Blocktype_ok:clause:0» at h
@@ -83,8 +83,8 @@ theorem index_mem (c : context) (x : Nat) (ins outs : List valtype)
 
 theorem signatures_complete (c : context) (bt : blocktype) (result : instrtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨instrtype,SpecTecCall.Blocktype_ok c bt⟩) start (.success (.of result)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨instrtype,Call.Blocktype_ok c bt⟩) start (.success (.of result)) finish) :
     ∃s∈signatures c,s.raw=bt ∧ result=.InstrT s.inputs s.outputs [] ∧ finish=start := by
   obtain ⟨hf,h⟩ := source_cases c bt result start finish h
   rcases h with ⟨rfl,rfl⟩|⟨t,rfl,ht,rfl⟩|⟨x,ins,outs,rfl,ht,rfl⟩

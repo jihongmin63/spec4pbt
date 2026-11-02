@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstSyntaxValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -8,77 +9,77 @@ theorem immutable_global_get_is_const
     (c : SpecTec.context) (x : SpecTec.globalidx)
     (t : SpecTec.valtype) (n : Nat)
     (hget : c.GLOBALS[x]? = some (.GlobalT .Cons t)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.«GLOBAL.GET» x)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.«GLOBAL.GET» x)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.«GLOBAL.GET» x)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:10» c (.«GLOBAL.GET» x))
     n (.success (.of true)) n
   unfold SpecTec.«$is_const:clause:10»
@@ -97,77 +98,77 @@ theorem other_global_get_is_not_const
     (n : Nat)
     (hbad : ∀ t : SpecTec.valtype,
       c.GLOBALS[x]? ≠ some (.GlobalT .Cons t)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.«GLOBAL.GET» x)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.«GLOBAL.GET» x)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.«GLOBAL.GET» x)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.«GLOBAL.GET» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c (.«GLOBAL.GET» x))
       n .unmatch n
     unfold SpecTec.«$is_const:clause:10»
@@ -191,8 +192,8 @@ theorem other_global_get_is_not_const
             | Var =>
                 apply SpecTecExecution.Eval.bind_unmatch
                 exact SpecTecExecution.Eval.guard_false (by decide)
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:11» c (.«GLOBAL.GET» x))
     n (.success (.of false)) n
   exact SpecTecExecution.Eval.pure false
@@ -200,8 +201,8 @@ theorem other_global_get_is_not_const
 theorem immutable_global_get_iff
     (c : SpecTec.context) (x : SpecTec.globalidx)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.«GLOBAL.GET» x)⟩)
       n (.success (.of true)) finalSupply ↔
       (∃ t : SpecTec.valtype,
@@ -209,16 +210,12 @@ theorem immutable_global_get_iff
         finalSupply = n := by
   constructor
   · intro hcall
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request a b hp
-      cases hp
     by_cases himmutable : ∃ t : SpecTec.valtype,
         c.GLOBALS[x]? = some (.GlobalT .Cons t)
     · obtain ⟨t, hget⟩ := himmutable
       have hknown := immutable_global_get_is_const c x t n hget
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet hcall hknown
+        properties.wasm_module_ok.Execution.eval_deterministic hcall hknown
       exact ⟨⟨t, hget⟩, hsupply⟩
     · have hbad : ∀ t : SpecTec.valtype,
           c.GLOBALS[x]? ≠ some (.GlobalT .Cons t) := by
@@ -226,7 +223,7 @@ theorem immutable_global_get_iff
         exact himmutable ⟨t, hget⟩
       have hfalse := other_global_get_is_not_const c x n hbad
       obtain ⟨heq, _⟩ :=
-        SpecTecExecution.eval_deterministic hdet hcall hfalse
+        properties.wasm_module_ok.Execution.eval_deterministic hcall hfalse
       cases heq
   · rintro ⟨⟨t, hget⟩, rfl⟩
     exact immutable_global_get_is_const c x t finalSupply hget
@@ -235,8 +232,8 @@ theorem const_ok_global_get_immutable
     (c : SpecTec.context) (target : SpecTec.valtype)
     (xs : SpecTec.const) (x : SpecTec.globalidx)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c target xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c target xs⟩)
       n (.success (.of ())) finalSupply)
     (hmem : SpecTec.instr.«GLOBAL.GET» x ∈ xs) :
     ∃ t : SpecTec.valtype,

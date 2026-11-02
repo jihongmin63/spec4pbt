@@ -70,9 +70,9 @@ theorem struct_implicit_seed_iff_instr_effect
         c.TYPES[x]? = some dt ∧
         u = .RefT (.«% %» .NoNull (.DefHT dt)) ∧
         ConstSyntaxDecision.syntaxAllowed c (.«STRUCT.NEW» x .Implicit) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+            SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

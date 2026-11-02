@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstSyntaxValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -6,325 +7,325 @@ namespace properties.wasm_module_ok.ConstNestedValidation
 
 theorem is_const_block_false
     (c : SpecTec.context) (bt : SpecTec.blocktype) (body : List SpecTec.instr) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c (.BLOCK bt body)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c (.BLOCK bt body)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.BLOCK bt body)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.BLOCK bt body)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c (.BLOCK bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:10»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:11» c (.BLOCK bt body)) n (.success (.of false)) n
   exact SpecTecExecution.Eval.pure false
 
 theorem is_const_loop_false
     (c : SpecTec.context) (bt : SpecTec.blocktype) (body : List SpecTec.instr) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c (.LOOP bt body)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c (.LOOP bt body)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.LOOP bt body)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.LOOP bt body)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c (.LOOP bt body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:10»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:11» c (.LOOP bt body)) n (.success (.of false)) n
   exact SpecTecExecution.Eval.pure false
 
 theorem is_const_if_false
     (c : SpecTec.context) (bt : SpecTec.blocktype) (yes no : List SpecTec.instr) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c (.«IF % % ELSE %» bt yes no)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c (.«IF % % ELSE %» bt yes no)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.«IF % % ELSE %» bt yes no)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.«IF % % ELSE %» bt yes no)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c (.«IF % % ELSE %» bt yes no)) n .unmatch n
     unfold SpecTec.«$is_const:clause:10»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:11» c (.«IF % % ELSE %» bt yes no)) n (.success (.of false)) n
   exact SpecTecExecution.Eval.pure false
 
 theorem is_const_tryTable_false
     (c : SpecTec.context) (bt : SpecTec.blocktype) (catches : List SpecTec.«catch») (body : List SpecTec.instr) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c (.TRY_TABLE bt catches body)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c (.TRY_TABLE bt catches body)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.TRY_TABLE bt catches body)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.TRY_TABLE bt catches body)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STRUCT.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ARRAY.NEW_FIXED»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:EXTERN.CONVERT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c (.TRY_TABLE bt catches body)) n .unmatch n
     unfold SpecTec.«$is_const:clause:10»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:11» c (.TRY_TABLE bt catches body)) n (.success (.of false)) n
   exact SpecTecExecution.Eval.pure false
 
@@ -341,37 +342,33 @@ inductive Nested : SpecTec.instr → Prop where
 theorem is_const_true_not_nested
     (c : SpecTec.context) (i : SpecTec.instr)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       start (.success (.of true)) finish) : ¬ Nested i := by
   intro hnested
   cases hnested with
   | block bt body =>
       have hfalse := is_const_block_false c bt body start
-      cases (SpecTecExecution.eval_deterministic
-        properties.wasm_module_not_ok.Rejection.program_primitive_deterministic
+      cases (properties.wasm_module_ok.Execution.eval_deterministic
         hfalse hcall).1
   | loop bt body =>
       have hfalse := is_const_loop_false c bt body start
-      cases (SpecTecExecution.eval_deterministic
-        properties.wasm_module_not_ok.Rejection.program_primitive_deterministic
+      cases (properties.wasm_module_ok.Execution.eval_deterministic
         hfalse hcall).1
   | if_ bt yes no =>
       have hfalse := is_const_if_false c bt yes no start
-      cases (SpecTecExecution.eval_deterministic
-        properties.wasm_module_not_ok.Rejection.program_primitive_deterministic
+      cases (properties.wasm_module_ok.Execution.eval_deterministic
         hfalse hcall).1
   | tryTable bt catches body =>
       have hfalse := is_const_tryTable_false c bt catches body start
-      cases (SpecTecExecution.eval_deterministic
-        properties.wasm_module_not_ok.Rejection.program_primitive_deterministic
+      cases (properties.wasm_module_ok.Execution.eval_deterministic
         hfalse hcall).1
 
 theorem const_ok_no_nested
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) finalSupply)
     (i : SpecTec.instr) (hmem : i ∈ xs) : ¬ Nested i := by
   obtain ⟨start, finish, his⟩ :=
@@ -405,8 +402,8 @@ inductive RefOccurs : SpecTec.instr → SpecTec.funcidx → Prop where
 theorem const_ok_ref_occurs_direct
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) finalSupply)
     (i : SpecTec.instr) (x : SpecTec.funcidx)
     (hmem : i ∈ xs) (hocc : RefOccurs i x) :

@@ -14,8 +14,8 @@ theorem instrs_forest (c : context)
     (forest : List Tree) (hf : ∀ t∈forest,Good c t)
     (ha : ∀ t∈outputs forest,CandidateValMatch.InTableVal c t)
     (result : inferresulttype × List idx) (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype × List idx,SpecTecCall.Instrs_ok c (.NoEllipses,outputs forest) xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype × List idx,Call.Instrs_ok c (.NoEllipses,outputs forest) xs⟩)
       start (.success (.of result)) finish) :
     ∃ trees, (∀ t∈trees,Good c t) ∧ result.1=(.NoEllipses,outputs trees) ∧
       trees.flatMap Tree.code=forest.flatMap Tree.code++xs := by
@@ -47,11 +47,11 @@ theorem instrs_forest (c : context)
       c (.NoEllipses,outputs forest) i iit start start m1 hconst hi hp hn
     have houtTable := ConstCandidateTableMembership.is_const_instruction_outputs_in_table
       c (.NoEllipses,outputs forest) i iit start start m1 hconst hi hp
-    have hi' : SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,outputs forest) i⟩)
+    have hi' : SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,outputs forest) i⟩)
         start (.success (.of (effect need u))) m1 := by simpa only [heffect] using hi
-    have hpop' : SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨inferresulttype,SpecTecCall.«$pop» c (.NoEllipses,need) (.NoEllipses,outputs forest)⟩)
+    have hpop' : SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨inferresulttype,Call.«$pop» c (.NoEllipses,need) (.NoEllipses,outputs forest)⟩)
         m2 (.success (.of popped)) m3 := by simpa only [hins] using hpop
     have hn' : ∀ t∈need,CandidateValMatch.InTableVal c t := by simpa only [hins] using hrequired
     have hu : CandidateValMatch.InTableVal c u := houtTable u (by simp [houts])
@@ -80,8 +80,8 @@ theorem const_tree (c : context)
     (hr : CandidateTypeReady.Ready c) (hp : CandidateUniverseReady.Provenance c)
     (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩)
       start (.success (.of ())) finish) :
     ∃ tree,Good c tree ∧ tree.code=xs := by
   obtain ⟨hs,irt,indices,ell,middle,hxs,hpop⟩ :=
@@ -104,8 +104,8 @@ coverage: the original successful trace supplies it at every constant stage. -/
 theorem module_const_tree (m : SpecTec.module) (tr : Validity.ModuleOkTrace m) (c : context)
     (hc : c∈[tr.c0,tr.c1,tr.c2,tr.c3,tr.c4,tr.c5,tr.c6,tr.c7,tr.c8])
     (target : valtype) (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩)
       start (.success (.of ())) finish) :
     ∃ tree,Good c tree ∧ tree.code=xs :=
   const_tree c (CandidateTraceReady.trace_ready_at m tr c hc)

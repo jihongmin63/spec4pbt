@@ -24,38 +24,38 @@ macro "reject_free_instr" : tactic => `(tactic|
    simp [SpecTec.«exec:match:instr:ARRAY.COPY», SpecTec.«exec:match:instr:ARRAY.FILL», SpecTec.«exec:match:instr:ARRAY.GET», SpecTec.«exec:match:instr:ARRAY.INIT_DATA», SpecTec.«exec:match:instr:ARRAY.INIT_ELEM», SpecTec.«exec:match:instr:ARRAY.LEN», SpecTec.«exec:match:instr:ARRAY.NEW_DATA», SpecTec.«exec:match:instr:ARRAY.NEW_ELEM», SpecTec.«exec:match:instr:ARRAY.NEW_FIXED», SpecTec.«exec:match:instr:ARRAY.NEW», SpecTec.«exec:match:instr:ARRAY.SET», SpecTec.«exec:match:instr:BINOP», SpecTec.«exec:match:instr:BLOCK», SpecTec.«exec:match:instr:BR_IF», SpecTec.«exec:match:instr:BR_ON_CAST_FAIL», SpecTec.«exec:match:instr:BR_ON_CAST», SpecTec.«exec:match:instr:BR_ON_NON_NULL», SpecTec.«exec:match:instr:BR_ON_NULL», SpecTec.«exec:match:instr:BR_TABLE», SpecTec.«exec:match:instr:BR», SpecTec.«exec:match:instr:CALL_INDIRECT», SpecTec.«exec:match:instr:CALL_REF», SpecTec.«exec:match:instr:CALL», SpecTec.«exec:match:instr:COMPARE», SpecTec.«exec:match:instr:CONST», SpecTec.«exec:match:instr:CONVERT», SpecTec.«exec:match:instr:DATA.DROP», SpecTec.«exec:match:instr:DROP», SpecTec.«exec:match:instr:ELEM.DROP», SpecTec.«exec:match:instr:EXTERN.CONVERT», SpecTec.«exec:match:instr:GLOBAL.GET», SpecTec.«exec:match:instr:GLOBAL.SET», SpecTec.«exec:match:instr:I31.GET», SpecTec.«exec:match:instr:IF % % ELSE %», SpecTec.«exec:match:instr:LOAD», SpecTec.«exec:match:instr:LOCAL.GET», SpecTec.«exec:match:instr:LOCAL.SET», SpecTec.«exec:match:instr:LOCAL.TEE», SpecTec.«exec:match:instr:LOOP», SpecTec.«exec:match:instr:MEMORY.COPY», SpecTec.«exec:match:instr:MEMORY.FILL», SpecTec.«exec:match:instr:MEMORY.GROW», SpecTec.«exec:match:instr:MEMORY.INIT», SpecTec.«exec:match:instr:MEMORY.SIZE», SpecTec.«exec:match:instr:NOP», SpecTec.«exec:match:instr:REF.AS_NON_NULL», SpecTec.«exec:match:instr:REF.CAST», SpecTec.«exec:match:instr:REF.EQ», SpecTec.«exec:match:instr:REF.FUNC», SpecTec.«exec:match:instr:REF.I31», SpecTec.«exec:match:instr:REF.IS_NULL», SpecTec.«exec:match:instr:REF.NULL», SpecTec.«exec:match:instr:REF.TEST», SpecTec.«exec:match:instr:RETURN_CALL_INDIRECT», SpecTec.«exec:match:instr:RETURN_CALL_REF», SpecTec.«exec:match:instr:RETURN_CALL», SpecTec.«exec:match:instr:RETURN», SpecTec.«exec:match:instr:SELECT», SpecTec.«exec:match:instr:STORE», SpecTec.«exec:match:instr:STRUCT.GET», SpecTec.«exec:match:instr:STRUCT.NEW», SpecTec.«exec:match:instr:STRUCT.SET», SpecTec.«exec:match:instr:TABLE.COPY», SpecTec.«exec:match:instr:TABLE.FILL», SpecTec.«exec:match:instr:TABLE.GET», SpecTec.«exec:match:instr:TABLE.GROW», SpecTec.«exec:match:instr:TABLE.INIT», SpecTec.«exec:match:instr:TABLE.SET», SpecTec.«exec:match:instr:TABLE.SIZE», SpecTec.«exec:match:instr:TEST», SpecTec.«exec:match:instr:THROW_REF», SpecTec.«exec:match:instr:THROW», SpecTec.«exec:match:instr:TRY_TABLE», SpecTec.«exec:match:instr:UNARY», SpecTec.«exec:match:instr:UNREACHABLE», SpecTec.«exec:match:instr:VEC.LOAD_LANE», SpecTec.«exec:match:instr:VEC.LOAD», SpecTec.«exec:match:instr:VEC.STORE_LANE», SpecTec.«exec:match:instr:VEC.STORE»]))
 
 theorem update_globals_total (xs : List Nat) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$update_globals» (.«`{ % `}» xs)⟩)
+    Eval Body (.call ⟨free, Call.«$update_globals» (.«`{ % `}» xs)⟩)
       n (.success (.of {emptyFree with GLOBALS := .«`{ % `}» xs})) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$update_globals_clauses» _) ()) _ _ _
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.«$update_globals_clauses» _)) _ _ _
+  apply tryClauses_cons_success
   unfold SpecTec.«$update_globals:clause:0»
   apply Eval.bind_success (free_empty_total n)
   exact Eval.pure _
 
 theorem refNull_free_total (ht : heaptype) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«REF.NULL» ht)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«REF.NULL» ht)⟩)
       n (.success (.of (instrFree (.«REF.NULL» ht)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«REF.NULL» ht)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«REF.NULL» ht))) _ _ _
   iterate 50
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:50»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (heaptype_free_total ht n)
   exact Eval.pure _
 
 theorem refFunc_free_total (x : Nat) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«REF.FUNC» x)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«REF.FUNC» x)⟩)
       n (.success (.of (instrFree (.«REF.FUNC» x)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«REF.FUNC» x)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«REF.FUNC» x))) _ _ _
   iterate 51
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:51»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (FreeRefsValidation.free_idx_total x n)
@@ -63,14 +63,14 @@ theorem refFunc_free_total (x : Nat) (n : Nat) :
   exact Eval.pure _
 
 theorem globalGet_free_total (x : Nat) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«GLOBAL.GET» x)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«GLOBAL.GET» x)⟩)
       n (.success (.of (instrFree (.«GLOBAL.GET» x)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«GLOBAL.GET» x)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«GLOBAL.GET» x))) _ _ _
   iterate 28
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:28»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (FreeRefsValidation.free_idx_total x n)
@@ -78,14 +78,14 @@ theorem globalGet_free_total (x : Nat) (n : Nat) :
   exact Eval.pure _
 
 theorem structNew_free_total (x : Nat) (op : initop_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«STRUCT.NEW» x op)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«STRUCT.NEW» x op)⟩)
       n (.success (.of (instrFree (.«STRUCT.NEW» x op)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«STRUCT.NEW» x op)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«STRUCT.NEW» x op))) _ _ _
   iterate 59
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:59»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (FreeRefsValidation.free_idx_total x n)
@@ -93,14 +93,14 @@ theorem structNew_free_total (x : Nat) (op : initop_) (n : Nat) :
   exact Eval.pure _
 
 theorem arrayNew_free_total (x : Nat) (op : initop_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«ARRAY.NEW» x op)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«ARRAY.NEW» x op)⟩)
       n (.success (.of (instrFree (.«ARRAY.NEW» x op)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«ARRAY.NEW» x op)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«ARRAY.NEW» x op))) _ _ _
   iterate 62
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:62»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (FreeRefsValidation.free_idx_total x n)
@@ -108,14 +108,14 @@ theorem arrayNew_free_total (x : Nat) (op : initop_) (n : Nat) :
   exact Eval.pure _
 
 theorem arrayFixed_free_total (x count : Nat) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«ARRAY.NEW_FIXED» x count)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«ARRAY.NEW_FIXED» x count)⟩)
       n (.success (.of (instrFree (.«ARRAY.NEW_FIXED» x count)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«ARRAY.NEW_FIXED» x count)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«ARRAY.NEW_FIXED» x count))) _ _ _
   iterate 63
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:63»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (FreeRefsValidation.free_idx_total x n)
@@ -123,69 +123,69 @@ theorem arrayFixed_free_total (x count : Nat) (n : Nat) :
   exact Eval.pure _
 
 theorem num_free_total (v : num_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«CONST» v)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«CONST» v)⟩)
       n (.success (.of (instrFree (.«CONST» v)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«CONST» v)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«CONST» v))) _ _ _
   iterate 74
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:74»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (free_empty_total n)
   exact Eval.pure _
 
 theorem vec_free_total (v : vec_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«VEC.CONST» v)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«VEC.CONST» v)⟩)
       n (.success (.of (instrFree (.«VEC.CONST» v)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«VEC.CONST» v)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«VEC.CONST» v))) _ _ _
   iterate 80
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:80»
   apply Eval.bind_success (free_empty_total n)
   exact Eval.pure _
 
 theorem i31_free_total  (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«REF.I31» )⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«REF.I31» )⟩)
       n (.success (.of (instrFree (.«REF.I31» )))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«REF.I31» )) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«REF.I31» ))) _ _ _
   iterate 57
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:57»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (free_empty_total n)
   exact Eval.pure _
 
 theorem extern_free_total (op : externop_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«EXTERN.CONVERT» op)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«EXTERN.CONVERT» op)⟩)
       n (.success (.of (instrFree (.«EXTERN.CONVERT» op)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«EXTERN.CONVERT» op)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«EXTERN.CONVERT» op))) _ _ _
   iterate 73
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:73»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (free_empty_total n)
   exact Eval.pure _
 
 theorem binop_free_total (op : binop_) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» (.«BINOP» op)⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» (.«BINOP» op)⟩)
       n (.success (.of (instrFree (.«BINOP» op)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_instr_clauses» (.«BINOP» op)) ()) _ _ _
+  change Eval Body (tryClauses (SpecTec.«$free_instr_clauses» (.«BINOP» op))) _ _ _
   iterate 78
-    apply firstSuccess_cons_unmatch
+    apply tryClauses_cons_unmatch
     · reject_free_instr
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_instr:clause:78»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (free_empty_total n)
@@ -193,7 +193,7 @@ theorem binop_free_total (op : binop_) (n : Nat) :
 
 theorem instr_free_total (c : context) (i : instr) (n : Nat)
     (h : ConstAdditionalSyntaxValidation.Syntax c i) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» i⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» i⟩)
       n (.success (.of (instrFree i))) n := by
   cases h with
   | arithmetic i hi =>

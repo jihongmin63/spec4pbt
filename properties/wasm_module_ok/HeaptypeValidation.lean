@@ -28,15 +28,15 @@ theorem heaptype_valid_iff (c : SpecTec.context)
 theorem heaptype_base_success (c : SpecTec.context)
     (ht : SpecTec.heaptype) (n : Nat)
     (hbase : ht ∈ baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Heaptype_ok_clauses c ht) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Heaptype_ok_clauses c ht))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Heaptype_ok:clause:0» c ht)
     n (.success (.of ())) n
   unfold SpecTec.«Heaptype_ok:clause:0»
@@ -47,25 +47,25 @@ theorem heaptype_base_success (c : SpecTec.context)
 
 theorem heaptype_stat_success (c : SpecTec.context)
     (x n : Nat) (hbound : x < c.TYPES.length) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok
         c (.VarHT (.StatX x))⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Heaptype_ok_clauses c (.VarHT (.StatX x))) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Heaptype_ok_clauses c (.VarHT (.StatX x))))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Heaptype_ok:clause:0» c (.VarHT (.StatX x)))
       n .unmatch n
     unfold SpecTec.«Heaptype_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Heaptype_ok:clause:1» c (.VarHT (.StatX x)))
       n (.success (.of ())) n
     unfold SpecTec.«Heaptype_ok:clause:1»
@@ -82,8 +82,8 @@ theorem heaptype_stat_success (c : SpecTec.context)
 
 theorem heaptype_success_iff (c : SpecTec.context)
     (ht : SpecTec.heaptype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (.success (.of ())) finalSupply ↔
     (ht ∈ baseHeaptypes ∨
       ∃ x : Nat, ht = .VarHT (.StatX x) ∧ x < c.TYPES.length) ∧
@@ -92,10 +92,10 @@ theorem heaptype_success_iff (c : SpecTec.context)
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Heaptype_ok:clause:0» c ht)
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Heaptype_ok:clause:1» c ht] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Heaptype_ok:clause:1» c ht]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -107,7 +107,7 @@ theorem heaptype_success_iff (c : SpecTec.context)
             cases hpure with
             | pure => exact ⟨Or.inl (by simpa [baseHeaptypes] using hbase), rfl⟩
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Heaptype_ok:clause:1» c ht)
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at htail
@@ -150,8 +150,8 @@ theorem heaptype_success_iff (c : SpecTec.context)
 
 theorem heaptype_success_iff_valid (c : SpecTec.context)
     (ht : SpecTec.heaptype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (.success (.of ())) finalSupply ↔
     heaptypeValid c ht = true ∧ finalSupply = n := by
   rw [heaptype_success_iff, heaptype_valid_iff]

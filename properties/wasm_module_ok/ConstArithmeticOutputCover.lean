@@ -9,9 +9,9 @@ theorem binop_output_in_literal_base
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.binop_) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.BINOP op)⟩)
+        SpecTec.Call.Instr_ok c irt (.BINOP op)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstLiteralProduction.literalBase c := by
@@ -27,9 +27,9 @@ theorem vec_output_in_literal_base
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.vec_) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+        SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstLiteralProduction.literalBase c := by

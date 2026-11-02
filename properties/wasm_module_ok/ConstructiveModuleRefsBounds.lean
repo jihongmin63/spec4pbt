@@ -49,7 +49,7 @@ theorem trace_bound {c out : context} {stack finalStack : inferresulttype} {xs :
       simpa [hf] using hb
 
 theorem constant_bound (c : context) (t : valtype) (xs : List instr) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c t xs⟩) n (.success (.of ())) finish)
+    (h : Eval Body (.call ⟨Unit,Call.Const_ok c t xs⟩) n (.success (.of ())) finish)
     (x : Nat) (hx : instr.«REF.FUNC» x∈xs) : x<c.FUNCS.length := by
   obtain ⟨_,stack,indices,ell,middle,hseq,_⟩ := (ConstExactSyntaxBoundary.const_ok_trace_iff c t xs n finish).1 h
   obtain ⟨_,out,htr⟩ := (ConstConstructiveTrace.instrs_success_iff_trace xs c (.NoEllipses,[]) (stack,indices) n middle).1 hseq
@@ -58,8 +58,8 @@ theorem constant_bound (c : context) (t : valtype) (xs : List instr) (n finish :
 /-- Every original successful initializer remains available in the maximal
 bounded-reference prestage. Its own syntax later realizes final exact REFS. -/
 theorem constant_all (c : context) (t : valtype) (xs : List instr) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c t xs⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok {c with REFS:=allFunctions c} t xs⟩) n (.success (.of ())) finish :=
+    (h : Eval Body (.call ⟨Unit,Call.Const_ok c t xs⟩) n (.success (.of ())) finish) :
+    Eval Body (.call ⟨Unit,Call.Const_ok {c with REFS:=allFunctions c} t xs⟩) n (.success (.of ())) finish :=
   ConstructiveRefs.const_ok_replace_refs c (allFunctions c) t xs n finish
     (fun x hx => allFunctions_has c x (constant_bound c t xs n finish h x hx)) h
 #print axioms constant_all

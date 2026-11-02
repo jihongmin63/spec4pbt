@@ -8,8 +8,8 @@ namespace properties.wasm_module_ok.ConstructiveBodyRestrictedCoverage
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveBodyProductions ConstructiveBodyProductionCoverage
 
 theorem unary (c : context) (stack : inferresulttype) (env : Env c) (op : unop_) (effect : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.UNARY op)⟩) n (.success (.of effect)) finish) :
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.UNARY op)⟩) n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyUnaryGeneration.all c stack env) (.UNARY op) effect ∧ finish=n := by
   obtain ⟨hl,_⟩ := ConstructiveBodyUnaryGeneration.original c stack op effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack (ConstructiveBodyUnaryGeneration.all c stack env)
@@ -20,8 +20,8 @@ theorem unary (c : context) (stack : inferresulttype) (env : Env c) (op : unop_)
     exact ConstructiveBodyUnaryGeneration.payloads_complete op hl
 
 theorem conversion (c : context) (stack : inferresulttype) (env : Env c) (op : cvtop_) (effect : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.CONVERT op)⟩) n (.success (.of effect)) finish) :
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.CONVERT op)⟩) n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyConversionGeneration.all c stack env) (.CONVERT op) effect ∧ finish=n := by
   obtain ⟨g,hg,_⟩ := ConstructiveBodyConversionGeneration.original c stack op effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack (ConstructiveBodyConversionGeneration.all c stack env)
@@ -32,8 +32,8 @@ theorem conversion (c : context) (stack : inferresulttype) (env : Env c) (op : c
     exact ConstructiveBodyConversionGeneration.payloads_complete g op hg
 
 theorem vectorBinary (c : context) (stack : inferresulttype) (env : Env c) (op : vbinop_) (effect : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.BINARY» op)⟩) n (.success (.of effect)) finish) :
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.BINARY» op)⟩) n (.success (.of effect)) finish) :
     Covers [ConstructiveBodyVectorBinaryGeneration.production c stack env] (.«VEC.BINARY» op) effect ∧ finish=n := by
   obtain ⟨hl,_⟩ := ConstructiveBodyVectorBinaryGeneration.original c stack op effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack [ConstructiveBodyVectorBinaryGeneration.production c stack env]
@@ -43,8 +43,8 @@ theorem vectorBinary (c : context) (stack : inferresulttype) (env : Env c) (op :
   exact ConstructiveBodyVectorBinaryGeneration.payloads_complete op hl
 
 theorem extract (c : context) (stack : inferresulttype) (env : Env c) (op : vextractop_) (effect : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.EXTRACT» op)⟩) n (.success (.of effect)) finish) :
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.EXTRACT» op)⟩) n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyVectorLaneGeneration.all c stack env) (.«VEC.EXTRACT» op) effect ∧ finish=n := by
   obtain ⟨hl,_⟩ := ConstructiveBodyVectorLaneCalls.extract_original c stack op effect n finish h
   obtain ⟨lane,v,hv,he⟩ := ConstructiveBodyVectorLaneGeneration.extract_complete op hl
@@ -59,8 +59,8 @@ theorem extract (c : context) (stack : inferresulttype) (env : Env c) (op : vext
     exact hv
 
 theorem replace (c : context) (stack : inferresulttype) (env : Env c) (op : vreplaceop_) (effect : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.REPLACE» op)⟩) n (.success (.of effect)) finish) :
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.REPLACE» op)⟩) n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyVectorLaneGeneration.all c stack env) (.«VEC.REPLACE» op) effect ∧ finish=n := by
   obtain ⟨hl,_⟩ := ConstructiveBodyVectorLaneCalls.replace_original c stack op effect n finish h
   obtain ⟨lane,v,hv,he⟩ := ConstructiveBodyVectorLaneGeneration.replace_complete op hl

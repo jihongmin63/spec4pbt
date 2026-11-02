@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.TagtypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -21,18 +22,18 @@ def tagDeclOutcome (c : SpecTec.context) (t : SpecTec.tag) :
 
 theorem tag_ok_total (c : SpecTec.context)
     (t : SpecTec.tag) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tag_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tag_ok c t⟩)
       n (tagDeclOutcome c t) n := by
   cases hget : c.TYPES[t.TGTYPE]? with
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Tag_ok_clauses c t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Tag_ok_clauses c t))
       n (tagDeclOutcome c t) n
     simp only [tagDeclOutcome, tagDeclResult, hget]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Tag_ok:clause:0» c t) n .unmatch n
       unfold SpecTec.«Tag_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
@@ -40,19 +41,19 @@ theorem tag_ok_total (c : SpecTec.context)
       have hnot : ¬ t.TGTYPE < c.TYPES.length := by
         simpa using (List.getElem?_eq_none_iff.mp hget)
       exact hnot
-    · exact SpecTecExecution.firstSuccess_nil () n
+    · exact SpecTecExecution.tryClauses_nil n
   | some dt =>
     have hbound : t.TGTYPE < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1
     cases hv : TagtypeValidation.tagtypeValid (.TagT dt) with
     | true =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Tag_ok_clauses c t) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Tag_ok_clauses c t))
         n (tagDeclOutcome c t) n
       simp only [tagDeclOutcome, tagDeclResult, hget, hv, ite_true]
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Tag_ok:clause:0» c t)
         n (.success (.of { c with TAGS := c.TAGS ++ [SpecTec.tagtype.TagT dt] })) n
       unfold SpecTec.«Tag_ok:clause:0»
@@ -66,12 +67,12 @@ theorem tag_ok_total (c : SpecTec.context)
             { c with TAGS := c.TAGS ++ [SpecTec.tagtype.TagT dt] }
     | false =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Tag_ok_clauses c t) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Tag_ok_clauses c t))
         n (tagDeclOutcome c t) n
       simp only [tagDeclOutcome, tagDeclResult, hget, hv]
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Tag_ok:clause:0» c t) n .unmatch n
         unfold SpecTec.«Tag_ok:clause:0»
         apply SpecTecExecution.Eval.bind_success
@@ -80,22 +81,19 @@ theorem tag_ok_total (c : SpecTec.context)
           apply SpecTecExecution.Eval.bind_unmatch
           simpa [TagtypeValidation.tagtypeOutcome, hv] using
             TagtypeValidation.tagtype_total c (.TagT dt) n
-      · exact SpecTecExecution.firstSuccess_nil () n
+      · exact SpecTecExecution.tryClauses_nil n
 
 theorem tag_ok_success_iff_result (c : SpecTec.context)
     (t : SpecTec.tag) (result : SpecTec.context)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tag_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tag_ok c t⟩)
       n (.success (.of result)) finalSupply ↔
     tagDeclResult c t = some result ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (tag_ok_total c t n)
+      properties.wasm_module_ok.Execution.eval_deterministic h (tag_ok_total c t n)
     cases hr : tagDeclResult c t with
     | none => simp [tagDeclOutcome, hr] at hout
     | some result' =>
@@ -108,8 +106,8 @@ theorem tag_ok_success_iff_result (c : SpecTec.context)
 theorem tag_ok_none (c : SpecTec.context)
     (t : SpecTec.tag) (n : Nat)
     (hr : tagDeclResult c t = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tag_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tag_ok c t⟩)
       n .unmatch n := by
   simpa [tagDeclOutcome, hr] using tag_ok_total c t n
 
@@ -127,24 +125,24 @@ def tagsOutcome (c : SpecTec.context) (ts : List SpecTec.tag) :
 
 theorem tags_total (c : SpecTec.context)
     (ts : List SpecTec.tag) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tags_ok c ts⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tags_ok c ts⟩)
       n (tagsOutcome c ts) n := by
   induction ts generalizing c with
   | nil =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Tags_ok_clauses c []) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Tags_ok_clauses c []))
       n (tagsOutcome c []) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Tags_ok:clause:0» c []) n .unmatch n
       unfold SpecTec.«Tags_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Tags_ok:clause:1» c [])
         n (tagsOutcome c []) n
       unfold SpecTec.«Tags_ok:clause:1»
@@ -156,39 +154,39 @@ theorem tags_total (c : SpecTec.context)
     cases hhead : tagDeclResult c t with
     | none =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Tags_ok_clauses c (t :: ts)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Tags_ok_clauses c (t :: ts)))
         n (tagsOutcome c (t :: ts)) n
       simp only [tagsOutcome, tagsResult, hhead, Option.bind_none]
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Tags_ok:clause:0» c (t :: ts)) n .unmatch n
         unfold SpecTec.«Tags_ok:clause:0»
         apply SpecTecExecution.Eval.bind_success
         · exact SpecTecExecution.Eval.guard_true rfl
         · apply SpecTecExecution.Eval.bind_unmatch
           exact tag_ok_none c t n hhead
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Tags_ok:clause:1» c (t :: ts)) n .unmatch n
           unfold SpecTec.«Tags_ok:clause:1»
           apply SpecTecExecution.Eval.bind_unmatch
           apply SpecTecExecution.Eval.guard_false
           simp
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
     | some c₁ =>
       cases htail : tagsResult c₁ ts with
       | none =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tags_ok_clauses c (t :: ts)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tags_ok_clauses c (t :: ts)))
           n (tagsOutcome c (t :: ts)) n
         simp only [tagsOutcome, tagsResult, hhead,
           Option.bind_some, htail]
-        apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Tags_ok:clause:0» c (t :: ts)) n .unmatch n
           unfold SpecTec.«Tags_ok:clause:0»
           apply SpecTecExecution.Eval.bind_success
@@ -197,24 +195,24 @@ theorem tags_total (c : SpecTec.context)
             · exact (tag_ok_success_iff_result c t c₁ n n).2 ⟨hhead, rfl⟩
             · apply SpecTecExecution.Eval.bind_unmatch
               simpa [tagsOutcome, htail] using ih c₁
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
-          · change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_unmatch
+          · change SpecTecExecution.Eval SpecTec.Body
               (SpecTec.«Tags_ok:clause:1» c (t :: ts)) n .unmatch n
             unfold SpecTec.«Tags_ok:clause:1»
             apply SpecTecExecution.Eval.bind_unmatch
             apply SpecTecExecution.Eval.guard_false
             simp
-          · exact SpecTecExecution.firstSuccess_nil () n
+          · exact SpecTecExecution.tryClauses_nil n
       | some result =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tags_ok_clauses c (t :: ts)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tags_ok_clauses c (t :: ts)))
           n (tagsOutcome c (t :: ts)) n
         simp only [tagsOutcome, tagsResult, hhead,
           Option.bind_some, htail]
-        apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Tags_ok:clause:0» c (t :: ts))
           n (.success (.of result)) n
         unfold SpecTec.«Tags_ok:clause:0»
@@ -229,17 +227,14 @@ theorem tags_total (c : SpecTec.context)
 theorem tags_success_iff_result (c : SpecTec.context)
     (ts : List SpecTec.tag) (result : SpecTec.context)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tags_ok c ts⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tags_ok c ts⟩)
       n (.success (.of result)) finalSupply ↔
     tagsResult c ts = some result ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (tags_total c ts n)
+      properties.wasm_module_ok.Execution.eval_deterministic h (tags_total c ts n)
     cases hr : tagsResult c ts with
     | none => simp [tagsOutcome, hr] at hout
     | some result' =>
@@ -252,8 +247,8 @@ theorem tags_success_iff_result (c : SpecTec.context)
 theorem tags_none (c : SpecTec.context)
     (ts : List SpecTec.tag) (n : Nat)
     (hr : tagsResult c ts = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tags_ok c ts⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tags_ok c ts⟩)
       n .unmatch n := by
   simpa [tagsOutcome, hr] using tags_total c ts n
 

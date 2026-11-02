@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.PeekDecision
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -13,17 +14,17 @@ theorem peek_ref_total_of_ref
     (n : Nat) (irt : SpecTec.inferresulttype)
     (rt : SpecTec.reftype) (start : Nat)
     (hpeek : PeekDecision.peekResult n irt = .RefT rt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.reftype, SpecTec.SpecTecCall.«$peek_ref» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.reftype, SpecTec.Call.«$peek_ref» n irt⟩)
       start (.success (.of rt)) start := by
   rcases irt with ⟨ell, ts⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$peek_ref_clauses» n (ell, ts)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$peek_ref_clauses» n (ell, ts)))
     start (.success (.of rt)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$peek_ref:clause:0» n (ell, ts))
     start (.success (.of rt)) start
   unfold SpecTec.«$peek_ref:clause:0»
@@ -38,17 +39,17 @@ theorem peek_ref_total_of_bot
     (n : Nat) (irt : SpecTec.inferresulttype)
     (start : Nat)
     (hpeek : PeekDecision.peekResult n irt = .BotT) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.reftype, SpecTec.SpecTecCall.«$peek_ref» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.reftype, SpecTec.Call.«$peek_ref» n irt⟩)
       start (.success (.of (SpecTec.reftype.«% %» .NoNull .BotHT))) start := by
   rcases irt with ⟨ell, ts⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$peek_ref_clauses» n (ell, ts)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$peek_ref_clauses» n (ell, ts)))
     start (.success (.of (SpecTec.reftype.«% %» .NoNull .BotHT))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$peek_ref:clause:0» n (ell, ts))
       start .unmatch start
     unfold SpecTec.«$peek_ref:clause:0»
@@ -57,8 +58,8 @@ theorem peek_ref_total_of_bot
     simp only [hpeek]
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:valtype:RefT»])
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$peek_ref:clause:1» n (ell, ts))
       start (.success (.of (SpecTec.reftype.«% %» .NoNull .BotHT))) start
     unfold SpecTec.«$peek_ref:clause:1»
@@ -73,8 +74,8 @@ theorem peek_ref_total_of_some
     (n : Nat) (irt : SpecTec.inferresulttype)
     (rt : SpecTec.reftype) (start : Nat)
     (h : peekRefResult (PeekDecision.peekResult n irt) = some rt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.reftype, SpecTec.SpecTecCall.«$peek_ref» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.reftype, SpecTec.Call.«$peek_ref» n irt⟩)
       start (.success (.of rt)) start := by
   cases hv : PeekDecision.peekResult n irt with
   | NumT nt => simp [peekRefResult, hv] at h
@@ -91,8 +92,8 @@ theorem peek_ref_total_of_some
 theorem peek_ref_unmatch_of_none
     (n : Nat) (irt : SpecTec.inferresulttype) (start : Nat)
     (h : peekRefResult (PeekDecision.peekResult n irt) = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.reftype, SpecTec.SpecTecCall.«$peek_ref» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.reftype, SpecTec.Call.«$peek_ref» n irt⟩)
       start .unmatch start := by
   have hnotref :
       SpecTec.«exec:match:valtype:RefT»
@@ -105,49 +106,45 @@ theorem peek_ref_unmatch_of_none
       simp [peekRefResult, hv] at h ⊢
   rcases irt with ⟨ell, ts⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$peek_ref_clauses» n (ell, ts)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$peek_ref_clauses» n (ell, ts)))
     start .unmatch start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$peek_ref:clause:0» n (ell, ts)) start .unmatch start
     unfold SpecTec.«$peek_ref:clause:0»
     apply SpecTecExecution.Eval.bind_success
       (PeekDecision.peek_total n (ell, ts) start)
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false hnotref
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$peek_ref:clause:1» n (ell, ts)) start .unmatch start
       unfold SpecTec.«$peek_ref:clause:1»
       apply SpecTecExecution.Eval.bind_success
         (PeekDecision.peek_total n (ell, ts) start)
       apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false hnotbot
-    · exact SpecTecExecution.firstSuccess_nil () start
+    · exact SpecTecExecution.tryClauses_nil start
 
 theorem peek_ref_success_iff_result
     (n : Nat) (irt : SpecTec.inferresulttype)
     (rt : SpecTec.reftype) (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.reftype, SpecTec.SpecTecCall.«$peek_ref» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.reftype, SpecTec.Call.«$peek_ref» n irt⟩)
       start (.success (.of rt)) fin ↔
     peekRefResult (PeekDecision.peekResult n irt) = some rt ∧
       fin = start := by
   constructor
   · intro heval
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     cases hopt : peekRefResult (PeekDecision.peekResult n irt) with
     | none =>
-      obtain ⟨hout, _⟩ := SpecTecExecution.eval_deterministic hdet heval
+      obtain ⟨hout, _⟩ := properties.wasm_module_ok.Execution.eval_deterministic heval
         (peek_ref_unmatch_of_none n irt start hopt)
       cases hout
     | some actual =>
-      obtain ⟨hout, hsupply⟩ := SpecTecExecution.eval_deterministic hdet
+      obtain ⟨hout, hsupply⟩ := properties.wasm_module_ok.Execution.eval_deterministic
         heval (peek_ref_total_of_some n irt actual start hopt)
       cases hout
       exact ⟨by simpa [hopt], hsupply⟩

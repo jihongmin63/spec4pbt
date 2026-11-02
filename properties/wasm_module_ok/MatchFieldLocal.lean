@@ -12,22 +12,22 @@ theorem field_cons_forward_true_local
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hforward : MatchStorageConditional.storageMatch heapMatch a b = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Cons a) (.FieldT .Cons b)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT .Cons a) (.FieldT .Cons b)) ())
+        (.FieldT .Cons a) (.FieldT .Cons b)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$match_fieldtype:clause:0» dts
       (.FieldT .Cons a) (.FieldT .Cons b))
     n (.success (.of true)) n
@@ -47,28 +47,28 @@ theorem field_cons_forward_false_local
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply)
     (hforward : MatchStorageConditional.storageMatch heapMatch a b = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Cons a) (.FieldT .Cons b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT .Cons a) (.FieldT .Cons b)) ())
+        (.FieldT .Cons a) (.FieldT .Cons b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_fieldtype:clause:0» dts
         (.FieldT .Cons a) (.FieldT .Cons b)) n .unmatch n
     unfold SpecTec.«$match_fieldtype:clause:0»
@@ -77,8 +77,8 @@ theorem field_cons_forward_false_local
         dts heapMatch a b n hheap
     · exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [hforward]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT .Cons a) (.FieldT .Cons b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:1»
@@ -90,7 +90,7 @@ theorem field_cons_forward_false_local
             dts heapMatch b a n hheapReverse
         · exact SpecTecExecution.Eval.bind_unmatch
             (SpecTecExecution.Eval.guard_false (by simp [hforward]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem field_var_var_total_local
@@ -100,17 +100,17 @@ theorem field_var_var_total_local
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Var a) (.FieldT .Var b)⟩)
       n (.success (.of
         (MatchFieldConditional.fieldMatch heapMatch
@@ -123,13 +123,13 @@ theorem field_var_var_total_local
       simp [MatchFieldConditional.fieldMatch, hboth.1, hboth.2]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$match_fieldtype_clauses» dts
-          (.FieldT .Var a) (.FieldT .Var b)) ())
+          (.FieldT .Var a) (.FieldT .Var b)))
       n (.success (.of true)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:0» dts
           (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:0»
@@ -138,8 +138,8 @@ theorem field_var_var_total_local
           dts heapMatch a b n hheap
       · exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false (by simp))
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT .Var a) (.FieldT .Var b))
         n (.success (.of true)) n
@@ -160,13 +160,13 @@ theorem field_var_var_total_local
         simp_all [MatchFieldConditional.fieldMatch]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$match_fieldtype_clauses» dts
-          (.FieldT .Var a) (.FieldT .Var b)) ())
+          (.FieldT .Var a) (.FieldT .Var b)))
       n (.success (.of false)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:0» dts
           (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:0»
@@ -175,8 +175,8 @@ theorem field_var_var_total_local
           dts heapMatch a b n hheap
       · exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false (by simp))
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_fieldtype:clause:1» dts
             (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
         unfold SpecTec.«$match_fieldtype:clause:1»
@@ -188,7 +188,7 @@ theorem field_var_var_total_local
               dts heapMatch b a n hheapReverse
           · exact SpecTecExecution.Eval.bind_unmatch
               (SpecTecExecution.Eval.guard_false (by simpa using hboth))
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact SpecTecExecution.Eval.pure false
 
 theorem field_mixed_total_local
@@ -198,28 +198,28 @@ theorem field_mixed_total_local
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply)
     (hmixed : m₁ ≠ m₂) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT m₁ a) (.FieldT m₂ b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT m₁ a) (.FieldT m₂ b)) ())
+        (.FieldT m₁ a) (.FieldT m₂ b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_fieldtype:clause:0» dts
         (.FieldT m₁ a) (.FieldT m₂ b)) n .unmatch n
     unfold SpecTec.«$match_fieldtype:clause:0»
@@ -228,8 +228,8 @@ theorem field_mixed_total_local
         dts heapMatch a b n hheap
     · exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [hmixed]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT m₁ a) (.FieldT m₂ b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:1»
@@ -241,7 +241,7 @@ theorem field_mixed_total_local
             dts heapMatch b a n hheapReverse
         · exact SpecTecExecution.Eval.bind_unmatch
             (SpecTecExecution.Eval.guard_false (by simp [hmixed]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_field_total_of_local_heap
@@ -251,17 +251,17 @@ theorem match_field_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceFieldHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceFieldHeaptypes b →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceFieldHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceFieldHeaptypes a →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
       n (.success (.of (MatchFieldConditional.fieldMatch heapMatch a b))) n := by
   cases a with
   | FieldT m₁ a =>
@@ -270,16 +270,16 @@ theorem match_field_total_of_local_heap
       have hAB : ∀ h1 h2,
           h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
           h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-          ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+          ∀ supply, SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
             supply (.success (.of (heapMatch h1 h2))) supply := by
         intro h1 h2 hm1 hm2 supply
         exact hheap h1 h2 hm1 hm2 supply
       have hBA : ∀ h2 h1,
           h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
           h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-          ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+          ∀ supply, SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
             supply (.success (.of (heapMatch h2 h1))) supply := by
         intro h2 h1 hm2 hm1 supply
         exact hheapReverse h2 h1 hm2 hm1 supply
@@ -314,22 +314,22 @@ theorem field_cons_forward_true_local_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hforward : MatchStorageConditional.storageMatch heapMatch a b = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Cons a) (.FieldT .Cons b)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT .Cons a) (.FieldT .Cons b)) ())
+        (.FieldT .Cons a) (.FieldT .Cons b)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$match_fieldtype:clause:0» dts
       (.FieldT .Cons a) (.FieldT .Cons b))
     n (.success (.of true)) n
@@ -349,28 +349,28 @@ theorem field_cons_forward_false_local_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n)
     (hforward : MatchStorageConditional.storageMatch heapMatch a b = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Cons a) (.FieldT .Cons b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT .Cons a) (.FieldT .Cons b)) ())
+        (.FieldT .Cons a) (.FieldT .Cons b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_fieldtype:clause:0» dts
         (.FieldT .Cons a) (.FieldT .Cons b)) n .unmatch n
     unfold SpecTec.«$match_fieldtype:clause:0»
@@ -379,8 +379,8 @@ theorem field_cons_forward_false_local_at
         dts heapMatch a b n hheap
     · exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [hforward]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT .Cons a) (.FieldT .Cons b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:1»
@@ -392,7 +392,7 @@ theorem field_cons_forward_false_local_at
             dts heapMatch b a n hheapReverse
         · exact SpecTecExecution.Eval.bind_unmatch
             (SpecTecExecution.Eval.guard_false (by simp [hforward]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem field_var_var_total_local_at
@@ -402,17 +402,17 @@ theorem field_var_var_total_local_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT .Var a) (.FieldT .Var b)⟩)
       n (.success (.of
         (MatchFieldConditional.fieldMatch heapMatch
@@ -425,13 +425,13 @@ theorem field_var_var_total_local_at
       simp [MatchFieldConditional.fieldMatch, hboth.1, hboth.2]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$match_fieldtype_clauses» dts
-          (.FieldT .Var a) (.FieldT .Var b)) ())
+          (.FieldT .Var a) (.FieldT .Var b)))
       n (.success (.of true)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:0» dts
           (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:0»
@@ -440,8 +440,8 @@ theorem field_var_var_total_local_at
           dts heapMatch a b n hheap
       · exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false (by simp))
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT .Var a) (.FieldT .Var b))
         n (.success (.of true)) n
@@ -462,13 +462,13 @@ theorem field_var_var_total_local_at
         simp_all [MatchFieldConditional.fieldMatch]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$match_fieldtype_clauses» dts
-          (.FieldT .Var a) (.FieldT .Var b)) ())
+          (.FieldT .Var a) (.FieldT .Var b)))
       n (.success (.of false)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:0» dts
           (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:0»
@@ -477,8 +477,8 @@ theorem field_var_var_total_local_at
           dts heapMatch a b n hheap
       · exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false (by simp))
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_fieldtype:clause:1» dts
             (.FieldT .Var a) (.FieldT .Var b)) n .unmatch n
         unfold SpecTec.«$match_fieldtype:clause:1»
@@ -490,7 +490,7 @@ theorem field_var_var_total_local_at
               dts heapMatch b a n hheapReverse
           · exact SpecTecExecution.Eval.bind_unmatch
               (SpecTecExecution.Eval.guard_false (by simpa using hboth))
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact SpecTecExecution.Eval.pure false
 
 theorem field_mixed_total_local_at
@@ -500,28 +500,28 @@ theorem field_mixed_total_local_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n)
     (hmixed : m₁ ≠ m₂) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts
         (.FieldT m₁ a) (.FieldT m₂ b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_fieldtype_clauses» dts
-        (.FieldT m₁ a) (.FieldT m₂ b)) ())
+        (.FieldT m₁ a) (.FieldT m₂ b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_fieldtype:clause:0» dts
         (.FieldT m₁ a) (.FieldT m₂ b)) n .unmatch n
     unfold SpecTec.«$match_fieldtype:clause:0»
@@ -530,8 +530,8 @@ theorem field_mixed_total_local_at
         dts heapMatch a b n hheap
     · exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [hmixed]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_fieldtype:clause:1» dts
           (.FieldT m₁ a) (.FieldT m₂ b)) n .unmatch n
       unfold SpecTec.«$match_fieldtype:clause:1»
@@ -543,7 +543,7 @@ theorem field_mixed_total_local_at
             dts heapMatch b a n hheapReverse
         · exact SpecTecExecution.Eval.bind_unmatch
             (SpecTecExecution.Eval.guard_false (by simp [hmixed]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_field_total_of_local_heap_at
@@ -553,17 +553,17 @@ theorem match_field_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceFieldHeaptypes a →
       h2 ∈ ReadyMatchReachability.sourceFieldHeaptypes b →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceFieldHeaptypes b →
       h1 ∈ ReadyMatchReachability.sourceFieldHeaptypes a →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
       n (.success (.of (MatchFieldConditional.fieldMatch heapMatch a b))) n := by
   cases a with
   | FieldT m₁ a =>
@@ -572,16 +572,16 @@ theorem match_field_total_of_local_heap_at
       have hAB : ∀ h1 h2,
           h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
           h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
             n (.success (.of (heapMatch h1 h2))) n := by
         intro h1 h2 hm1 hm2
         exact hheap h1 h2 hm1 hm2
       have hBA : ∀ h2 h1,
           h2 ∈ ReadyMatchReachability.sourceStorageHeaptypes b →
           h1 ∈ ReadyMatchReachability.sourceStorageHeaptypes a →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
             n (.success (.of (heapMatch h2 h1))) n := by
         intro h2 h1 hm2 hm1
         exact hheapReverse h2 h1 hm2 hm1

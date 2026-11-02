@@ -29,8 +29,8 @@ theorem plain_backed (c : context) (ts : List valtype) (h : ∀t∈ts,Plain t) :
 def production {α : Type} (c : context) (stack : inferresulttype) (env : Env c)
     (ins outs : List valtype) (hi : ∀t∈ins,Plain t) (ho : ∀t∈outs,Plain t)
     (g : Audited α) (make : α → instr)
-    (sound : ∀a n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (make a)⟩)
+    (sound : ∀a n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (make a)⟩)
       n (.success (.of (ConstructiveBodyControl.effect ins outs []))) n) : Production c stack :=
   ConstructiveBodySimpleAtoms.unchanged c stack env (.NoEllipses,ins) (.NoEllipses,outs)
     (plain_backed c ins hi) (plain_backed c outs ho)

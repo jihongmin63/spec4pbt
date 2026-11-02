@@ -7,7 +7,7 @@ open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveB
 
 def fixedList (c : context) (stack : inferresulttype) (env : Env c) (ins outs : List valtype)
     (hi : StackBacked c (.NoEllipses,ins)) (ho : StackBacked c (.NoEllipses,outs)) (i : instr)
-    (hs : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (hs : ∀n,SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of (ConstructiveBodyControl.effect ins outs))) n) : Production c stack :=
   fixed c stack env (.NoEllipses,ins) (.NoEllipses,outs) hi ho i hs
 

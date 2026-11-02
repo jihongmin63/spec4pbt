@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.CandidateSupertypeIter
 import properties.wasm_module_ok.SubtypeStaticMatchTrace
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -19,21 +20,17 @@ theorem static_super_check_success_iff
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
     (subStart subFinish n finish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (hready : CandidateTypeReady.Ready c) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt ht⟩)
       n (.success (.of ())) finish ↔
     staticSuperCheck c x strt ht = true ∧ finish = n := by
-  have hdet : SpecTecExecution.PrimitiveDeterministic
-      SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   constructor
   · intro hcall
     obtain ⟨y, hshape, _⟩ :=
@@ -52,11 +49,11 @@ theorem static_super_check_success_iff
         ReadyStaticSubtypeMatch.staticSuperMatch c x y strt dt = true
     · rw [if_pos hbool] at hresult
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet hcall hresult
+        properties.wasm_module_ok.Execution.eval_deterministic hcall hresult
       exact ⟨by simp [staticSuperCheck, hlookup, hbool], hsupply⟩
     · rw [if_neg hbool] at hresult
       obtain ⟨hout, _⟩ :=
-        SpecTecExecution.eval_deterministic hdet hcall hresult
+        properties.wasm_module_ok.Execution.eval_deterministic hcall hresult
       cases hout
   · rintro ⟨hcheck, rfl⟩
     cases ht <;> simp [staticSuperCheck] at hcheck

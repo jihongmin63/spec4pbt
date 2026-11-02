@@ -26,8 +26,8 @@ theorem append_backed {c : context} {ts us : List valtype} (ell : ellipses)
 
 def fixed (c : context) (stack : inferresulttype) (env : Env c)
     (ins outs : inferresulttype) (hi : StackBacked c ins) (ho : StackBacked c outs)
-    (i : instr) (sound : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (i : instr) (sound : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of ((⟨ins,outs⟩,[]) : inferinstrtype))) n) : Production c stack :=
   ConstructiveBodySimpleAtoms.unchanged c stack env ins outs hi ho (Audited.pure ⟨i,sound⟩)
 

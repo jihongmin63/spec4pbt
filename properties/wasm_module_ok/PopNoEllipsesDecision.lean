@@ -2,6 +2,7 @@ import properties.wasm_module_ok.MatchResulttypeDecision
 import properties.wasm_module_ok.PopGeneralValidation
 import properties.wasm_module_ok.PopResult
 import properties.wasm_module_ok.PopMatchExtraction
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -27,9 +28,9 @@ theorem pop_result_sound
     (havailable : ∀ t ∈ available,
       CandidateValMatch.InTableVal c t)
     (hresult : popResult c need available = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       n (.success (.of result)) n := by
   by_cases hlength : need.length ≤ available.length
@@ -62,9 +63,9 @@ theorem pop_result_complete
     (hneed : ∀ t ∈ need, CandidateValMatch.InTableVal c t)
     (havailable : ∀ t ∈ available,
       CandidateValMatch.InTableVal c t)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish) :
     popResult c need available = some result := by
@@ -94,9 +95,9 @@ theorem pop_success_counter
     (hneed : ∀ t ∈ need, CandidateValMatch.InTableVal c t)
     (havailable : ∀ t ∈ available,
       CandidateValMatch.InTableVal c t)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish) :
     finish = start := by
@@ -104,11 +105,7 @@ theorem pop_success_counter
     start finish hready hneed havailable hcall
   have hsame := pop_result_sound c need available result
     start hready hneed havailable hresult
-  have hdet : SpecTecExecution.PrimitiveDeterministic
-      SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
-  exact (SpecTecExecution.eval_deterministic hdet hcall hsame).2
+  exact (properties.wasm_module_ok.Execution.eval_deterministic hcall hsame).2
 
 theorem pop_result_iff
     (c : SpecTec.context)
@@ -119,9 +116,9 @@ theorem pop_result_iff
     (havailable : ∀ t ∈ available,
       CandidateValMatch.InTableVal c t) :
     popResult c need available = some result ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, need) (.NoEllipses, available)⟩)
         n (.success (.of result)) n := by
   exact ⟨pop_result_sound c need available result n
@@ -139,9 +136,9 @@ theorem pop_result_iff_any_counters
     (havailable : ∀ t ∈ available,
       CandidateValMatch.InTableVal c t) :
     popResult c need available = some result ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, need) (.NoEllipses, available)⟩)
         start (.success (.of result)) finish := by
   constructor

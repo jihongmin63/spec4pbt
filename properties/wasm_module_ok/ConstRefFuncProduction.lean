@@ -69,9 +69,9 @@ theorem ref_func_seed_iff_instr_effect
         c.FUNCS[x]? = some dt ∧
         u = .RefT (.«% %» .NoNull (.DefHT dt)) ∧
         ConstSyntaxDecision.syntaxAllowed c (.«REF.FUNC» x) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+            SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

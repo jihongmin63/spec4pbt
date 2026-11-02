@@ -12,15 +12,15 @@ def limitsValid (range : SpecTec.range) (lim : SpecTec.limits) : Bool :=
 theorem limits_none_success (c : SpecTec.context)
     (range : SpecTec.range) (lim : SpecTec.limits) (n : Nat)
     (hmax : lim.MAX = none) (hmin : lim.MIN ≤ range) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Limits_ok c range lim⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Limits_ok c range lim⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Limits_ok_clauses c range lim) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Limits_ok_clauses c range lim))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Limits_ok:clause:0» c range lim)
     n (.success (.of ())) n
   unfold SpecTec.«Limits_ok:clause:0»
@@ -36,23 +36,23 @@ theorem limits_some_success (c : SpecTec.context)
     (max : SpecTec.u64) (n : Nat)
     (hmax : lim.MAX = some max)
     (hvalid : lim.MIN ≤ range ∧ max ≤ range ∧ lim.MIN ≤ max) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Limits_ok c range lim⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Limits_ok c range lim⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Limits_ok_clauses c range lim) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Limits_ok_clauses c range lim))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Limits_ok:clause:0» c range lim) n .unmatch n
     unfold SpecTec.«Limits_ok:clause:0»
     rw [hmax]
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Limits_ok:clause:1» c range lim)
       n (.success (.of ())) n
     unfold SpecTec.«Limits_ok:clause:1»
@@ -67,22 +67,22 @@ theorem limits_some_success (c : SpecTec.context)
 theorem limits_success_iff_valid (c : SpecTec.context)
     (range : SpecTec.range) (lim : SpecTec.limits)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Limits_ok c range lim⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Limits_ok c range lim⟩)
       n (.success (.of ())) finalSupply ↔
     limitsValid range lim = true ∧ finalSupply = n := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Limits_ok_clauses c range lim) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Limits_ok_clauses c range lim))
         n (.success (.of ())) finalSupply at hbody
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Limits_ok:clause:0» c range lim)
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Limits_ok:clause:1» c range lim] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Limits_ok:clause:1» c range lim]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -101,7 +101,7 @@ theorem limits_success_iff_valid (c : SpecTec.context)
                     cases hm : lim.MAX <;> simp [hm] at hnone ⊢
                   exact ⟨by simp [limitsValid, hmax, hmin], rfl⟩
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Limits_ok:clause:1» c range lim)
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at htail
@@ -142,15 +142,15 @@ theorem limits_success_iff_valid (c : SpecTec.context)
 theorem limits_invalid_unmatch (c : SpecTec.context)
     (range : SpecTec.range) (lim : SpecTec.limits) (n : Nat)
     (hvalid : limitsValid range lim = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Limits_ok c range lim⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Limits_ok c range lim⟩)
       n .unmatch n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Limits_ok_clauses c range lim) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Limits_ok_clauses c range lim))
     n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Limits_ok:clause:0» c range lim) n .unmatch n
     unfold SpecTec.«Limits_ok:clause:0»
     cases hm : lim.MAX with
@@ -166,8 +166,8 @@ theorem limits_invalid_unmatch (c : SpecTec.context)
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Limits_ok:clause:1» c range lim) n .unmatch n
       unfold SpecTec.«Limits_ok:clause:1»
       cases hm : lim.MAX with
@@ -184,7 +184,7 @@ theorem limits_invalid_unmatch (c : SpecTec.context)
             simpa [limitsValid, hm] using hvalid
           intro h
           exact hbounds ⟨h.1.1, h.1.2, h.2⟩
-    · exact SpecTecExecution.firstSuccess_nil () n
+    · exact SpecTecExecution.tryClauses_nil n
 
 def limitsOutcome (range : SpecTec.range) (lim : SpecTec.limits) :
     SpecTecExecution.Outcome SpecTecExecution.Value :=
@@ -192,8 +192,8 @@ def limitsOutcome (range : SpecTec.range) (lim : SpecTec.limits) :
 
 theorem limits_total (c : SpecTec.context)
     (range : SpecTec.range) (lim : SpecTec.limits) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Limits_ok c range lim⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Limits_ok c range lim⟩)
       n (limitsOutcome range lim) n := by
   cases hv : limitsValid range lim with
   | false =>

@@ -98,8 +98,8 @@ theorem trace_candidate_val_match_iff_at
     (u t : SpecTec.valtype) (b : Bool) (start finish : Nat)
     (hu : u ∈ FiniteValidTypes.candidateUniverse c)
     (ht : t ∈ FiniteValidTypes.candidateUniverse c) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
       start (.success (.of b)) finish ↔
     b = CandidateValMatch.candidateValMatch c u t ∧ finish = start := by
   exact CandidateUniverseReady.candidate_universe_match_iff

@@ -11,11 +11,11 @@ theorem subst_deftype_result_shape
     (rect : SpecTec.rectype) (i : Nat)
     (dts : List SpecTec.deftype) (dt' : SpecTec.deftype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.deftype,
-        SpecTec.SpecTecCall.«$subst_deftype»
+        SpecTec.Call.«$subst_deftype»
           (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.DefT rect i)⟩)
+          SpecTec.Call.«$subst_of» (.DefT rect i)⟩)
       start (.success (.of dt')) finish) :
     ∃ rect' : SpecTec.rectype,
       dt' = .DefT rect' i ∧
@@ -33,9 +33,9 @@ theorem subst_deftype_result_shape
 theorem rectype_ok_appended_position_shape
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧

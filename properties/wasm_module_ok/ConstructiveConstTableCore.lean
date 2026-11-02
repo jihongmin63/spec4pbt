@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveConstAggregateBuilders
 import properties.wasm_module_ok.ConstructiveConstLiteralGen
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveConstTableCore
 open SpecTec properties.wasm_module_ok ConstructiveConstTree ConstructiveGenAudit
@@ -41,8 +42,8 @@ def entry (c : context) (hp : CandidateUniverseReady.Provenance c)
     exact ConstructiveConstTreeTarget.output_in_table c hp seed.val seed.property.1⟩
 
 abbrev Matched (c : context) (target : valtype) :=
-  {tree : Tree // Good c tree ∧ ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨Unit,SpecTecCall.Match_resulttype c [tree.output] [target]⟩)
+  {tree : Tree // Good c tree ∧ ∀ n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨Unit,Call.Match_resulttype c [tree.output] [target]⟩)
     n (.success (.of ())) n}
 
 def matched (c : context) (hr : CandidateTypeReady.Ready c)
@@ -88,8 +89,7 @@ def operandsCons (c : context) (t : valtype) (ts : List valtype)
     refine ⟨by simpa [outputs] using congrArg Nat.succ ht.1,?_⟩
     obtain ⟨middle,hmatch,hrest⟩ := (MatchResulttypeValidation.match_iter_cons_success_iff c head.val.output t [] [] n n).1 hh.2
     have hcounter : middle=n := by
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro request a b h; cases h
-      exact (SpecTecExecution.eval_deterministic hdet
+      exact (properties.wasm_module_ok.Execution.eval_deterministic
         (MatchResulttypeValidation.match_iter_nil_total c middle)
         hrest).2
     subst middle

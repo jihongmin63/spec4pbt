@@ -43,9 +43,9 @@ theorem covered_of_syntax
     (iit : SpecTec.inferinstrtype) (u : SpecTec.valtype)
     (start fin : Nat)
     (hsyntax : ConstAdditionalSyntaxValidation.Syntax c i)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       start (.success (.of iit)) fin)
     (hinputs : ∀ t ∈ iit.1.INS.2, t ∈ s)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :

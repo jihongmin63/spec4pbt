@@ -99,8 +99,8 @@ theorem bodies_sound (c : context) (env : Env c) (ins outs : List valtype)
     (hi : ∀t∈ins,CandidateValMatch.InTableVal c t)
     (ho : ∀t∈outs,CandidateValMatch.InTableVal c t) (code : List instr)
     (h : Gen.support (bodies c env ins outs hi ho) code) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Block_ok c (.InstrT ins outs []) code⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Block_ok c (.InstrT ins outs []) code⟩)
       n (.success (.of ())) n := by
   simp only [bodies,Gen.Support.support_map] at h
   obtain ⟨b,_,rfl⟩ := h

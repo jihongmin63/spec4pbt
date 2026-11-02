@@ -5,8 +5,8 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModuleStart
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveConstTableCore
 
-abbrev Result (c : context) := {s : Option SpecTec.start // ∀n,Eval specTecProgram
-  (.call ⟨Unit,SpecTecCall.Start_ok c s⟩) n (.success (.of ())) n}
+abbrev Result (c : context) := {s : Option SpecTec.start // ∀n,Eval Body
+  (.call ⟨Unit,Call.Start_ok c s⟩) n (.success (.of ())) n}
 def none (c : context) : Result c := ⟨Option.none,StartValidation.start_none_success c⟩
 def some (c : context) (e : ConstructiveBodyLookup.Entry c.FUNCS)
     (he : UnrollInterface.deftypeFunctype e.value=Option.some (.FuncT [] [])) : Result c :=
@@ -21,7 +21,7 @@ theorem generate_audit (c : context) : ConstructiveGenAudit.Structural (generate
   ConstructiveGenAudit.finite_audit _ (ConstructiveTypeAtoms.finite_choose _ _)
 
 theorem complete (c : context) (s : Option SpecTec.start) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Start_ok c s⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.Start_ok c s⟩) n (.success (.of ())) finish) :
     ∃out : Result c,Gen.support (generate c) out ∧ out.val=s := by
   cases s with
   | none => exact ⟨none c,(ConstructiveTypeAtoms.support_choose _ _ _).2 List.mem_cons_self,rfl⟩

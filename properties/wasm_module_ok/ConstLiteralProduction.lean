@@ -43,18 +43,18 @@ theorem literal_seed_iff_instr_effect
     literalSeed u = true ↔
       (∃ v : SpecTec.num_,
         ConstSyntaxDecision.syntaxAllowed c (.CONST v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+            SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },
               ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype))) n) ∨
       (∃ v : SpecTec.vec_,
         ConstSyntaxDecision.syntaxAllowed c (.«VEC.CONST» v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+            SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },
@@ -69,18 +69,18 @@ theorem literal_base_iff_instr_effect
     u ∈ literalBase c ↔
       (∃ v : SpecTec.num_,
         ConstSyntaxDecision.syntaxAllowed c (.CONST v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+            SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },
               ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype))) n) ∨
       (∃ v : SpecTec.vec_,
         ConstSyntaxDecision.syntaxAllowed c (.«VEC.CONST» v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+            SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

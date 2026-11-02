@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstructiveBodySimpleAtoms
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyInitTypes
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment
@@ -25,24 +26,24 @@ theorem prefix_backed (c : context) (stack : inferresulttype) (h : StackBacked c
     · exact ih t ht
 
 theorem interval_call (stack : inferresulttype) (count : Nat) (i start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List valtype,SpecTecCall.«$init_valtypes» stack i (i+count)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List valtype,Call.«$init_valtypes» stack i (i+count)⟩)
       start (.success (.of (operandTypes stack count))) start := by
   induction count generalizing i with
   | zero =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$init_valtypes_clauses» stack i i) ()) start (.success (.of ([] : List valtype))) start
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$init_valtypes_clauses» stack i i)) start (.success (.of ([] : List valtype))) start
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · unfold SpecTec.«$init_valtypes:clause:0»
       exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (show ¬i<i from Nat.lt_irrefl i))
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     exact SpecTecExecution.Eval.pure _
   | succ count ih =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$init_valtypes_clauses» stack i (i+(count+1))) ()) start (.success (.of _)) start
-    apply SpecTecExecution.firstSuccess_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$init_valtypes_clauses» stack i (i+(count+1)))) start (.success (.of _)) start
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«$init_valtypes:clause:0»
     apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true (show i<i+(count+1) from by omega))
     have hd : (Int.ofNat (i+(count+1))-Int.ofNat i)=Int.ofNat (count+1) := by
@@ -59,18 +60,18 @@ theorem interval_call (stack : inferresulttype) (count : Nat) (i start : Nat) :
     exact SpecTecExecution.Eval.pure _
 
 theorem zero_call (stack : inferresulttype) (count start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List valtype,SpecTecCall.«$init_valtypes» stack 0 count⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List valtype,Call.«$init_valtypes» stack 0 count⟩)
       start (.success (.of (operandTypes stack count))) start := by
   simpa only [Nat.zero_add] using interval_call stack count 0 start
 
 theorem zero_exact (stack : inferresulttype) (count : Nat) (ts : List valtype) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List valtype,SpecTecCall.«$init_valtypes» stack 0 count⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List valtype,Call.«$init_valtypes» stack 0 count⟩)
       start (.success (.of ts)) finish ↔ ts=operandTypes stack count ∧ finish=start := by
   constructor
   · intro h
-    obtain ⟨he,hn⟩ := SpecTecExecution.eval_deterministic (by intro request a b h; cases h) h (zero_call stack count start)
+    obtain ⟨he,hn⟩ := properties.wasm_module_ok.Execution.eval_deterministic h (zero_call stack count start)
     cases he; exact ⟨rfl,hn⟩
   · rintro ⟨rfl,hn⟩; subst finish; exact zero_call stack count start
 

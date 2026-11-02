@@ -5,14 +5,14 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.Validity
 
 private theorem singleton_clause_success_inv
-    {clause : SpecTecExecution.Clause SpecTec.SpecTecRequest Unit}
+    {clause : SpecTecExecution.Action.{1} SpecTec.Request}
     {start finalSupply : Nat} {value : SpecTecExecution.Value}
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess [clause] ()) start
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses [clause]) start
       (.success value) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (clause ()) start (.success value) finalSupply := by
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  change SpecTecExecution.Eval SpecTec.Body
     (.orElse (clause ()) (fun _ => .unmatch)) start
     (.success value) finalSupply at h
   cases h with
@@ -22,20 +22,20 @@ private theorem singleton_clause_success_inv
 theorem module_ok_clause_success (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ finalSupply : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Module_ok:clause:0» m) 0
           (.success (.of ())) finalSupply := by
   intro h
   change ∃ finalSupply : Nat,
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
       (.success (.of ())) finalSupply at h
   obtain ⟨finalSupply, heval⟩ := h
   cases heval with
   | call hbody =>
       refine ⟨finalSupply, ?_⟩
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Module_ok_clauses m) ()) 0
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Module_ok_clauses m)) 0
         (.success (.of ())) finalSupply at hbody
       simpa only [SpecTec.Module_ok_clauses] using
         (singleton_clause_success_inv hbody)
@@ -43,8 +43,8 @@ theorem module_ok_clause_success (m : SpecTec.module) :
 theorem module_ok_free_module_success (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ (free : SpecTec.free) (middle : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
             ({ {m with FUNCS := []} with START := none })⟩)
           0 (.success (.of free)) middle := by
   intro h
@@ -57,12 +57,12 @@ theorem module_ok_initial_context (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ (free : SpecTec.free) (c : SpecTec.context)
         (n₁ n₂ : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
             ({ {m with FUNCS := []} with START := none })⟩)
           0 (.success (.of free)) n₁ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
           n₁ (.success (.of c)) n₂ := by
   intro h
   obtain ⟨finalSupply, hclause⟩ := module_ok_clause_success m h
@@ -76,16 +76,16 @@ theorem module_ok_types_success (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ (free : SpecTec.free) (c c₀ : SpecTec.context)
         (n₁ n₂ n₃ : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
             ({ {m with FUNCS := []} with START := none })⟩)
           0 (.success (.of free)) n₁ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
           n₁ (.success (.of c)) n₂ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+            SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
           n₂ (.success (.of c₀)) n₃ := by
   intro h
   obtain ⟨finalSupply, hclause⟩ := module_ok_clause_success m h
@@ -101,20 +101,20 @@ theorem module_ok_imports_success (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ (free : SpecTec.free) (c c₀ c₁ : SpecTec.context)
         (n₁ n₂ n₃ n₄ : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
             ({ {m with FUNCS := []} with START := none })⟩)
           0 (.success (.of free)) n₁ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
           n₁ (.success (.of c)) n₂ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+            SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
           n₂ (.success (.of c₀)) n₃ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Imports_ok c₀ m.IMPORTS⟩)
+            SpecTec.Call.Imports_ok c₀ m.IMPORTS⟩)
           n₃ (.success (.of c₁)) n₄ := by
   intro h
   obtain ⟨finalSupply, hclause⟩ := module_ok_clause_success m h
@@ -132,24 +132,24 @@ theorem module_ok_funcs_success (m : SpecTec.module) :
     SpecTec.Module_ok m →
       ∃ (free : SpecTec.free) (c c₀ c₁ c₂ : SpecTec.context)
         (n₁ n₂ n₃ n₄ n₅ : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
             ({ {m with FUNCS := []} with START := none })⟩)
           0 (.success (.of free)) n₁ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
           n₁ (.success (.of c)) n₂ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+            SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
           n₂ (.success (.of c₀)) n₃ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Imports_ok c₀ m.IMPORTS⟩)
+            SpecTec.Call.Imports_ok c₀ m.IMPORTS⟩)
           n₃ (.success (.of c₁)) n₄ ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Funcs_ok c₁ m.FUNCS⟩)
+            SpecTec.Call.Funcs_ok c₁ m.FUNCS⟩)
           n₄ (.success (.of c₂)) n₅ := by
   intro h
   obtain ⟨finalSupply, hclause⟩ := module_ok_clause_success m h
@@ -169,7 +169,7 @@ theorem module_ok_funcs_success (m : SpecTec.module) :
 theorem module_ok_iff_clause_success (m : SpecTec.module) :
     SpecTec.Module_ok m ↔
       ∃ finalSupply : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Module_ok:clause:0» m) 0
           (.success (.of ())) finalSupply := by
   constructor
@@ -205,49 +205,49 @@ structure ModuleOkTrace (m : SpecTec.module) : Type where
   n12 : Nat
   n13 : Nat
   n14 : Nat
-  free_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+  free_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
       ({ {m with FUNCS := []} with START := none })⟩)
     0 (.success (.of free)) n1
-  empty_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+  empty_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
     n1 (.success (.of c)) n2
-  types_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok
+  types_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Types_ok
       {c with REFS := free} m.TYPES⟩)
     n2 (.success (.of c0)) n3
-  imports_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c0 m.IMPORTS⟩)
+  imports_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c0 m.IMPORTS⟩)
     n3 (.success (.of c1)) n4
-  funcs_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Funcs_ok c1 m.FUNCS⟩)
+  funcs_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Funcs_ok c1 m.FUNCS⟩)
     n4 (.success (.of c2)) n5
-  tables_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tables_ok c2 m.TABLES⟩)
+  tables_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Tables_ok c2 m.TABLES⟩)
     n5 (.success (.of c3)) n6
-  mems_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Mems_ok c3 m.MEMS⟩)
+  mems_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Mems_ok c3 m.MEMS⟩)
     n6 (.success (.of c4)) n7
-  globals_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Globals_ok c4 m.GLOBALS⟩)
+  globals_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok c4 m.GLOBALS⟩)
     n7 (.success (.of c5)) n8
-  tags_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tags_ok c5 m.TAGS⟩)
+  tags_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Tags_ok c5 m.TAGS⟩)
     n8 (.success (.of c6)) n9
-  elems_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elems_ok c6 m.ELEMS⟩)
+  elems_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Elems_ok c6 m.ELEMS⟩)
     n9 (.success (.of c7)) n10
-  datas_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Datas_ok c7 m.DATAS⟩)
+  datas_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.context, SpecTec.Call.Datas_ok c7 m.DATAS⟩)
     n10 (.success (.of c8)) n11
-  funcs_second_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨Unit, SpecTec.SpecTecCall.«Module_ok:rule:iter:2» c8 m.FUNCS⟩)
+  funcs_second_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨Unit, SpecTec.Call.«Module_ok:rule:iter:2» c8 m.FUNCS⟩)
     n11 (.success (.of ())) n12
-  start_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c8 m.START⟩)
+  start_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨Unit, SpecTec.Call.Start_ok c8 m.START⟩)
     n12 (.success (.of ())) n13
-  exports_ok : SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨SpecTec.nameset, SpecTec.SpecTecCall.Exports_ok c8
+  exports_ok : SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨SpecTec.nameset, SpecTec.Call.Exports_ok c8
       (SpecTec.set.«`{ % `}» ([] : List SpecTec.name)) m.EXPORTS⟩)
     n13 (.success (.of names)) n14
 

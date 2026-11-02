@@ -5,29 +5,29 @@ namespace properties.wasm_module_ok.ConstructiveBodyBlocktypes
 open SpecTec properties.wasm_module_ok
 
 theorem empty_type (c : context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨instrtype,SpecTecCall.Blocktype_ok c (.ValBlockType none)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨instrtype,Call.Blocktype_ok c (.ValBlockType none)⟩)
       n (.success (.of (instrtype.InstrT [] [] []))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Blocktype_ok_clauses c (.ValBlockType none)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Blocktype_ok_clauses c (.ValBlockType none)))
     n (.success (.of (instrtype.InstrT [] [] []))) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
   exact SpecTecExecution.Eval.pure _
 
 theorem value_type (c : context) (t : valtype) (n : Nat)
     (ht : ValtypeValidation.valtypeValid c t=true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨instrtype,SpecTecCall.Blocktype_ok c (.ValBlockType (some t))⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨instrtype,Call.Blocktype_ok c (.ValBlockType (some t))⟩)
       n (.success (.of (instrtype.InstrT [] [t] []))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Blocktype_ok_clauses c (.ValBlockType (some t))) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Blocktype_ok_clauses c (.ValBlockType (some t))))
     n (.success (.of (instrtype.InstrT [] [t] []))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   unfold SpecTec.«Blocktype_ok:clause:1»
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
@@ -37,18 +37,18 @@ theorem value_type (c : context) (t : valtype) (n : Nat)
 
 theorem index_type (c : context) (x : Nat) (ins outs : List valtype) (n : Nat)
     (ht : FunctionTypeValidation.funcTypeResult c x=some (.FuncT ins outs)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨instrtype,SpecTecCall.Blocktype_ok c (.VarBlockType x)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨instrtype,Call.Blocktype_ok c (.VarBlockType x)⟩)
       n (.success (.of (instrtype.InstrT ins outs []))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Blocktype_ok_clauses c (.VarBlockType x)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Blocktype_ok_clauses c (.VarBlockType x)))
     n (.success (.of (instrtype.InstrT ins outs []))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:blocktype:ValBlockType»]))
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   unfold SpecTec.«Blocktype_ok:clause:2»
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
   apply SpecTecExecution.Eval.bind_success
@@ -59,8 +59,8 @@ structure Signature (c : context) where
   raw : blocktype
   inputs : List valtype
   outputs : List valtype
-  valid : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨instrtype,SpecTecCall.Blocktype_ok c raw⟩)
+  valid : ∀n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨instrtype,Call.Blocktype_ok c raw⟩)
     n (.success (.of (instrtype.InstrT inputs outputs []))) n
 
 def empty (c : context) : Signature c := ⟨.ValBlockType none,[],[],empty_type c⟩

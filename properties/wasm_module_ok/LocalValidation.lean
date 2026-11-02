@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.DefaultableValidation
 import properties.wasm_module_ok.ValtypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -14,20 +15,20 @@ def localType (l : SpecTec.«local») : SpecTec.localtype :=
 theorem local_of_valtype_success
     (c : SpecTec.context) (l : SpecTec.«local»)
     (n finalSupply : Nat)
-    (hval : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c l.LTYPE⟩)
+    (hval : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c l.LTYPE⟩)
       n (.success (.of ())) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.localtype, SpecTec.SpecTecCall.Local_ok c l⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
       n (.success (.of (localType l))) finalSupply := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Local_ok_clauses c l) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Local_ok_clauses c l))
     n (.success (.of (localType l))) finalSupply
   cases hdef : DefaultableValidation.defaultable l.LTYPE with
   | true =>
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Local_ok:clause:0» c l)
       n (.success (.of (localType l))) finalSupply
     unfold SpecTec.«Local_ok:clause:0»
@@ -41,8 +42,8 @@ theorem local_of_valtype_success
         (SpecTecExecution.Eval.pure
           (SpecTec.localtype.LocalT .Set l.LTYPE))
   | false =>
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Local_ok:clause:0» c l)
         n .unmatch finalSupply
       unfold SpecTec.«Local_ok:clause:0»
@@ -52,8 +53,8 @@ theorem local_of_valtype_success
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [hdef]
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Local_ok:clause:1» c l)
         n (.success (.of (localType l))) finalSupply
       unfold SpecTec.«Local_ok:clause:1»
@@ -70,19 +71,19 @@ theorem local_of_valtype_success
 theorem local_success_inv_valtype
     (c : SpecTec.context) (l : SpecTec.«local»)
     (result : SpecTec.localtype) (n finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.localtype, SpecTec.SpecTecCall.Local_ok c l⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
       n (.success (.of result)) finalSupply) :
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c l.LTYPE⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Valtype_ok c l.LTYPE⟩)
         n (.success (.of ())) middle := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Local_ok:clause:0» c l)
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Local_ok:clause:1» c l] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Local_ok:clause:1» c l]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -90,7 +91,7 @@ theorem local_success_inv_valtype
       cases hfirst with
       | bind_success hval _ => exact ⟨_, hval⟩
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Local_ok:clause:1» c l)
           (fun _ => .unmatch))
         n (.success (.of result)) finalSupply at htail
@@ -104,22 +105,19 @@ theorem local_success_inv_valtype
 theorem local_success_iff
     (c : SpecTec.context) (l : SpecTec.«local»)
     (result : SpecTec.localtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.localtype, SpecTec.SpecTecCall.Local_ok c l⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
       n (.success (.of result)) finalSupply ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c l.LTYPE⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c l.LTYPE⟩)
       n (.success (.of ())) finalSupply ∧
     result = localType l := by
   constructor
   · intro h
     obtain ⟨middle, hval⟩ :=
       local_success_inv_valtype c l result n finalSupply h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (local_of_valtype_success c l n middle hval)
     cases hout
     cases hsupply
@@ -130,8 +128,8 @@ theorem local_success_iff
 theorem local_success_iff_valid
     (c : SpecTec.context) (l : SpecTec.«local»)
     (result : SpecTec.localtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.localtype, SpecTec.SpecTecCall.Local_ok c l⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
       n (.success (.of result)) finalSupply ↔
     ValtypeValidation.valtypeValid c l.LTYPE = true ∧
     result = localType l ∧ finalSupply = n := by

@@ -21,8 +21,8 @@ theorem valid_target_in_extended_and_table
 theorem globaltype_target_in_extended_and_table
     (c : SpecTec.context) (mutation : SpecTec.«mut»)
     (t : SpecTec.valtype) (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Globaltype_ok c (.GlobalT mutation t)⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Globaltype_ok c (.GlobalT mutation t)⟩)
       start (.success (.of ())) finish) :
     t ∈ ConstFieldCandidate.extendedCandidateUniverse c ∧
       CandidateValMatch.InTableVal c t := by
@@ -46,8 +46,8 @@ theorem tabletype_target_in_extended_and_table
     (c : SpecTec.context) (addr : SpecTec.addrtype)
     (lim : SpecTec.limits) (rt : SpecTec.reftype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Tabletype_ok c (.TableT addr lim rt)⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Tabletype_ok c (.TableT addr lim rt)⟩)
       start (.success (.of ())) finish) :
     SpecTec.valtype.RefT rt ∈
         ConstFieldCandidate.extendedCandidateUniverse c ∧
@@ -67,16 +67,16 @@ theorem tabletype_target_in_extended_and_table
 theorem elem_target_in_extended_and_table
     (c result : SpecTec.context) (e : SpecTec.elem)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elem_ok c e⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Elem_ok c e⟩)
       start (.success (.of result)) finish) :
     SpecTec.valtype.RefT e.ETYPE ∈
         ConstFieldCandidate.extendedCandidateUniverse c ∧
       CandidateValMatch.InTableVal c (.RefT e.ETYPE) := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Elem_ok_clauses c e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Elem_ok_clauses c e))
       start (.success (.of result)) finish at hbody
     cases hbody with
     | orElse_success hclause =>

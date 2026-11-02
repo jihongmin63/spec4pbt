@@ -168,13 +168,13 @@ theorem payloads_complete (op : vbinop_) (h : legal op=true) :
      exact ⟨v,ConstructiveBodyOperatorEnums.generate_support _ v,rfl⟩
 
 theorem original (c : context) (stack : inferresulttype) (op : vbinop_) (result : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.BINARY» op)⟩)
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.BINARY» op)⟩)
       n (.success (.of result)) finish) :
     legal op=true ∧ result=ConstructiveBodyControl.effect [.VecT .V128T,.VecT .V128T] [.VecT .V128T] [] ∧ finish=n := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«VEC.BINARY» op) 87 (by decide) rfl (by decide) result n finish).1 h
   have hl : legal op=true := by
-    change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:87» c stack (.«VEC.BINARY» op)) n _ finish at hs
+    change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:87» c stack (.«VEC.BINARY» op)) n _ finish at hs
     unfold SpecTec.«Instr_ok:clause:87» at hs
     cases hs with | bind_success hg tail =>
      cases hg

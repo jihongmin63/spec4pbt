@@ -18,8 +18,8 @@ theorem ready_reachable_pair_total
       (∃ (q : Nat) (dt : SpecTec.deftype),
         target = .DefHT dt ∧ c.TYPES[q]? = some dt)) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES source target⟩)
         n (.success (.of r)) n := by
   rcases hsource with hbase | ⟨p, dtP, rfl, hP⟩
@@ -55,9 +55,9 @@ theorem static_structural_heap_pairs_total
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
@@ -71,8 +71,8 @@ theorem static_structural_heap_pairs_total
       ∀ sourceHt, sourceHt ∈ ReadyMatchReachability.sourceHeaptypes strt →
       ∀ targetHt, targetHt ∈ ReadyMatchReachability.sourceHeaptypes strtU →
       ∀ n, ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
             c.TYPES sourceHt targetHt⟩)
           n (.success (.of r)) n := by
   obtain ⟨fin, hts, strtU, hunroll, hsource, htarget⟩ :=

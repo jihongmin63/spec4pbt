@@ -22,8 +22,8 @@ theorem constants_sound (c : context) (hr : CandidateTypeReady.Ready c)
     (target : valtype) (ht : CandidateValMatch.InTableVal c target)
     (plan : Plan c hr hp hn target ht) (xs : List instr)
     (hs : Gen.support (constants c hr hp hn target ht plan) xs) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) n (.success (.of ())) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) n (.success (.of ())) n := by
   obtain ⟨tree,_,rfl⟩ := hs
   exact tree_const_ok c tree.val tree.property.1 target n (tree.property.2 n)
 
@@ -31,8 +31,8 @@ theorem constants_complete (c : context) (hr : CandidateTypeReady.Ready c)
     (hp : CandidateUniverseReady.Provenance c) (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (ht : CandidateValMatch.InTableVal c target)
     (plan : Plan c hr hp hn target ht) (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) start (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) start (.success (.of ())) finish) :
     Gen.support (constants c hr hp hn target ht plan) xs := by
   obtain ⟨tree,hgood,hcode,hmatch⟩ := ConstructiveConstTreeTarget.const_tree_target c hr hp hn target ht xs start finish h
   exact ⟨⟨tree,hgood,hmatch⟩,matchedTrees_complete c hr hp hn target ht plan _,hcode.symm⟩
@@ -42,8 +42,8 @@ theorem constants_exact (c : context) (hr : CandidateTypeReady.Ready c)
     (target : valtype) (ht : CandidateValMatch.InTableVal c target)
     (plan : Plan c hr hp hn target ht) (xs : List instr) (n : Nat) :
     Gen.support (constants c hr hp hn target ht plan) xs ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) n (.success (.of ())) n :=
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) n (.success (.of ())) n :=
   ⟨fun h => constants_sound c hr hp hn target ht plan xs h n,
    constants_complete c hr hp hn target ht plan xs n n⟩
 
@@ -66,8 +66,8 @@ theorem original_has_plan (c : context) (hr : CandidateTypeReady.Ready c)
     (hp : CandidateUniverseReady.Provenance c) (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (ht : CandidateValMatch.InTableVal c target)
     (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) start (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) start (.success (.of ())) finish) :
     ∃n plan,planAt c hr hp hn target ht n=some plan := by
   obtain ⟨tree,hgood,hcode,hmatch⟩ := ConstructiveConstTreeTarget.const_tree_target c hr hp hn target ht xs start finish h
   obtain ⟨n,hcov⟩ := good_covered c hr hp hn tree hgood

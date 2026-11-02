@@ -17,15 +17,15 @@ theorem generated_static_subtype_sub_ok_result
       (CandidateRectypeSearch.readyGroupGen before) (.RecT sts))
     (hcandidate : CandidateRectypeTable.candidateContext before sts =
       some candidate)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok candidate
+        SpecTec.Call.Subtype_ok candidate
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hlookup : candidate.TYPES[y]? = some dt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok' candidate x strt
+        SpecTec.Call.Subtype_sub_ok' candidate x strt
           (.VarHT (.StatX y))⟩)
       n (if ReadyStaticSubtypeMatch.staticSuperMatch candidate x y strt dt = true then
         .success (.of ()) else .unmatch) n := by

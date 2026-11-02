@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.bundle.Contract
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -7,49 +8,42 @@ namespace properties.wasm_module_not_ok.Rejection
 theorem not_module_ok_iff_no_success (m : SpecTec.module) :
     ¬ SpecTec.Module_ok m ↔
       ∀ finalSupply : Nat,
-        ¬ SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+        ¬ SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
           (.success (.of ())) finalSupply := by
   simp only [SpecTec.Module_ok, not_exists]
 
-theorem program_primitive_deterministic :
-    SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-  intro request x y hx _
-  change False at hx
-  exact hx.elim
 
 theorem module_unmatch_invalid (m : SpecTec.module) (finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
       .unmatch finalSupply) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨successFinal, hs⟩ := hok
-  have heq := (SpecTecExecution.eval_deterministic
-    program_primitive_deterministic h hs).1
+  have heq := (properties.wasm_module_ok.Execution.eval_deterministic h hs).1
   cases heq
 
 theorem module_abort_invalid (m : SpecTec.module)
     (message : String) (finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
       (.abort message) finalSupply) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨successFinal, hs⟩ := hok
-  have heq := (SpecTecExecution.eval_deterministic
-    program_primitive_deterministic h hs).1
+  have heq := (properties.wasm_module_ok.Execution.eval_deterministic h hs).1
   cases heq
 
 private theorem singleton_clause_success_inv
-    {clause : SpecTecExecution.Clause SpecTec.SpecTecRequest Unit}
+    {clause : SpecTecExecution.Action.{1} SpecTec.Request}
     {start finalSupply : Nat} {value : SpecTecExecution.Value}
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess [clause] ()) start
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses [clause]) start
       (.success value) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (clause ()) start (.success value) finalSupply := by
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  change SpecTecExecution.Eval SpecTec.Body
     (.orElse (clause ()) (fun _ => .unmatch)) start
     (.success value) finalSupply at h
   cases h with
@@ -59,42 +53,42 @@ private theorem singleton_clause_success_inv
 theorem module_clause_success_iff (m : SpecTec.module) :
     SpecTec.Module_ok m ↔
       ∃ finalSupply : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Module_ok:clause:0» m) 0
           (.success (.of ())) finalSupply := by
   constructor
   · intro hok
     change ∃ finalSupply : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
         (.success (.of ())) finalSupply at hok
     obtain ⟨finalSupply, heval⟩ := hok
     cases heval with
     | call hbody =>
       refine ⟨finalSupply, ?_⟩
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Module_ok_clauses m) ()) 0
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Module_ok_clauses m)) 0
         (.success (.of ())) finalSupply at hbody
       simpa only [SpecTec.Module_ok_clauses] using
         (singleton_clause_success_inv hbody)
   · rintro ⟨finalSupply, hclause⟩
     change ∃ finalSupply : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Module_ok m⟩) 0
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Module_ok m⟩) 0
         (.success (.of ())) finalSupply
     refine ⟨finalSupply, SpecTecExecution.Eval.call ?_⟩
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Module_ok_clauses m) ()) 0
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Module_ok_clauses m)) 0
       (.success (.of ())) finalSupply
     simpa only [SpecTec.Module_ok_clauses] using
-      (SpecTecExecution.firstSuccess_cons_success
+      (SpecTecExecution.tryClauses_cons_success
         (clause := fun _ : Unit => SpecTec.«Module_ok:clause:0» m)
         (rest := []) (input := ()) hclause)
 
 theorem not_module_ok_iff_no_clause_success (m : SpecTec.module) :
     ¬ SpecTec.Module_ok m ↔
       ∀ finalSupply : Nat,
-        ¬ SpecTecExecution.Eval SpecTec.specTecProgram
+        ¬ SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Module_ok:clause:0» m) 0
           (.success (.of ())) finalSupply := by
   rw [module_clause_success_iff]
@@ -106,8 +100,8 @@ def moduleWithoutCode (m : SpecTec.module) : SpecTec.module :=
 theorem module_ok_implies_free_success (m : SpecTec.module)
     (hok : SpecTec.Module_ok m) :
     ∃ (free : SpecTec.free) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
         0 (.success (.of free)) middle := by
   obtain ⟨finalSupply, hclause⟩ := (module_clause_success_iff m).mp hok
   unfold SpecTec.«Module_ok:clause:0» at hclause
@@ -116,26 +110,24 @@ theorem module_ok_implies_free_success (m : SpecTec.module)
 
 
 theorem module_not_ok_of_free_unmatch (m : SpecTec.module) (finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
       0 .unmatch finalSupply) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨_, _, hs⟩ := module_ok_implies_free_success m hok
-  have heq := (SpecTecExecution.eval_deterministic
-    program_primitive_deterministic h hs).1
+  have heq := (properties.wasm_module_ok.Execution.eval_deterministic h hs).1
   cases heq
 
 theorem module_not_ok_of_free_abort (m : SpecTec.module)
     (message : String) (finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
       0 (.abort message) finalSupply) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨_, _, hs⟩ := module_ok_implies_free_success m hok
-  have heq := (SpecTecExecution.eval_deterministic
-    program_primitive_deterministic h hs).1
+  have heq := (properties.wasm_module_ok.Execution.eval_deterministic h hs).1
   cases heq
 
 
@@ -143,14 +135,14 @@ theorem module_ok_initial_three_calls (m : SpecTec.module)
     (hok : SpecTec.Module_ok m) :
     ∃ (free : SpecTec.free) (c c0 : SpecTec.context)
       (n1 n2 n3 : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
         0 (.success (.of free)) n1 ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
         n1 (.success (.of c)) n2 ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
         n2 (.success (.of c0)) n3 := by
   obtain ⟨finalSupply, hclause⟩ := (module_clause_success_iff m).mp hok
   cases hclause with
@@ -170,67 +162,61 @@ private theorem value_of_inj_same {α : Type} {x y : α}
 theorem module_not_ok_of_types_unmatch (m : SpecTec.module)
     (free : SpecTec.free) (c : SpecTec.context)
     (n1 n2 failedFinal : Nat)
-    (hfree : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+    (hfree : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
       0 (.success (.of free)) n1)
-    (hempty : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+    (hempty : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
       n1 (.success (.of c)) n2)
-    (htypes : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htypes : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+        SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
       n2 .unmatch failedFinal) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨free', c', c0', n1', n2', n3', hfree', hempty', htypes'⟩ :=
     module_ok_initial_three_calls m hok
-  have df := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic hfree hfree'
+  have df := properties.wasm_module_ok.Execution.eval_deterministic hfree hfree'
   have efree : free = free' := value_of_inj_same (by cases df.1; rfl)
   have en1 : n1 = n1' := df.2
   subst free'
   subst n1'
-  have de := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic hempty hempty'
+  have de := properties.wasm_module_ok.Execution.eval_deterministic hempty hempty'
   have ec : c = c' := value_of_inj_same (by cases de.1; rfl)
   have en2 : n2 = n2' := de.2
   subst c'
   subst n2'
-  have dt := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic htypes htypes'
+  have dt := properties.wasm_module_ok.Execution.eval_deterministic htypes htypes'
   cases dt.1
 
 theorem module_not_ok_of_types_abort (m : SpecTec.module)
     (free : SpecTec.free) (c : SpecTec.context)
     (message : String) (n1 n2 failedFinal : Nat)
-    (hfree : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» (moduleWithoutCode m)⟩)
+    (hfree : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» (moduleWithoutCode m)⟩)
       0 (.success (.of free)) n1)
-    (hempty : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+    (hempty : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
       n1 (.success (.of c)) n2)
-    (htypes : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htypes : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok {c with REFS := free} m.TYPES⟩)
+        SpecTec.Call.Types_ok {c with REFS := free} m.TYPES⟩)
       n2 (.abort message) failedFinal) :
     ¬ SpecTec.Module_ok m := by
   intro hok
   obtain ⟨free', c', c0', n1', n2', n3', hfree', hempty', htypes'⟩ :=
     module_ok_initial_three_calls m hok
-  have df := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic hfree hfree'
+  have df := properties.wasm_module_ok.Execution.eval_deterministic hfree hfree'
   have efree : free = free' := value_of_inj_same (by cases df.1; rfl)
   have en1 : n1 = n1' := df.2
   subst free'
   subst n1'
-  have de := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic hempty hempty'
+  have de := properties.wasm_module_ok.Execution.eval_deterministic hempty hempty'
   have ec : c = c' := value_of_inj_same (by cases de.1; rfl)
   have en2 : n2 = n2' := de.2
   subst c'
   subst n2'
-  have dt := SpecTecExecution.eval_deterministic
-    program_primitive_deterministic htypes htypes'
+  have dt := properties.wasm_module_ok.Execution.eval_deterministic htypes htypes'
   cases dt.1
 
 

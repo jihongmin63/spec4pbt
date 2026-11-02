@@ -21,8 +21,8 @@ theorem none_fixed_target_total
     (dts : List SpecTec.deftype) (t : SpecTec.heaptype) (n : Nat)
     (ht : t ∈ fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts .NoneHT t⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hresult⟩ := MatchBaseDefTotal.match_simple_base_total
@@ -34,8 +34,8 @@ theorem nofunc_fixed_target_total
     (dts : List SpecTec.deftype) (t : SpecTec.heaptype) (n : Nat)
     (ht : t ∈ fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts .NoFuncHT t⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hresult⟩ := MatchBaseDefTotal.match_simple_base_total
@@ -47,8 +47,8 @@ theorem noexn_fixed_target_total
     (dts : List SpecTec.deftype) (t : SpecTec.heaptype) (n : Nat)
     (ht : t ∈ fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts .NoExnHT t⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hresult⟩ := MatchBaseDefTotal.match_simple_base_total
@@ -60,8 +60,8 @@ theorem noextern_fixed_target_total
     (dts : List SpecTec.deftype) (t : SpecTec.heaptype) (n : Nat)
     (ht : t ∈ fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts .NoExternHT t⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hresult⟩ := MatchBaseDefTotal.match_simple_base_total
@@ -75,8 +75,8 @@ theorem fixed_target_all_base_sources
     (hbase : ht ∈ baseHeaptypes)
     (htarget : target ∈ fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts ht target⟩)
         n (.success (.of r)) n := by
   simp [baseHeaptypes] at hbase
@@ -110,8 +110,8 @@ theorem match_base_base_total
     (hsource : ht ∈ baseHeaptypes)
     (htarget : target ∈ baseHeaptypes) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           dts ht target⟩)
         n (.success (.of r)) n := by
   simp [baseHeaptypes] at hsource

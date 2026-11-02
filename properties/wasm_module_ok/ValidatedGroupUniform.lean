@@ -11,9 +11,9 @@ to the same substituted recursive type. -/
 theorem rectype_ok_uniform_appended
     (before after : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish) :
     ∃ dts : List SpecTec.deftype,
     ∃ sts' : List SpecTec.subtype,
@@ -55,9 +55,9 @@ its original absolute position. -/
 theorem rectype_ok_uniform_in_extension
     (before after c : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat) (tail : List SpecTec.deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hprefix : c.TYPES = after.TYPES ++ tail) :
     ∃ sts' : List SpecTec.subtype,

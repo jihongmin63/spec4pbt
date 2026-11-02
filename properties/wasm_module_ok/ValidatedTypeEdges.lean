@@ -18,9 +18,9 @@ theorem validated_types_position_edges
     ∃ hts : List SpecTec.heaptype,
     ∃ strt : SpecTec.strtype,
       ValidatedTypes before ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
         start (.success (.of after)) finish ∧
       p = before.TYPES.length + i ∧ i < sts.length ∧
       sts[i]? = some (.SubT fin hts strt) ∧

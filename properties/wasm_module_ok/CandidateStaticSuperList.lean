@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.CandidateStaticSuperCheck
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -18,28 +19,24 @@ theorem iter0_success_iff_checks
     (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (hts : List SpecTec.heaptype)
     (subStart subFinish n finish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (hready : CandidateTypeReady.Ready c) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
       n (.success (.of ())) finish ↔
     staticSuperChecks c x strt hts = true ∧ finish = n := by
   induction hts generalizing n finish with
   | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request a b hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (CandidateSupertypeIter.iter0_nil_success c x strt n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -78,15 +75,15 @@ theorem subtype_sub_success_iff_checks
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype)
     (subStart subFinish n finish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c (.SubT fin hts strt)⟩)
+        SpecTec.Call.Subtype_ok c (.SubT fin hts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (hready : CandidateTypeReady.Ready c) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok c x (.SubT fin hts strt)⟩)
+        SpecTec.Call.Subtype_sub_ok c x (.SubT fin hts strt)⟩)
       n (.success (.of ())) finish ↔
     staticSuperChecks c x strt hts = true ∧ finish = n := by
   rw [CandidateSupertypeIter.subtype_sub_success_iff_iter0]

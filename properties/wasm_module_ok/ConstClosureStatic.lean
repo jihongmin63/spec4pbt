@@ -252,9 +252,9 @@ theorem match_aware_step_of_static_fields
 theorem init_locals_match_aware_step
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish) :
     ConstMatchAwareClosure.matchAwareStep c =
       ConstMatchAwareClosure.matchAwareStep d := by
@@ -266,9 +266,9 @@ theorem init_locals_match_aware_step
 theorem init_locals_closure_iterate
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish round : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish) :
     FiniteClosure.iterate (ConstMatchAwareClosure.matchAwareStep c) round =
       FiniteClosure.iterate (ConstMatchAwareClosure.matchAwareStep d) round := by

@@ -6,25 +6,25 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModuleModeRules
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironment ConstructiveBodyEvalReduction
 
-theorem data_passive (c : context) (n : Nat) : Eval specTecProgram
-    (.call ⟨Unit,SpecTecCall.Datamode_ok c .Passive⟩) n (.success (.of ())) n := by
+theorem data_passive (c : context) (n : Nat) : Eval Body
+    (.call ⟨Unit,Call.Datamode_ok c .Passive⟩) n (.success (.of ())) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.Datamode_ok_clauses c .Passive) ()) n (.success (.of ())) n
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.Datamode_ok_clauses c .Passive)) n (.success (.of ())) n
+  apply tryClauses_cons_success
   unfold SpecTec.«Datamode_ok:clause:0»
   exact Eval.bind_success (Eval.guard_true rfl) (Eval.pure ())
 
 theorem data_active (c : context) (a : active) (addr : addrtype) (lim : limits)
     (hx : c.MEMS[a.INDEX]?=some (.MemoryT addr lim)) (n finish : Nat)
-    (hc : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c
+    (hc : Eval Body (.call ⟨Unit,Call.Const_ok c
       (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.Datamode_ok c (.Active a)⟩) n (.success (.of ())) finish := by
+    Eval Body (.call ⟨Unit,Call.Datamode_ok c (.Active a)⟩) n (.success (.of ())) finish := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.Datamode_ok_clauses c (.Active a)) ()) n (.success (.of ())) finish
-  apply firstSuccess_cons_unmatch
+  change Eval Body (tryClauses (SpecTec.Datamode_ok_clauses c (.Active a))) n (.success (.of ())) finish
+  apply tryClauses_cons_unmatch
   · unfold SpecTec.«Datamode_ok:clause:0»
     exact Eval.bind_unmatch (Eval.guard_false (by simp [SpecTec.«exec:match:datamode:Passive»,SpecTec.«exec:match:elemmode:Passive»]))
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«Datamode_ok:clause:1»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (Eval.guard_true (List.getElem?_eq_some_iff.mp hx).1)
@@ -33,13 +33,13 @@ theorem data_active (c : context) (a : active) (addr : addrtype) (lim : limits)
   exact Eval.bind_success hc (Eval.pure ())
 
 theorem data_active_original (c : context) (a : active) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Datamode_ok c (.Active a)⟩)
+    (h : Eval Body (.call ⟨Unit,Call.Datamode_ok c (.Active a)⟩)
       n (.success (.of ())) finish) :
     ∃addr lim,c.MEMS[a.INDEX]?=some (.MemoryT addr lim) ∧
-      Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c
+      Eval Body (.call ⟨Unit,Call.Const_ok c
         (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (firstSuccess_success_iff (SpecTec.Datamode_ok_clauses c (.Active a)) () n (.of ()) finish).1 h
+    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Datamode_ok_clauses c (.Active a)) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Datamode_ok:clause:0» at h
@@ -63,16 +63,16 @@ theorem data_active_original (c : context) (a : active) (n finish : Nat)
 
 theorem elem_active (c : context) (rt : reftype) (a : active) (addr : addrtype) (lim : limits) (tableRt : reftype)
     (hx : c.TABLES[a.INDEX]?=some (.TableT addr lim tableRt)) (n finish : Nat)
-    (hm : Eval specTecProgram (.call ⟨Bool,SpecTecCall.«$match_reftype» c.TYPES rt tableRt⟩) n (.success (.of true)) n)
-    (hc : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c
+    (hm : Eval Body (.call ⟨Bool,Call.«$match_reftype» c.TYPES rt tableRt⟩) n (.success (.of true)) n)
+    (hc : Eval Body (.call ⟨Unit,Call.Const_ok c
       (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.Elemmode_ok c rt (.Active a)⟩) n (.success (.of ())) finish := by
+    Eval Body (.call ⟨Unit,Call.Elemmode_ok c rt (.Active a)⟩) n (.success (.of ())) finish := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.Elemmode_ok_clauses c rt (.Active a)) ()) n (.success (.of ())) finish
-  apply firstSuccess_cons_unmatch
+  change Eval Body (tryClauses (SpecTec.Elemmode_ok_clauses c rt (.Active a))) n (.success (.of ())) finish
+  apply tryClauses_cons_unmatch
   · unfold SpecTec.«Elemmode_ok:clause:0»
     exact Eval.bind_unmatch (Eval.guard_false (by simp [SpecTec.«exec:match:datamode:Passive»,SpecTec.«exec:match:elemmode:Passive»]))
-  apply firstSuccess_cons_success
+  apply tryClauses_cons_success
   unfold SpecTec.«Elemmode_ok:clause:1»
   apply Eval.bind_success (Eval.guard_true rfl)
   apply Eval.bind_success (Eval.guard_true (List.getElem?_eq_some_iff.mp hx).1)
@@ -84,14 +84,14 @@ theorem elem_active (c : context) (rt : reftype) (a : active) (addr : addrtype) 
 
 theorem elem_active_original (c : context) (env : Env c) (rt : reftype)
     (hr : CandidateValMatch.InTableVal c (.RefT rt)) (a : active) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Elemmode_ok c rt (.Active a)⟩)
+    (h : Eval Body (.call ⟨Unit,Call.Elemmode_ok c rt (.Active a)⟩)
       n (.success (.of ())) finish) :
     ∃addr lim tableRt,c.TABLES[a.INDEX]?=some (.TableT addr lim tableRt) ∧
       CandidateReftypeMatch.candidateReftypeMatch c rt tableRt=true ∧
-      Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c
+      Eval Body (.call ⟨Unit,Call.Const_ok c
         (.NumT (AddrNumtypeDecision.numtypeOfAddrtype addr)) a.OFFSET⟩) n (.success (.of ())) finish := by
   cases h with | call h =>
-    obtain ⟨_,hs⟩ := (firstSuccess_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) () n (.of ()) finish).1 h
+    obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Elemmode_ok:clause:0» at h

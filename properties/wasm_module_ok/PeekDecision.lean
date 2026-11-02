@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.RevDecision
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,8 +11,8 @@ def peekResult (n : Nat) (irt : SpecTec.inferresulttype) :
 
 theorem peek_total (n : Nat) (irt : SpecTec.inferresulttype)
     (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.valtype, SpecTec.SpecTecCall.«$peek» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.valtype, SpecTec.Call.«$peek» n irt⟩)
       start (.success (.of (peekResult n irt))) start := by
   rcases irt with ⟨ell, ts⟩
   by_cases hlt : n < ts.length
@@ -19,12 +20,12 @@ theorem peek_total (n : Nat) (irt : SpecTec.inferresulttype)
     have hget : ts.reverse[n]? = some ts.reverse[n] :=
       List.getElem?_eq_getElem hrev
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$peek_clauses» n (ell, ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$peek_clauses» n (ell, ts)))
       start (.success (.of (peekResult n (ell, ts)))) start
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$peek:clause:0» n (ell, ts))
       start (.success (.of (peekResult n (ell, ts)))) start
     unfold SpecTec.«$peek:clause:0»
@@ -41,19 +42,19 @@ theorem peek_total (n : Nat) (irt : SpecTec.inferresulttype)
   · have hnone : ts.reverse[n]? = none :=
       List.getElem?_eq_none_iff.mpr (by simpa using Nat.le_of_not_gt hlt)
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$peek_clauses» n (ell, ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$peek_clauses» n (ell, ts)))
       start (.success (.of (peekResult n (ell, ts)))) start
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$peek:clause:0» n (ell, ts))
         start .unmatch start
       unfold SpecTec.«$peek:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false hlt
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$peek:clause:1» n (ell, ts))
         start (.success (.of (peekResult n (ell, ts)))) start
       unfold SpecTec.«$peek:clause:1»
@@ -63,18 +64,14 @@ theorem peek_total (n : Nat) (irt : SpecTec.inferresulttype)
 theorem peek_success_iff_result
     (n : Nat) (irt : SpecTec.inferresulttype)
     (t : SpecTec.valtype) (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.valtype, SpecTec.SpecTecCall.«$peek» n irt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.valtype, SpecTec.Call.«$peek» n irt⟩)
       start (.success (.of t)) fin ↔
     t = peekResult n irt ∧ fin = start := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (peek_total n irt start)
+      properties.wasm_module_ok.Execution.eval_deterministic h (peek_total n irt start)
     cases hout
     exact ⟨rfl, hsupply⟩
   · rintro ⟨rfl, rfl⟩

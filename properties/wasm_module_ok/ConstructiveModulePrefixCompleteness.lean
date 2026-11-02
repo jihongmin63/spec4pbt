@@ -2,6 +2,7 @@ import properties.wasm_module_ok.ConstructiveModulePrelude
 import properties.wasm_module_ok.Validity
 import properties.wasm_module_ok.ConstructivePreludeRefs
 import properties.wasm_module_ok.ConstructiveBodyEvalReduction
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModulePrelude
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructivePreludeRefs
@@ -18,12 +19,12 @@ structure PrefixMatches (m : SpecTec.module) (tr : Validity.ModuleOkTrace m) (p 
 theorem prefix_complete (m : SpecTec.module) (tr : Validity.ModuleOkTrace m) :
     ∃p : Prefix,Gen.support prefixGen p ∧ PrefixMatches m tr p := by
   have hc : tr.c=emptyContext := by
-    obtain ⟨he,_⟩ := eval_deterministic ConstructiveBodyEvalReduction.deterministic tr.empty_ok
+    obtain ⟨he,_⟩ := properties.wasm_module_ok.Execution.eval_deterministic tr.empty_ok
       (empty_context_total tr.n1)
     exact eq_of_heq (Value.of.inj (Outcome.success.inj he)).2
   have htypes := tr.types_ok
   rw [hc] at htypes
-  have hts : Eval specTecProgram (.call ⟨context,SpecTecCall.Types_ok initial m.TYPES⟩)
+  have hts : Eval Body (.call ⟨context,Call.Types_ok initial m.TYPES⟩)
       tr.n2 (.success (.of (replace emptyFree tr.c0))) tr.n3 :=
     ConstructivePreludeRefs.types_replace emptyFree {emptyContext with REFS:=tr.free} _ _ tr.n2 tr.n3 (.seed _ rfl) htypes
   obtain ⟨ts,hts,hsyn,htout⟩ := ConstructiveTypes.generate_complete initial (replace emptyFree tr.c0)

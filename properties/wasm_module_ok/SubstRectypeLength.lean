@@ -46,9 +46,9 @@ theorem substRectypeResult_length
 theorem rectype_ok_appended_inner_length
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧

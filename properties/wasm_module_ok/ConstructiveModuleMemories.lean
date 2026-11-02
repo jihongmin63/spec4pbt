@@ -34,7 +34,7 @@ def generate (c : context) (env : Env c) : Gen (Result c) :=
 theorem generate_audit (c : context) (env : Env c) : ConstructiveGenAudit.Structural (generate c env) :=
   ⟨ConstructiveGenAudit.arbNat_audit,fun n => (sized n c env).audit⟩
 theorem execute (c : context) (out : Result c) (n : Nat) :
-    SpecTecExecution.Eval specTecProgram (.call ⟨context,SpecTecCall.Mems_ok c out.items⟩)
+    SpecTecExecution.Eval Body (.call ⟨context,Call.Mems_ok c out.items⟩)
       n (.success (.of out.after)) n :=
   (MemsValidation.mems_success_iff_result c out.items out.after n n).2 ⟨out.correct,rfl⟩
 
@@ -57,8 +57,8 @@ theorem sized_complete (c result : context) (env : Env c) (xs : List memory)
       cases x; simp [cons,mt,hs]
 
 theorem generate_complete (c result : context) (env : Env c) (xs : List memory)
-    (start finish : Nat) (h : SpecTecExecution.Eval specTecProgram
-      (.call ⟨context,SpecTecCall.Mems_ok c xs⟩) start (.success (.of result)) finish) :
+    (start finish : Nat) (h : SpecTecExecution.Eval Body
+      (.call ⟨context,Call.Mems_ok c xs⟩) start (.success (.of result)) finish) :
     ∃out : Result c,Gen.support (generate c env) out ∧ out.items=xs ∧ out.after=result := by
   obtain ⟨out,hg,hs,ho⟩ := sized_complete c result env xs
     ((MemsValidation.mems_success_iff_result c xs result start finish).1 h).1

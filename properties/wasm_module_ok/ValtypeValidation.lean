@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.HeaptypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -6,40 +7,40 @@ namespace properties.wasm_module_ok.ValtypeValidation
 
 theorem numtype_total (c : SpecTec.context) (t : SpecTec.numtype)
     (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Numtype_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Numtype_ok c t⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Numtype_ok_clauses c t) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Numtype_ok_clauses c t))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure ()
 
 theorem vectype_total (c : SpecTec.context) (t : SpecTec.vectype)
     (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Vectype_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Vectype_ok c t⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Vectype_ok_clauses c t) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Vectype_ok_clauses c t))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure ()
 
 theorem valtype_num_total (c : SpecTec.context)
     (t : SpecTec.numtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c (.NumT t)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c (.NumT t)⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Valtype_ok_clauses c (.NumT t)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Valtype_ok_clauses c (.NumT t)))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Valtype_ok:clause:0» c (.NumT t))
     n (.success (.of ())) n
   unfold SpecTec.«Valtype_ok:clause:0»
@@ -51,23 +52,23 @@ theorem valtype_num_total (c : SpecTec.context)
 
 theorem valtype_vec_total (c : SpecTec.context)
     (t : SpecTec.vectype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c (.VecT t)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c (.VecT t)⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Valtype_ok_clauses c (.VecT t)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Valtype_ok_clauses c (.VecT t)))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Valtype_ok:clause:0» c (.VecT t)) n .unmatch n
     unfold SpecTec.«Valtype_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp [SpecTec.«exec:match:valtype:NumT»]
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Valtype_ok:clause:1» c (.VecT t))
       n (.success (.of ())) n
     unfold SpecTec.«Valtype_ok:clause:1»
@@ -80,18 +81,18 @@ theorem valtype_vec_total (c : SpecTec.context)
 theorem reftype_success_iff (c : SpecTec.context)
     (null : SpecTec.null) (ht : SpecTec.heaptype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Reftype_ok
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Reftype_ok
         c (.«% %» null ht)⟩)
       n (.success (.of ())) finalSupply ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (.success (.of ())) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Reftype_ok:clause:0» c (.«% %» null ht))
           (fun _ => .unmatch))
         n (.success (.of ())) finalSupply at hbody
@@ -105,12 +106,12 @@ theorem reftype_success_iff (c : SpecTec.context)
       | orElse_unmatch _ hlast => cases hlast
   · intro hheap
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Reftype_ok_clauses c (.«% %» null ht)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Reftype_ok_clauses c (.«% %» null ht)))
       n (.success (.of ())) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Reftype_ok:clause:0» c (.«% %» null ht))
       n (.success (.of ())) finalSupply
     unfold SpecTec.«Reftype_ok:clause:0»
@@ -120,25 +121,25 @@ theorem reftype_success_iff (c : SpecTec.context)
 theorem valtype_ref_success_iff (c : SpecTec.context)
     (null : SpecTec.null) (ht : SpecTec.heaptype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok
         c (.RefT (.«% %» null ht))⟩)
       n (.success (.of ())) finalSupply ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Heaptype_ok c ht⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Heaptype_ok c ht⟩)
       n (.success (.of ())) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Valtype_ok:clause:0» c
             (.RefT (.«% %» null ht)))
-          (fun _ => SpecTecExecution.firstSuccess
+          (fun _ => SpecTecExecution.tryClauses
             [fun _ => SpecTec.«Valtype_ok:clause:1» c
               (.RefT (.«% %» null ht)),
              fun _ => SpecTec.«Valtype_ok:clause:2» c
-              (.RefT (.«% %» null ht))] ()))
+              (.RefT (.«% %» null ht))]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -149,12 +150,12 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
           | guard_true hcond =>
             simp [SpecTec.«exec:match:valtype:NumT»] at hcond
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Valtype_ok:clause:1» c
               (.RefT (.«% %» null ht)))
-            (fun _ => SpecTecExecution.firstSuccess
+            (fun _ => SpecTecExecution.tryClauses
               [fun _ => SpecTec.«Valtype_ok:clause:2» c
-                (.RefT (.«% %» null ht))] ()))
+                (.RefT (.«% %» null ht))]))
           n (.success (.of ())) finalSupply at htail
         cases htail with
         | orElse_success hsecond =>
@@ -165,7 +166,7 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
             | guard_true hcond =>
               simp [SpecTec.«exec:match:valtype:VecT»] at hcond
         | orElse_unmatch _ hlast =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Valtype_ok:clause:2» c
                 (.RefT (.«% %» null ht)))
               (fun _ => .unmatch))
@@ -186,28 +187,28 @@ theorem valtype_ref_success_iff (c : SpecTec.context)
   · intro hheap
     have href := (reftype_success_iff c null ht n finalSupply).2 hheap
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Valtype_ok_clauses c (.RefT (.«% %» null ht))) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Valtype_ok_clauses c (.RefT (.«% %» null ht))))
       n (.success (.of ())) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Valtype_ok:clause:0» c (.RefT (.«% %» null ht)))
         n .unmatch n
       unfold SpecTec.«Valtype_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [SpecTec.«exec:match:valtype:NumT»]
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Valtype_ok:clause:1» c (.RefT (.«% %» null ht)))
           n .unmatch n
         unfold SpecTec.«Valtype_ok:clause:1»
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:valtype:VecT»]
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Valtype_ok:clause:2» c (.RefT (.«% %» null ht)))
           n (.success (.of ())) finalSupply
         unfold SpecTec.«Valtype_ok:clause:2»
@@ -225,17 +226,17 @@ def valtypeValid (c : SpecTec.context) : SpecTec.valtype → Bool
 
 theorem valtype_bot_no_success (c : SpecTec.context)
     (n finalSupply : Nat) :
-    ¬ SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c .BotT⟩)
+    ¬ SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c .BotT⟩)
       n (.success (.of ())) finalSupply := by
   intro h
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Valtype_ok:clause:0» c .BotT)
-        (fun _ => SpecTecExecution.firstSuccess
+        (fun _ => SpecTecExecution.tryClauses
           [fun _ => SpecTec.«Valtype_ok:clause:1» c .BotT,
-           fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT] ()))
+           fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -246,10 +247,10 @@ theorem valtype_bot_no_success (c : SpecTec.context)
         | guard_true hcond =>
           simp [SpecTec.«exec:match:valtype:NumT»] at hcond
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Valtype_ok:clause:1» c .BotT)
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Valtype_ok:clause:2» c .BotT]))
         n (.success (.of ())) finalSupply at htail
       cases htail with
       | orElse_success hsecond =>
@@ -260,7 +261,7 @@ theorem valtype_bot_no_success (c : SpecTec.context)
           | guard_true hcond =>
             simp [SpecTec.«exec:match:valtype:VecT»] at hcond
       | orElse_unmatch _ hlast =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Valtype_ok:clause:2» c .BotT)
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at hlast
@@ -276,19 +277,16 @@ theorem valtype_bot_no_success (c : SpecTec.context)
 
 theorem valtype_success_iff_valid (c : SpecTec.context)
     (t : SpecTec.valtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c t⟩)
       n (.success (.of ())) finalSupply ↔
     valtypeValid c t = true ∧ finalSupply = n := by
   cases t with
   | NumT nt =>
     constructor
     · intro h
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet h
+        properties.wasm_module_ok.Execution.eval_deterministic h
           (valtype_num_total c nt n)
       exact ⟨rfl, hsupply⟩
     · rintro ⟨_, rfl⟩
@@ -296,11 +294,8 @@ theorem valtype_success_iff_valid (c : SpecTec.context)
   | VecT vt =>
     constructor
     · intro h
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet h
+        properties.wasm_module_ok.Execution.eval_deterministic h
           (valtype_vec_total c vt n)
       exact ⟨rfl, hsupply⟩
     · rintro ⟨_, rfl⟩

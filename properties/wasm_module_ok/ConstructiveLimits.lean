@@ -87,8 +87,8 @@ theorem limits_finite (bound : Nat) : ConstructiveTypeAtoms.FiniteConstruction (
   ⟨bounded_finite bound,fun lower => ⟨trivial,bounded_finite (bound-lower),fun _ => trivial⟩⟩
 
 theorem limits_exact (c : context) (bound : Nat) (lim : SpecTec.limits) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTec.SpecTecCall.Limits_ok c bound lim⟩) start (.success (.of ())) finish ↔
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,SpecTec.Call.Limits_ok c bound lim⟩) start (.success (.of ())) finish ↔
       Gen.support (limits bound) lim ∧ finish = start := by
   rw [LimitsValidation.limits_success_iff_valid,limits_support]
 
@@ -106,8 +106,8 @@ theorem memories_finite : ConstructiveTypeAtoms.FiniteConstruction memories :=
   ⟨⟨limits_finite _,fun _ => trivial⟩,⟨limits_finite _,fun _ => trivial⟩⟩
 
 theorem memories_exact (c : context) (mt : memtype) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTec.SpecTecCall.Memtype_ok c mt⟩) start (.success (.of ())) finish ↔
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,SpecTec.Call.Memtype_ok c mt⟩) start (.success (.of ())) finish ↔
       Gen.support memories mt ∧ finish = start := by
   rw [MemtypeValidation.memtype_success_iff_valid,memories_support]
 

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.MatchHeaptypeBasic
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -8,18 +9,14 @@ namespace properties.wasm_module_ok.CandidateRangeExact
 index list without consuming fresh-value supply. -/
 theorem range_success_iff
     (k : Nat) (ns : List Nat) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List Nat, SpecTec.SpecTecCall.«$range» k⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List Nat, SpecTec.Call.«$range» k⟩)
       start (.success (.of ns)) finish ↔
     ns = List.range k ∧ finish = start := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request a b hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (properties.wasm_module_ok.MatchHeaptypeBasic.range_total k start)
     cases hout
     exact ⟨rfl, hsupply⟩

@@ -115,9 +115,9 @@ theorem instr_ok_iff_bound
     (irt : SpecTec.inferresulttype) (n : Nat)
     (h : Occurs m tr c x) :
     (∃ (result : SpecTec.inferinstrtype) (finalSupply : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
         n (.success (.of result)) finalSupply) ↔
       x < c.FUNCS.length :=
   RefCycleDirect.instr_ok_iff_bound m tr c x irt n

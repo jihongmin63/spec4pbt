@@ -8,374 +8,374 @@ theorem struct_new_implicit_dispatch_of_clause
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (hclause : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hclause : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:60» c irt (.«STRUCT.NEW» x .Implicit))
       start (.success (.of iit)) fin) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit)))
     start (.success (.of iit)) fin
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:0» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:UNREACHABLE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:1» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:NOP»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:2» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:DROP»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:3» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:4» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:4»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:SELECT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:5» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:5»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BLOCK»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:6» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:6»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:LOOP»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:7» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:7»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:IF % % ELSE %»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:8» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:8»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:9» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:9»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_IF»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:10» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:10»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_TABLE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:11» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:11»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_ON_NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:12» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:12»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_ON_NON_NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:13» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:13»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_ON_CAST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:14» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:14»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:BR_ON_CAST_FAIL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:15» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:15»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CALL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:16» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:16»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CALL_REF»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:17» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:17»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:CALL_INDIRECT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:18» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:18»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:RETURN»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:19» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:19»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:RETURN_CALL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:20» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:20»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:RETURN_CALL_REF»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:21» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:21»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:RETURN_CALL_INDIRECT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:22» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:22»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:THROW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:23» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:23»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:THROW_REF»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:24» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:24»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TRY_TABLE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:25» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:25»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:LOCAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:26» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:26»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:LOCAL.SET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:27» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:27»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:LOCAL.TEE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:28» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:28»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:29» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:29»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:GLOBAL.SET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:30» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:30»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:31» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:31»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.SET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:32» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:32»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.SIZE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:33» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:33»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.GROW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:34» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:34»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.FILL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:35» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:35»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.COPY»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:36» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:36»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:TABLE.INIT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:37» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:37»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:ELEM.DROP»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:38» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:38»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:LOAD»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:39» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:39»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:STORE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:40» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:40»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.LOAD»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:41» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:41»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.STORE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:42» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:42»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.LOAD_LANE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:43» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:43»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:VEC.STORE_LANE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:44» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:44»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:MEMORY.SIZE»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:45» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:45»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:MEMORY.GROW»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:46» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:46»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:MEMORY.FILL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:47» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:47»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:MEMORY.COPY»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:48» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:48»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:MEMORY.INIT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:49» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:49»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:DATA.DROP»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:50» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:50»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:51» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:51»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.FUNC»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:52» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:52»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.IS_NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:53» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:53»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.AS_NON_NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:54» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:54»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.TEST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:55» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:55»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.CAST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:56» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:56»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.EQ»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:57» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:57»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:REF.I31»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:58» c irt (.«STRUCT.NEW» x .Implicit)) start .unmatch start
     unfold SpecTec.«Instr_ok:clause:58»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:instr:I31.GET»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:59» c irt (.«STRUCT.NEW» x .Implicit))
       start .unmatch start
     unfold SpecTec.«Instr_ok:clause:59»
@@ -384,28 +384,28 @@ theorem struct_new_implicit_dispatch_of_clause
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:initop_:Explicit»]))
-  exact SpecTecExecution.firstSuccess_cons_success hclause
+  exact SpecTecExecution.tryClauses_cons_success hclause
 
 theorem struct_new_implicit_clause_of_dispatch
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       n (.success (.of iit)) fin) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:60» c irt (.«STRUCT.NEW» x .Implicit))
       n (.success (.of iit)) fin := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit)))
         n (.success (.of iit)) fin at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Instr_ok_clauses c irt (.«STRUCT.NEW» x .Implicit))
           n (.of iit) fin).1 hbody
       unfold SpecTec.Instr_ok_clauses at hselected
       cases hselected with
@@ -1212,19 +1212,19 @@ theorem struct_new_implicit_dispatch_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin ↔
     ∃ ys : List SpecTec.fieldtype, ∃ dt : SpecTec.deftype,
       ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.structtype,
-          SpecTec.SpecTecCall.«$struct_type» c x⟩)
+          SpecTec.Call.«$struct_type» c x⟩)
         start (.success (.of (SpecTec.structtype.StructT ys))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+          SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
         middle (.success (.of ())) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =
@@ -1247,19 +1247,19 @@ theorem struct_new_implicit_constant_instruction_iff
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
     ConstSyntaxDecision.syntaxAllowed c (.«STRUCT.NEW» x .Implicit) = true ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin ↔
     ∃ ys : List SpecTec.fieldtype, ∃ dt : SpecTec.deftype,
       ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.structtype,
-          SpecTec.SpecTecCall.«$struct_type» c x⟩)
+          SpecTec.Call.«$struct_type» c x⟩)
         start (.success (.of (SpecTec.structtype.StructT ys))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+          SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
         middle (.success (.of ())) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =

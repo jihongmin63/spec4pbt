@@ -8,15 +8,15 @@ theorem pop_noellipses_success_has_match
     (c : SpecTec.context)
     (need available : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) fin) :
     need.length ≤ available.length ∧
       ∃ middle : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Match_resulttype c
             (available.drop (available.length - need.length)) need⟩)
           middle (.success (.of ())) fin := by
   have hlen := PopLength.pop_noellipses_success_requires_length
@@ -24,15 +24,15 @@ theorem pop_noellipses_success_has_match
   refine ⟨hlen, ?_⟩
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ())
+          (.NoEllipses, need) (.NoEllipses, available)))
       start (.success (.of result)) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
+      (SpecTecExecution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ()
+          (.NoEllipses, need) (.NoEllipses, available))
         start (.of result) fin).1 hbody
     unfold SpecTec.«$pop_clauses» at hselected
     cases hselected with

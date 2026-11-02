@@ -29,9 +29,9 @@ theorem rectype_success_of_checks
       {c with TYPES := c.TYPES ++
         (List.range sts.length).map (fun i => SpecTec.deftype.DefT rect' i)}
       c.TYPES.length (List.range sts.length) sts = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of
         {c with TYPES := c.TYPES ++
           (List.range sts.length).map (fun i => SpecTec.deftype.DefT rect' i)})) n := by
@@ -42,34 +42,34 @@ theorem rectype_success_of_checks
       (rollDeftypes c.TYPES.length (.RecT sts)) = some dts := by
     simpa [dts, htrans] using
       (CandidateRolledSubstBridge.subst_rolled_exact c sts)
-  have hsubst : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hsubst : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.deftype,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:2» c
+        SpecTec.Call.«Rectype_ok:rule:iter:2» c
           (rollDeftypes c.TYPES.length (.RecT sts))⟩)
       n (.success (.of dts)) n := by
     simpa [hsubstValue, optionOutcome] using
       (CandidateSubstList.subst_list_total c
         (rollDeftypes c.TYPES.length (.RecT sts)) n)
-  have hiter5 : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hiter5 : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5» candidate sts⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:5» candidate sts⟩)
       n (.success (.of ())) n :=
     (CandidateSourceChecks.iter5_success_iff_sourceChecks
       candidate sts n n).2 ⟨hsource, rfl⟩
-  have hiter6 : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hiter6 : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6»
+        SpecTec.Call.«Rectype_ok:rule:iter:6»
           candidate c.TYPES.length (List.range sts.length) sts⟩)
       n (.success (.of ())) n :=
     (CandidateGroupSuperChecks.iter6_success_iff_pairedChecks
       candidate c.TYPES.length (List.range sts.length) sts n n
       hnested hready hsource (by simp)).2 ⟨hpaired, rfl⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Rectype_ok_clauses c (.RecT sts)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Rectype_ok_clauses c (.RecT sts)))
     n (.success (.of candidate)) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   unfold SpecTec.«Rectype_ok:clause:0»
   apply SpecTecExecution.Eval.bind_success
     (properties.wasm_module_ok.MatchHeaptypeBasic.range_total sts.length n)

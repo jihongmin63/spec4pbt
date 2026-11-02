@@ -104,8 +104,8 @@ theorem imports_ok_provenance
     (c out : SpecTec.context) (is : List SpecTec.«import»)
     (start finish : Nat)
     (hprov : CandidateUniverseReady.Provenance c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       start (.success (.of out)) finish) :
     CandidateUniverseReady.Provenance out := by
   exact imports_result_provenance c out is hprov

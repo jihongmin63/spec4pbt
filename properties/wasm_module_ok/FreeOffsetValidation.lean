@@ -12,20 +12,20 @@ theorem free_elemmode_active_ref_func
     (a : SpecTec.active) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_elemmode»
-          SpecTec.SpecTecCall.«$update_tables» (.Active a)⟩)
+        SpecTec.Call.«$free_elemmode»
+          SpecTec.Call.«$update_tables» (.Active a)⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse
         (SpecTec.«$free_elemmode:clause:0»
-          SpecTec.SpecTecCall.«$update_tables» (.Active a))
-        (fun _ => SpecTecExecution.firstSuccess
+          SpecTec.Call.«$update_tables» (.Active a))
+        (fun _ => SpecTecExecution.tryClauses
           [fun _ => SpecTec.«$free_elemmode:clause:1»
-            SpecTec.SpecTecCall.«$update_tables» (.Active a)] ()))
+            SpecTec.Call.«$update_tables» (.Active a)]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -35,10 +35,10 @@ theorem free_elemmode_active_ref_func
         cases hguard with
         | guard_true hfalse => simp at hfalse
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«$free_elemmode:clause:1»
-            SpecTec.SpecTecCall.«$update_tables» (.Active a))
+            SpecTec.Call.«$update_tables» (.Active a))
           (fun _ => .unmatch))
         n (.success (.of result)) finalSupply at htail
       cases htail with
@@ -68,20 +68,20 @@ theorem free_datamode_active_ref_func
     (a : SpecTec.active) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_datamode»
-          SpecTec.SpecTecCall.«$update_mems» (.Active a)⟩)
+        SpecTec.Call.«$free_datamode»
+          SpecTec.Call.«$update_mems» (.Active a)⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse
         (SpecTec.«$free_datamode:clause:0»
-          SpecTec.SpecTecCall.«$update_mems» (.Active a))
-        (fun _ => SpecTecExecution.firstSuccess
+          SpecTec.Call.«$update_mems» (.Active a))
+        (fun _ => SpecTecExecution.tryClauses
           [fun _ => SpecTec.«$free_datamode:clause:1»
-            SpecTec.SpecTecCall.«$update_mems» (.Active a)] ()))
+            SpecTec.Call.«$update_mems» (.Active a)]))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -91,10 +91,10 @@ theorem free_datamode_active_ref_func
         cases hguard with
         | guard_true hfalse => simp at hfalse
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«$free_datamode:clause:1»
-            SpecTec.SpecTecCall.«$update_mems» (.Active a))
+            SpecTec.Call.«$update_mems» (.Active a))
           (fun _ => .unmatch))
         n (.success (.of result)) finalSupply at htail
       cases htail with
@@ -126,13 +126,13 @@ theorem free_elem_active_offset_ref_func
     (n finalSupply : Nat)
     (hmode : e.EMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_elem» e⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_elem» e⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_elem_clauses» e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_elem_clauses» e))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -160,13 +160,13 @@ theorem free_data_active_offset_ref_func
     (n finalSupply : Nat)
     (hmode : d.DMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_data» d⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_data» d⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_data_clauses» d) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_data_clauses» d))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -185,13 +185,13 @@ theorem free_elems_active_offset_ref_func
     (result : SpecTec.free) (n finalSupply : Nat)
     (he : e ∈ es) (hmode : e.EMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» SpecTec.elem
-          SpecTec.SpecTecCall.«$free_elem» es⟩)
+        SpecTec.Call.«$free_list» SpecTec.elem
+          SpecTec.Call.«$free_elem» es⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   exact FreeListValidation.free_list_preserves_funcs
-    SpecTec.SpecTecCall.«$free_elem»
+    SpecTec.Call.«$free_elem»
     (fun e : SpecTec.elem =>
       ∃ a : SpecTec.active, e.EMODE = .Active a ∧
         SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET) x
@@ -207,13 +207,13 @@ theorem free_datas_active_offset_ref_func
     (result : SpecTec.free) (n finalSupply : Nat)
     (hd : d ∈ ds) (hmode : d.DMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» SpecTec.data
-          SpecTec.SpecTecCall.«$free_data» ds⟩)
+        SpecTec.Call.«$free_list» SpecTec.data
+          SpecTec.Call.«$free_data» ds⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   exact FreeListValidation.free_list_preserves_funcs
-    SpecTec.SpecTecCall.«$free_data»
+    SpecTec.Call.«$free_data»
     (fun d : SpecTec.data =>
       ∃ a : SpecTec.active, d.DMODE = .Active a ∧
         SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET) x

@@ -11,9 +11,9 @@ open properties.wasm_module_not_ok.Rejection
 theorem rectype_ok_appended_group_coherent
     (before after : SpecTec.context)
     (sts : List SpecTec.subtype) (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish) :
     ∃ dts : List SpecTec.deftype,
     ∃ sts' : List SpecTec.subtype,

@@ -28,8 +28,8 @@ inductive Occurs (m : SpecTec.module)
 theorem occurs_guard (m : SpecTec.module)
     (tr : Validity.ModuleOkTrace m) (c : SpecTec.context)
     (x : SpecTec.funcidx) (n : Nat) (h : Occurs m tr c x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x c.REFS.FUNCS⟩)
       n (.success (.of true)) n := by
   cases h with
@@ -54,9 +54,9 @@ theorem instr_ok_iff_bound (m : SpecTec.module)
     (x : SpecTec.funcidx) (irt : SpecTec.inferresulttype)
     (n : Nat) (hocc : Occurs m tr c x) :
     (∃ (result : SpecTec.inferinstrtype) (finalSupply : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
         n (.success (.of result)) finalSupply) ↔
       x < c.FUNCS.length := by
   constructor

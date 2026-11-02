@@ -55,8 +55,8 @@ theorem trace_const_target_shape
     (xs : SpecTec.const) (start fin : Nat)
     (hc : c ∈ [tr.c0, tr.c1, tr.c2, tr.c3, tr.c4,
       tr.c5, tr.c6, tr.c7, tr.c8])
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) fin) :
     (∃ a : SpecTec.numtype, t = .NumT a) ∨
       (∃ a : SpecTec.vectype, t = .VecT a) ∨

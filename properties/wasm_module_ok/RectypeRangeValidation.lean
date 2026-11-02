@@ -7,28 +7,28 @@ namespace properties.wasm_module_ok.MatchHeaptypeBasic
 theorem rectype_ok_extract_range_and_sub_iter
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧
       (∃ before after : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Unit,
-            SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6»
+            SpecTec.Call.«Rectype_ok:rule:iter:6»
               {c with TYPES := c.TYPES ++ dts}
               c.TYPES.length (List.range sts.length) sts⟩)
           before (.success (.of ())) after) := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected
     cases hselected with
@@ -65,9 +65,9 @@ theorem rectype_ok_extract_range_and_sub_iter
 theorem rectype_ok_range_pairs_static_lt
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧

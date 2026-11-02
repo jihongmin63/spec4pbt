@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ExportSetValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -15,12 +16,12 @@ def namesetAdd (names : SpecTec.nameset) (name : SpecTec.name) :
 
 def exportTail (bound x : Nat) (name : SpecTec.name)
     (names : SpecTec.nameset) :
-    SpecTecExecution.Plan.{1} SpecTec.SpecTecRequest :=
-  (SpecTecExecution.Plan.guard (x ≥ 0 ∧ x < bound)).bind fun (_ : Unit) =>
-  (SpecTecExecution.Plan.call ⟨Bool,
-    SpecTec.SpecTecCall.«$in_set» SpecTec.name name names⟩).bind fun (used : Bool) =>
-  (SpecTecExecution.Plan.guard (¬ (used = true))).bind fun (_ : Unit) =>
-  SpecTecExecution.Plan.pure (namesetAdd names name)
+    SpecTecExecution.Action.{1} SpecTec.Request :=
+  (SpecTecExecution.Action.guard (x ≥ 0 ∧ x < bound)).bind fun (_ : Unit) =>
+  (SpecTecExecution.Action.call ⟨Bool,
+    SpecTec.Call.«$in_set» SpecTec.name name names⟩).bind fun (used : Bool) =>
+  (SpecTecExecution.Action.guard (¬ (used = true))).bind fun (_ : Unit) =>
+  SpecTecExecution.Action.pure (namesetAdd names name)
 
 def exportTailResult (bound x : Nat) (name : SpecTec.name)
     (names : SpecTec.nameset) : Option SpecTec.nameset :=
@@ -37,7 +38,7 @@ def exportTailOutcome (bound x : Nat) (name : SpecTec.name)
 
 theorem export_tail_total (bound x : Nat) (name : SpecTec.name)
     (names : SpecTec.nameset) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (exportTail bound x name names)
       n (exportTailOutcome bound x name names) n := by
   by_cases hb : x < bound
@@ -72,14 +73,14 @@ theorem export_tail_total (bound x : Nat) (name : SpecTec.name)
 theorem export_func_clause_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .FuncExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:0» c names e)
       n (exportTailOutcome c.FUNCS.length x e.NAME names) n := by
   unfold SpecTec.«Export_ok:clause:0»
   rw [hdesc]
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · change SpecTecExecution.Eval SpecTec.Body
       (exportTail c.FUNCS.length x e.NAME names)
       n (exportTailOutcome c.FUNCS.length x e.NAME names) n
     exact export_tail_total c.FUNCS.length x e.NAME names n
@@ -87,14 +88,14 @@ theorem export_func_clause_total (c : SpecTec.context)
 theorem export_global_clause_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .GlobalExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:1» c names e)
       n (exportTailOutcome c.GLOBALS.length x e.NAME names) n := by
   unfold SpecTec.«Export_ok:clause:1»
   rw [hdesc]
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · change SpecTecExecution.Eval SpecTec.Body
       (exportTail c.GLOBALS.length x e.NAME names)
       n (exportTailOutcome c.GLOBALS.length x e.NAME names) n
     exact export_tail_total c.GLOBALS.length x e.NAME names n
@@ -102,14 +103,14 @@ theorem export_global_clause_total (c : SpecTec.context)
 theorem export_table_clause_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .TableExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:2» c names e)
       n (exportTailOutcome c.TABLES.length x e.NAME names) n := by
   unfold SpecTec.«Export_ok:clause:2»
   rw [hdesc]
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · change SpecTecExecution.Eval SpecTec.Body
       (exportTail c.TABLES.length x e.NAME names)
       n (exportTailOutcome c.TABLES.length x e.NAME names) n
     exact export_tail_total c.TABLES.length x e.NAME names n
@@ -117,14 +118,14 @@ theorem export_table_clause_total (c : SpecTec.context)
 theorem export_mem_clause_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .MemExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:3» c names e)
       n (exportTailOutcome c.MEMS.length x e.NAME names) n := by
   unfold SpecTec.«Export_ok:clause:3»
   rw [hdesc]
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · change SpecTecExecution.Eval SpecTec.Body
       (exportTail c.MEMS.length x e.NAME names)
       n (exportTailOutcome c.MEMS.length x e.NAME names) n
     exact export_tail_total c.MEMS.length x e.NAME names n
@@ -132,14 +133,14 @@ theorem export_mem_clause_total (c : SpecTec.context)
 theorem export_tag_clause_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .TagExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:4» c names e)
       n (exportTailOutcome c.TAGS.length x e.NAME names) n := by
   unfold SpecTec.«Export_ok:clause:4»
   rw [hdesc]
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · change SpecTecExecution.Eval SpecTec.Body
       (exportTail c.TAGS.length x e.NAME names)
       n (exportTailOutcome c.TAGS.length x e.NAME names) n
     exact export_tail_total c.TAGS.length x e.NAME names n
@@ -164,7 +165,7 @@ def exportOutcome (c : SpecTec.context)
 private theorem clause0_mismatch (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (h : SpecTec.«exec:match:exportdesc:FuncExport» e.EDESC = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:0» c names e) n .unmatch n := by
   unfold SpecTec.«Export_ok:clause:0»
   apply SpecTecExecution.Eval.bind_unmatch
@@ -174,7 +175,7 @@ private theorem clause0_mismatch (c : SpecTec.context)
 private theorem clause1_mismatch (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (h : SpecTec.«exec:match:exportdesc:GlobalExport» e.EDESC = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:1» c names e) n .unmatch n := by
   unfold SpecTec.«Export_ok:clause:1»
   apply SpecTecExecution.Eval.bind_unmatch
@@ -184,7 +185,7 @@ private theorem clause1_mismatch (c : SpecTec.context)
 private theorem clause2_mismatch (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (h : SpecTec.«exec:match:exportdesc:TableExport» e.EDESC = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:2» c names e) n .unmatch n := by
   unfold SpecTec.«Export_ok:clause:2»
   apply SpecTecExecution.Eval.bind_unmatch
@@ -194,7 +195,7 @@ private theorem clause2_mismatch (c : SpecTec.context)
 private theorem clause3_mismatch (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (h : SpecTec.«exec:match:exportdesc:MemExport» e.EDESC = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:3» c names e) n .unmatch n := by
   unfold SpecTec.«Export_ok:clause:3»
   apply SpecTecExecution.Eval.bind_unmatch
@@ -204,7 +205,7 @@ private theorem clause3_mismatch (c : SpecTec.context)
 private theorem clause4_mismatch (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (h : SpecTec.«exec:match:exportdesc:TagExport» e.EDESC = false) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Export_ok:clause:4» c names e) n .unmatch n := by
   unfold SpecTec.«Export_ok:clause:4»
   apply SpecTecExecution.Eval.bind_unmatch
@@ -214,219 +215,219 @@ private theorem clause4_mismatch (c : SpecTec.context)
 theorem export_func_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .FuncExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportTailOutcome c.FUNCS.length x e.NAME names) n := by
   cases hr : exportTailResult c.FUNCS.length x e.NAME names with
   | some result =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.FUNCS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     simpa [exportTailOutcome, hr] using
       export_func_clause_total c names e x n hdesc
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.FUNCS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · simpa [exportTailOutcome, hr] using
         export_func_clause_total c names e x n hdesc
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · exact clause3_mismatch c names e n (by rw [hdesc]; rfl)
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · exact clause4_mismatch c names e n (by rw [hdesc]; rfl)
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
 
 
 theorem export_global_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .GlobalExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportTailOutcome c.GLOBALS.length x e.NAME names) n := by
   cases hr : exportTailResult c.GLOBALS.length x e.NAME names with
   | some result =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.GLOBALS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       simpa [exportTailOutcome, hr] using
         export_global_clause_total c names e x n hdesc
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.GLOBALS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · simpa [exportTailOutcome, hr] using
           export_global_clause_total c names e x n hdesc
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · exact clause3_mismatch c names e n (by rw [hdesc]; rfl)
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · exact clause4_mismatch c names e n (by rw [hdesc]; rfl)
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
 
 theorem export_table_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .TableExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportTailOutcome c.TABLES.length x e.NAME names) n := by
   cases hr : exportTailResult c.TABLES.length x e.NAME names with
   | some result =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.TABLES.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         simpa [exportTailOutcome, hr] using
           export_table_clause_total c names e x n hdesc
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.TABLES.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · simpa [exportTailOutcome, hr] using
             export_table_clause_total c names e x n hdesc
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · exact clause3_mismatch c names e n (by rw [hdesc]; rfl)
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · exact clause4_mismatch c names e n (by rw [hdesc]; rfl)
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
 
 theorem export_mem_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .MemExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportTailOutcome c.MEMS.length x e.NAME names) n := by
   cases hr : exportTailResult c.MEMS.length x e.NAME names with
   | some result =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.MEMS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_success
+        · apply SpecTecExecution.tryClauses_cons_success
           simpa [exportTailOutcome, hr] using
             export_mem_clause_total c names e x n hdesc
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.MEMS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · simpa [exportTailOutcome, hr] using
               export_mem_clause_total c names e x n hdesc
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · exact clause4_mismatch c names e n (by rw [hdesc]; rfl)
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
 
 theorem export_tag_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (x n : Nat) (hdesc : e.EDESC = .TagExport x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportTailOutcome c.TAGS.length x e.NAME names) n := by
   cases hr : exportTailResult c.TAGS.length x e.NAME names with
   | some result =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.TAGS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · exact clause3_mismatch c names e n (by rw [hdesc]; rfl)
-          · apply SpecTecExecution.firstSuccess_cons_success
+          · apply SpecTecExecution.tryClauses_cons_success
             simpa [exportTailOutcome, hr] using
               export_tag_clause_total c names e x n hdesc
   | none =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Export_ok_clauses c names e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Export_ok_clauses c names e))
       n (exportTailOutcome c.TAGS.length x e.NAME names) n
     simp only [exportTailOutcome, hr]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact clause0_mismatch c names e n (by rw [hdesc]; rfl)
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
+    · apply SpecTecExecution.tryClauses_cons_unmatch
       · exact clause1_mismatch c names e n (by rw [hdesc]; rfl)
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
+      · apply SpecTecExecution.tryClauses_cons_unmatch
         · exact clause2_mismatch c names e n (by rw [hdesc]; rfl)
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · exact clause3_mismatch c names e n (by rw [hdesc]; rfl)
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · simpa [exportTailOutcome, hr] using
                 export_tag_clause_total c names e x n hdesc
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
 
 theorem export_ok_total (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (exportOutcome c names e) n := by
   cases hdesc : e.EDESC with
   | FuncExport x =>
@@ -448,18 +449,15 @@ theorem export_ok_total (c : SpecTec.context)
 theorem export_ok_success_iff_result (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export»)
     (result : SpecTec.nameset) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n (.success (.of result)) finalSupply ↔
     exportResult c names e = some result ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (export_ok_total c names e n)
     cases hr : exportResult c names e with
     | none => simp [exportOutcome, hr] at hout
@@ -474,9 +472,9 @@ theorem export_ok_success_iff_result (c : SpecTec.context)
 theorem export_ok_none (c : SpecTec.context)
     (names : SpecTec.nameset) (e : SpecTec.«export») (n : Nat)
     (hr : exportResult c names e = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.nameset,
-        SpecTec.SpecTecCall.Export_ok c names e⟩)
+        SpecTec.Call.Export_ok c names e⟩)
       n .unmatch n := by
   simpa [exportOutcome, hr] using export_ok_total c names e n
 

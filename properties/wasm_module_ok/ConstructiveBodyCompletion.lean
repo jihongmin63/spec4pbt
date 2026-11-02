@@ -8,20 +8,20 @@ open properties.wasm_module_ok
 /-- Completion consumes any current stack, with no prefix revalidation. -/
 theorem pop_unreachable_total (c : SpecTec.context)
     (stack : SpecTec.inferresulttype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.inferresulttype, SpecTec.SpecTecCall.«$pop» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.inferresulttype, SpecTec.Call.«$pop» c
         (.Ellipses, []) stack⟩)
       n (.success (.of (stack.1, ([] : List SpecTec.valtype)))) n := by
   rcases stack with ⟨ell, ts⟩
   cases ell with
   | Ellipses =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$pop_clauses» c (.Ellipses, []) (.Ellipses, ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$pop_clauses» c (.Ellipses, []) (.Ellipses, ts)))
       n (.success (.of (SpecTec.ellipses.Ellipses, ([] : List SpecTec.valtype)))) n
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c (.Ellipses, []) (.Ellipses, ts))
       n (.success (.of (SpecTec.ellipses.Ellipses, ([] : List SpecTec.valtype)))) n
     unfold SpecTec.«$pop:clause:0»
@@ -42,25 +42,25 @@ theorem pop_unreachable_total (c : SpecTec.context)
     exact SpecTecExecution.Eval.pure _
   | NoEllipses =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$pop_clauses» c (.Ellipses, []) (.NoEllipses, ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$pop_clauses» c (.Ellipses, []) (.NoEllipses, ts)))
       n (.success (.of (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$pop:clause:0» c (.Ellipses, []) (.NoEllipses, ts)) n .unmatch n
       unfold SpecTec.«$pop:clause:0»
       apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:ellipses:Ellipses»]))
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$pop:clause:1» c (.Ellipses, []) (.NoEllipses, ts)) n .unmatch n
       unfold SpecTec.«$pop:clause:1»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:ellipses:NoEllipses»]))
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:2» c (.Ellipses, []) (.NoEllipses, ts))
       n (.success (.of (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n
     unfold SpecTec.«$pop:clause:2»
@@ -84,12 +84,12 @@ theorem prefix_completion (c : SpecTec.context)
     (inputs outputs : List SpecTec.valtype) (locals : List SpecTec.localidx)
     (xs : List SpecTec.instr) (result : SpecTec.inferresulttype × List SpecTec.idx)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c (.NoEllipses, inputs) xs⟩)
+        SpecTec.Call.Instrs_ok c (.NoEllipses, inputs) xs⟩)
       start (.success (.of result)) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Block_ok c
         (.InstrT inputs outputs locals) (xs ++ [.UNREACHABLE])⟩)
       start (.success (.of ())) finish := by
   obtain ⟨_, finalContext, htrace⟩ :=

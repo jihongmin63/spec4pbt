@@ -12,17 +12,17 @@ theorem match_functype_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₁) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₂) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₂) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₁) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of
         (MatchFunctionConditional.functionMatch heapMatch ft₁ ft₂))) n := by
   cases ft₁ with
@@ -67,17 +67,17 @@ theorem match_functype_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₁) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₂) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₂) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefFuncT ft₁) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_functype» dts ft₁ ft₂⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_functype» dts ft₁ ft₂⟩)
       n (.success (.of
         (MatchFunctionConditional.functionMatch heapMatch ft₁ ft₂))) n := by
   cases ft₁ with

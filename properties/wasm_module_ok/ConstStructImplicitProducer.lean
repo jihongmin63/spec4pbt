@@ -24,8 +24,8 @@ theorem struct_implicit_produces
     (ConstStructImplicitProduction.struct_implicit_seed_iff_instr_effect
       current (.NoEllipses, stack) u n).1
       (seed_of_static origin current hstatic u hseed)
-  have hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+  have hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         (stack.drop (stack.length - 0)) []⟩)
       n (.success (.of ())) n := by
     simpa using MatchResulttypeValidation.match_resulttype_nil_total current n

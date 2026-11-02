@@ -42,9 +42,9 @@ theorem bot_mem_candidate_iff
 theorem globaltype_success_not_bot
     (c : SpecTec.context) (m : SpecTec.«mut»)
     (t : SpecTec.valtype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Globaltype_ok c (.GlobalT m t)⟩)
+        SpecTec.Call.Globaltype_ok c (.GlobalT m t)⟩)
       start (.success (.of ())) fin) :
     t ≠ .BotT := by
   have hv :=
@@ -112,16 +112,16 @@ theorem global_success_preserves_no_bot
     (c out : SpecTec.context) (g : SpecTec.global)
     (start fin : Nat)
     (hinput : ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ c.GLOBALS)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Global_ok c g⟩)
+        SpecTec.Call.Global_ok c g⟩)
       start (.success (.of out)) fin) :
     ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ out.GLOBALS := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Global_ok_clauses c g) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Global_ok_clauses c g))
         start (.success (.of out)) fin at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -150,19 +150,19 @@ theorem globals_success_no_bot
     (c out : SpecTec.context) (gs : List SpecTec.global)
     (start fin : Nat)
     (hinput : ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ c.GLOBALS)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Globals_ok c gs⟩)
+        SpecTec.Call.Globals_ok c gs⟩)
       start (.success (.of out)) fin) :
     ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ out.GLOBALS := by
   induction gs generalizing c start fin out with
   | nil =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c [])
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Globals_ok:clause:1» c []] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Globals_ok:clause:1» c []]))
             start (.success (.of out)) fin at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -172,7 +172,7 @@ theorem globals_success_no_bot
                   cases hguard with
                   | guard_true hcond => simp at hcond
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c [])
                   (fun _ => .unmatch))
                 start (.success (.of out)) fin at htail
@@ -187,10 +187,10 @@ theorem globals_success_no_bot
   | cons g rest ih =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c (g :: rest))
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)]))
             start (.success (.of out)) fin at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -211,7 +211,7 @@ theorem globals_success_no_bot
                                       c c₁ g start middle hinput hhead)
                                     hrest
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c (g :: rest))
                   (fun _ => .unmatch))
                 start (.success (.of out)) fin at htail
@@ -248,9 +248,9 @@ theorem imports_success_no_bot
     (c out : SpecTec.context) (is : List SpecTec.«import»)
     (start fin : Nat)
     (hinput : ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ c.GLOBALS)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Imports_ok c is⟩)
+        SpecTec.Call.Imports_ok c is⟩)
       start (.success (.of out)) fin) :
     ∀ m, SpecTec.globaltype.GlobalT m .BotT ∉ out.GLOBALS := by
   exact imports_result_preserves_no_bot c out is hinput
@@ -262,9 +262,9 @@ theorem imports_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Imports_ok c is⟩)
+        SpecTec.Call.Imports_ok c is⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by
@@ -282,9 +282,9 @@ theorem globals_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Globals_ok c gs⟩)
+        SpecTec.Call.Globals_ok c gs⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by
@@ -299,16 +299,16 @@ theorem globals_success_no_bot_candidate
 
 theorem empty_context_globals_nil
     (out : SpecTec.context) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTec.Call.«$empty_context»⟩)
       start (.success (.of out)) fin) :
     out.GLOBALS = [] := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$empty_context_clauses») ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$empty_context_clauses»))
         start (.success (.of out)) fin at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -321,9 +321,9 @@ theorem empty_context_globals_nil
 
 theorem empty_context_no_bot_candidate
     (out : SpecTec.context) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTec.Call.«$empty_context»⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by

@@ -7,28 +7,28 @@ namespace properties.wasm_module_ok.ConstFinalPopMatch
 theorem final_const_pop_matches
     (c : SpecTec.context) (t u : SpecTec.valtype)
     (ellipses : SpecTec.ellipses) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, [t]) (.NoEllipses, [u])⟩)
       start (.success (.of
         (ellipses, ([] : List SpecTec.valtype)))) fin) :
     ∃ before after : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.Match_resulttype c [u] [t]⟩)
+          SpecTec.Call.Match_resulttype c [u] [t]⟩)
         before (.success (.of ())) after := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, [t]) (.NoEllipses, [u])) ())
+          (.NoEllipses, [t]) (.NoEllipses, [u])))
       start (.success (.of (ellipses, []))) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
+      (SpecTecExecution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, [t]) (.NoEllipses, [u])) ()
+          (.NoEllipses, [t]) (.NoEllipses, [u]))
         start (.of (ellipses, [])) fin).1 hbody
     unfold SpecTec.«$pop_clauses» at hselected
     cases hselected with

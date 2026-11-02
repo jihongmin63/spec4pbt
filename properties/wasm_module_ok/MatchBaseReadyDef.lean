@@ -11,8 +11,8 @@ theorem match_base_def_total
     (hlookup : c.TYPES[q]? = some dt)
     (hbase : ht ∈ HeaptypeValidation.baseHeaptypes) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES ht (.DefHT dt)⟩)
         n (.success (.of r)) n := by
   simp [HeaptypeValidation.baseHeaptypes] at hbase
@@ -64,8 +64,8 @@ theorem match_statx_fixed_total
     (hlookup : c.TYPES[p]? = some dt)
     (htarget : target ∈ MatchSpecialBaseTotal.fixedBaseTargets) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES (.VarHT (.StatX p)) target⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hinner⟩ := MatchReadyDefFixed.ready_def_fixed_match_total
@@ -80,8 +80,8 @@ theorem match_statx_base_total
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : target ∈ HeaptypeValidation.baseHeaptypes) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES (.VarHT (.StatX p)) target⟩)
         n (.success (.of r)) n := by
   obtain ⟨r, hinner⟩ := MatchReadyDefFixed.ready_def_all_base_total
@@ -96,8 +96,8 @@ theorem match_base_statx_total
     (hlookup : c.TYPES[q]? = some dt)
     (hbase : ht ∈ HeaptypeValidation.baseHeaptypes) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES ht (.VarHT (.StatX q))⟩)
         n (.success (.of r)) n := by
   simp [HeaptypeValidation.baseHeaptypes] at hbase

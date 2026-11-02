@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.SubstOfResult
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -18,21 +19,21 @@ private theorem subst_heaptype_fixed_of_total (ht : SpecTec.heaptype)
       ht = .FuncHT ∨ ht = .NoFuncHT ∨ ht = .ExnHT ∨
       ht = .NoExnHT ∨ ht = .ExternHT ∨ ht = .NoExternHT ∨
       ht = .BotHT) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» ht⟩)
+        SpecTec.Call.«$subst_heaptype» (List SpecTec.deftype) dts
+          SpecTec.Call.«$subst_of» ht⟩)
       start (.success (.of ht)) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» ht) ())
+        SpecTec.Call.«$subst_of» ht))
     start (.success (.of ht)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$subst_heaptype:clause:0» (List SpecTec.deftype) dts
-      SpecTec.SpecTecCall.«$subst_of» ht)
+      SpecTec.Call.«$subst_of» ht)
     start (.success (.of ht)) start
   unfold SpecTec.«$subst_heaptype:clause:0»
   apply SpecTecExecution.Eval.bind_success
@@ -41,36 +42,36 @@ private theorem subst_heaptype_fixed_of_total (ht : SpecTec.heaptype)
 
 private theorem subst_heaptype_def_of_total (dt : SpecTec.deftype)
     (dts : List SpecTec.deftype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.DefHT dt)⟩)
+        SpecTec.Call.«$subst_heaptype» (List SpecTec.deftype) dts
+          SpecTec.Call.«$subst_of» (.DefHT dt)⟩)
       start (.success (.of (SpecTec.heaptype.DefHT dt))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.DefHT dt)) ())
+        SpecTec.Call.«$subst_of» (.DefHT dt)))
     start (.success (.of (SpecTec.heaptype.DefHT dt))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:0» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.DefHT dt)) start .unmatch start
+        SpecTec.Call.«$subst_of» (.DefHT dt)) start .unmatch start
     unfold SpecTec.«$subst_heaptype:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp)
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_heaptype:clause:1» (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.DefHT dt)) start .unmatch start
+          SpecTec.Call.«$subst_of» (.DefHT dt)) start .unmatch start
       unfold SpecTec.«$subst_heaptype:clause:1»
       apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«sub:heaptype:heaptypeVar»])
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_heaptype:clause:2» (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.DefHT dt))
+          SpecTec.Call.«$subst_of» (.DefHT dt))
         start (.success (.of (SpecTec.heaptype.DefHT dt))) start
       unfold SpecTec.«$subst_heaptype:clause:2»
       apply SpecTecExecution.Eval.bind_success
@@ -82,34 +83,34 @@ private theorem subst_heaptype_def_of_total (dt : SpecTec.deftype)
 private theorem subst_heaptype_var_of_some (tv : SpecTec.typevar)
     (dts : List SpecTec.deftype) (result : SpecTec.heaptype)
     (start : Nat) (hresult : substOfResult tv dts = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype»
+        SpecTec.Call.«$subst_heaptype»
           (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)⟩)
+          SpecTec.Call.«$subst_of» (.VarHT tv)⟩)
       start (.success (.of result)) start := by
-  have hleaf : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hleaf : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_of» tv dts⟩)
+        SpecTec.Call.«$subst_of» tv dts⟩)
       start (.success (.of result)) start := by
     simpa [optionOutcome, hresult] using subst_of_total_result tv dts start
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)) ())
+        SpecTec.Call.«$subst_of» (.VarHT tv)))
     start (.success (.of result)) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:0» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)) start .unmatch start
+        SpecTec.Call.«$subst_of» (.VarHT tv)) start .unmatch start
     unfold SpecTec.«$subst_heaptype:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp)
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:1» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.VarHT tv))
+        SpecTec.Call.«$subst_of» (.VarHT tv))
       start (.success (.of result)) start
     unfold SpecTec.«$subst_heaptype:clause:1»
     apply SpecTecExecution.Eval.bind_success
@@ -122,34 +123,34 @@ private theorem subst_heaptype_var_of_some (tv : SpecTec.typevar)
 private theorem subst_heaptype_var_of_none (tv : SpecTec.typevar)
     (dts : List SpecTec.deftype) (start : Nat)
     (hresult : substOfResult tv dts = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype»
+        SpecTec.Call.«$subst_heaptype»
           (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)⟩)
+          SpecTec.Call.«$subst_of» (.VarHT tv)⟩)
       start .unmatch start := by
-  have hleaf : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hleaf : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_of» tv dts⟩)
+        SpecTec.Call.«$subst_of» tv dts⟩)
       start .unmatch start := by
     simpa [optionOutcome, hresult] using subst_of_total_result tv dts start
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)) ())
+        SpecTec.Call.«$subst_of» (.VarHT tv)))
     start .unmatch start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:0» (List SpecTec.deftype) dts
-        SpecTec.SpecTecCall.«$subst_of» (.VarHT tv)) start .unmatch start
+        SpecTec.Call.«$subst_of» (.VarHT tv)) start .unmatch start
     unfold SpecTec.«$subst_heaptype:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp)
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_heaptype:clause:1» (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» (.VarHT tv))
+          SpecTec.Call.«$subst_of» (.VarHT tv))
         start .unmatch start
       unfold SpecTec.«$subst_heaptype:clause:1»
       apply SpecTecExecution.Eval.bind_success
@@ -157,24 +158,24 @@ private theorem subst_heaptype_var_of_none (tv : SpecTec.typevar)
           (by simp [SpecTec.«sub:heaptype:heaptypeVar»])
       · simp only [SpecTec.«$subst_heaptype:case_2:downcast:0»]
         apply SpecTecExecution.Eval.bind_unmatch hleaf
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$subst_heaptype:clause:2» (List SpecTec.deftype) dts
-            SpecTec.SpecTecCall.«$subst_of» (.VarHT tv))
+            SpecTec.Call.«$subst_of» (.VarHT tv))
           start .unmatch start
         unfold SpecTec.«$subst_heaptype:clause:2»
         apply SpecTecExecution.Eval.bind_unmatch
         exact SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:heaptype:DefHT»])
-      · exact SpecTecExecution.firstSuccess_nil () start
+      · exact SpecTecExecution.tryClauses_nil start
 
 theorem subst_heaptype_of_total (ht : SpecTec.heaptype)
     (dts : List SpecTec.deftype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype»
+        SpecTec.Call.«$subst_heaptype»
           (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» ht⟩)
+          SpecTec.Call.«$subst_of» ht⟩)
       start (optionOutcome (substHeaptypeResult ht dts)) start := by
   cases ht with
   | VarHT tv =>
@@ -205,15 +206,15 @@ theorem subst_heaptype_of_total (ht : SpecTec.heaptype)
 theorem subst_heaptype_of_deterministic (ht : SpecTec.heaptype)
     (dts : List SpecTec.deftype) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype»
+        SpecTec.Call.«$subst_heaptype»
           (List SpecTec.deftype) dts
-          SpecTec.SpecTecCall.«$subst_of» ht⟩)
+          SpecTec.Call.«$subst_of» ht⟩)
       start outcome finalSupply) :
     outcome = optionOutcome (substHeaptypeResult ht dts) ∧
       finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_heaptype_of_total ht dts start)
 
 end properties.wasm_module_not_ok.Rejection

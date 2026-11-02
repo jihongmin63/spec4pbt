@@ -7,8 +7,8 @@ def plainType (stack : inferresulttype) : valtype := PeekDecision.peekResult 1 s
 def plainAllowed (stack : inferresulttype) : Bool := numeric (plainType stack) || vector (plainType stack)
 
 theorem plain (c : context) (stack : inferresulttype) (hp : plainAllowed stack=true) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.SELECT none)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.SELECT none)⟩)
       n (.success (.of (ConstructiveBodyControl.effect [plainType stack,plainType stack,.NumT .I32T] [plainType stack] []))) n := by
   apply ConstructiveBodySelectDispatch.none_forward
   unfold SpecTec.«Instr_ok:clause:3»
@@ -20,8 +20,8 @@ theorem plain (c : context) (stack : inferresulttype) (hp : plainAllowed stack=t
   exact SpecTecExecution.Eval.pure _
 
 theorem typed (c : context) (stack : inferresulttype) (t : valtype) (ht : ValtypeValidation.valtypeValid c t=true) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.SELECT (some [t]))⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.SELECT (some [t]))⟩)
       n (.success (.of (ConstructiveBodyControl.effect [t,t,.NumT .I32T] [t] []))) n := by
   apply ConstructiveBodySelectDispatch.some_forward
   unfold SpecTec.«Instr_ok:clause:4»

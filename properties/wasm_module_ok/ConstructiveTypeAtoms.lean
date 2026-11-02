@@ -45,7 +45,7 @@ def heaptypes (c : context) : Gen heaptype :=
     · exact Or.inr (Or.inr ⟨x, hx, ht.symm⟩)
 
 theorem heaptypes_exact (c : context) (t : heaptype) (n fin : Nat) :
-    Eval specTecProgram (.call ⟨Unit, SpecTecCall.Heaptype_ok c t⟩)
+    Eval Body (.call ⟨Unit, Call.Heaptype_ok c t⟩)
       n (.success (.of ())) fin ↔ Gen.support (heaptypes c) t ∧ fin = n := by
   rw [HeaptypeValidation.heaptype_success_iff_valid, support_heaptypes]
 
@@ -61,7 +61,7 @@ def reftypes (c : context) : Gen reftype := do
       simp [reftypes, ReftypeTotal.reftypeValid, support_heaptypes]
 
 theorem reftypes_exact (c : context) (t : reftype) (n fin : Nat) :
-    Eval specTecProgram (.call ⟨Unit, SpecTecCall.Reftype_ok c t⟩)
+    Eval Body (.call ⟨Unit, Call.Reftype_ok c t⟩)
       n (.success (.of ())) fin ↔ Gen.support (reftypes c) t ∧ fin = n := by
   rw [ReftypeTotal.reftype_success_iff_valid, support_reftypes]
 
@@ -80,7 +80,7 @@ def valtypes (c : context) : Gen valtype :=
   | BotT => simp [valtypes, ValtypeValidation.valtypeValid]
 
 theorem valtypes_exact (c : context) (t : valtype) (n fin : Nat) :
-    Eval specTecProgram (.call ⟨Unit, SpecTecCall.Valtype_ok c t⟩)
+    Eval Body (.call ⟨Unit, Call.Valtype_ok c t⟩)
       n (.success (.of ())) fin ↔ Gen.support (valtypes c) t ∧ fin = n := by
   rw [ValtypeValidation.valtype_success_iff_valid, support_valtypes]
 

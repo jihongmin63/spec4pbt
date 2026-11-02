@@ -10,9 +10,9 @@ theorem inputs_candidate_of_syntax
     (i : SpecTec.instr) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
     (hsyntax : ConstAdditionalSyntaxValidation.Syntax c i)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ ConstFieldCandidate.extendedCandidateUniverse c := by
@@ -97,12 +97,12 @@ theorem inputs_candidate_of_is_const
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (i : SpecTec.instr) (iit : SpecTec.inferinstrtype)
     (start middle finish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       start (.success (.of true)) middle)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       middle (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ ConstFieldCandidate.extendedCandidateUniverse c := by

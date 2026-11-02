@@ -7,43 +7,43 @@ namespace properties.wasm_module_ok.CandidateSupertypeIter
 theorem iter0_nil_success
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strt : SpecTec.strtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt []⟩)
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt []⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt []))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure ()
 
 theorem iter0_cons_success_iff
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
     (hts : List SpecTec.heaptype) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0»
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0»
           c x strt (ht :: hts)⟩)
       n (.success (.of ())) finish ↔
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt ht⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt ht⟩)
         n (.success (.of ())) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
+          SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
         middle (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
+        (SpecTecExecution.tryClauses_success_iff
           (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses»
-            c x strt (ht :: hts)) ()
+            c x strt (ht :: hts))
           n (.of ()) finish).1 hbody
       unfold SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» at hselected
       cases hselected with
@@ -64,14 +64,14 @@ theorem iter0_cons_success_iff
           | next _ hnone => cases hnone
   · rintro ⟨middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses»
-          c x strt (ht :: hts)) ())
+          c x strt (ht :: hts)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact SpecTecExecution.Eval.unmatch
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       unfold SpecTec.«Subtype_sub_ok:rule:iter:0:clause:1»
       apply SpecTecExecution.Eval.bind_success hhead
       apply SpecTecExecution.Eval.bind_success hrest
@@ -81,21 +81,21 @@ theorem subtype_sub_success_iff_iter0
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok c x (.SubT fin hts strt)⟩)
+        SpecTec.Call.Subtype_sub_ok c x (.SubT fin hts strt)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_sub_ok_clauses at hselected
       cases hselected with
@@ -108,11 +108,11 @@ theorem subtype_sub_success_iff_iter0
       | next _ hnone => cases hnone
   · intro hiter
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«Subtype_sub_ok:clause:0»
     apply SpecTecExecution.Eval.bind_success hiter
     exact SpecTecExecution.Eval.pure ()

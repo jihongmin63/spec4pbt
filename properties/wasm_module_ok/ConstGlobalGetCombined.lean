@@ -10,9 +10,9 @@ theorem global_get_constant_instruction_iff
     (x : SpecTec.globalidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat) :
     ConstSyntaxDecision.syntaxAllowed c (.«GLOBAL.GET» x) = true ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
       n (.success (.of iit)) fin ↔
     ∃ t : SpecTec.valtype,
       c.GLOBALS[x]? = some (.GlobalT .Cons t) ∧

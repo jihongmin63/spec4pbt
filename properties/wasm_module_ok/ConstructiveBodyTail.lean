@@ -8,8 +8,8 @@ separately from the context whose locals change during the instruction trace. -/
 abbrev Tail (root c : context) (stack : inferresulttype) (outputs : List valtype) :=
   {code : List instr // ∀n,∃finalContext finalStack ell,
     ConstConstructiveTrace.Trace c stack code finalContext finalStack n n ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» root (.NoEllipses,outputs) finalStack⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» root (.NoEllipses,outputs) finalStack⟩)
       n (.success (.of ((ell,[]) : inferresulttype))) n}
 
 def unreachable (root c : context) (stack : inferresulttype) (outputs : List valtype) :
@@ -54,8 +54,8 @@ def prepend {root c : context} {stack : inferresulttype} {outputs : List valtype
 
 def asBlock {c : context} {inputs outputs : List valtype}
     (tail : Tail c c (.NoEllipses,inputs) outputs) :
-    {code : List instr // ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Block_ok c (.InstrT inputs outputs []) code⟩)
+    {code : List instr // ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Block_ok c (.InstrT inputs outputs []) code⟩)
       n (.success (.of ())) n} :=
   ⟨tail.val,by
     intro n

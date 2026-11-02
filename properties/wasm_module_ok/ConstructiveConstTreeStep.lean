@@ -16,11 +16,11 @@ theorem attach_good (c : context) (forest : List Tree) (i : instr) (u : valtype)
     (hf : ∀ t∈forest,Good c t)
     (ha : ∀ t∈outputs forest,CandidateValMatch.InTableVal c t)
     (hn : ∀ t∈need,CandidateValMatch.InTableVal c t)
-    (hi : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,outputs forest) i⟩)
+    (hi : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,outputs forest) i⟩)
       start (.success (.of (effect need u))) finish)
-    (hp : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» c (.NoEllipses,need) (.NoEllipses,outputs forest)⟩)
+    (hp : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» c (.NoEllipses,need) (.NoEllipses,outputs forest)⟩)
       ps (.success (.of popped)) pf) :
     ∀ t∈attach forest need.length i u,Good c t := by
   obtain ⟨hlen,ms,hm⟩ := PopMatchExtraction.pop_noellipses_success_has_match c need
@@ -29,20 +29,20 @@ theorem attach_good (c : context) (forest : List Tree) (i : instr) (u : valtype)
   let k := forest.length-need.length
   have houtputs : outputs (forest.drop k)=(outputs forest).drop k := by simp [outputs]
   have hcut : (outputs forest).length-need.length=k := by simp [outputs,k]
-  have hmatch : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs (forest.drop k)) need⟩)
+  have hmatch : ∀ n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs (forest.drop k)) need⟩)
       n (.success (.of ())) n := by
     intro n
     have htable : ∀ t∈(outputs forest).drop k,CandidateValMatch.InTableVal c t :=
       fun t ht => ha t (List.mem_of_mem_drop ht)
-    have hm' : SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit,SpecTecCall.Match_resulttype c ((outputs forest).drop k) need⟩)
+    have hm' : SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit,Call.Match_resulttype c ((outputs forest).drop k) need⟩)
         ms (.success (.of ())) pf := by simpa only [hcut] using hm
     have hpairs := MatchResulttypeDecision.match_pairs_of_resulttype_success c _ need ms pf hr htable hn hm'
     rw [houtputs]
     exact (MatchResulttypeDecision.match_pairs_iff_resulttype c _ need n hr htable hn).1 hpairs
-  have hinstr : ∀ stack n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,stack++outputs (forest.drop k)) i⟩)
+  have hinstr : ∀ stack n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,stack++outputs (forest.drop k)) i⟩)
       n (.success (.of (effect need u))) n := by
     intro stack n
     rw [houtputs]

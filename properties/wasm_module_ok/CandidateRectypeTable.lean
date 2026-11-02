@@ -26,9 +26,9 @@ def candidateContext (c : SpecTec.context)
 theorem rectype_success_candidateContext
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     candidateContext c sts = some result := by
   obtain ⟨dts, hresult, hposition⟩ :=
@@ -76,9 +76,9 @@ theorem rectype_success_candidate_ready
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     ∃ candidate,
       candidateContext c sts = some candidate ∧

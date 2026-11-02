@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.CandidateValMatch
 import properties.wasm_module_ok.MatchResulttypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,9 +23,9 @@ theorem match_pairs_iff_iter
     (hrequired : ∀ t ∈ required, CandidateValMatch.InTableVal c t) :
     matchPairs c actual required = true ↔
       required.length = actual.length ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Unit,
-            SpecTec.SpecTecCall.«Match_resulttype:rule:iter:0»
+            SpecTec.Call.«Match_resulttype:rule:iter:0»
               c actual required⟩)
           n (.success (.of ())) n := by
   induction actual generalizing required n with
@@ -96,9 +97,9 @@ theorem match_pairs_iff_resulttype
     (hactual : ∀ t ∈ actual, CandidateValMatch.InTableVal c t)
     (hrequired : ∀ t ∈ required, CandidateValMatch.InTableVal c t) :
     matchPairs c actual required = true ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.Match_resulttype c actual required⟩)
+          SpecTec.Call.Match_resulttype c actual required⟩)
         n (.success (.of ())) n := by
   exact (match_pairs_iff_iter c actual required n hready
     hactual hrequired).trans
@@ -113,9 +114,9 @@ theorem match_iter_success_counter
     (hactual : ∀ t ∈ actual, CandidateValMatch.InTableVal c t)
     (hrequired : ∀ t ∈ required, CandidateValMatch.InTableVal c t)
     (hlength : required.length = actual.length)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Match_resulttype:rule:iter:0»
+        SpecTec.Call.«Match_resulttype:rule:iter:0»
           c actual required⟩)
       start (.success (.of ())) finish) :
     finish = start := by
@@ -123,11 +124,7 @@ theorem match_iter_success_counter
   | nil =>
     cases required with
     | nil =>
-      have hdet : SpecTecExecution.PrimitiveDeterministic
-          SpecTec.specTecProgram := by
-        intro request a b hp
-        cases hp
-      exact (SpecTecExecution.eval_deterministic hdet hcall
+      exact (properties.wasm_module_ok.Execution.eval_deterministic hcall
         (MatchResulttypeValidation.match_iter_nil_total c start)).2
     | cons b bs => simp at hlength
   | cons a as ih =>
@@ -161,9 +158,9 @@ theorem match_resulttype_success_counter
     (hready : CandidateTypeReady.Ready c)
     (hactual : ∀ t ∈ actual, CandidateValMatch.InTableVal c t)
     (hrequired : ∀ t ∈ required, CandidateValMatch.InTableVal c t)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Match_resulttype c actual required⟩)
+        SpecTec.Call.Match_resulttype c actual required⟩)
       start (.success (.of ())) finish) :
     finish = start := by
   obtain ⟨hlength, hiter⟩ :=
@@ -179,9 +176,9 @@ theorem match_pairs_of_resulttype_success
     (hready : CandidateTypeReady.Ready c)
     (hactual : ∀ t ∈ actual, CandidateValMatch.InTableVal c t)
     (hrequired : ∀ t ∈ required, CandidateValMatch.InTableVal c t)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Match_resulttype c actual required⟩)
+        SpecTec.Call.Match_resulttype c actual required⟩)
       start (.success (.of ())) finish) :
     matchPairs c actual required = true := by
   have hfinish := match_resulttype_success_counter

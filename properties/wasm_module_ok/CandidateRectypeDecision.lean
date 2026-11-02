@@ -20,9 +20,9 @@ theorem rectypePasses_iff_success
     (hc : ValidatedTypeChain.ValidatedTypes c) :
     rectypePasses c sts = true ↔
       ∃ result : SpecTec.context,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+            SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
           n (.success (.of result)) n := by
   constructor
   · intro hpass

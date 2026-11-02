@@ -18,8 +18,8 @@ theorem const_ok_target_outer_shape
     (xs : SpecTec.const) (start fin : Nat)
     (hnoBot : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) fin) :
     (∃ a : SpecTec.numtype, t = .NumT a) ∨
       (∃ a : SpecTec.vectype, t = .VecT a) ∨

@@ -40,9 +40,9 @@ theorem typesGen_exact
     (hc : ValidatedTypeChain.ValidatedTypes c) :
     Gen.support (typesGen c) ts ↔
       ∃ result : SpecTec.context,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Types_ok c ts⟩)
+            SpecTec.Call.Types_ok c ts⟩)
           n (.success (.of result)) n := by
   constructor
   · rintro hs

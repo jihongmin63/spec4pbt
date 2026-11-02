@@ -25,11 +25,11 @@ these witnesses by typed constructors; there is no validity decision here. -/
 inductive Good (c : context) : Tree → Prop where
   | node (i : instr) (u : valtype) (children : List Tree) (need : List valtype)
       (hsyntax : ConstAdditionalSyntaxValidation.Syntax c i)
-      (instruction : ∀ stack n,SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,stack++outputs children) i⟩)
+      (instruction : ∀ stack n,SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,stack++outputs children) i⟩)
         n (.success (.of (effect need u))) n)
-      (matching : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+      (matching : ∀ n,SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
         n (.success (.of ())) n)
       (children_good : ∀ t∈children,Good c t) : Good c (.node i u children)
 
@@ -75,11 +75,11 @@ theorem tree_syntax (c : context) (tree : Tree) (h : Good c tree) :
 
 theorem tree_const_ok (c : context) (tree : Tree) (h : Good c tree) (target : valtype)
     (n : Nat)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c [tree.output] [target]⟩)
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c [tree.output] [target]⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target tree.code⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target tree.code⟩)
       n (.success (.of ())) n := by
   apply (ConstDecisionTrace.const_ok_decision_trace_iff c target tree.code n n).2
   refine ⟨tree_syntax c tree h,(.NoEllipses,[tree.output]),[],.NoEllipses,n,?_,?_⟩

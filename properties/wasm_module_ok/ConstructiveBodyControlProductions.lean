@@ -5,8 +5,8 @@ namespace properties.wasm_module_ok.ConstructiveBodyControlProductions
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveBodyProductions ConstructiveBodyBlocktypes ConstructiveConstTableCore
 
 abbrev Body (c : context) (ins outs : List valtype) :=
-  {code : List instr // ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨Unit,SpecTecCall.Block_ok c (.InstrT ins outs []) code⟩)
+  {code : List instr // ∀n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨Unit,Call.Block_ok c (.InstrT ins outs []) code⟩)
     n (.success (.of ())) n}
 
 abbrev Builder := (c : context) → Env c → (ins outs : List valtype) →

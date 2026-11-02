@@ -21,6 +21,7 @@ import properties.wasm_module_ok.DefaultableValidation
 import properties.wasm_module_ok.ConstArrayExplicitDispatch
 import properties.wasm_module_ok.ConstArrayFixedDispatch
 import properties.wasm_module_ok.MakeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -39,9 +40,9 @@ theorem numeric_literal_result_iff
     (v : SpecTec.num_) (iit : SpecTec.inferinstrtype)
     (start finish : Nat) :
     numericLiteralResult v = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+          SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
         start (.success (.of iit)) finish := by
   constructor
   · rintro ⟨hresult, rfl⟩
@@ -64,9 +65,9 @@ theorem vector_literal_result_iff
     (v : SpecTec.vec_) (iit : SpecTec.inferinstrtype)
     (start finish : Nat) :
     some vectorLiteralResult = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+          SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
         start (.success (.of iit)) finish := by
   constructor
   · rintro ⟨hresult, rfl⟩
@@ -93,9 +94,9 @@ theorem ref_null_result_iff
     (ht : SpecTec.heaptype) (iit : SpecTec.inferinstrtype)
     (start finish : Nat) :
     refNullResult c ht = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«REF.NULL» ht)⟩)
+          SpecTec.Call.Instr_ok c irt (.«REF.NULL» ht)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstRefNullDispatch.ref_null_dispatch_iff]
   constructor
@@ -138,9 +139,9 @@ theorem ref_func_result_iff
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (start finish : Nat) :
     refFuncResult c x = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstRefFuncEffect.ref_func_instruction_iff]
   constructor
@@ -174,9 +175,9 @@ theorem global_get_result_iff
     (x : SpecTec.globalidx) (iit : SpecTec.inferinstrtype)
     (start finish : Nat) :
     globalGetResult c x = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
+          SpecTec.Call.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstGlobalGetDispatch.global_get_dispatch_iff]
   constructor
@@ -202,9 +203,9 @@ theorem allowed_arithmetic_type_call
     (op : SpecTec.binop_) (n : Nat)
     (hallowed : SpecTec.instr.BINOP op ∈
       ConstArithmeticValidation.arithmeticOps) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop
           SpecTec.fbinop SpecTec.fbinop op⟩)
       n (.success (.of (arithmeticType op))) n := by
@@ -245,9 +246,9 @@ theorem arithmetic_result_iff
     (start finish : Nat) :
     arithmeticResult op = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.BINOP op) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.BINOP op)⟩)
+          SpecTec.Call.Instr_ok c irt (.BINOP op)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstNumericBinopDispatch.numeric_binop_constant_instruction_iff]
   constructor
@@ -262,12 +263,8 @@ theorem arithmetic_result_iff
         hresult.symm⟩
     · simp [arithmeticResult, hallowed] at hresult
   · rintro ⟨hallowed, nt, htype, hiit⟩
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request a b hp
-      cases hp
     obtain ⟨hvalue, hfinish⟩ :=
-      SpecTecExecution.eval_deterministic hdet htype
+      properties.wasm_module_ok.Execution.eval_deterministic htype
         (allowed_arithmetic_type_call op start hallowed)
     cases hvalue
     subst iit
@@ -283,9 +280,9 @@ theorem i31_result_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (iit : SpecTec.inferinstrtype) (start finish : Nat) :
     some i31Result = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt .«REF.I31»⟩)
+          SpecTec.Call.Instr_ok c irt .«REF.I31»⟩)
         start (.success (.of iit)) finish := by
   constructor
   · rintro ⟨hresult, rfl⟩
@@ -315,9 +312,9 @@ theorem extern_convert_result_iff
     (start finish : Nat) :
     externConvertResult op irt = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«EXTERN.CONVERT» op) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+          SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstExternConvertDispatch.extern_convert_constant_instruction_iff]
   constructor
@@ -375,9 +372,9 @@ theorem struct_implicit_result_iff
     (start finish : Nat) :
     structImplicitResult c x = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«STRUCT.NEW» x .Implicit) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+          SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstStructImplicitDispatch.struct_new_implicit_constant_instruction_iff]
   constructor
@@ -430,9 +427,9 @@ theorem struct_explicit_result_iff
     (start finish : Nat) :
     structExplicitResult c x = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«STRUCT.NEW» x .Explicit) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
+          SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstStructExplicitDispatch.struct_new_explicit_constant_instruction_iff]
   constructor
@@ -487,9 +484,9 @@ theorem array_implicit_result_iff
     (start finish : Nat) :
     arrayImplicitResult c x = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«ARRAY.NEW» x .Implicit) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
+          SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstArrayImplicitDispatch.array_new_implicit_constant_instruction_iff]
   constructor
@@ -553,9 +550,9 @@ theorem array_explicit_result_iff
     (start finish : Nat) :
     arrayExplicitResult c x = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«ARRAY.NEW» x .Explicit) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
+          SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstArrayExplicitDispatch.array_new_explicit_constant_instruction_iff]
   constructor
@@ -609,9 +606,9 @@ theorem array_fixed_result_iff
     (iit : SpecTec.inferinstrtype) (start finish : Nat) :
     arrayFixedResult c x count = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c (.«ARRAY.NEW_FIXED» x count) = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt
+          SpecTec.Call.Instr_ok c irt
             (.«ARRAY.NEW_FIXED» x count)⟩)
         start (.success (.of iit)) finish := by
   rw [ConstArrayFixedDispatch.array_new_fixed_constant_instruction_iff]
@@ -674,9 +671,9 @@ theorem constant_instruction_result_iff_of_allowed
     (start finish : Nat)
     (hallowed : ConstSyntaxDecision.syntaxAllowed c i = true) :
     constantInstructionResult c irt i = some iit ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+          SpecTec.Call.Instr_ok c irt i⟩)
         start (.success (.of iit)) finish := by
   have hsyntax :=
     (ConstSyntaxDecision.syntaxAllowed_iff c i).1 hallowed
@@ -738,9 +735,9 @@ theorem constant_instruction_result_iff
     (start finish : Nat) :
     constantInstructionResult c irt i = some iit ∧ finish = start ↔
       ConstSyntaxDecision.syntaxAllowed c i = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+          SpecTec.Call.Instr_ok c irt i⟩)
         start (.success (.of iit)) finish := by
   by_cases hallowed : ConstSyntaxDecision.syntaxAllowed c i = true
   · simp only [hallowed, true_and]
@@ -753,9 +750,9 @@ theorem syntax_instruction_input_shape
     (i : SpecTec.instr) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
     (hsyntax : ConstAdditionalSyntaxValidation.Syntax c i)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       start (.success (.of iit)) finish) :
     ∃ need : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧ iit.2 = [] := by

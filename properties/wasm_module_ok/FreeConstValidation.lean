@@ -10,13 +10,13 @@ theorem free_block_ref_func
     (xs : List SpecTec.instr) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (hmem : SpecTec.instr.«REF.FUNC» x ∈ xs)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_block» xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_block» xs⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_block_clauses» xs) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_block_clauses» xs))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -36,13 +36,13 @@ theorem free_const_ref_func
     (xs : List SpecTec.instr) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (hmem : SpecTec.instr.«REF.FUNC» x ∈ xs)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_const» xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_const» xs⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_const_clauses» xs) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_const_clauses» xs))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>

@@ -21,8 +21,8 @@ theorem append_i31
         [.RefT (.«% %» .NoNull .I31HT)]) start n := by
   have hinstr := ConstI31Dispatch.i31_dispatch_total current
     (.NoEllipses, stack ++ [.NumT .I32T]) n
-  have hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+  have hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         ((stack ++ ([.NumT .I32T] : List SpecTec.valtype)).drop
           ((stack ++ ([.NumT .I32T] : List SpecTec.valtype)).length - 1))
         [.NumT .I32T]⟩)
@@ -45,8 +45,8 @@ theorem i31_syntax_allowed (c : SpecTec.context) :
     .refI31
 
 theorem i31_heap_self_match (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES .I31HT .I31HT⟩)
       n (.success (.of true)) n := by
   simpa [ReadyHeapMatchBase.baseMatch,
@@ -57,8 +57,8 @@ theorem i31_heap_self_match (c : SpecTec.context) (n : Nat) :
       (by simp [HeaptypeValidation.baseHeaptypes]))
 
 theorem i31_value_self_match (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype»
         c.TYPES
         (.RefT (.«% %» .NoNull .I31HT))
         (.RefT (.«% %» .NoNull .I31HT))⟩)
@@ -73,8 +73,8 @@ theorem i31_value_self_match (c : SpecTec.context) (n : Nat) :
         i31_heap_self_match c n))
 
 theorem i31_result_self_match (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         [.RefT (.«% %» .NoNull .I31HT)]
         [.RefT (.«% %» .NoNull .I31HT)]⟩)
       n (.success (.of ())) n := by
@@ -90,8 +90,8 @@ theorem i31_result_self_match (c : SpecTec.context) (n : Nat) :
 
 theorem i31_const_expression (c : SpecTec.context) (n : Nat) :
     ∃ xs : List SpecTec.instr,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c
           (.RefT (.«% %» .NoNull .I31HT)) xs⟩)
         n (.success (.of ())) n := by
   have hbase : SpecTec.valtype.NumT .I32T ∈
@@ -111,9 +111,9 @@ theorem i31_const_expression (c : SpecTec.context) (n : Nat) :
         exact hbase)
       [] n
   have hi31 := append_i31 [] (by simpa using htrace)
-  have hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, [.RefT (.«% %» .NoNull .I31HT)])
           (.NoEllipses, [.RefT (.«% %» .NoNull .I31HT)])⟩)
       n (.success (.of (SpecTec.ellipses.NoEllipses,

@@ -55,8 +55,8 @@ theorem ready_heap_match_eval
     (c : SpecTec.context) (source target : SpecTec.heaptype)
     (n : Nat) (hready : CandidateTypeReady.Ready c)
     (hs : InTable c source) (ht : InTable c target) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source target⟩)
       n (.success (.of
         ((ReadyHeapMatch.readyHeapMatch c source target).getD false))) n := by

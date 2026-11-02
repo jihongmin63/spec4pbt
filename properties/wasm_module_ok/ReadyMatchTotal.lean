@@ -13,9 +13,9 @@ private theorem ready_match_exists_of_predecessors
     (hp : p < c.TYPES.length)
     (hmatch : ∀ k dtK, k < p → c.TYPES[k]? = some dtK →
       ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtK dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtK dtQ⟩)
           start (.success (.of r)) start) :
     ∃ dtP : SpecTec.deftype,
     ∃ fin : SpecTec.final,
@@ -23,12 +23,12 @@ private theorem ready_match_exists_of_predecessors
     ∃ strtU : SpecTec.strtype,
     ∃ r : Bool,
       c.TYPES[p]? = some dtP ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dtP⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dtP⟩)
         start (.success (.of (SpecTec.subtype.SubT fin htsU strtU))) start ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype_exists» c.TYPES htsU dtQ⟩)
+          SpecTec.Call.«$match_heaptype_exists» c.TYPES htsU dtQ⟩)
         start (.success (.of r)) start := by
   obtain ⟨dtP, fin, htsU, strtU, hlookup, hunroll, hedges⟩ :=
     hready.unrolledPredecessors p hp
@@ -36,9 +36,9 @@ private theorem ready_match_exists_of_predecessors
     (UnrollInterface.unrolldt_success_iff
       dtP (.SubT fin htsU strtU) start start).2 ⟨hunroll, rfl⟩
   have hheads : ∀ ht ∈ htsU, ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» c.TYPES ht (.DefHT dtQ)⟩)
+          SpecTec.Call.«$match_heaptype» c.TYPES ht (.DefHT dtQ)⟩)
         start (.success (.of r)) start := by
     intro ht hmem
     obtain ⟨j, hget⟩ := List.mem_iff_getElem?.mp hmem
@@ -66,14 +66,14 @@ private theorem ready_match_deftype_of_predecessors
     (hQ : ∃ q, q < c.TYPES.length ∧ c.TYPES[q]? = some dtQ)
     (hmatch : ∀ k dtK, k < p → c.TYPES[k]? = some dtK →
       ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtK dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtK dtQ⟩)
           start (.success (.of r)) start) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+          SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
         start (.success (.of r)) start := by
   by_cases heq : dtP = dtQ
   · subst dtQ
@@ -102,16 +102,16 @@ theorem ready_match_deftype_total
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+          SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
         start (.success (.of r)) start := by
   have hfixed : ∀ k dt, k < c.TYPES.length →
       c.TYPES[k]? = some dt →
       ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dt dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dt dtQ⟩)
           start (.success (.of r)) start := by
     intro k
     induction k using Nat.strongRecOn with

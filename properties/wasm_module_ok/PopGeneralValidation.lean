@@ -9,11 +9,11 @@ theorem pop_noellipses_clause3_of_match
     (c : SpecTec.context) (ts₁ ts₂ : List SpecTec.valtype)
     (start finalSupply : Nat)
     (hlen : ts₁.length ≤ ts₂.length)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         (ts₂.drop (ts₂.length - ts₁.length)) ts₁⟩)
       start (.success (.of ())) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:3» c (.NoEllipses, ts₁) (.NoEllipses, ts₂))
       start (.success (.of
         (SpecTec.ellipses.NoEllipses,
@@ -62,33 +62,33 @@ theorem pop_noellipses_of_match
     (c : SpecTec.context) (ts₁ ts₂ : List SpecTec.valtype)
     (start finalSupply : Nat)
     (hlen : ts₁.length ≤ ts₂.length)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         (ts₂.drop (ts₂.length - ts₁.length)) ts₁⟩)
       start (.success (.of ())) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c (.NoEllipses, ts₁) (.NoEllipses, ts₂)⟩)
+        SpecTec.Call.«$pop» c (.NoEllipses, ts₁) (.NoEllipses, ts₂)⟩)
       start (.success (.of
         (SpecTec.ellipses.NoEllipses,
           ts₂.take (ts₂.length - ts₁.length)))) finalSupply := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$pop_clauses» c (.NoEllipses, ts₁) (.NoEllipses, ts₂)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$pop_clauses» c (.NoEllipses, ts₁) (.NoEllipses, ts₂)))
     start (.success (.of
       (SpecTec.ellipses.NoEllipses,
         ts₂.take (ts₂.length - ts₁.length)))) finalSupply
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c (.NoEllipses, ts₁) (.NoEllipses, ts₂))
       start .unmatch start
     unfold SpecTec.«$pop:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false
       (by simp [SpecTec.«exec:match:ellipses:Ellipses»])
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$pop:clause:1» c (.NoEllipses, ts₁) (.NoEllipses, ts₂))
         start .unmatch start
       unfold SpecTec.«$pop:clause:1»
@@ -97,15 +97,15 @@ theorem pop_noellipses_of_match
       · apply SpecTecExecution.Eval.bind_unmatch
         exact SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:ellipses:Ellipses»])
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$pop:clause:2» c (.NoEllipses, ts₁) (.NoEllipses, ts₂))
           start .unmatch start
         unfold SpecTec.«$pop:clause:2»
         apply SpecTecExecution.Eval.bind_unmatch
         exact SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:ellipses:Ellipses»])
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact pop_noellipses_clause3_of_match c ts₁ ts₂ start finalSupply hlen hmatch
 
 end properties.wasm_module_ok.PopGeneralValidation

@@ -41,14 +41,14 @@ theorem Signature.backed {c : context} {xs : List deftype} (sig : Signature xs) 
     (List.mem_flatMap.mpr ⟨t,ht,hh⟩)
 
 theorem Signature.expand {xs : List deftype} (sig : Signature xs) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨strtype,SpecTecCall.«$expanddt» sig.entry.value⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨strtype,Call.«$expanddt» sig.entry.value⟩)
       n (.success (.of (strtype.DefFuncT (.FuncT sig.inputs sig.outputs)))) n :=
   (UnrollInterface.expanddt_success_iff_result _ _ n n).2 ⟨sig.expanded,rfl⟩
 
 theorem Signature.functionType {c : context} (sig : Signature c.TYPES) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨functype,SpecTecCall.«$func_type» c sig.entry.index⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨functype,Call.«$func_type» c sig.entry.index⟩)
       n (.success (.of (functype.FuncT sig.inputs sig.outputs))) n :=
   (FunctionTypeValidation.func_type_success_iff _ _ _ n n).2 ⟨sig.entry.value,sig.entry.lookup,sig.expand n⟩
 

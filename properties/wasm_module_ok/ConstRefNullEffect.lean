@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstI31Dispatch
 import properties.wasm_module_ok.HeaptypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -9,7 +10,7 @@ theorem ref_null_clause_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (ht : SpecTec.heaptype) (n : Nat)
     (hvalid : HeaptypeValidation.heaptypeValid c ht = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:50» c irt (.«REF.NULL» ht))
       n (.success (.of
         (⟨{ INS := (.NoEllipses, []),
@@ -26,7 +27,7 @@ theorem ref_null_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (ht : SpecTec.heaptype) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:50» c irt (.«REF.NULL» ht))
       n (.success (.of iit)) fin) :
     HeaptypeValidation.heaptypeValid c ht = true ∧
@@ -42,11 +43,8 @@ theorem ref_null_clause_exact
         cases htail with
         | bind_success hcall _ =>
             exact ((HeaptypeValidation.heaptype_success_iff_valid c ht _ _).1 hcall).1
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (ref_null_clause_total c irt ht n hvalid)
   cases hout
   exact ⟨hvalid, rfl, hsupply⟩

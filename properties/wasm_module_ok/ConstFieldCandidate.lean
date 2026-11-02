@@ -77,9 +77,9 @@ theorem struct_new_explicit_inputs_extended
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2, t ∈ extendedCandidateUniverse c := by
   obtain ⟨fields, ts, dt, middle, hstruct, hfields, hget, hiit⟩ :=
@@ -104,9 +104,9 @@ theorem array_new_explicit_inputs_extended
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2, t ∈ extendedCandidateUniverse c := by
   obtain ⟨field, fieldType, dt, middle, harray, hunpack, hget, hiit⟩ :=
@@ -153,9 +153,9 @@ theorem array_new_fixed_inputs_extended
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (count : SpecTec.n)
     (iit : SpecTec.inferinstrtype) (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2, t ∈ extendedCandidateUniverse c := by
   obtain ⟨field, fieldType, dt, middle, harray, hunpack, hget, hiit⟩ :=
@@ -183,9 +183,9 @@ theorem array_new_implicit_inputs_extended
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2, t ∈ extendedCandidateUniverse c := by
   obtain ⟨field, fieldType, dt, middle, mid2,

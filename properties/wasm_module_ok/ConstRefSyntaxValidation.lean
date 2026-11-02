@@ -6,37 +6,37 @@ namespace properties.wasm_module_ok.ConstRefSyntaxValidation
 
 theorem ref_null_is_const
     (c : SpecTec.context) (ht : SpecTec.heaptype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.«REF.NULL» ht)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.«REF.NULL» ht)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.«REF.NULL» ht)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.«REF.NULL» ht)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.«REF.NULL» ht)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.«REF.NULL» ht)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:3» c (.«REF.NULL» ht))
     n (.success (.of true)) n
   unfold SpecTec.«$is_const:clause:3»
@@ -46,44 +46,44 @@ theorem ref_null_is_const
 
 theorem ref_func_is_const
     (c : SpecTec.context) (x : SpecTec.funcidx) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.«REF.FUNC» x)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.«REF.FUNC» x)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.«REF.FUNC» x)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.«REF.FUNC» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c (.«REF.FUNC» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:1»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:instr:CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c (.«REF.FUNC» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:2»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:instr:VEC.CONST»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c (.«REF.FUNC» x)) n .unmatch n
     unfold SpecTec.«$is_const:clause:3»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:instr:REF.NULL»]))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:4» c (.«REF.FUNC» x))
     n (.success (.of true)) n
   unfold SpecTec.«$is_const:clause:4»
@@ -99,8 +99,8 @@ def basicConstSyntax (i : SpecTec.instr) : Prop :=
 theorem basic_const_iter_total
     (c : SpecTec.context) (xs : List SpecTec.instr) (n : Nat)
     (hall : ∀ i ∈ xs, basicConstSyntax i) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0»
         c xs⟩)
       n (.success (.of ())) n := by
   induction xs with
@@ -109,8 +109,8 @@ theorem basic_const_iter_total
       apply (ConstSyntaxValidation.const_iter_cons_success_iff
         c i rest n n).2
       have hhead := hall i (by simp)
-      have his : SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+      have his : SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
           n (.success (.of true)) n := by
         rcases hhead with hsimple | ⟨ht, rfl⟩ | ⟨x, rfl⟩
         · rcases hsimple with harith | ⟨v, rfl⟩

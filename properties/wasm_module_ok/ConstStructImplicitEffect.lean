@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstExternConvertDispatch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -8,16 +9,16 @@ theorem struct_new_implicit_clause_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (ys : List SpecTec.fieldtype)
     (dt : SpecTec.deftype) (start middle fin : Nat)
-    (hstruct : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hstruct : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.structtype,
-        SpecTec.SpecTecCall.«$struct_type» c x⟩)
+        SpecTec.Call.«$struct_type» c x⟩)
       start (.success (.of (SpecTec.structtype.StructT ys))) middle)
-    (hfields : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hfields : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+        SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
       middle (.success (.of ())) fin)
     (hget : c.TYPES[x]? = some dt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:60» c irt (.«STRUCT.NEW» x .Implicit))
       start (.success (.of
         (⟨{ INS := (.NoEllipses, []),
@@ -41,18 +42,18 @@ theorem struct_new_implicit_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:60» c irt (.«STRUCT.NEW» x .Implicit))
       start (.success (.of iit)) fin) :
     ∃ ys : List SpecTec.fieldtype, ∃ dt : SpecTec.deftype,
       ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.structtype,
-          SpecTec.SpecTecCall.«$struct_type» c x⟩)
+          SpecTec.Call.«$struct_type» c x⟩)
         start (.success (.of (SpecTec.structtype.StructT ys))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+          SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
         middle (.success (.of ())) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =
@@ -62,13 +63,13 @@ theorem struct_new_implicit_clause_exact
           ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) := by
   have hparts : ∃ ys : List SpecTec.fieldtype, ∃ dt : SpecTec.deftype,
       ∃ middle finalSupply : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.structtype,
-          SpecTec.SpecTecCall.«$struct_type» c x⟩)
+          SpecTec.Call.«$struct_type» c x⟩)
         start (.success (.of (SpecTec.structtype.StructT ys))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+          SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
         middle (.success (.of ())) finalSupply ∧
       c.TYPES[x]? = some dt := by
     unfold SpecTec.«Instr_ok:clause:60» at h
@@ -95,11 +96,8 @@ theorem struct_new_implicit_clause_exact
                   exact ⟨ys, dt, _, _, hstruct, hfields, rfl⟩
   obtain ⟨ys, dt, middle, finalSupply,
     hstruct, hfields, hget⟩ := hparts
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (struct_new_implicit_clause_total c irt x ys dt
         start middle finalSupply hstruct hfields hget)
   cases hout
@@ -110,18 +108,18 @@ theorem struct_new_implicit_clause_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:60» c irt (.«STRUCT.NEW» x .Implicit))
       start (.success (.of iit)) fin ↔
     ∃ ys : List SpecTec.fieldtype, ∃ dt : SpecTec.deftype,
       ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.structtype,
-          SpecTec.SpecTecCall.«$struct_type» c x⟩)
+          SpecTec.Call.«$struct_type» c x⟩)
         start (.success (.of (SpecTec.structtype.StructT ys))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
+          SpecTec.Call.«Instr_ok:struct.new.implicit:iter:1» ys⟩)
         middle (.success (.of ())) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =

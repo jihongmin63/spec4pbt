@@ -109,13 +109,13 @@ theorem list_produces
 theorem produces_const_of_match
     (c : SpecTec.context) (u t : SpecTec.valtype) (n : Nat)
     (hproduce : Produces c u)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         [u] [t]⟩)
       n (.success (.of ())) n) :
     ∃ xs : List SpecTec.instr,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         n (.success (.of ())) n := by
   obtain ⟨xs, _, hsyntax, htrace, _⟩ :=
     hproduce c (ConstStaticAgreement.refl c) [] n

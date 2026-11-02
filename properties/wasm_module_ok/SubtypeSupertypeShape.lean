@@ -9,19 +9,19 @@ theorem subtype_sub_ok_prime_shape
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt ht⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt ht⟩)
       start (.success (.of ())) finish) :
     ∃ y : SpecTec.typeidx, ht = .VarHT (.StatX y) ∧ y < x := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Subtype_sub_ok'_clauses c x strt ht) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Subtype_sub_ok'_clauses c x strt ht))
         start (.success (.of ())) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Subtype_sub_ok'_clauses c x strt ht) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Subtype_sub_ok'_clauses c x strt ht)
           start (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_sub_ok'_clauses at hselected
       cases hselected with
@@ -35,8 +35,8 @@ theorem subtype_sub_ok_prime_shape
             try cases ‹False›
           cases ‹SpecTec.typevar› with
           | StatX y =>
-              have hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-                  (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+              have hcall : SpecTecExecution.Eval SpecTec.Body
+                  (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt
                     (.VarHT (.StatX y))⟩)
                   start (.success (.of ())) finish := .call hbody
               exact ⟨y, rfl,

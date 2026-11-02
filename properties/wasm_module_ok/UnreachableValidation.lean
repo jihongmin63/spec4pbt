@@ -21,7 +21,7 @@ theorem makeResult_bot_eq_replicate (n : Nat) :
 
 theorem pop_ellipsis_empty_clause_total
     (c : SpecTec.context) (ts : List SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:1» c
         (.NoEllipses, ts) (.Ellipses, ([] : List SpecTec.valtype)))
       n (.success (.of
@@ -58,21 +58,21 @@ theorem pop_ellipsis_empty_clause_total
 
 theorem pop_ellipsis_empty_total
     (c : SpecTec.context) (ts : List SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, ts) (.Ellipses, ([] : List SpecTec.valtype))⟩)
       n (.success (.of
         (SpecTec.ellipses.Ellipses, ([] : List SpecTec.valtype)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$pop_clauses» c
-        (.NoEllipses, ts) (.Ellipses, ([] : List SpecTec.valtype))) ())
+        (.NoEllipses, ts) (.Ellipses, ([] : List SpecTec.valtype))))
     n (.success (.of
       (SpecTec.ellipses.Ellipses, ([] : List SpecTec.valtype)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c
         (.NoEllipses, ts) (.Ellipses, ([] : List SpecTec.valtype)))
       n .unmatch n
@@ -80,29 +80,29 @@ theorem pop_ellipsis_empty_total
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:ellipses:Ellipses»]))
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact pop_ellipsis_empty_clause_total c ts n
 
 theorem unreachable_instr_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt .UNREACHABLE⟩)
+        SpecTec.Call.Instr_ok c irt .UNREACHABLE⟩)
       n (.success (.of (({
         INS := (.Ellipses, []), OUTS := (.Ellipses, [])
         } : SpecTec.inferfunctype),
         ([] : List SpecTec.localidx)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Instr_ok_clauses c irt .UNREACHABLE) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Instr_ok_clauses c irt .UNREACHABLE))
     n (.success (.of (({
       INS := (.Ellipses, []), OUTS := (.Ellipses, [])
       } : SpecTec.inferfunctype),
       ([] : List SpecTec.localidx)))) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Instr_ok:clause:0» c irt .UNREACHABLE)
     n (.success (.of (({
       INS := (.Ellipses, []), OUTS := (.Ellipses, [])
@@ -115,7 +115,7 @@ theorem unreachable_instr_total
 
 theorem pop_unreachable_input_clause_total
     (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:2» c
         (.Ellipses, ([] : List SpecTec.valtype))
         (.NoEllipses, ([] : List SpecTec.valtype)))
@@ -140,23 +140,23 @@ theorem pop_unreachable_input_clause_total
 
 theorem pop_unreachable_input_total
     (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.Ellipses, ([] : List SpecTec.valtype))
           (.NoEllipses, ([] : List SpecTec.valtype))⟩)
       n (.success (.of
         (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$pop_clauses» c
         (.Ellipses, ([] : List SpecTec.valtype))
-        (.NoEllipses, ([] : List SpecTec.valtype))) ())
+        (.NoEllipses, ([] : List SpecTec.valtype))))
     n (.success (.of
       (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c
         (.Ellipses, ([] : List SpecTec.valtype))
         (.NoEllipses, ([] : List SpecTec.valtype))) n .unmatch n
@@ -166,8 +166,8 @@ theorem pop_unreachable_input_total
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:ellipses:Ellipses»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:1» c
         (.Ellipses, ([] : List SpecTec.valtype))
         (.NoEllipses, ([] : List SpecTec.valtype))) n .unmatch n
@@ -175,14 +175,14 @@ theorem pop_unreachable_input_total
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:ellipses:NoEllipses»]))
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact pop_unreachable_input_clause_total c n
 
 theorem instrs_unreachable_total
     (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c
+        SpecTec.Call.Instrs_ok c
           (.NoEllipses, ([] : List SpecTec.valtype))
           [.UNREACHABLE]⟩)
       n (.success (.of
@@ -206,9 +206,9 @@ theorem instrs_unreachable_total
 
 theorem block_unreachable_total
     (c : SpecTec.context) (ts : List SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Block_ok c
+        SpecTec.Call.Block_ok c
           (.InstrT [] ts []) [.UNREACHABLE]⟩)
       n (.success (.of ())) n := by
   apply (BlockTrace.block_success_iff
@@ -223,9 +223,9 @@ theorem funcbody_unreachable_total
     (hft : FunctionTypeValidation.funcTypeResult c f.FTYPE =
       some (.FuncT args results))
     (hloc : LocalListValidation.allLocalsValid c f.LOCALS = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Funcbody_ok c
+        SpecTec.Call.Funcbody_ok c
           {f with BODY := [.UNREACHABLE]}⟩)
       n (.success (.of ())) n := by
   apply (FuncbodyTrace.funcbody_success_iff_precomputed

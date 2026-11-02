@@ -10,9 +10,9 @@ theorem pairedChecks_of_success
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     CandidateGroupSuperChecks.pairedChecks
       result c.TYPES.length (List.range sts.length) sts = true := by
@@ -32,9 +32,9 @@ theorem pairedChecks_of_success
   obtain ⟨dts, hresult, before, after, hiter⟩ :=
     MatchHeaptypeBasic.rectype_ok_extract_range_and_sub_iter
       c result sts start finish hrect
-  have hiterResult : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hiterResult : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6»
+        SpecTec.Call.«Rectype_ok:rule:iter:6»
           result c.TYPES.length (List.range sts.length) sts⟩)
       before (.success (.of ())) after := by
     simpa [hresult] using hiter

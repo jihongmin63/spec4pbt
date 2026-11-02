@@ -9,8 +9,8 @@ theorem const_ok_cons_success_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (i : SpecTec.instr) (rest : List SpecTec.instr)
     (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t (i :: rest)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t (i :: rest)⟩)
       n (.success (.of ())) fin ↔
     ConstSyntaxDecision.syntaxAllowed c i = true ∧
     (∀ j ∈ rest, ConstSyntaxDecision.syntaxAllowed c j = true) ∧
@@ -18,29 +18,29 @@ theorem const_ok_cons_success_iff
       (popped pushed irt : SpecTec.inferresulttype)
       (indices : List SpecTec.idx) (ellipses : SpecTec.ellipses)
       (middle₁ middle₂ middle₃ middle₄ finInstrs : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c (.NoEllipses, []) i⟩)
+          SpecTec.Call.Instr_ok c (.NoEllipses, []) i⟩)
         n (.success (.of iit)) middle₁ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+          SpecTec.Call.«$init_locals» c iit.2⟩)
         middle₁ (.success (.of c₁)) middle₂ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c iit.1.INS (.NoEllipses, [])⟩)
+          SpecTec.Call.«$pop» c iit.1.INS (.NoEllipses, [])⟩)
         middle₂ (.success (.of popped)) middle₃ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$push» c iit.1.OUTS popped⟩)
+          SpecTec.Call.«$push» c iit.1.OUTS popped⟩)
         middle₃ (.success (.of pushed)) middle₄ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c₁ pushed rest⟩)
+          SpecTec.Call.Instrs_ok c₁ pushed rest⟩)
         middle₄ (.success (.of (irt, indices))) finInstrs ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.ellipses × SpecTec.resulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) irt⟩)
         finInstrs
           (.success (.of (ellipses, ([] : List SpecTec.valtype))))

@@ -5,10 +5,10 @@ namespace properties.wasm_module_ok.ConstructiveBodyLocalCoverage
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironment ConstructiveBodyProductions ConstructiveBodyProductionCoverage ConstructiveBodySimpleAtoms ConstructiveBodyEvalReduction
 
 theorem get_lookup (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.GET» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.GET» x)⟩)
       n (.success (.of effect)) finish) : ∃t,c.LOCALS[x]?=some (.LocalT .Set t) := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«LOCAL.GET» x) 25 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:25» c stack (.«LOCAL.GET» x)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:25» c stack (.«LOCAL.GET» x)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:25» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
@@ -23,10 +23,10 @@ theorem get_lookup (c : context) (stack : inferresulttype) (x : Nat) (effect : i
       | Set => exact ⟨t,rfl⟩
 
 theorem set_lookup (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.SET» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.SET» x)⟩)
       n (.success (.of effect)) finish) : ∃ini t,c.LOCALS[x]?=some (.LocalT ini t) := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«LOCAL.SET» x) 26 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:26» c stack (.«LOCAL.SET» x)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:26» c stack (.«LOCAL.SET» x)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:26» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨hb,_⟩ := (bind_guard _ _ _ _ _).1 hs
@@ -34,10 +34,10 @@ theorem set_lookup (c : context) (stack : inferresulttype) (x : Nat) (effect : i
     exact ⟨ini,t,by simpa only [he] using List.getElem?_eq_getElem hb⟩
 
 theorem tee_lookup (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.TEE» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.TEE» x)⟩)
       n (.success (.of effect)) finish) : ∃ini t,c.LOCALS[x]?=some (.LocalT ini t) := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«LOCAL.TEE» x) 27 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:27» c stack (.«LOCAL.TEE» x)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:27» c stack (.«LOCAL.TEE» x)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:27» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨hb,_⟩ := (bind_guard _ _ _ _ _).1 hs
@@ -69,7 +69,7 @@ theorem write_mem (c : context) (stack : inferresulttype) (env : Env c) (x : Nat
   cases tee <;> simp
 
 theorem get_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.GET» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.GET» x)⟩)
       n (.success (.of effect)) finish) : Covers (locals c stack env) (.«LOCAL.GET» x) effect ∧ finish=n := by
   obtain ⟨t,hx⟩ := get_lookup c stack x effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack (locals c stack env) (localGet c stack env x t hx) _ effect n finish
@@ -77,7 +77,7 @@ theorem get_original (c : context) (stack : inferresulttype) (env : Env c) (x : 
   exact ⟨_,rfl,rfl⟩
 
 theorem set_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.SET» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.SET» x)⟩)
       n (.success (.of effect)) finish) : Covers (locals c stack env) (.«LOCAL.SET» x) effect ∧ finish=n := by
   obtain ⟨ini,t,hx⟩ := set_lookup c stack x effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack (locals c stack env) (localWrite c stack env x ini t hx false) _ effect n finish
@@ -85,7 +85,7 @@ theorem set_original (c : context) (stack : inferresulttype) (env : Env c) (x : 
   exact ⟨_,rfl,rfl⟩
 
 theorem tee_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOCAL.TEE» x)⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOCAL.TEE» x)⟩)
       n (.success (.of effect)) finish) : Covers (locals c stack env) (.«LOCAL.TEE» x) effect ∧ finish=n := by
   obtain ⟨ini,t,hx⟩ := tee_lookup c stack x effect n finish h
   apply ConstructiveBodyFunctionCoverage.from_production c stack (locals c stack env) (localWrite c stack env x ini t hx true) _ effect n finish

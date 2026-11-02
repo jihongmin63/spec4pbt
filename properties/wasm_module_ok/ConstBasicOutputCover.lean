@@ -8,9 +8,9 @@ theorem numeric_output_in_basic
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.num_) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+        SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstBasicSeed.basicBase c := by
@@ -29,9 +29,9 @@ theorem ref_null_output_in_basic
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (ht : SpecTec.heaptype) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.NULL» ht)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.NULL» ht)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstBasicSeed.basicBase c := by
@@ -51,9 +51,9 @@ theorem ref_func_output_in_basic
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstBasicSeed.basicBase c := by
@@ -75,9 +75,9 @@ theorem global_get_output_in_basic
     (x : SpecTec.globalidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
     (hsyntax : ConstSyntaxDecision.syntaxAllowed c (.«GLOBAL.GET» x) = true)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     u ∈ ConstBasicSeed.basicBase c := by

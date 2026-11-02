@@ -3,6 +3,7 @@ import properties.wasm_module_ok.FuncsValidation
 import properties.wasm_module_ok.MemsValidation
 import properties.wasm_module_ok.TagsValidation
 import properties.wasm_module_ok.CandidateTypesDecision
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructivePreludeRefs
@@ -118,36 +119,36 @@ theorem tags_result_replace (refs : SpecTec.free) (c : context) (xs : List tag) 
 
 theorem imports_replace (refs : SpecTec.free) (c result : context)
     (xs : List SpecTec.«import») (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context, SpecTecCall.Imports_ok c xs⟩)
+    (h : Eval Body (.call ⟨context, Call.Imports_ok c xs⟩)
       start (.success (.of result)) finish) :
-    Eval specTecProgram (.call ⟨context, SpecTecCall.Imports_ok (replace refs c) xs⟩)
+    Eval Body (.call ⟨context, Call.Imports_ok (replace refs c) xs⟩)
       start (.success (.of (replace refs result))) finish := by
   rw [ImportsValidation.imports_success_iff_result] at h ⊢
   exact ⟨by rw [imports_result_replace, h.1]; rfl, h.2⟩
 
 theorem funcs_replace (refs : SpecTec.free) (c result : context)
     (xs : List SpecTec.func) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context, SpecTecCall.Funcs_ok c xs⟩)
+    (h : Eval Body (.call ⟨context, Call.Funcs_ok c xs⟩)
       start (.success (.of result)) finish) :
-    Eval specTecProgram (.call ⟨context, SpecTecCall.Funcs_ok (replace refs c) xs⟩)
+    Eval Body (.call ⟨context, Call.Funcs_ok (replace refs c) xs⟩)
       start (.success (.of (replace refs result))) finish := by
   rw [FuncsValidation.funcs_success_iff_result] at h ⊢
   exact ⟨by rw [funcs_result_replace, h.1]; rfl, h.2⟩
 
 theorem mems_replace (refs : SpecTec.free) (c result : context)
     (xs : List memory) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context, SpecTecCall.Mems_ok c xs⟩)
+    (h : Eval Body (.call ⟨context, Call.Mems_ok c xs⟩)
       start (.success (.of result)) finish) :
-    Eval specTecProgram (.call ⟨context, SpecTecCall.Mems_ok (replace refs c) xs⟩)
+    Eval Body (.call ⟨context, Call.Mems_ok (replace refs c) xs⟩)
       start (.success (.of (replace refs result))) finish := by
   rw [MemsValidation.mems_success_iff_result] at h ⊢
   exact ⟨by rw [mems_result_replace, h.1]; rfl, h.2⟩
 
 theorem tags_replace (refs : SpecTec.free) (c result : context)
     (xs : List tag) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context, SpecTecCall.Tags_ok c xs⟩)
+    (h : Eval Body (.call ⟨context, Call.Tags_ok c xs⟩)
       start (.success (.of result)) finish) :
-    Eval specTecProgram (.call ⟨context, SpecTecCall.Tags_ok (replace refs c) xs⟩)
+    Eval Body (.call ⟨context, Call.Tags_ok (replace refs c) xs⟩)
       start (.success (.of (replace refs result))) finish := by
   rw [TagsValidation.tags_success_iff_result] at h ⊢
   exact ⟨by rw [tags_result_replace, h.1]; rfl, h.2⟩
@@ -287,14 +288,13 @@ which the initial empty context and each earlier Types_ok stage establish. -/
 theorem types_replace (refs : SpecTec.free) (c result : context)
     (ts : List SpecTec.type) (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (h : Eval specTecProgram (.call ⟨context, SpecTecCall.Types_ok c ts⟩)
+    (h : Eval Body (.call ⟨context, Call.Types_ok c ts⟩)
       start (.success (.of result)) finish) :
-    Eval specTecProgram (.call ⟨context, SpecTecCall.Types_ok (replace refs c) ts⟩)
+    Eval Body (.call ⟨context, Call.Types_ok (replace refs c) ts⟩)
       start (.success (.of (replace refs result))) finish := by
   have hr := CandidateTypesDecision.types_result_of_success c result ts start finish hc h
   have he := CandidateTypesDecision.types_success_of_result c result ts start hc hr
-  have hdet : PrimitiveDeterministic specTecProgram := by intro req a b hp; cases hp
-  have hn := (eval_deterministic hdet h he).2
+  have hn := (properties.wasm_module_ok.Execution.eval_deterministic h he).2
   rw [hn]
   exact CandidateTypesDecision.types_success_of_result
     (replace refs c) (replace refs result) ts start (validated_types_replace refs c hc)

@@ -127,9 +127,9 @@ theorem rectype_success_nestedTableReady
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     nestedTableReady result = true := by
   apply (nestedTableReady_true_iff result).2
@@ -143,9 +143,9 @@ theorem rectype_success_candidate_nested_ready
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     ∃ candidate,
       CandidateRectypeTable.candidateContext c sts = some candidate ∧

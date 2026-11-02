@@ -19,9 +19,9 @@ theorem validated_types_position_resolved_edges
     ∃ dts : List SpecTec.deftype,
     ∃ sts' : List SpecTec.subtype,
       ValidatedTypes before ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
         start (.success (.of after)) finish ∧
       p = before.TYPES.length + i ∧ i < sts.length ∧
       sts[i]? = some (.SubT fin hts strt) ∧

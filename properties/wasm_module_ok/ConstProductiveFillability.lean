@@ -36,8 +36,8 @@ theorem saturation_const_witness
     (hprov : CandidateUniverseReady.Provenance c)
     (htable : CandidateValMatch.InTableVal c t) :
     ∃ (xs : List SpecTec.instr) (n : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         n (.success (.of ())) n := by
   obtain ⟨_, u, husource, humatch⟩ :=
     (ConstExtendedMatchSaturation.extended_match_saturation_mem_iff
@@ -82,8 +82,8 @@ theorem productive_round_const_witness
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (htable : CandidateValMatch.InTableVal c t) :
     ∃ (xs : List SpecTec.instr) (n : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         n (.success (.of ())) n := by
   exact saturation_const_witness c
     (FiniteClosure.iterate (ConstProductiveClosure.productiveStep c) round) t
@@ -104,8 +104,8 @@ theorem productive_fillable_const_witness
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (htable : CandidateValMatch.InTableVal c t) :
     ∃ (xs : List SpecTec.instr) (n : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         n (.success (.of ())) n := by
   have hmem : t ∈ ConstExtendedMatchSaturation.extendedMatchSaturation c
       (ConstMatchAwareClosure.sourcesOf c

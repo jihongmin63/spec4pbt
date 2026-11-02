@@ -59,8 +59,8 @@ theorem constant_expression_result_iff_const_ok
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (htarget : CandidateValMatch.InTableVal c t) :
     constantExpressionResult c t xs = true ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         n (.success (.of ())) n := by
   have hadmissible : ConstFoldTrace.FoldAdmissible c [] xs :=
     ConstFoldTrace.fold_admissible_of_provenance
@@ -106,9 +106,9 @@ theorem constant_expression_result_iff_const_ok
     have hfoldStack : ConstFoldDecision.constantFoldResult c [] xs =
         some (.NoEllipses, stack) := by
       simpa only [hshape] using hfold
-    have hpopStack : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpopStack : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) (.NoEllipses, stack)⟩)
         middle (.success (.of
           (ellipses, ([] : List SpecTec.valtype)))) n := by
@@ -138,8 +138,8 @@ theorem constant_expression_result_iff_const_ok_any_counters
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (htarget : CandidateValMatch.InTableVal c t) :
     constantExpressionResult c t xs = true ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         start (.success (.of ())) finish := by
   constructor
   · rintro ⟨hresult, hsame⟩
@@ -165,9 +165,9 @@ theorem constant_expression_result_iff_const_ok_any_counters
     have hfoldStack : ConstFoldDecision.constantFoldResult c [] xs =
         some (.NoEllipses, stack) := by
       simpa only [hshape] using hfold
-    have hpopStack : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpopStack : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) (.NoEllipses, stack)⟩)
         middle (.success (.of
           (ellipses, ([] : List SpecTec.valtype)))) finish := by
@@ -187,8 +187,8 @@ theorem constant_expression_result_iff_const_ok_any_counters
         c [t] stack (ellipses, []) middle finish
         hready htargetList hstack).2 hpopStack).2
     have hsame : finish = start := hfinish.trans hmiddle
-    have hcallSame : SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    have hcallSame : SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         start (.success (.of ())) start := by
       simpa only [hsame] using hcall
     exact ⟨(constant_expression_result_iff_const_ok

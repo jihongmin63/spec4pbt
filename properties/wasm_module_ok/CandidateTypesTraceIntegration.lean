@@ -6,16 +6,16 @@ namespace properties.wasm_module_ok.CandidateTypesTraceIntegration
 
 theorem empty_context_types_nil
     (out : SpecTec.context) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$empty_context»⟩)
+        SpecTec.Call.«$empty_context»⟩)
       start (.success (.of out)) finish) :
     out.TYPES = [] := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$empty_context_clauses») ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$empty_context_clauses»))
         start (.success (.of out)) finish at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -48,9 +48,9 @@ theorem types_state_iff_call
     (c out : SpecTec.context) (ts : List SpecTec.type)
     (n : Nat) (hc : ValidatedTypeChain.ValidatedTypes c) :
     Gen.support (CandidateTypesStateStage.typesStateGen c) (ts, out) ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Types_ok c ts⟩)
+          SpecTec.Call.Types_ok c ts⟩)
         n (.success (.of out)) n := by
   exact (CandidateTypesStateStage.typesState_support_iff c ts out).trans
     (CandidateTypesDecision.types_result_iff_success

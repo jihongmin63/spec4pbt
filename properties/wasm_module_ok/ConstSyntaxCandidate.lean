@@ -20,9 +20,9 @@ theorem syntax_instruction_effect_candidate
     (irt : SpecTec.inferresulttype)
     (iit : SpecTec.inferinstrtype) (start fin : Nat)
     (hs : ConstAdditionalSyntaxValidation.Syntax base i)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

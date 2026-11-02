@@ -23,9 +23,9 @@ theorem basic_base_trace_singleton
 
 theorem pop_empty_from_stack
     (c : SpecTec.context) (stack : List SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c (.NoEllipses, [])
+        SpecTec.Call.«$pop» c (.NoEllipses, [])
           (.NoEllipses, stack)⟩)
       n (.success (.of
         (SpecTec.ellipses.NoEllipses, stack))) n := by

@@ -32,8 +32,8 @@ theorem global_result_iff_call
     (hprov : CandidateUniverseReady.Provenance c)
     (hnested : CandidateNestedReady.nestedTableReady c = true) :
     globalResult c g = some out ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Global_ok c g⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Global_ok c g⟩)
         start (.success (.of out)) finish := by
   cases g with
   | mk gt init =>
@@ -55,14 +55,14 @@ theorem global_result_iff_call
         subst out
         subst finish
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Global_ok_clauses c ⟨.GlobalT mutation t, init⟩) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Global_ok_clauses c ⟨.GlobalT mutation t, init⟩))
           start (.success (.of
             ({c with GLOBALS := c.GLOBALS ++ [.GlobalT mutation t]} :
               SpecTec.context))) start
-        apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Global_ok:clause:0» c ⟨.GlobalT mutation t, init⟩)
           start (.success (.of
             ({c with GLOBALS := c.GLOBALS ++ [.GlobalT mutation t]} :
@@ -79,9 +79,9 @@ theorem global_result_iff_call
       · intro hcall
         cases hcall with
         | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
-            (SpecTecExecution.firstSuccess
-              (SpecTec.Global_ok_clauses c ⟨.GlobalT mutation t, init⟩) ())
+          change SpecTecExecution.Eval SpecTec.Body
+            (SpecTecExecution.tryClauses
+              (SpecTec.Global_ok_clauses c ⟨.GlobalT mutation t, init⟩))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hclause =>

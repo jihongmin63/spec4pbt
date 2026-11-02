@@ -97,9 +97,9 @@ theorem success_preMatchReady
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     preMatchReady c (.RecT sts) = true := by
   have hcontext := CandidateRectypeTable.rectype_success_candidateContext
@@ -114,9 +114,9 @@ theorem readyGroupGen_support_of_success
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     Gen.support (readyGroupGen c) (.RecT sts) :=
   (readyGroupGen_support_iff c (.RecT sts)).2

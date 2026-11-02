@@ -28,8 +28,8 @@ private theorem fixed_target_eval
     (n : Nat)
     (hsource : source ∈ HeaptypeValidation.baseHeaptypes)
     (htarget : target ∈ MatchSpecialBaseTotal.fixedBaseTargets) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         dts source target⟩)
       n (.success (.of (baseMatchFuel 1 source target))) n := by
   have hsimple := MatchSpecialBaseTotal.fixed_target_simple target htarget
@@ -71,8 +71,8 @@ theorem baseMatch_eval
     (n : Nat)
     (hsource : source ∈ HeaptypeValidation.baseHeaptypes)
     (htarget : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         dts source target⟩)
       n (.success (.of (baseMatch source target))) n := by
   simp [HeaptypeValidation.baseHeaptypes] at hsource

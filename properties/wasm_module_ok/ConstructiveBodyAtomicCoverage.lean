@@ -37,7 +37,7 @@ theorem lift {c : context} {stack : inferresulttype} {ps qs : List (Production c
 theorem realize {c : context} {stack : inferresulttype} {ps : List (Production c stack)}
     {i : instr} {effect : inferinstrtype} {n finish : Nat}
     (hr : ∃p∈ps,Produces p i)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of effect)) finish) : Covers ps i effect ∧ finish=n := by
   obtain ⟨p,hp,hi⟩ := hr
   exact ConstructiveBodyFunctionCoverage.from_production c stack ps p i effect n finish hp hi h
@@ -45,7 +45,7 @@ theorem realize {c : context} {stack : inferresulttype} {ps : List (Production c
 theorem original (c : context) (stack : inferresulttype) (env : Env c) (hs : StackBacked c stack)
     (i : instr) (ha : Atomic i) (depth : Nat) (hd : arity i≤depth) (child : ConstructiveBodyControlProductions.Builder)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of effect)) finish) : Covers (catalog c stack env hs depth child) i effect ∧ finish=n := by
   cases i with
   | UNREACHABLE =>

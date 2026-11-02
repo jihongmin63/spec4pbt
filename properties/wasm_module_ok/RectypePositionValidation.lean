@@ -7,32 +7,32 @@ namespace properties.wasm_module_ok.RectypePositionValidation
 theorem rectype_subst_iter_position
     (c : SpecTec.context) (rolled substituted : List SpecTec.deftype)
     (start finish i : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.deftype,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:2» c rolled⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:2» c rolled⟩)
       start (.success (.of substituted)) finish)
     (hi : i < rolled.length) :
     ∃ dt dt' : SpecTec.deftype,
       rolled[i]? = some dt ∧ substituted[i]? = some dt' ∧
       ∃ before after : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.deftype,
-          SpecTec.SpecTecCall.«$subst_deftype»
+          SpecTec.Call.«$subst_deftype»
             (List SpecTec.deftype) c.TYPES
-            SpecTec.SpecTecCall.«$subst_of» dt⟩)
+            SpecTec.Call.«$subst_of» dt⟩)
         before (.success (.of dt')) after := by
   induction rolled generalizing substituted start finish i with
   | nil => simp at hi
   | cons hd tl ih =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)))
           start (.success (.of substituted)) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.firstSuccess_success_iff
-            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl)) ()
+          (SpecTecExecution.tryClauses_success_iff
+            (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (hd :: tl))
             start (.of substituted) finish).1 hbody
         unfold SpecTec.«Rectype_ok:rule:iter:2_clauses» at hselected
         cases hselected with

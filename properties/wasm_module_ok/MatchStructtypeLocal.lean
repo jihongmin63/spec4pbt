@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.MatchStructtypeConditional
 import properties.wasm_module_ok.MatchFieldLocal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,12 +13,12 @@ theorem iter_success_iff_allFieldsMatched_of_local_field
     (hlen : as.length = bs.length)
     (n finish : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         supply (.success (.of (fieldMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_structtype:case_1:iter:0» dts as bs⟩)
+        SpecTec.Call.«$match_structtype:case_1:iter:0» dts as bs⟩)
       n (.success (.of ())) finish ↔
     MatchStructtypeConditional.allFieldsMatched fieldMatch as bs = true ∧
       finish = n := by
@@ -27,12 +28,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field
     | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (MatchStructtypeConditional.iter_nil_total dts n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -46,8 +43,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field
         simpa using hlen
       have hhead := hfield a (List.mem_cons_self) b (List.mem_cons_self)
       have htailField : ∀ a', a' ∈ as → ∀ b', b' ∈ bs → ∀ supply,
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a' b'⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a' b'⟩)
             supply (.success (.of (fieldMatch a' b'))) supply := by
         intro a' ha b' hb supply
         exact hfield a' (List.mem_cons_of_mem _ ha)
@@ -57,12 +54,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field
         obtain ⟨middle, hfirst, hrest⟩ :=
           (MatchStructtypeConditional.iter_cons_success_iff
             dts a b as bs n finish).1 h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨hresult, hmiddle⟩ :=
-          SpecTecExecution.eval_deterministic hdet hfirst (hhead n)
+          properties.wasm_module_ok.Execution.eval_deterministic hfirst (hhead n)
         have hvalid : fieldMatch a b = true := by
           cases hv : fieldMatch a b with
           | false => simp [hv] at hresult
@@ -90,12 +83,12 @@ theorem iter_unmatch_of_false_local
     (hfalse : MatchStructtypeConditional.allFieldsMatched fieldMatch as bs = false)
     (n : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         supply (.success (.of (fieldMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_structtype:case_1:iter:0» dts as bs⟩)
+        SpecTec.Call.«$match_structtype:case_1:iter:0» dts as bs⟩)
       n .unmatch n := by
   induction as generalizing bs n with
   | nil =>
@@ -110,25 +103,25 @@ theorem iter_unmatch_of_false_local
         simpa using hlen
       have hhead := hfield a (List.mem_cons_self) b (List.mem_cons_self)
       have htailField : ∀ a', a' ∈ as → ∀ b', b' ∈ bs → ∀ supply,
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a' b'⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a' b'⟩)
             supply (.success (.of (fieldMatch a' b'))) supply := by
         intro a' ha b' hb supply
         exact hfield a' (List.mem_cons_of_mem _ ha)
           b' (List.mem_cons_of_mem _ hb) supply
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_structtype:case_1:iter:0_clauses»
-            dts (a :: as) (b :: bs)) ())
+            dts (a :: as) (b :: bs)))
         n .unmatch n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_structtype:case_1:iter:0:clause:0»
             dts (a :: as) (b :: bs)) n .unmatch n
         exact SpecTecExecution.Eval.unmatch
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$match_structtype:case_1:iter:0:clause:1»
               dts (a :: as) (b :: bs)) n .unmatch n
           unfold SpecTec.«$match_structtype:case_1:iter:0:clause:1»
@@ -148,19 +141,19 @@ theorem iter_unmatch_of_false_local
             · exact SpecTecExecution.Eval.guard_true rfl
             · exact SpecTecExecution.Eval.bind_unmatch
                 (ih bs hlenTail htailFalse n htailField)
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
 
 theorem match_structtype_total_of_local_field
     (dts : List SpecTec.deftype)
     (fieldMatch : SpecTec.fieldtype → SpecTec.fieldtype → Bool)
     (as bs : List SpecTec.fieldtype) (n : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         supply (.success (.of (fieldMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_structtype»
+        SpecTec.Call.«$match_structtype»
           dts (.StructT as) (.StructT bs)⟩)
       n (.success (.of
         (MatchStructtypeConditional.structMatch fieldMatch
@@ -170,8 +163,8 @@ theorem match_structtype_total_of_local_field
       simp [List.length_take, Nat.min_eq_left hwidth]
     have hprefixField : ∀ a, a ∈ as.take bs.length →
         ∀ b, b ∈ bs → ∀ supply,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
           supply (.success (.of (fieldMatch a b))) supply := by
       intro a ha b hb supply
       exact hfield a (List.mem_of_mem_take ha) b hb supply
@@ -210,17 +203,17 @@ theorem match_structtype_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT a) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT b) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT b) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT a) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_structtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_structtype» dts a b⟩)
       n (.success (.of
         (MatchStructtypeConditional.structMatch
           (MatchFieldConditional.fieldMatch heapMatch) a b))) n := by
@@ -251,12 +244,12 @@ theorem iter_success_iff_allFieldsMatched_of_local_field_at
     (hlen : as.length = bs.length)
     (n finish : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         n (.success (.of (fieldMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_structtype:case_1:iter:0» dts as bs⟩)
+        SpecTec.Call.«$match_structtype:case_1:iter:0» dts as bs⟩)
       n (.success (.of ())) finish ↔
     MatchStructtypeConditional.allFieldsMatched fieldMatch as bs = true ∧
       finish = n := by
@@ -266,12 +259,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field_at
     | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (MatchStructtypeConditional.iter_nil_total dts n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -285,8 +274,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field_at
         simpa using hlen
       have hhead := hfield a (List.mem_cons_self) b (List.mem_cons_self)
       have htailField : ∀ a', a' ∈ as → ∀ b', b' ∈ bs →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a' b'⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a' b'⟩)
             n (.success (.of (fieldMatch a' b'))) n := by
         intro a' ha b' hb
         exact hfield a' (List.mem_cons_of_mem _ ha)
@@ -296,12 +285,8 @@ theorem iter_success_iff_allFieldsMatched_of_local_field_at
         obtain ⟨middle, hfirst, hrest⟩ :=
           (MatchStructtypeConditional.iter_cons_success_iff
             dts a b as bs n finish).1 h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨hresult, hmiddle⟩ :=
-          SpecTecExecution.eval_deterministic hdet hfirst hhead
+          properties.wasm_module_ok.Execution.eval_deterministic hfirst hhead
         have hvalid : fieldMatch a b = true := by
           cases hv : fieldMatch a b with
           | false => simp [hv] at hresult
@@ -330,12 +315,12 @@ theorem iter_unmatch_of_false_local_at
     (hfalse : MatchStructtypeConditional.allFieldsMatched fieldMatch as bs = false)
     (n : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         n (.success (.of (fieldMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_structtype:case_1:iter:0» dts as bs⟩)
+        SpecTec.Call.«$match_structtype:case_1:iter:0» dts as bs⟩)
       n .unmatch n := by
   induction as generalizing bs n with
   | nil =>
@@ -350,25 +335,25 @@ theorem iter_unmatch_of_false_local_at
         simpa using hlen
       have hhead := hfield a (List.mem_cons_self) b (List.mem_cons_self)
       have htailField : ∀ a', a' ∈ as → ∀ b', b' ∈ bs →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a' b'⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a' b'⟩)
             n (.success (.of (fieldMatch a' b'))) n := by
         intro a' ha b' hb
         exact hfield a' (List.mem_cons_of_mem _ ha)
           b' (List.mem_cons_of_mem _ hb)
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_structtype:case_1:iter:0_clauses»
-            dts (a :: as) (b :: bs)) ())
+            dts (a :: as) (b :: bs)))
         n .unmatch n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_structtype:case_1:iter:0:clause:0»
             dts (a :: as) (b :: bs)) n .unmatch n
         exact SpecTecExecution.Eval.unmatch
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$match_structtype:case_1:iter:0:clause:1»
               dts (a :: as) (b :: bs)) n .unmatch n
           unfold SpecTec.«$match_structtype:case_1:iter:0:clause:1»
@@ -388,19 +373,19 @@ theorem iter_unmatch_of_false_local_at
             · exact SpecTecExecution.Eval.guard_true rfl
             · exact SpecTecExecution.Eval.bind_unmatch
                 (ih bs hlenTail htailFalse n htailField)
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
 
 theorem match_structtype_total_of_local_field_at
     (dts : List SpecTec.deftype)
     (fieldMatch : SpecTec.fieldtype → SpecTec.fieldtype → Bool)
     (as bs : List SpecTec.fieldtype) (n : Nat)
     (hfield : ∀ a, a ∈ as → ∀ b, b ∈ bs →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
         n (.success (.of (fieldMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_structtype»
+        SpecTec.Call.«$match_structtype»
           dts (.StructT as) (.StructT bs)⟩)
       n (.success (.of
         (MatchStructtypeConditional.structMatch fieldMatch
@@ -410,8 +395,8 @@ theorem match_structtype_total_of_local_field_at
       simp [List.length_take, Nat.min_eq_left hwidth]
     have hprefixField : ∀ a, a ∈ as.take bs.length →
         ∀ b, b ∈ bs →
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Bool, SpecTec.SpecTecCall.«$match_fieldtype» dts a b⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Bool, SpecTec.Call.«$match_fieldtype» dts a b⟩)
           n (.success (.of (fieldMatch a b))) n := by
       intro a ha b hb
       exact hfield a (List.mem_of_mem_take ha) b hb
@@ -450,17 +435,17 @@ theorem match_structtype_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT a) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT b) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT b) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefStructT a) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_structtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_structtype» dts a b⟩)
       n (.success (.of
         (MatchStructtypeConditional.structMatch
           (MatchFieldConditional.fieldMatch heapMatch) a b))) n := by

@@ -12,20 +12,20 @@ def storagetypeValid (c : SpecTec.context) :
 theorem val_storage_success_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Storagetype_ok c (.ValStorageT t)⟩)
+        SpecTec.Call.Storagetype_ok c (.ValStorageT t)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Valtype_ok c t⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Storagetype_ok_clauses c (.ValStorageT t)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Storagetype_ok_clauses c (.ValStorageT t))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Storagetype_ok_clauses at hselected
       cases hselected with
@@ -52,12 +52,12 @@ theorem val_storage_success_iff
         | next _ hnone => cases hnone
   · intro hval
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Storagetype_ok_clauses c (.ValStorageT t)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Storagetype_ok_clauses c (.ValStorageT t)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Storagetype_ok:clause:0» c (.ValStorageT t))
       n (.success (.of ())) finish
     unfold SpecTec.«Storagetype_ok:clause:0»
@@ -69,9 +69,9 @@ theorem val_storage_success_iff
 theorem pack_storage_success_iff
     (c : SpecTec.context) (pt : SpecTec.packtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Storagetype_ok c (.PackStorageT pt)⟩)
+        SpecTec.Call.Storagetype_ok c (.PackStorageT pt)⟩)
       n (.success (.of ())) finish ↔
     (pt = .I8 ∨ pt = .I16) ∧ finish = n := by
   constructor
@@ -79,8 +79,8 @@ theorem pack_storage_success_iff
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Storagetype_ok_clauses c (.PackStorageT pt)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Storagetype_ok_clauses c (.PackStorageT pt))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Storagetype_ok_clauses at hselected
       cases hselected with
@@ -107,20 +107,20 @@ theorem pack_storage_success_iff
         | next _ hnone => cases hnone
   · rintro ⟨hallowed, rfl⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Storagetype_ok_clauses c (.PackStorageT pt)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Storagetype_ok_clauses c (.PackStorageT pt)))
       finish (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Storagetype_ok:clause:0» c (.PackStorageT pt))
         finish .unmatch finish
       unfold SpecTec.«Storagetype_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [SpecTec.«exec:match:storagetype:ValStorageT»]
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Storagetype_ok:clause:1» c (.PackStorageT pt))
         finish (.success (.of ())) finish
       unfold SpecTec.«Storagetype_ok:clause:1»
@@ -134,8 +134,8 @@ theorem pack_storage_success_iff
 theorem storagetype_success_iff_valid
     (c : SpecTec.context) (zt : SpecTec.storagetype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Storagetype_ok c zt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Storagetype_ok c zt⟩)
       n (.success (.of ())) finish ↔
     storagetypeValid c zt = true ∧ finish = n := by
   cases zt with

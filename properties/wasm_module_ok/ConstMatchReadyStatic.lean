@@ -10,9 +10,9 @@ type table remains ready. -/
 theorem init_locals_ready
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish)
     (hready : CandidateTypeReady.Ready c) :
     CandidateTypeReady.Ready d := by
@@ -25,9 +25,9 @@ individual stack value. -/
 theorem init_locals_in_table_val
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish)
     (t : SpecTec.valtype)
     (h : CandidateValMatch.InTableVal c t) :

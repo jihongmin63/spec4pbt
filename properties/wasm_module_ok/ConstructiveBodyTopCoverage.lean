@@ -1,35 +1,35 @@
 import properties.wasm_module_ok.ConstructiveBodyTopMetadata
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyTopCoverage
 open SpecTec properties.wasm_module_ok ConstructiveBodyTopHeap ConstructiveBodyTopMetadata
 
 theorem bot_unmatch (c : context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨heaptype,SpecTecCall.«$top_of_heap_type» c.TYPES .BotHT⟩) n .unmatch n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨heaptype,Call.«$top_of_heap_type» c.TYPES .BotHT⟩) n .unmatch n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$top_of_heap_type_clauses» c.TYPES .BotHT) ()) n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$top_of_heap_type_clauses» c.TYPES .BotHT)) n .unmatch n
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:heaptype:DefHT»]))
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«sub:heaptype:heaptypeVar»]))
-  exact SpecTecExecution.firstSuccess_nil () n
+  exact SpecTecExecution.tryClauses_nil n
 
 theorem not_bot (c : context) (heap top : heaptype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨heaptype,SpecTecCall.«$top_of_heap_type» c.TYPES heap⟩) n (.success (.of top)) finish) : heap≠.BotHT := by
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨heaptype,Call.«$top_of_heap_type» c.TYPES heap⟩) n (.success (.of top)) finish) : heap≠.BotHT := by
   intro he
   subst heap
-  have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro r a b h; cases h
-  have hc := (SpecTecExecution.eval_deterministic hd h (bot_unmatch c n)).1
+  have hc := (properties.wasm_module_ok.Execution.eval_deterministic h (bot_unmatch c n)).1
   cases hc
 
 theorem all_complete (c : context) (hr : CandidateTypeReady.Ready c) (heap : heaptype)

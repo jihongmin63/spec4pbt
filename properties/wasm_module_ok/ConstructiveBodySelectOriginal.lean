@@ -1,20 +1,20 @@
 import properties.wasm_module_ok.ConstructiveBodySelectDispatch
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodySelectOriginal
 open SpecTec properties.wasm_module_ok ConstructiveBodyTypeClassifiers
 
-private theorem bool_exact (call : SpecTecCall Bool) (expected actual : Bool) (n finish : Nat)
-    (ht : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨Bool,call⟩) n (.success (.of expected)) n)
-    (ha : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨Bool,call⟩) n (.success (.of actual)) finish) :
+private theorem bool_exact (call : Call Bool) (expected actual : Bool) (n finish : Nat)
+    (ht : SpecTecExecution.Eval SpecTec.Body (.call ⟨Bool,call⟩) n (.success (.of expected)) n)
+    (ha : SpecTecExecution.Eval SpecTec.Body (.call ⟨Bool,call⟩) n (.success (.of actual)) finish) :
     actual=expected ∧ finish=n := by
-  have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro r a b h; cases h
-  obtain ⟨he,hf⟩ := SpecTecExecution.eval_deterministic hd ha ht
+  obtain ⟨he,hf⟩ := properties.wasm_module_ok.Execution.eval_deterministic ha ht
   cases he
   exact ⟨rfl,hf⟩
 
 theorem plain (c : context) (stack : inferresulttype) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.SELECT none)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.SELECT none)⟩) n (.success (.of effect)) finish) :
     numeric (PeekDecision.peekResult 1 stack)=true ∨ vector (PeekDecision.peekResult 1 stack)=true := by
   have hs := ConstructiveBodySelectDispatch.none_clause c stack effect n finish h
   unfold SpecTec.«Instr_ok:clause:3» at hs
@@ -33,8 +33,8 @@ theorem plain (c : context) (stack : inferresulttype) (effect : inferinstrtype) 
        cases hg with | guard_true hc => exact hc
 
 theorem typed (c : context) (stack : inferresulttype) (ts : List valtype) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.SELECT (some ts))⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.SELECT (some ts))⟩) n (.success (.of effect)) finish) :
     ∃t,ts=[t] ∧ ValtypeValidation.valtypeValid c t=true := by
   have hs := ConstructiveBodySelectDispatch.some_clause c stack ts effect n finish h
   unfold SpecTec.«Instr_ok:clause:4» at hs

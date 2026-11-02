@@ -21,9 +21,9 @@ theorem extern_convert_success_iff_result
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+        SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
       start (.success (.of iit)) fin ↔
     externConvertResult irt op = some iit ∧ fin = start := by
   constructor

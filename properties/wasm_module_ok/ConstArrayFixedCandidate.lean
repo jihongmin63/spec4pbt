@@ -9,9 +9,9 @@ theorem array_new_fixed_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (count : SpecTec.n)
     (iit : SpecTec.inferinstrtype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt
+        SpecTec.Call.Instr_ok c irt
           (.«ARRAY.NEW_FIXED» x count)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,

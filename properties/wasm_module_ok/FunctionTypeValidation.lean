@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.StartValidation
 import properties.wasm_module_ok.UnrollInterface
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -8,19 +9,19 @@ namespace properties.wasm_module_ok.FunctionTypeValidation
 theorem func_type_success_iff
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (ft : SpecTec.functype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.functype, SpecTec.SpecTecCall.«$func_type» c x⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.functype, SpecTec.Call.«$func_type» c x⟩)
       n (.success (.of ft)) finalSupply ↔
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.strtype, SpecTec.Call.«$expanddt» dt⟩)
         n (.success (.of (SpecTec.strtype.DefFuncT ft))) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$func_type:clause:0» c x)
           (fun _ => .unmatch))
         n (.success (.of ft)) finalSupply at hbody
@@ -57,12 +58,12 @@ theorem func_type_success_iff
     have hindex : x < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$func_type_clauses» c x) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$func_type_clauses» c x))
       n (.success (.of ft)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$func_type:clause:0» c x)
       n (.success (.of ft)) finalSupply
     unfold SpecTec.«$func_type:clause:0»
@@ -79,14 +80,14 @@ theorem func_type_success_iff
 theorem func_type_success_iff_unrolldt
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (ft : SpecTec.functype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.functype, SpecTec.SpecTecCall.«$func_type» c x⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.functype, SpecTec.Call.«$func_type» c x⟩)
       n (.success (.of ft)) finalSupply ↔
     ∃ (dt : SpecTec.deftype) (fin : SpecTec.final)
       (supers : List SpecTec.heaptype),
       c.TYPES[x]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         n (.success (.of (SpecTec.subtype.SubT fin supers
           (SpecTec.strtype.DefFuncT ft)))) finalSupply := by
   rw [func_type_success_iff]
@@ -110,8 +111,8 @@ def funcTypeResult (c : SpecTec.context) (x : SpecTec.typeidx) :
 theorem func_type_success_iff_result
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (ft : SpecTec.functype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.functype, SpecTec.SpecTecCall.«$func_type» c x⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.functype, SpecTec.Call.«$func_type» c x⟩)
       n (.success (.of ft)) finalSupply ↔
     funcTypeResult c x = some ft ∧ finalSupply = n := by
   rw [func_type_success_iff_unrolldt]
@@ -141,16 +142,16 @@ def funcTypeOutcome (c : SpecTec.context) (x : SpecTec.typeidx) :
 theorem func_type_none (c : SpecTec.context)
     (x : SpecTec.typeidx) (n : Nat)
     (hresult : funcTypeResult c x = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.functype,
-        SpecTec.SpecTecCall.«$func_type» c x⟩)
+        SpecTec.Call.«$func_type» c x⟩)
       n .unmatch n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$func_type_clauses» c x) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$func_type_clauses» c x))
     n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$func_type:clause:0» c x) n .unmatch n
     unfold SpecTec.«$func_type:clause:0»
     cases hget : c.TYPES[x]? with
@@ -194,13 +195,13 @@ theorem func_type_none (c : SpecTec.context)
             · apply SpecTecExecution.Eval.bind_unmatch
               apply SpecTecExecution.Eval.guard_false
               simp [SpecTec.«exec:match:strtype:DefFuncT»]
-  · exact SpecTecExecution.firstSuccess_nil () n
+  · exact SpecTecExecution.tryClauses_nil n
 
 theorem func_type_total (c : SpecTec.context)
     (x : SpecTec.typeidx) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.functype,
-        SpecTec.SpecTecCall.«$func_type» c x⟩)
+        SpecTec.Call.«$func_type» c x⟩)
       n (funcTypeOutcome c x) n := by
   cases hresult : funcTypeResult c x with
   | none =>
@@ -214,15 +215,12 @@ theorem func_type_total (c : SpecTec.context)
 theorem func_type_deterministic (c : SpecTec.context)
     (x : SpecTec.typeidx) (n finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.functype,
-        SpecTec.SpecTecCall.«$func_type» c x⟩)
+        SpecTec.Call.«$func_type» c x⟩)
       n outcome finalSupply) :
     outcome = funcTypeOutcome c x ∧ finalSupply = n := by
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
-  exact SpecTecExecution.eval_deterministic hdet h
+  exact properties.wasm_module_ok.Execution.eval_deterministic h
     (func_type_total c x n)
 
 end properties.wasm_module_ok.FunctionTypeValidation

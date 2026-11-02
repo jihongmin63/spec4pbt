@@ -9,15 +9,15 @@ theorem subtype_sub_iter_static_call
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strt : SpecTec.strtype) (hts : List SpecTec.heaptype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
       start (.success (.of ())) finish) :
     ∀ ht ∈ hts, ∃ y : SpecTec.typeidx,
       ht = .VarHT (.StatX y) ∧
       ∃ callStart callFinish : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt
             (.VarHT (.StatX y))⟩)
           callStart (.success (.of ())) callFinish := by
   induction hts generalizing start finish with
@@ -27,15 +27,15 @@ theorem subtype_sub_iter_static_call
   | cons hd tl ih =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
-            (SpecTecExecution.firstSuccess
+          change SpecTecExecution.Eval SpecTec.Body
+            (SpecTecExecution.tryClauses
               (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses»
-                c x strt (hd :: tl)) ())
+                c x strt (hd :: tl)))
             start (.success (.of ())) finish at hbody
           obtain ⟨idx, hselected⟩ :=
-            (SpecTecExecution.firstSuccess_success_iff
+            (SpecTecExecution.tryClauses_success_iff
               (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses»
-                c x strt (hd :: tl)) ()
+                c x strt (hd :: tl))
               start (.of ()) finish).1 hbody
           unfold SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» at hselected
           cases hselected with
@@ -65,26 +65,26 @@ theorem subtype_sub_ok_static_call
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok c x
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok c x
         (.SubT fin hts strt)⟩)
       start (.success (.of ())) finish) :
     ∀ ht ∈ hts, ∃ y : SpecTec.typeidx,
       ht = .VarHT (.StatX y) ∧
       ∃ callStart callFinish : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt
             (.VarHT (.StatX y))⟩)
           callStart (.success (.of ())) callFinish := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)))
         start (.success (.of ())) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Subtype_sub_ok_clauses c x (.SubT fin hts strt))
           start (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_sub_ok_clauses at hselected
       cases hselected with

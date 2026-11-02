@@ -10,24 +10,24 @@ inductive ValidatedTypes : SpecTec.context → Prop where
   | append (c result : SpecTec.context)
       (sts : List SpecTec.subtype) (start finish : Nat)
       (hc : ValidatedTypes c)
-      (h : SpecTecExecution.Eval SpecTec.specTecProgram
+      (h : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
         start (.success (.of result)) finish) :
       ValidatedTypes result
 
 theorem types_ok_nil_eq
     (c result : SpecTec.context) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c []⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c []⟩)
       start (.success (.of result)) finish) :
     result = c := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c [])
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Types_ok:clause:1» c []] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Types_ok:clause:1» c []]))
       start (.success (.of result)) finish at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -37,7 +37,7 @@ theorem types_ok_nil_eq
         cases hguard with
         | guard_true hcond => simp at hcond
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c [])
           (fun _ => .unmatch))
         start (.success (.of result)) finish at htail
@@ -54,8 +54,8 @@ theorem types_ok_preserves
     (c result : SpecTec.context) (ts : List SpecTec.type)
     (start finish : Nat)
     (hc : ValidatedTypes c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c ts⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c ts⟩)
       start (.success (.of result)) finish) :
     ValidatedTypes result := by
   induction ts generalizing c result start finish with
@@ -83,9 +83,9 @@ theorem validated_types_position_provenance
     ∃ start finish i : Nat,
     ∃ tail : List SpecTec.deftype,
       ValidatedTypes before ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
         start (.success (.of after)) finish ∧
       p = before.TYPES.length + i ∧ i < sts.length ∧
       c.TYPES = after.TYPES ++ tail := by
@@ -125,9 +125,9 @@ theorem validated_types_position_source
     ∃ hts : List SpecTec.heaptype,
     ∃ strt : SpecTec.strtype,
       ValidatedTypes before ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
         start (.success (.of after)) finish ∧
       p = before.TYPES.length + i ∧ i < sts.length ∧
       sts[i]? = some (.SubT fin hts strt) ∧

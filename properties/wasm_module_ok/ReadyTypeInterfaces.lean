@@ -11,10 +11,10 @@ theorem ready_substitution_fixed
     (p start : Nat) (dt : SpecTec.deftype)
     (_hp : p < c.TYPES.length)
     (hlookup : c.TYPES[p]? = some dt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.deftype,
-        SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-          c.TYPES SpecTec.SpecTecCall.«$subst_of» dt⟩)
+        SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+          c.TYPES SpecTec.Call.«$subst_of» dt⟩)
       start (.success (.of dt)) start := by
   simpa [optionOutcome, hready.substitution p dt hlookup] using
     subst_deftype_of_total dt c.TYPES start

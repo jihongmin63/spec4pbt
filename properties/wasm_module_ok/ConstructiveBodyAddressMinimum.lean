@@ -8,21 +8,21 @@ def minimum : addrtype → addrtype → addrtype
   | _,_ => .I32AT
 
 theorem total (a b : addrtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨addrtype,SpecTecCall.«$min_addrtype» a b⟩) n (.success (.of (minimum a b))) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨addrtype,Call.«$min_addrtype» a b⟩) n (.success (.of (minimum a b))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$min_addrtype_clauses» a b) ()) n _ n
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$min_addrtype_clauses» a b)) n _ n
   by_cases h : a=.I64AT ∧ b=.I64AT
   · rcases h with ⟨rfl,rfl⟩
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     exact SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true ⟨rfl,rfl⟩)
       (SpecTecExecution.Eval.pure _)
   · have he : minimum a b=.I32AT := by cases a <;> cases b <;> simp_all [minimum]
     rw [he]
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false h)
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure _
 
 #print axioms total

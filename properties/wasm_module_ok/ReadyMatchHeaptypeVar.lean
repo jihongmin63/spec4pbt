@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ReadyMatchHeaptypeIndex
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -11,8 +12,8 @@ theorem ready_match_heaptype_statx_def_total
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.DefHT dtQ)⟩)
       start (.success (.of (ValidatedMatchIndexFuel.matchIndex c p q))) start := by
   apply MatchHeaptypeBasic.match_heaptype_statx_total_of_def
@@ -28,8 +29,8 @@ theorem ready_match_heaptype_def_statx_total
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.VarHT (.StatX q))⟩)
       start (.success (.of (ValidatedMatchIndexFuel.matchIndex c p q))) start := by
   apply MatchHeaptypeBasic.match_heaptype_def_statx_total_of_defs
@@ -45,8 +46,8 @@ theorem ready_match_heaptype_statx_statx_total
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.VarHT (.StatX q))⟩)
       start (.success (.of (ValidatedMatchIndexFuel.matchIndex c p q))) start := by
   apply MatchHeaptypeBasic.match_heaptype_statx_total_of_def
@@ -62,8 +63,8 @@ theorem ready_match_heaptype_statx_def_success_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.DefHT dtQ)⟩)
       start (.success (.of result)) finish ↔
     result = ValidatedMatchIndexFuel.matchIndex c p q ∧ finish = start := by
@@ -71,11 +72,8 @@ theorem ready_match_heaptype_statx_def_success_iff
   · intro heval
     have hknown := ready_match_heaptype_statx_def_total
       c p q start dtP dtQ hready hp hq hP hQ
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hx
-      cases hx
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet heval hknown
+      properties.wasm_module_ok.Execution.eval_deterministic heval hknown
     cases hout
     exact ⟨rfl, hsupply⟩
   · rintro ⟨hresult, hfinish⟩
@@ -91,8 +89,8 @@ theorem ready_match_heaptype_def_statx_success_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.VarHT (.StatX q))⟩)
       start (.success (.of result)) finish ↔
     result = ValidatedMatchIndexFuel.matchIndex c p q ∧ finish = start := by
@@ -100,11 +98,8 @@ theorem ready_match_heaptype_def_statx_success_iff
   · intro heval
     have hknown := ready_match_heaptype_def_statx_total
       c p q start dtP dtQ hready hp hq hP hQ
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hx
-      cases hx
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet heval hknown
+      properties.wasm_module_ok.Execution.eval_deterministic heval hknown
     cases hout
     exact ⟨rfl, hsupply⟩
   · rintro ⟨hresult, hfinish⟩
@@ -120,8 +115,8 @@ theorem ready_match_heaptype_statx_statx_success_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.VarHT (.StatX q))⟩)
       start (.success (.of result)) finish ↔
     result = ValidatedMatchIndexFuel.matchIndex c p q ∧ finish = start := by
@@ -129,11 +124,8 @@ theorem ready_match_heaptype_statx_statx_success_iff
   · intro heval
     have hknown := ready_match_heaptype_statx_statx_total
       c p q start dtP dtQ hready hp hq hP hQ
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hx
-      cases hx
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet heval hknown
+      properties.wasm_module_ok.Execution.eval_deterministic heval hknown
     cases hout
     exact ⟨rfl, hsupply⟩
   · rintro ⟨hresult, hfinish⟩

@@ -13,11 +13,11 @@ structure Production (c : context) (stack : inferresulttype) where
   typesEq : nextContext.TYPES=c.TYPES
   inputsBacked : StackBacked c effect.1.INS
   outputsBacked : StackBacked c effect.1.OUTS
-  initialized : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨context,SpecTecCall.«$init_locals» c effect.2⟩)
+  initialized : ∀n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨context,Call.«$init_locals» c effect.2⟩)
     n (.success (.of nextContext)) n
-  instructions : Audited {i : instr // ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+  instructions : Audited {i : instr // ∀n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
     n (.success (.of effect)) n}
 
 structure Step (c : context) (stack : inferresulttype) where
@@ -60,8 +60,8 @@ def step (c : context) (stack : inferresulttype) (env : Env c)
     (popped next : inferresulttype)
     (hp : ConstructiveBodyPopPlans.popPlan c p.effect.1.INS stack=some popped)
     (hq : PushValidation.pushResult p.effect.1.OUTS popped=some next)
-    (i : {i : instr // ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (i : {i : instr // ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of p.effect)) n}) : Step c stack :=
   ⟨i.val,p.nextContext,next,p.nextEnv,p.typesEq,by
     have hr : popped=ConstructiveBodyPopPlans.remaining p.effect.1.INS stack := by

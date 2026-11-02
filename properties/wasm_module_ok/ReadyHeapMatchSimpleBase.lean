@@ -19,8 +19,8 @@ theorem simpleBaseMatch_eval
     (dts : List SpecTec.deftype) (source target : SpecTec.heaptype)
     (n : Nat)
     (hsource : source ∈ MatchBaseDefTotal.simpleBaseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         dts source target⟩)
       n (.success (.of (simpleBaseMatch source target))) n := by
   by_cases hAny : target = .AnyHT

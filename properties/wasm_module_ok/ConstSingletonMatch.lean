@@ -7,14 +7,14 @@ namespace properties.wasm_module_ok.ConstSingletonMatch
 theorem singleton_match_valtype
     (c : SpecTec.context) (u t : SpecTec.valtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Match_resulttype c [u] [t]⟩)
+        SpecTec.Call.Match_resulttype c [u] [t]⟩)
       start (.success (.of ())) fin) :
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+          SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
         start (.success (.of true)) middle := by
   have hiter :=
     (MatchResulttypeValidation.match_resulttype_success_iff

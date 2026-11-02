@@ -18,15 +18,15 @@ theorem copy_sound (before after c : context) (sts outs : List SpecTec.subtype)
     (start finish n : Nat) (tail : List deftype)
     (hbefore : ValidatedTypeChain.ValidatedTypes before)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (he : c.TYPES=after.TYPES++tail)
     (hle : before.TYPES.length≤c.TYPES.length)
     (hb : GroupBound (before.TYPES.length+sts.length) sts)
     (hg : Gen.support (group c.TYPES before.TYPES.length hle sts hb) (.RecT outs)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT outs)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT outs)⟩)
       n (.success (.of (extend c sts.length (groupValue c.TYPES before.TYPES.length hle sts hb)))) n := by
   have hcandidate := CandidateRectypeTable.rectype_success_candidateContext before after sts start finish hrect
   have hsource := CandidateSourceChecks.rectype_success_sourceChecks before after after sts start finish hrect hcandidate

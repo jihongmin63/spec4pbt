@@ -8,14 +8,14 @@ namespace properties.wasm_module_ok.CandidateProvenanceElemDataFuncs
 
 theorem elem_ok_funcs (c result : SpecTec.context)
     (e : SpecTec.elem) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elem_ok c e⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Elem_ok c e⟩)
       n (.success (.of result)) finalSupply) :
     result.FUNCS = c.FUNCS := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Elem_ok_clauses c e) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Elem_ok_clauses c e))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -32,14 +32,14 @@ theorem elem_ok_funcs (c result : SpecTec.context)
 
 theorem data_ok_funcs (c result : SpecTec.context)
     (d : SpecTec.data) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Data_ok c d⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Data_ok c d⟩)
       n (.success (.of result)) finalSupply) :
     result.FUNCS = c.FUNCS := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Data_ok_clauses c d) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Data_ok_clauses c d))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -52,18 +52,18 @@ theorem data_ok_funcs (c result : SpecTec.context)
 
 theorem elems_ok_funcs (c result : SpecTec.context)
     (ts : List SpecTec.elem) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Elems_ok c ts⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Elems_ok c ts⟩)
       n (.success (.of result)) finalSupply) :
     result.FUNCS = c.FUNCS := by
   induction ts generalizing c n finalSupply result with
   | nil =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elems_ok:clause:0» c [])
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Elems_ok:clause:1» c []] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Elems_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -73,7 +73,7 @@ theorem elems_ok_funcs (c result : SpecTec.context)
             cases hguard with
             | guard_true hcond => simp at hcond
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Elems_ok:clause:1» c [])
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -88,10 +88,10 @@ theorem elems_ok_funcs (c result : SpecTec.context)
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elems_ok:clause:0» c (t :: rest))
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Elems_ok:clause:1» c (t :: rest)] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Elems_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -110,7 +110,7 @@ theorem elems_ok_funcs (c result : SpecTec.context)
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (elem_ok_funcs c c₁ t n middle hhead)
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Elems_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -125,18 +125,18 @@ theorem elems_ok_funcs (c result : SpecTec.context)
 
 theorem datas_ok_funcs (c result : SpecTec.context)
     (ts : List SpecTec.data) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Datas_ok c ts⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Datas_ok c ts⟩)
       n (.success (.of result)) finalSupply) :
     result.FUNCS = c.FUNCS := by
   induction ts generalizing c n finalSupply result with
   | nil =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Datas_ok:clause:0» c [])
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Datas_ok:clause:1» c []] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Datas_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -146,7 +146,7 @@ theorem datas_ok_funcs (c result : SpecTec.context)
             cases hguard with
             | guard_true hcond => simp at hcond
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Datas_ok:clause:1» c [])
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -161,10 +161,10 @@ theorem datas_ok_funcs (c result : SpecTec.context)
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Datas_ok:clause:0» c (t :: rest))
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Datas_ok:clause:1» c (t :: rest)] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Datas_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -183,7 +183,7 @@ theorem datas_ok_funcs (c result : SpecTec.context)
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (data_ok_funcs c c₁ t n middle hhead)
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Datas_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -251,8 +251,8 @@ theorem trace_candidate_val_match_iff
     (u t : SpecTec.valtype) (b : Bool) (start finish : Nat)
     (hu : u ∈ FiniteValidTypes.candidateUniverse tr.c8)
     (ht : t ∈ FiniteValidTypes.candidateUniverse tr.c8) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» tr.c8.TYPES u t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype» tr.c8.TYPES u t⟩)
       start (.success (.of b)) finish ↔
     b = CandidateValMatch.candidateValMatch tr.c8 u t ∧ finish = start := by
   exact CandidateUniverseReady.candidate_universe_match_iff

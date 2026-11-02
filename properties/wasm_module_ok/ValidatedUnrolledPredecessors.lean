@@ -77,8 +77,8 @@ theorem validated_type_unrolldt_predecessors
     ∃ htsU : List SpecTec.heaptype,
     ∃ strtU : SpecTec.strtype,
       c.TYPES[p]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         start (.success (.of (SpecTec.subtype.SubT fin htsU strtU))) start ∧
       ∀ j, j < htsU.length →
         ∃ k : Nat, ∃ dtK : SpecTec.deftype,

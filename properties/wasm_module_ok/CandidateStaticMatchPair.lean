@@ -17,9 +17,9 @@ theorem generated_static_pair_before_match
       (CandidateRectypeSearch.readyGroupGen before) (.RecT sts))
     (hcandidate : CandidateRectypeTable.candidateContext before sts =
       some candidate)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok candidate
+        SpecTec.Call.Subtype_ok candidate
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hlookup : candidate.TYPES[y]? = some dt) :
@@ -59,8 +59,8 @@ theorem generated_static_def_match_total
       some candidate)
     (hP : candidate.TYPES[p]? = some dtP)
     (hQ : candidate.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» candidate.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» candidate.TYPES
         (.VarHT (.StatX p)) (.DefHT dtQ)⟩)
       start (.success (.of
         (ValidatedMatchIndexFuel.matchIndex candidate p q))) start := by
@@ -89,9 +89,9 @@ theorem generated_static_subtype_sub_ok_total
       (CandidateRectypeSearch.readyGroupGen before) (.RecT sts))
     (hcandidate : CandidateRectypeTable.candidateContext before sts =
       some candidate)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok candidate
+        SpecTec.Call.Subtype_ok candidate
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hlookup : candidate.TYPES[y]? = some dt) :
@@ -101,9 +101,9 @@ theorem generated_static_subtype_sub_ok_total
     ∃ result : Bool,
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT fin hts strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.Subtype_sub_ok' candidate x strt
+          SpecTec.Call.Subtype_sub_ok' candidate x strt
             (.VarHT (.StatX y))⟩)
         n (if (y < x ∧ fin = .NoFinal) ∧ result = true then
           .success (.of ()) else .unmatch) n := by

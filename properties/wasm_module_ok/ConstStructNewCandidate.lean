@@ -10,9 +10,9 @@ theorem struct_new_implicit_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧
@@ -34,9 +34,9 @@ theorem struct_new_explicit_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

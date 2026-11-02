@@ -19,18 +19,18 @@ def substList (c : SpecTec.context) :
 including an ordered unmatch when either the head or tail substitution fails. -/
 theorem subst_list_total (c : SpecTec.context)
     (rolled : List SpecTec.deftype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.deftype,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:2» c rolled⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:2» c rolled⟩)
       n (optionOutcome (substList c rolled)) n := by
   induction rolled with
   | nil =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«Rectype_ok:rule:iter:2_clauses» c []))
         n (.success (.of ([] : List SpecTec.deftype))) n
-      apply SpecTecExecution.firstSuccess_cons_success
+      apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure []
   | cons dt rest ih =>
       have hhead := subst_deftype_of_total dt c.TYPES n
@@ -41,23 +41,23 @@ theorem subst_list_total (c : SpecTec.context)
           rw [hresult]
           simp only [optionOutcome]
           apply SpecTecExecution.Eval.call
-          change SpecTecExecution.Eval SpecTec.specTecProgram
-            (SpecTecExecution.firstSuccess
-              (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)) ())
+          change SpecTecExecution.Eval SpecTec.Body
+            (SpecTecExecution.tryClauses
+              (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)))
             n .unmatch n
-          apply SpecTecExecution.firstSuccess_cons_unmatch
+          apply SpecTecExecution.tryClauses_cons_unmatch
           · exact SpecTecExecution.Eval.unmatch
-          · apply SpecTecExecution.firstSuccess_cons_unmatch
+          · apply SpecTecExecution.tryClauses_cons_unmatch
             · unfold SpecTec.«Rectype_ok:rule:iter:2:clause:1»
               apply SpecTecExecution.Eval.bind_unmatch
               simpa [optionOutcome, hdt] using hhead
-            · exact SpecTecExecution.firstSuccess_nil () n
+            · exact SpecTecExecution.tryClauses_nil n
       | some dt' =>
-          have hhead' : SpecTecExecution.Eval SpecTec.specTecProgram
+          have hhead' : SpecTecExecution.Eval SpecTec.Body
               (.call ⟨SpecTec.deftype,
-                SpecTec.SpecTecCall.«$subst_deftype»
+                SpecTec.Call.«$subst_deftype»
                   (List SpecTec.deftype) c.TYPES
-                  SpecTec.SpecTecCall.«$subst_of» dt⟩)
+                  SpecTec.Call.«$subst_of» dt⟩)
               n (.success (.of dt')) n := by
             simpa [optionOutcome, hdt] using hhead
           cases hrest : substList c rest with
@@ -67,31 +67,31 @@ theorem subst_list_total (c : SpecTec.context)
               rw [hresult]
               simp only [optionOutcome]
               apply SpecTecExecution.Eval.call
-              change SpecTecExecution.Eval SpecTec.specTecProgram
-                (SpecTecExecution.firstSuccess
-                  (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)) ())
+              change SpecTecExecution.Eval SpecTec.Body
+                (SpecTecExecution.tryClauses
+                  (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)))
                 n .unmatch n
-              apply SpecTecExecution.firstSuccess_cons_unmatch
+              apply SpecTecExecution.tryClauses_cons_unmatch
               · exact SpecTecExecution.Eval.unmatch
-              · apply SpecTecExecution.firstSuccess_cons_unmatch
+              · apply SpecTecExecution.tryClauses_cons_unmatch
                 · unfold SpecTec.«Rectype_ok:rule:iter:2:clause:1»
                   apply SpecTecExecution.Eval.bind_success hhead'
                   apply SpecTecExecution.Eval.bind_unmatch
                   simpa [optionOutcome, hrest] using ih
-                · exact SpecTecExecution.firstSuccess_nil () n
+                · exact SpecTecExecution.tryClauses_nil n
           | some rest' =>
               have hresult : substList c (dt :: rest) = some (dt' :: rest') := by
                 simp [substList, hdt, hrest]
               rw [hresult]
               simp only [optionOutcome]
               apply SpecTecExecution.Eval.call
-              change SpecTecExecution.Eval SpecTec.specTecProgram
-                (SpecTecExecution.firstSuccess
-                  (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)) ())
+              change SpecTecExecution.Eval SpecTec.Body
+                (SpecTecExecution.tryClauses
+                  (SpecTec.«Rectype_ok:rule:iter:2_clauses» c (dt :: rest)))
                 n (.success (.of (dt' :: rest'))) n
-              apply SpecTecExecution.firstSuccess_cons_unmatch
+              apply SpecTecExecution.tryClauses_cons_unmatch
               · exact SpecTecExecution.Eval.unmatch
-              · apply SpecTecExecution.firstSuccess_cons_success
+              · apply SpecTecExecution.tryClauses_cons_success
                 unfold SpecTec.«Rectype_ok:rule:iter:2:clause:1»
                 apply SpecTecExecution.Eval.bind_success hhead'
                 apply SpecTecExecution.Eval.bind_success

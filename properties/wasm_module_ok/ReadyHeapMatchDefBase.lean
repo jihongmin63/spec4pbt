@@ -19,8 +19,8 @@ theorem ready_def_base_result
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES (.DefHT dt) target⟩)
       n (.success (.of (readyDefBaseMatch dt target))) n := by
   simp [HeaptypeValidation.baseHeaptypes] at hbase
@@ -70,8 +70,8 @@ theorem ready_statx_base_result
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES (.VarHT (.StatX p)) target⟩)
       n (.success (.of (readyDefBaseMatch dt target))) n := by
   apply MatchHeaptypeBasic.match_heaptype_statx_total_of_def

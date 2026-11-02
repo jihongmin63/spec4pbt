@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.HeaptypeListRollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -11,23 +12,23 @@ def rollSubtype (st : SpecTec.subtype) (x y : Nat) : SpecTec.subtype :=
 
 theorem subst_subtype_roll_total (st : SpecTec.subtype)
     (x y start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.subtype,
-        SpecTec.SpecTecCall.«$subst_subtype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» st⟩)
+        SpecTec.Call.«$subst_subtype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» st⟩)
       start (.success (.of (rollSubtype st x y))) start := by
   cases st with
   | SubT fin hts strt =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_subtype_clauses» (Nat × Nat) (x, y)
-            SpecTec.SpecTecCall.«$s_roll» (.SubT fin hts strt)) ())
+            SpecTec.Call.«$s_roll» (.SubT fin hts strt)))
         start (.success (.of (rollSubtype (.SubT fin hts strt) x y))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_subtype:clause:0» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» (.SubT fin hts strt))
+          SpecTec.Call.«$s_roll» (.SubT fin hts strt))
         start (.success (.of (rollSubtype (.SubT fin hts strt) x y))) start
       unfold SpecTec.«$subst_subtype:clause:0»
       apply SpecTecExecution.Eval.bind_success
@@ -41,13 +42,13 @@ theorem subst_subtype_roll_total (st : SpecTec.subtype)
 theorem subst_subtype_roll_deterministic (st : SpecTec.subtype)
     (x y start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.subtype,
-        SpecTec.SpecTecCall.«$subst_subtype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» st⟩)
+        SpecTec.Call.«$subst_subtype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» st⟩)
       start outcome finalSupply) :
     outcome = .success (.of (rollSubtype st x y)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_subtype_roll_total st x y start)
 
 end properties.wasm_module_not_ok.Rejection

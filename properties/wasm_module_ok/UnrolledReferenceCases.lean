@@ -46,9 +46,9 @@ theorem rectype_ok_group_lookup_all
     (sts sts' : List SpecTec.subtype)
     (start finish i : Nat)
     (dts tail : List SpecTec.deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hafter : after = {before with TYPES := before.TYPES ++ dts})
@@ -103,9 +103,9 @@ theorem rectype_ok_unrolled_reference_cases
     (dts tail : List SpecTec.deftype)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))
@@ -140,9 +140,9 @@ theorem rectype_ok_unrolled_structural_reference_cases
     (dts tail : List SpecTec.deftype)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))

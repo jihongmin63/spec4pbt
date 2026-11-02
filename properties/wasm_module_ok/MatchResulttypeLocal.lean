@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.MatchResulttypeConditional
 import properties.wasm_module_ok.MatchValtypeLocal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,12 +13,12 @@ theorem iter_success_iff_allMatched_of_local_valtype
     (hlen : ts₁.length = ts₂.length)
     (n finish : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         supply (.success (.of (valMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
       n (.success (.of ())) finish ↔
     MatchResulttypeConditional.allMatched valMatch ts₁ ts₂ = true ∧
       finish = n := by
@@ -27,12 +28,8 @@ theorem iter_success_iff_allMatched_of_local_valtype
     | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (MatchResulttypeConditional.iter_nil_total dts n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -46,8 +43,8 @@ theorem iter_success_iff_allMatched_of_local_valtype
         simpa using hlen
       have hhead := hval t₁ (List.mem_cons_self) t₂ (List.mem_cons_self)
       have htailVal : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ → ∀ supply,
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
             supply (.success (.of (valMatch a b))) supply := by
         intro a ha b hb supply
         exact hval a (List.mem_cons_of_mem _ ha)
@@ -57,12 +54,8 @@ theorem iter_success_iff_allMatched_of_local_valtype
         obtain ⟨middle, hfirst, hrest⟩ :=
           (MatchResulttypeConditional.iter_cons_success_iff
             dts t₁ t₂ ts₁ ts₂ n finish).1 h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨hresult, hmiddle⟩ :=
-          SpecTecExecution.eval_deterministic hdet hfirst (hhead n)
+          properties.wasm_module_ok.Execution.eval_deterministic hfirst (hhead n)
         have hvalid : valMatch t₁ t₂ = true := by
           cases hv : valMatch t₁ t₂ with
           | false => simp [hv] at hresult
@@ -90,12 +83,12 @@ theorem iter_unmatch_of_false_local
     (hfalse : MatchResulttypeConditional.allMatched valMatch ts₁ ts₂ = false)
     (n : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         supply (.success (.of (valMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
       n .unmatch n := by
   induction ts₁ generalizing ts₂ n with
   | nil =>
@@ -110,25 +103,25 @@ theorem iter_unmatch_of_false_local
         simpa using hlen
       have hhead := hval t₁ (List.mem_cons_self) t₂ (List.mem_cons_self)
       have htailVal : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ → ∀ supply,
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
             supply (.success (.of (valMatch a b))) supply := by
         intro a ha b hb supply
         exact hval a (List.mem_cons_of_mem _ ha)
           b (List.mem_cons_of_mem _ hb) supply
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_resulttype:case_1:iter:0_clauses»
-            dts (t₁ :: ts₁) (t₂ :: ts₂)) ())
+            dts (t₁ :: ts₁) (t₂ :: ts₂)))
         n .unmatch n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_resulttype:case_1:iter:0:clause:0»
             dts (t₁ :: ts₁) (t₂ :: ts₂)) n .unmatch n
         exact SpecTecExecution.Eval.unmatch
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$match_resulttype:case_1:iter:0:clause:1»
               dts (t₁ :: ts₁) (t₂ :: ts₂)) n .unmatch n
           unfold SpecTec.«$match_resulttype:case_1:iter:0:clause:1»
@@ -148,19 +141,19 @@ theorem iter_unmatch_of_false_local
             · exact SpecTecExecution.Eval.guard_true rfl
             · exact SpecTecExecution.Eval.bind_unmatch
                 (ih ts₂ hlenTail htailFalse n htailVal)
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
 
 theorem match_resulttype_total_of_local_valtype
     (dts : List SpecTec.deftype)
     (valMatch : SpecTec.valtype → SpecTec.valtype → Bool)
     (ts₁ ts₂ : SpecTec.resulttype) (n : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ → ∀ supply,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         supply (.success (.of (valMatch a b))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
       n (.success (.of
         (MatchResulttypeConditional.matchResulttypeResult
           valMatch ts₁ ts₂))) n := by
@@ -182,12 +175,12 @@ theorem match_resulttype_total_of_local_valtype
         simp [MatchResulttypeConditional.matchResulttypeResult, hlen, hall]
       rw [hresult]
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂))
         n (.success (.of false)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_resulttype:clause:0» dts ts₁ ts₂)
           n .unmatch n
         unfold SpecTec.«$match_resulttype:clause:0»
@@ -196,25 +189,25 @@ theorem match_resulttype_total_of_local_valtype
         · exact SpecTecExecution.Eval.bind_unmatch
             (iter_unmatch_of_false_local
               dts valMatch ts₁ ts₂ hlen.symm hall n hval)
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact SpecTecExecution.Eval.pure false
   · have hresult : MatchResulttypeConditional.matchResulttypeResult
         valMatch ts₁ ts₂ = false := by
       simp [MatchResulttypeConditional.matchResulttypeResult, hlen]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂))
       n (.success (.of false)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_resulttype:clause:0» dts ts₁ ts₂)
         n .unmatch n
       unfold SpecTec.«$match_resulttype:clause:0»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false hlen)
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_resulttype_total_of_local_heap
@@ -224,11 +217,11 @@ theorem match_resulttype_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ts₁.flatMap ReadyMatchReachability.sourceValHeaptypes →
       h2 ∈ ts₂.flatMap ReadyMatchReachability.sourceValHeaptypes →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
       n (.success (.of
         (MatchResulttypeConditional.matchResulttypeResult
           (MatchValtypeConditional.matchValtypeResult heapMatch)
@@ -248,12 +241,12 @@ theorem iter_success_iff_allMatched_of_local_valtype_at
     (hlen : ts₁.length = ts₂.length)
     (n finish : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         n (.success (.of (valMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
       n (.success (.of ())) finish ↔
     MatchResulttypeConditional.allMatched valMatch ts₁ ts₂ = true ∧
       finish = n := by
@@ -263,12 +256,8 @@ theorem iter_success_iff_allMatched_of_local_valtype_at
     | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (MatchResulttypeConditional.iter_nil_total dts n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -282,8 +271,8 @@ theorem iter_success_iff_allMatched_of_local_valtype_at
         simpa using hlen
       have hhead := hval t₁ (List.mem_cons_self) t₂ (List.mem_cons_self)
       have htailVal : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
             n (.success (.of (valMatch a b))) n := by
         intro a ha b hb
         exact hval a (List.mem_cons_of_mem _ ha)
@@ -293,12 +282,8 @@ theorem iter_success_iff_allMatched_of_local_valtype_at
         obtain ⟨middle, hfirst, hrest⟩ :=
           (MatchResulttypeConditional.iter_cons_success_iff
             dts t₁ t₂ ts₁ ts₂ n finish).1 h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨hresult, hmiddle⟩ :=
-          SpecTecExecution.eval_deterministic hdet hfirst hhead
+          properties.wasm_module_ok.Execution.eval_deterministic hfirst hhead
         have hvalid : valMatch t₁ t₂ = true := by
           cases hv : valMatch t₁ t₂ with
           | false => simp [hv] at hresult
@@ -327,12 +312,12 @@ theorem iter_unmatch_of_false_local_at
     (hfalse : MatchResulttypeConditional.allMatched valMatch ts₁ ts₂ = false)
     (n : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         n (.success (.of (valMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype:case_1:iter:0» dts ts₁ ts₂⟩)
       n .unmatch n := by
   induction ts₁ generalizing ts₂ n with
   | nil =>
@@ -347,25 +332,25 @@ theorem iter_unmatch_of_false_local_at
         simpa using hlen
       have hhead := hval t₁ (List.mem_cons_self) t₂ (List.mem_cons_self)
       have htailVal : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ →
-          SpecTecExecution.Eval SpecTec.specTecProgram
-            (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+          SpecTecExecution.Eval SpecTec.Body
+            (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
             n (.success (.of (valMatch a b))) n := by
         intro a ha b hb
         exact hval a (List.mem_cons_of_mem _ ha)
           b (List.mem_cons_of_mem _ hb)
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_resulttype:case_1:iter:0_clauses»
-            dts (t₁ :: ts₁) (t₂ :: ts₂)) ())
+            dts (t₁ :: ts₁) (t₂ :: ts₂)))
         n .unmatch n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_resulttype:case_1:iter:0:clause:0»
             dts (t₁ :: ts₁) (t₂ :: ts₂)) n .unmatch n
         exact SpecTecExecution.Eval.unmatch
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$match_resulttype:case_1:iter:0:clause:1»
               dts (t₁ :: ts₁) (t₂ :: ts₂)) n .unmatch n
           unfold SpecTec.«$match_resulttype:case_1:iter:0:clause:1»
@@ -385,19 +370,19 @@ theorem iter_unmatch_of_false_local_at
             · exact SpecTecExecution.Eval.guard_true rfl
             · exact SpecTecExecution.Eval.bind_unmatch
                 (ih ts₂ hlenTail htailFalse n htailVal)
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
 
 theorem match_resulttype_total_of_local_valtype_at
     (dts : List SpecTec.deftype)
     (valMatch : SpecTec.valtype → SpecTec.valtype → Bool)
     (ts₁ ts₂ : SpecTec.resulttype) (n : Nat)
     (hval : ∀ a, a ∈ ts₁ → ∀ b, b ∈ ts₂ →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» dts a b⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_valtype» dts a b⟩)
         n (.success (.of (valMatch a b))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+        SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
       n (.success (.of
         (MatchResulttypeConditional.matchResulttypeResult
           valMatch ts₁ ts₂))) n := by
@@ -419,12 +404,12 @@ theorem match_resulttype_total_of_local_valtype_at
         simp [MatchResulttypeConditional.matchResulttypeResult, hlen, hall]
       rw [hresult]
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂))
         n (.success (.of false)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_resulttype:clause:0» dts ts₁ ts₂)
           n .unmatch n
         unfold SpecTec.«$match_resulttype:clause:0»
@@ -433,25 +418,25 @@ theorem match_resulttype_total_of_local_valtype_at
         · exact SpecTecExecution.Eval.bind_unmatch
             (iter_unmatch_of_false_local_at
               dts valMatch ts₁ ts₂ hlen.symm hall n hval)
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact SpecTecExecution.Eval.pure false
   · have hresult : MatchResulttypeConditional.matchResulttypeResult
         valMatch ts₁ ts₂ = false := by
       simp [MatchResulttypeConditional.matchResulttypeResult, hlen]
     rw [hresult]
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$match_resulttype_clauses» dts ts₁ ts₂))
       n (.success (.of false)) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_resulttype:clause:0» dts ts₁ ts₂)
         n .unmatch n
       unfold SpecTec.«$match_resulttype:clause:0»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false hlen)
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_resulttype_total_of_local_heap_at
@@ -461,11 +446,11 @@ theorem match_resulttype_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ts₁.flatMap ReadyMatchReachability.sourceValHeaptypes →
       h2 ∈ ts₂.flatMap ReadyMatchReachability.sourceValHeaptypes →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_resulttype» dts ts₁ ts₂⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_resulttype» dts ts₁ ts₂⟩)
       n (.success (.of
         (MatchResulttypeConditional.matchResulttypeResult
           (MatchValtypeConditional.matchValtypeResult heapMatch)

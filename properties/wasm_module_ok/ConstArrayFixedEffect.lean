@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstRefFuncCombined
 import properties.wasm_module_ok.MakeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,16 +11,16 @@ theorem array_new_fixed_clause_total
     (x : SpecTec.typeidx) (count : SpecTec.n)
     (yt : SpecTec.fieldtype) (t : SpecTec.valtype)
     (dt : SpecTec.deftype) (start middle finish : Nat)
-    (harray : SpecTecExecution.Eval SpecTec.specTecProgram
+    (harray : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.arraytype,
-        SpecTec.SpecTecCall.«$array_type» c x⟩)
+        SpecTec.Call.«$array_type» c x⟩)
       start (.success (.of (SpecTec.arraytype.ArrayT yt))) middle)
-    (hunpack : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hunpack : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.valtype,
-        SpecTec.SpecTecCall.«$unpacked_field_type» yt⟩)
+        SpecTec.Call.«$unpacked_field_type» yt⟩)
       middle (.success (.of t)) finish)
     (hget : c.TYPES[x]? = some dt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:66» c irt (.«ARRAY.NEW_FIXED» x count))
       start (.success (.of
         (⟨{ INS := (.NoEllipses, MakeValidation.makeResult t count),
@@ -43,18 +44,18 @@ theorem array_new_fixed_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (count : SpecTec.n)
     (iit : SpecTec.inferinstrtype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:66» c irt (.«ARRAY.NEW_FIXED» x count))
       start (.success (.of iit)) fin) :
     ∃ yt : SpecTec.fieldtype, ∃ t : SpecTec.valtype,
       ∃ dt : SpecTec.deftype, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.arraytype,
-          SpecTec.SpecTecCall.«$array_type» c x⟩)
+          SpecTec.Call.«$array_type» c x⟩)
         start (.success (.of (SpecTec.arraytype.ArrayT yt))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.valtype,
-          SpecTec.SpecTecCall.«$unpacked_field_type» yt⟩)
+          SpecTec.Call.«$unpacked_field_type» yt⟩)
         middle (.success (.of t)) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =
@@ -64,13 +65,13 @@ theorem array_new_fixed_clause_exact
           ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) := by
   have hparts : ∃ yt : SpecTec.fieldtype, ∃ t : SpecTec.valtype,
       ∃ dt : SpecTec.deftype, ∃ middle finish : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.arraytype,
-          SpecTec.SpecTecCall.«$array_type» c x⟩)
+          SpecTec.Call.«$array_type» c x⟩)
         start (.success (.of (SpecTec.arraytype.ArrayT yt))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.valtype,
-          SpecTec.SpecTecCall.«$unpacked_field_type» yt⟩)
+          SpecTec.Call.«$unpacked_field_type» yt⟩)
         middle (.success (.of t)) finish ∧
       c.TYPES[x]? = some dt := by
     unfold SpecTec.«Instr_ok:clause:66» at h
@@ -95,11 +96,8 @@ theorem array_new_fixed_clause_exact
                             | some dt =>
                                 exact ⟨yt, _, dt, _, _, harray, hunpack, rfl⟩
   obtain ⟨yt, t, dt, middle, finish, harray, hunpack, hget⟩ := hparts
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (array_new_fixed_clause_total c irt x count yt t dt
         start middle finish harray hunpack hget)
   cases hout
@@ -110,18 +108,18 @@ theorem array_new_fixed_clause_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (count : SpecTec.n)
     (iit : SpecTec.inferinstrtype) (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:66» c irt (.«ARRAY.NEW_FIXED» x count))
       start (.success (.of iit)) fin ↔
     ∃ yt : SpecTec.fieldtype, ∃ t : SpecTec.valtype,
       ∃ dt : SpecTec.deftype, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.arraytype,
-          SpecTec.SpecTecCall.«$array_type» c x⟩)
+          SpecTec.Call.«$array_type» c x⟩)
         start (.success (.of (SpecTec.arraytype.ArrayT yt))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.valtype,
-          SpecTec.SpecTecCall.«$unpacked_field_type» yt⟩)
+          SpecTec.Call.«$unpacked_field_type» yt⟩)
         middle (.success (.of t)) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =
@@ -140,18 +138,18 @@ theorem array_new_fixed_zero_clause_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:66» c irt (.«ARRAY.NEW_FIXED» x 0))
       start (.success (.of iit)) fin ↔
     ∃ yt : SpecTec.fieldtype, ∃ t : SpecTec.valtype,
       ∃ dt : SpecTec.deftype, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.arraytype,
-          SpecTec.SpecTecCall.«$array_type» c x⟩)
+          SpecTec.Call.«$array_type» c x⟩)
         start (.success (.of (SpecTec.arraytype.ArrayT yt))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.valtype,
-          SpecTec.SpecTecCall.«$unpacked_field_type» yt⟩)
+          SpecTec.Call.«$unpacked_field_type» yt⟩)
         middle (.success (.of t)) fin ∧
       c.TYPES[x]? = some dt ∧
       iit =

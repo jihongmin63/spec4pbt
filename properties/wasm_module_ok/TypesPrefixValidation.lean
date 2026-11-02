@@ -7,8 +7,8 @@ namespace properties.wasm_module_ok.TypesPrefixValidation
 theorem type_ok_types_prefix
     (c result : SpecTec.context) (t : SpecTec.type)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
       start (.success (.of result)) finish) :
     ∃ dts : List SpecTec.deftype,
       result.TYPES = c.TYPES ++ dts := by
@@ -16,13 +16,13 @@ theorem type_ok_types_prefix
   | RecT sts =>
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Type_ok_clauses c (.RecT sts)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Type_ok_clauses c (.RecT sts)))
         start (.success (.of result)) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Type_ok_clauses c (.RecT sts)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Type_ok_clauses c (.RecT sts))
           start (.of result) finish).1 hbody
       unfold SpecTec.Type_ok_clauses at hselected
       cases hselected with
@@ -40,23 +40,23 @@ theorem type_ok_types_prefix
 theorem type_ok_rectype_trace
     (c result : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Type_ok c (.RecT sts)⟩)
+        SpecTec.Call.Type_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Type_ok_clauses c (.RecT sts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Type_ok_clauses c (.RecT sts)))
       start (.success (.of result)) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.Type_ok_clauses c (.RecT sts)) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.Type_ok_clauses c (.RecT sts))
         start (.of result) finish).1 hbody
     unfold SpecTec.Type_ok_clauses at hselected
     cases hselected with
@@ -71,8 +71,8 @@ theorem type_ok_rectype_trace
 theorem types_ok_types_prefix
     (c result : SpecTec.context) (ts : List SpecTec.type)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c ts⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c ts⟩)
       start (.success (.of result)) finish) :
     ∃ dts : List SpecTec.deftype,
       result.TYPES = c.TYPES ++ dts := by
@@ -80,10 +80,10 @@ theorem types_ok_types_prefix
   | nil =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c [])
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Types_ok:clause:1» c []] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Types_ok:clause:1» c []]))
           start (.success (.of result)) finish at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -93,7 +93,7 @@ theorem types_ok_types_prefix
             cases hguard with
             | guard_true hcond => simp at hcond
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c [])
               (fun _ => .unmatch))
             start (.success (.of result)) finish at htail
@@ -108,10 +108,10 @@ theorem types_ok_types_prefix
   | cons t rest ih =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c (t :: rest))
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Types_ok:clause:1» c (t :: rest)] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Types_ok:clause:1» c (t :: rest)]))
           start (.success (.of result)) finish at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -133,7 +133,7 @@ theorem types_ok_types_prefix
                       ih c₁ result middle finish hrest
                     exact ⟨head ++ tail, by rw [htailprefix, hheadprefix, List.append_assoc]⟩
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
             start (.success (.of result)) finish at htail
@@ -150,23 +150,23 @@ theorem types_ok_cons_trace
     (c result : SpecTec.context)
     (t : SpecTec.type) (ts : List SpecTec.type)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok c (t :: ts)⟩)
+        SpecTec.Call.Types_ok c (t :: ts)⟩)
       start (.success (.of result)) finish) :
     ∃ middle : Nat, ∃ next : SpecTec.context,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
         start (.success (.of next)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok next ts⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Types_ok next ts⟩)
         middle (.success (.of result)) finish := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c (t :: ts))
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)]))
       start (.success (.of result)) finish at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -183,7 +183,7 @@ theorem types_ok_cons_trace
               cases hpure with
               | pure => exact ⟨middle, next, hhead, hrest⟩
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c (t :: ts))
           (fun _ => .unmatch))
         start (.success (.of result)) finish at htail

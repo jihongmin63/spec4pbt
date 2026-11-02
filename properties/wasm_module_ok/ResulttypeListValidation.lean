@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ValtypeValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,51 +13,51 @@ def allValtypesValid (c : SpecTec.context) :
       allValtypesValid c ts
 
 theorem iter_nil_success (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Resulttype_ok:rule:iter:0» c []⟩)
+        SpecTec.Call.«Resulttype_ok:rule:iter:0» c []⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«Resulttype_ok:rule:iter:0_clauses» c []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«Resulttype_ok:rule:iter:0_clauses» c []))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure ()
 
 theorem iter_cons_success_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (ts : List SpecTec.valtype) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Resulttype_ok:rule:iter:0» c (t :: ts)⟩)
+        SpecTec.Call.«Resulttype_ok:rule:iter:0» c (t :: ts)⟩)
       n (.success (.of ())) finish ↔
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Valtype_ok c t⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Valtype_ok c t⟩)
         n (.success (.of ())) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Resulttype_ok:rule:iter:0» c ts⟩)
+          SpecTec.Call.«Resulttype_ok:rule:iter:0» c ts⟩)
         middle (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse
           (SpecTec.«Resulttype_ok:rule:iter:0:clause:0» c (t :: ts))
-          (fun _ => SpecTecExecution.firstSuccess
+          (fun _ => SpecTecExecution.tryClauses
             [fun _ =>
-              SpecTec.«Resulttype_ok:rule:iter:0:clause:1» c (t :: ts)] ()))
+              SpecTec.«Resulttype_ok:rule:iter:0:clause:1» c (t :: ts)]))
         n (.success (.of ())) finish at hbody
       cases hbody with
       | orElse_success hfirst =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of ())) finish at hfirst
         cases hfirst
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse
             (SpecTec.«Resulttype_ok:rule:iter:0:clause:1» c (t :: ts))
             (fun _ => .unmatch))
@@ -77,17 +78,17 @@ theorem iter_cons_success_iff
         | orElse_unmatch _ hnone => cases hnone
   · rintro ⟨middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«Resulttype_ok:rule:iter:0_clauses» c (t :: ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«Resulttype_ok:rule:iter:0_clauses» c (t :: ts)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Resulttype_ok:rule:iter:0:clause:0» c (t :: ts))
         n .unmatch n
       exact SpecTecExecution.Eval.unmatch
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Resulttype_ok:rule:iter:0:clause:1» c (t :: ts))
         n (.success (.of ())) finish
       unfold SpecTec.«Resulttype_ok:rule:iter:0:clause:1»
@@ -98,21 +99,17 @@ theorem iter_cons_success_iff
 theorem iter_success_iff_valid
     (c : SpecTec.context) (ts : List SpecTec.valtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Resulttype_ok:rule:iter:0» c ts⟩)
+        SpecTec.Call.«Resulttype_ok:rule:iter:0» c ts⟩)
       n (.success (.of ())) finish ↔
     allValtypesValid c ts = true ∧ finish = n := by
   induction ts generalizing n finish with
   | nil =>
     constructor
     · intro h
-      have hdet : SpecTecExecution.PrimitiveDeterministic
-          SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet h
+        properties.wasm_module_ok.Execution.eval_deterministic h
           (iter_nil_success c n)
       exact ⟨rfl, hsupply⟩
     · rintro ⟨_, rfl⟩

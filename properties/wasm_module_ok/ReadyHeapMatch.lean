@@ -76,8 +76,8 @@ theorem baseIndexedMatch_def_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : source ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.DefHT dt)⟩)
       n (.success (.of ((baseIndexedMatch source dt).getD false))) n := by
   by_cases hspecial :
@@ -96,8 +96,8 @@ theorem baseIndexedMatch_statx_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : source ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.VarHT (.StatX p))⟩)
       n (.success (.of ((baseIndexedMatch source dt).getD false))) n := by
   by_cases hspecial :
@@ -140,8 +140,8 @@ theorem readyHeapMatch_base_base_eval
     (n : Nat)
     (hsource : source ∈ HeaptypeValidation.baseHeaptypes)
     (htarget : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source target⟩)
       n (.success (.of ((readyHeapMatch c source target).getD false))) n := by
   rw [readyHeapMatch_base_base c source target hsource htarget]
@@ -185,8 +185,8 @@ theorem readyHeapMatch_base_def_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : source ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.DefHT dt)⟩)
       n (.success (.of ((readyHeapMatch c source (.DefHT dt)).getD false))) n := by
   rw [readyHeapMatch_base_def c p dt source hlookup hbase]
@@ -198,8 +198,8 @@ theorem readyHeapMatch_base_statx_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : source ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.VarHT (.StatX p))⟩)
       n (.success (.of ((readyHeapMatch c source (.VarHT (.StatX p))).getD false))) n := by
   rw [readyHeapMatch_base_statx c p dt source hlookup hbase]
@@ -242,8 +242,8 @@ theorem readyHeapMatch_def_base_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES (.DefHT dt) target⟩)
       n (.success (.of ((readyHeapMatch c (.DefHT dt) target).getD false))) n := by
   rw [readyHeapMatch_def_base c p dt target hlookup hbase]
@@ -256,8 +256,8 @@ theorem readyHeapMatch_statx_base_eval
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hbase : target ∈ HeaptypeValidation.baseHeaptypes) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES (.VarHT (.StatX p)) target⟩)
       n (.success (.of ((readyHeapMatch c (.VarHT (.StatX p)) target).getD false))) n := by
   rw [readyHeapMatch_statx_base c p dt target hlookup hbase]
@@ -294,8 +294,8 @@ theorem readyHeapMatch_def_def_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       n (.success (.of ((readyHeapMatch c
         (.DefHT dtP) (.DefHT dtQ)).getD false))) n := by
@@ -352,8 +352,8 @@ theorem readyHeapMatch_statx_def_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.DefHT dtQ)⟩)
       n (.success (.of ((readyHeapMatch c
         (.VarHT (.StatX p)) (.DefHT dtQ)).getD false))) n := by
@@ -370,8 +370,8 @@ theorem readyHeapMatch_def_statx_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.VarHT (.StatX q))⟩)
       n (.success (.of ((readyHeapMatch c
         (.DefHT dtP) (.VarHT (.StatX q))).getD false))) n := by
@@ -388,8 +388,8 @@ theorem readyHeapMatch_statx_statx_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.VarHT (.StatX q))⟩)
       n (.success (.of ((readyHeapMatch c
         (.VarHT (.StatX p)) (.VarHT (.StatX q))).getD false))) n := by

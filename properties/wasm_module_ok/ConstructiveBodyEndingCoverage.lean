@@ -18,7 +18,7 @@ theorem stop_supported (root c : context) (stack : inferresulttype) (outputs : L
 theorem original (root c : context) (stack : inferresulttype) (outputs : List valtype)
     (env : Env root) (hs : StackBacked root stack)
     (ho : ∀t∈outputs,CandidateValMatch.InTableVal root t) (ell : ellipses) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferresulttype,SpecTecCall.«$pop» root (.NoEllipses,outputs) stack⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferresulttype,Call.«$pop» root (.NoEllipses,outputs) stack⟩)
       n (.success (.of ((ell,[]) : inferresulttype))) finish) :
     (∃tail,Gen.support (endings root c stack outputs env hs ho).generator tail ∧ tail.val=[]) ∧ finish=n := by
   obtain ⟨hp,hn⟩ := ConstructiveBodyPopPlans.pop_plan_complete root (.NoEllipses,outputs) stack (ell,[]) n finish env.ready ho hs h

@@ -11,9 +11,9 @@ theorem array_new_implicit_output_has_zero_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin) :
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
@@ -36,9 +36,9 @@ theorem array_new_explicit_output_has_zero_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
       start (.success (.of iit)) fin) :
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
@@ -61,9 +61,9 @@ theorem array_new_fixed_output_has_zero_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x count : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
       start (.success (.of iit)) fin) :
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
@@ -86,9 +86,9 @@ theorem array_new_implicit_output_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     ConstArrayFixedZeroProduction.arrayFixedZeroSeed c u = true := by
@@ -103,9 +103,9 @@ theorem array_new_explicit_output_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW» x .Explicit)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     ConstArrayFixedZeroProduction.arrayFixedZeroSeed c u = true := by
@@ -120,9 +120,9 @@ theorem array_new_fixed_output_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x count : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
+        SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW_FIXED» x count)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     ConstArrayFixedZeroProduction.arrayFixedZeroSeed c u = true := by

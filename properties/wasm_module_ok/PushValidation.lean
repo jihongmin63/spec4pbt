@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,9 +23,9 @@ def pushOutcome (a b : SpecTec.inferresulttype) :
 
 theorem push_total (c : SpecTec.context)
     (a b : SpecTec.inferresulttype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» c a b⟩)
+        SpecTec.Call.«$push» c a b⟩)
       n (pushOutcome a b) n := by
   rcases a with ⟨af, ats⟩
   rcases b with ⟨bf, bts⟩
@@ -33,13 +34,13 @@ theorem push_total (c : SpecTec.context)
     cases bf with
     | NoEllipses =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$push_clauses» c
-            (.NoEllipses, ats) (.NoEllipses, bts)) ())
+            (.NoEllipses, ats) (.NoEllipses, bts)))
         n (pushOutcome (.NoEllipses, ats) (.NoEllipses, bts)) n
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$push:clause:0» c
           (.NoEllipses, ats) (.NoEllipses, bts))
         n (.success (.of
@@ -55,13 +56,13 @@ theorem push_total (c : SpecTec.context)
             (SpecTec.ellipses.NoEllipses, bts ++ ats)
     | Ellipses =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$push_clauses» c
-            (.NoEllipses, ats) (.Ellipses, bts)) ())
+            (.NoEllipses, ats) (.Ellipses, bts)))
         n (pushOutcome (.NoEllipses, ats) (.Ellipses, bts)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$push:clause:0» c
             (.NoEllipses, ats) (.Ellipses, bts)) n .unmatch n
         unfold SpecTec.«$push:clause:0»
@@ -71,8 +72,8 @@ theorem push_total (c : SpecTec.context)
         · apply SpecTecExecution.Eval.bind_unmatch
           apply SpecTecExecution.Eval.guard_false
           simp [SpecTec.«exec:match:ellipses:NoEllipses»]
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$push:clause:1» c
             (.NoEllipses, ats) (.Ellipses, bts))
           n (.success (.of
@@ -90,28 +91,28 @@ theorem push_total (c : SpecTec.context)
     cases bts with
     | nil =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$push_clauses» c (.Ellipses, ats) (bf, [])) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$push_clauses» c (.Ellipses, ats) (bf, [])))
         n (pushOutcome (.Ellipses, ats) (bf, [])) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$push:clause:0» c (.Ellipses, ats) (bf, []))
           n .unmatch n
         unfold SpecTec.«$push:clause:0»
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:NoEllipses»]
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$push:clause:1» c (.Ellipses, ats) (bf, []))
             n .unmatch n
           unfold SpecTec.«$push:clause:1»
           apply SpecTecExecution.Eval.bind_unmatch
           apply SpecTecExecution.Eval.guard_false
           simp [SpecTec.«exec:match:ellipses:NoEllipses»]
-        · apply SpecTecExecution.firstSuccess_cons_success
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_success
+          change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$push:clause:2» c (.Ellipses, ats) (bf, []))
             n (.success (.of (SpecTec.ellipses.Ellipses, ats))) n
           unfold SpecTec.«$push:clause:2»
@@ -125,29 +126,29 @@ theorem push_total (c : SpecTec.context)
                 (SpecTec.ellipses.Ellipses, ats)
     | cons t ts =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$push_clauses» c
-            (.Ellipses, ats) (bf, t :: ts)) ())
+            (.Ellipses, ats) (bf, t :: ts)))
         n (pushOutcome (.Ellipses, ats) (bf, t :: ts)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$push:clause:0» c
             (.Ellipses, ats) (bf, t :: ts)) n .unmatch n
         unfold SpecTec.«$push:clause:0»
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:NoEllipses»]
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«$push:clause:1» c
               (.Ellipses, ats) (bf, t :: ts)) n .unmatch n
           unfold SpecTec.«$push:clause:1»
           apply SpecTecExecution.Eval.bind_unmatch
           apply SpecTecExecution.Eval.guard_false
           simp [SpecTec.«exec:match:ellipses:NoEllipses»]
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
-          · change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_unmatch
+          · change SpecTecExecution.Eval SpecTec.Body
               (SpecTec.«$push:clause:2» c
                 (.Ellipses, ats) (bf, t :: ts)) n .unmatch n
             unfold SpecTec.«$push:clause:2»
@@ -157,28 +158,25 @@ theorem push_total (c : SpecTec.context)
             · apply SpecTecExecution.Eval.bind_unmatch
               apply SpecTecExecution.Eval.guard_false
               simp
-          · exact SpecTecExecution.firstSuccess_nil () n
+          · exact SpecTecExecution.tryClauses_nil n
 
 theorem push_deterministic (c : SpecTec.context)
     (a b : SpecTec.inferresulttype) (n finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» c a b⟩)
+        SpecTec.Call.«$push» c a b⟩)
       n outcome finalSupply) :
     outcome = pushOutcome a b ∧ finalSupply = n := by
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request x y hp
-    cases hp
-  exact SpecTecExecution.eval_deterministic hdet h
+  exact properties.wasm_module_ok.Execution.eval_deterministic h
     (push_total c a b n)
 
 theorem push_success_iff_result (c : SpecTec.context)
     (a b result : SpecTec.inferresulttype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» c a b⟩)
+        SpecTec.Call.«$push» c a b⟩)
       n (.success (.of result)) finalSupply ↔
     pushResult a b = some result ∧ finalSupply = n := by
   constructor

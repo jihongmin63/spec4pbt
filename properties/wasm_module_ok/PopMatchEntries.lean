@@ -10,8 +10,8 @@ namespace properties.wasm_module_ok.PopMatchEntries
 def ValueMatches (c : SpecTec.context)
     (actual required : SpecTec.valtype) : Prop :=
   ∃ start finish : Nat,
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype»
         c.TYPES actual required⟩)
       start (.success (.of true)) finish
 
@@ -19,8 +19,8 @@ theorem match_resulttype_entries
     (c : SpecTec.context)
     (actual required : List SpecTec.valtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c actual required⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c actual required⟩)
       start (.success (.of ())) finish) :
     List.Forall₂ (ValueMatches c) actual required := by
   have ⟨hlen, hiter⟩ :=
@@ -71,9 +71,9 @@ theorem pop_required_match_saturated
     (need available : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start finish : Nat)
     (s : Finset SpecTec.valtype)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish)
     (havailable : ∀ actual ∈ available, actual ∈ s) :

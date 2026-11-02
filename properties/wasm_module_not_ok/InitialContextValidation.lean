@@ -1,18 +1,19 @@
 import properties.wasm_module_not_ok.Rejection
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 namespace properties.wasm_module_not_ok.Rejection
 
 theorem empty_set_total (K : Type) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.set K, SpecTec.SpecTecCall.«$empty_set» K⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.set K, SpecTec.Call.«$empty_set» K⟩)
       start (.success (.of (SpecTec.set.«`{ % `}» ([] : List K)))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$empty_set_clauses» K) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$empty_set_clauses» K))
     start (.success (.of (SpecTec.set.«`{ % `}» ([] : List K)))) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$empty_set:clause:0» K)
     start (.success (.of (SpecTec.set.«`{ % `}» ([] : List K)))) start
   exact SpecTecExecution.Eval.pure _
@@ -26,15 +27,15 @@ def emptyFree : SpecTec.free :=
     LOCALS := .«`{ % `}» [], LABELS := .«`{ % `}» [] }
 
 theorem free_empty_total (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_empty»⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_empty»⟩)
       start (.success (.of emptyFree)) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess SpecTec.«$free_empty_clauses» ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses SpecTec.«$free_empty_clauses»)
     start (.success (.of emptyFree)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     SpecTec.«$free_empty:clause:0»
     start (.success (.of emptyFree)) start
   unfold SpecTec.«$free_empty:clause:0»
@@ -57,15 +58,15 @@ def emptyContext : SpecTec.context :=
     RESULTS := [], LABELS := [], REFS := emptyFree }
 
 theorem empty_context_total (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
       start (.success (.of emptyContext)) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess SpecTec.«$empty_context_clauses» ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses SpecTec.«$empty_context_clauses»)
     start (.success (.of emptyContext)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     SpecTec.«$empty_context:clause:0»
     start (.success (.of emptyContext)) start
   unfold SpecTec.«$empty_context:clause:0»
@@ -74,11 +75,11 @@ theorem empty_context_total (start : Nat) :
 
 theorem empty_context_deterministic (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.«$empty_context»⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.«$empty_context»⟩)
       start outcome finalSupply) :
     outcome = .success (.of emptyContext) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (empty_context_total start)
 
 end properties.wasm_module_not_ok.Rejection

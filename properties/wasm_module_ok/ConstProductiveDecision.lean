@@ -39,8 +39,8 @@ theorem productive_fillable_iff_const_ok
     (htable : CandidateValMatch.InTableVal c t) :
     ConstProductiveFillability.productiveFillable c t = true ↔
       ∃ (xs : SpecTec.const) (n : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
           n (.success (.of ())) n := by
   constructor
   · intro hfill
@@ -70,8 +70,8 @@ theorem productive_fillable_iff_const_ok_any_counters
     (htable : CandidateValMatch.InTableVal c t) :
     ConstProductiveFillability.productiveFillable c t = true ↔
       ∃ (xs : SpecTec.const) (start finish : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
           start (.success (.of ())) finish := by
   constructor
   · intro hfill

@@ -12,16 +12,16 @@ def elemInitValid (c : SpecTec.context) (rt : SpecTec.reftype)
 theorem elem_iter_nil_success_iff
     (c : SpecTec.context) (rt : SpecTec.reftype)
     (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Elem_ok:rule:iter:0» c rt []⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Elem_ok:rule:iter:0» c rt []⟩)
       start (.success (.of ())) finish ↔ finish = start := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«Elem_ok:rule:iter:0_clauses» c rt []) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«Elem_ok:rule:iter:0_clauses» c rt []))
         start (.success (.of ())) finish at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -29,9 +29,9 @@ theorem elem_iter_nil_success_iff
         cases hclause
         rfl
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Elem_ok:rule:iter:0:clause:1» c rt []] ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Elem_ok:rule:iter:0:clause:1» c rt []])
           start (.success (.of ())) finish at htail
         cases htail with
         | orElse_success hclause =>
@@ -41,12 +41,12 @@ theorem elem_iter_nil_success_iff
   · intro hsame
     subst finish
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«Elem_ok:rule:iter:0_clauses» c rt []) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«Elem_ok:rule:iter:0_clauses» c rt []))
       start (.success (.of ())) start
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Elem_ok:rule:iter:0:clause:0» c rt [])
       start (.success (.of ())) start
     unfold SpecTec.«Elem_ok:rule:iter:0:clause:0»
@@ -60,8 +60,8 @@ theorem elem_init_valid_iff_iter
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (htarget : CandidateValMatch.InTableVal c (.RefT rt)) :
     elemInitValid c rt inits = true ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.«Elem_ok:rule:iter:0»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.«Elem_ok:rule:iter:0»
           c rt inits⟩)
         start (.success (.of ())) finish := by
   induction inits generalizing start finish with

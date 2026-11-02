@@ -16,8 +16,8 @@ theorem const_ok_has_closed_matching_output
       tr.c5, tr.c6, tr.c7, tr.c8])
     (t : SpecTec.valtype) (xs : SpecTec.const)
     (start finish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish) :
     ∃ u : SpecTec.valtype,
       u ∈ FiniteClosure.iterate
@@ -64,8 +64,8 @@ theorem const_ok_target_in_extended_saturation
       tr.c5, tr.c6, tr.c7, tr.c8])
     (t : SpecTec.valtype) (xs : SpecTec.const)
     (start finish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish)
     (htarget : t ∈ ConstFieldCandidate.extendedCandidateUniverse c)
     (htable : CandidateValMatch.InTableVal c t) :
@@ -102,8 +102,8 @@ theorem const_ok_target_in_fixed_saturation
       tr.c5, tr.c6, tr.c7, tr.c8])
     (t : SpecTec.valtype) (xs : SpecTec.const)
     (start finish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish)
     (htarget : t ∈ ConstFieldCandidate.extendedCandidateUniverse c)
     (htable : CandidateValMatch.InTableVal c t) :

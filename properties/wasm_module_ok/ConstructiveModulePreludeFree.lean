@@ -5,7 +5,7 @@ namespace properties.wasm_module_ok.ConstructiveModulePrelude
 open SpecTec properties.wasm_module_ok SpecTecExecution
 
 theorem constant_flat (c : context) (t : valtype) (xs : SpecTec.const) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c t xs⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.Const_ok c t xs⟩) n (.success (.of ())) finish) :
     ∀i∈xs,ConstructiveFreeConstants.Flat i := by
   have hs := (ConstExactSyntaxBoundary.const_ok_success_iff c t xs n finish).1 h |>.1
   exact fun i hi => ConstructiveFreeConstants.syntax_flat c i (hs i hi)

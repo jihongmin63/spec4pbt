@@ -9,9 +9,9 @@ theorem ref_func_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

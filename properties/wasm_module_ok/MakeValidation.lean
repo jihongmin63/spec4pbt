@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,19 +11,19 @@ def makeResult {X : Type} (value : X) : Nat → List X
 
 theorem make_total (X : Type) (value : X)
     (count start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List X,
-        SpecTec.SpecTecCall.«$make_» X value count⟩)
+        SpecTec.Call.«$make_» X value count⟩)
       start (.success (.of (makeResult value count))) start := by
   induction count generalizing start with
   | zero =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$make__clauses» X value 0) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$make__clauses» X value 0))
       start (.success (.of (makeResult value 0))) start
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$make_:clause:0» X value 0)
       start (.success (.of (makeResult value 0))) start
     unfold SpecTec.«$make_:clause:0»
@@ -35,20 +36,20 @@ theorem make_total (X : Type) (value : X)
         (Int.ofNat (count + 1) - Int.ofNat 1) = Int.ofNat count := by
       simp
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$make__clauses» X value (count + 1)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$make__clauses» X value (count + 1)))
       start (.success (.of (makeResult value (count + 1)))) start
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$make_:clause:0» X value (count + 1))
         start .unmatch start
       unfold SpecTec.«$make_:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       omega
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$make_:clause:1» X value (count + 1))
         start (.success (.of (makeResult value (count + 1)))) start
       unfold SpecTec.«$make_:clause:1»
@@ -65,18 +66,15 @@ theorem make_total (X : Type) (value : X)
 theorem make_success_iff (X : Type) (value : X)
     (count : Nat) (result : List X)
     (start finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List X,
-        SpecTec.SpecTecCall.«$make_» X value count⟩)
+        SpecTec.Call.«$make_» X value count⟩)
       start (.success (.of result)) finalSupply ↔
     result = makeResult value count ∧ finalSupply = start := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (make_total X value count start)
     cases hout
     exact ⟨rfl, hsupply⟩

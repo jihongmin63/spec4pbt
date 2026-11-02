@@ -10,20 +10,20 @@ def packed : storagetype → Bool
   | .PackStorageT _ => true
 
 theorem packed_call (st : storagetype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨Bool,SpecTecCall.«$is_packed_storage_type» st⟩)
+    SpecTecExecution.Eval SpecTec.Body (.call ⟨Bool,Call.«$is_packed_storage_type» st⟩)
       n (.success (.of (packed st))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTecExecution.firstSuccess (SpecTec.«$is_packed_storage_type_clauses» st) ()) n _ n
+  change SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses (SpecTec.«$is_packed_storage_type_clauses» st)) n _ n
   cases st with
   | ValStorageT t =>
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«$is_packed_storage_type:clause:0»
     exact SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl) (SpecTecExecution.Eval.pure _)
   | PackStorageT pt =>
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · unfold SpecTec.«$is_packed_storage_type:clause:0»
       exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by change ¬false=true; decide))
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«$is_packed_storage_type:clause:1»
     exact SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl) (SpecTecExecution.Eval.pure _)
 
@@ -39,16 +39,16 @@ def storageMatch (c : context) : storagetype → storagetype → Bool
 theorem storage_call (c : context) (a b : storagetype) (n : Nat) (env : Env c)
     (ha : CandidateValMatch.InTableVal c (UnpackedFieldDecision.unpackedStorageResult a))
     (hb : CandidateValMatch.InTableVal c (UnpackedFieldDecision.unpackedStorageResult b)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨Bool,SpecTecCall.«$match_storagetype» c.TYPES a b⟩)
+    SpecTecExecution.Eval SpecTec.Body (.call ⟨Bool,Call.«$match_storagetype» c.TYPES a b⟩)
       n (.success (.of (storageMatch c a b))) n := by
   cases a with
   | ValStorageT a =>
     cases b with
     | ValStorageT b =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.«$match_storagetype_clauses» c.TYPES (.ValStorageT a) (.ValStorageT b)) ()) n _ n
-      apply SpecTecExecution.firstSuccess_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.«$match_storagetype_clauses» c.TYPES (.ValStorageT a) (.ValStorageT b))) n _ n
+      apply SpecTecExecution.tryClauses_cons_success
       unfold SpecTec.«$match_storagetype:clause:0»
       apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
       apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)

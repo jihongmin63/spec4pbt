@@ -22,9 +22,9 @@ theorem instrs_entries_in_productive_closure
       (result : SpecTec.inferresulttype × List SpecTec.idx)
       (round start finish : Nat),
       ConstStaticAgreement.StaticAgreement origin current →
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok current
+          SpecTec.Call.Instrs_ok current
             (.NoEllipses, stack) xs⟩)
         start (.success (.of result)) finish →
       (∀ t ∈ stack,
@@ -67,8 +67,8 @@ theorem instrs_entries_in_productive_closure
       exact hi
     have hsyntax :=
       (ConstSyntaxDecision.syntaxAllowed_iff current i).1 hsyntaxCurrent
-    have hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» current i⟩)
+    have hconst : SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$is_const» current i⟩)
         start (.success (.of true)) start :=
       ConstAdditionalSyntaxValidation.syntax_is_const
         current i start hsyntax
@@ -76,9 +76,9 @@ theorem instrs_entries_in_productive_closure
       ConstInputShape.is_const_instruction_noellipses_inputs
         current (.NoEllipses, stack) i iit
         start start middle₁ hconst hinstr
-    have hpop' : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpop' : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» current
+          SpecTec.Call.«$pop» current
             (.NoEllipses, iit.1.INS.2) (.NoEllipses, stack)⟩)
         middle₂ (.success (.of popped)) middle₃ := by
       rw [hins] at hpop
@@ -116,9 +116,9 @@ theorem instrs_entries_in_productive_closure
         CandidateValMatch.InTableVal origin t := by
       intro t ht
       exact hclosed.2 t (by simpa [hpushed] using ht)
-    have hrest' : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hrest' : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok next
+          SpecTec.Call.Instrs_ok next
             (.NoEllipses,
               stack.take (stack.length - iit.1.INS.2.length) ++ [u])
             rest⟩)

@@ -159,14 +159,14 @@ theorem payloads_complete (g : Group) (op : cvtop_) (h : op∈first g::rest g) :
   ConstructiveBodyCertifiedChoice.complete _ _ _ _ h
 
 theorem original (c : context) (stack : inferresulttype) (op : cvtop_) (result : inferinstrtype)
-    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.CONVERT op)⟩)
+    (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.CONVERT op)⟩)
       n (.success (.of result)) finish) :
     ∃g,op∈first g::rest g ∧
       result=ConstructiveBodyControl.effect [.NumT (types g).1] [.NumT (types g).2] [] ∧ finish=n := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.CONVERT op) 83 (by decide) rfl (by decide) result n finish).1 h
   have ht : ∃ts,typeOf op=some ts := by
-    change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:83» c stack (.CONVERT op)) n _ finish at hs
+    change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:83» c stack (.CONVERT op)) n _ finish at hs
     unfold SpecTec.«Instr_ok:clause:83» at hs
     cases hs with | bind_success hg tail =>
      cases hg

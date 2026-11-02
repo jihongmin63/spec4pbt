@@ -8,9 +8,9 @@ namespace properties.wasm_module_ok.ConstI31Candidate
 theorem i31_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (iit : SpecTec.inferinstrtype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt .«REF.I31»⟩)
+        SpecTec.Call.Instr_ok c irt .«REF.I31»⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

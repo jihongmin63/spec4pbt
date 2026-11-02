@@ -8,21 +8,21 @@ namespace properties.wasm_module_ok.ConstTraceCandidate
 theorem const_ok_trace_candidates
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) fin) :
     ∃ (irt : SpecTec.inferresulttype) (indices : List SpecTec.idx)
       (ellipses : SpecTec.ellipses) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, []) xs⟩)
         start (.success (.of (irt, indices))) middle ∧
       irt.1 = .NoEllipses ∧
       (∀ u ∈ irt.2, u ∈ FiniteValidTypes.candidateUniverse c) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.ellipses × SpecTec.resulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) irt⟩)
         middle (.success (.of (ellipses, ([] : List SpecTec.valtype))))
           fin := by

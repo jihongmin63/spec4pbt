@@ -16,21 +16,21 @@ def structTypeResult (c : SpecTec.context) (x : SpecTec.typeidx) :
 theorem struct_type_success_iff
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strct : SpecTec.structtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.structtype,
-        SpecTec.SpecTecCall.«$struct_type» c x⟩)
+        SpecTec.Call.«$struct_type» c x⟩)
       n (.success (.of strct)) finalSupply ↔
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.strtype,
-          SpecTec.SpecTecCall.«$expanddt» dt⟩)
+          SpecTec.Call.«$expanddt» dt⟩)
         n (.success (.of (SpecTec.strtype.DefStructT strct))) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$struct_type:clause:0» c x)
           (fun _ => .unmatch))
         n (.success (.of strct)) finalSupply at hbody
@@ -67,12 +67,12 @@ theorem struct_type_success_iff
     have hindex : x < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$struct_type_clauses» c x) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$struct_type_clauses» c x))
       n (.success (.of strct)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$struct_type:clause:0» c x)
       n (.success (.of strct)) finalSupply
     unfold SpecTec.«$struct_type:clause:0»
@@ -87,9 +87,9 @@ theorem struct_type_success_iff
 theorem struct_type_success_iff_result
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strct : SpecTec.structtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.structtype,
-        SpecTec.SpecTecCall.«$struct_type» c x⟩)
+        SpecTec.Call.«$struct_type» c x⟩)
       n (.success (.of strct)) finalSupply ↔
     structTypeResult c x = some strct ∧ finalSupply = n := by
   rw [struct_type_success_iff]

@@ -10,14 +10,14 @@ namespace properties.wasm_module_ok.CandidateProvenancePreGlobals
 theorem table_ok_funcs
     (c out : SpecTec.context) (t : SpecTec.table)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Table_ok c t⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Table_ok c t⟩)
       start (.success (.of out)) finish) :
     out.FUNCS = c.FUNCS := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Table_ok_clauses c t) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Table_ok_clauses c t))
         start (.success (.of out)) finish at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -33,18 +33,18 @@ theorem table_ok_funcs
 theorem tables_ok_funcs
     (c out : SpecTec.context) (ts : List SpecTec.table)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tables_ok c ts⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tables_ok c ts⟩)
       start (.success (.of out)) finish) :
     out.FUNCS = c.FUNCS := by
   induction ts generalizing c out start finish with
   | nil =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:0» c [])
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Tables_ok:clause:1» c []] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Tables_ok:clause:1» c []]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -54,7 +54,7 @@ theorem tables_ok_funcs
                   cases hguard with
                   | guard_true hcond => simp at hcond
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Tables_ok:clause:1» c [])
                   (fun _ => .unmatch))
                 start (.success (.of out)) finish at htail
@@ -69,10 +69,10 @@ theorem tables_ok_funcs
   | cons t rest ih =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:0» c (t :: rest))
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -91,7 +91,7 @@ theorem tables_ok_funcs
                                   exact (ih next out middle finish hrest).trans
                                     (table_ok_funcs c next t start middle hhead)
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Tables_ok:clause:1» c (t :: rest))
                   (fun _ => .unmatch))
                 start (.success (.of out)) finish at htail

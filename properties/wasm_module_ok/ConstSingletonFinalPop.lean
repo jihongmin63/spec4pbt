@@ -11,11 +11,11 @@ theorem singleton_match_resulttype_of_candidate
     (hu : CandidateValMatch.InTableVal c u)
     (ht : CandidateValMatch.InTableVal c t)
     (hmatch : CandidateValMatch.candidateValMatch c u t = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c [u] [t]⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c [u] [t]⟩)
       n (.success (.of ())) n := by
-  have hvalue : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+  have hvalue : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
       n (.success (.of true)) n := by
     simpa only [hmatch] using
       (CandidateValMatch.candidate_val_match_total c u t n hready hu ht)
@@ -28,35 +28,35 @@ theorem singleton_match_resulttype_of_candidate
 
 theorem singleton_final_pop_of_match_resulttype
     (c : SpecTec.context) (u t : SpecTec.valtype) (n : Nat)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c [u] [t]⟩)
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c [u] [t]⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (SpecTec.ellipses.NoEllipses, [t])
           (SpecTec.ellipses.NoEllipses, [u])⟩)
       n (.success (.of
         (SpecTec.ellipses.NoEllipses,
           ([] : List SpecTec.valtype)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$pop_clauses» c
-        (.NoEllipses, [t]) (.NoEllipses, [u])) ())
+        (.NoEllipses, [t]) (.NoEllipses, [u])))
     n (.success (.of
       (SpecTec.ellipses.NoEllipses,
         ([] : List SpecTec.valtype)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c
         (.NoEllipses, [t]) (.NoEllipses, [u])) n .unmatch n
     unfold SpecTec.«$pop:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp [SpecTec.«exec:match:ellipses:Ellipses»]
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$pop:clause:1» c
           (.NoEllipses, [t]) (.NoEllipses, [u])) n .unmatch n
       unfold SpecTec.«$pop:clause:1»
@@ -66,16 +66,16 @@ theorem singleton_final_pop_of_match_resulttype
       · apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:Ellipses»]
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$pop:clause:2» c
             (.NoEllipses, [t]) (.NoEllipses, [u])) n .unmatch n
         unfold SpecTec.«$pop:clause:2»
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:Ellipses»]
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$pop:clause:3» c
             (.NoEllipses, [t]) (.NoEllipses, [u]))
           n (.success (.of
@@ -112,9 +112,9 @@ theorem singleton_final_pop_of_candidate_match
     (hu : CandidateValMatch.InTableVal c u)
     (ht : CandidateValMatch.InTableVal c t)
     (hmatch : CandidateValMatch.candidateValMatch c u t = true) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (SpecTec.ellipses.NoEllipses, [t])
           (SpecTec.ellipses.NoEllipses, [u])⟩)
       n (.success (.of

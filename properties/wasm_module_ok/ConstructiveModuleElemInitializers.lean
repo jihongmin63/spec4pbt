@@ -7,8 +7,8 @@ open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironm
 open ConstructiveModuleInitializerPlans ConstructiveConstTargetPlan ConstructiveConstTargetExact
 
 abbrev Initializers (c : context) (t : valtype) :=
-  {codes : List (List instr) // ∀code∈codes,∀n,Eval specTecProgram
-    (.call ⟨Unit,SpecTecCall.Const_ok c t code⟩) n (.success (.of ())) n}
+  {codes : List (List instr) // ∀code∈codes,∀n,Eval Body
+    (.call ⟨Unit,Call.Const_ok c t code⟩) n (.success (.of ())) n}
 def empty (c : context) (t : valtype) : Initializers c t := ⟨[],by simp⟩
 
 def generate (c : context) (env : Env c) (p : Productive c env) : Audited (Initializers c p.1.val) :=
@@ -25,7 +25,7 @@ theorem complete (c : context) (env : Env c) (p : Productive c env) (codes : Ini
   exact constants_complete c env.ready env.provenance env.nested p.1.val (backed c p.1) p.2 code 0 0 (codes.property code hm 0)
 
 theorem execute (c : context) (rt : reftype) (codes : Initializers c (.RefT rt)) (n : Nat) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Elem_ok:rule:iter:0» c rt codes.val⟩) n (.success (.of ())) n := by
+    Eval Body (.call ⟨Unit,Call.«Elem_ok:rule:iter:0» c rt codes.val⟩) n (.success (.of ())) n := by
   rcases codes with ⟨codes,hcodes⟩
   induction codes with
   | nil => exact (ElemInitDecision.elem_iter_nil_success_iff c rt n n).2 rfl
@@ -35,8 +35,8 @@ theorem execute (c : context) (rt : reftype) (codes : Initializers c (.RefT rt))
 
 theorem original (c : context) (env : Env c) (rt : reftype)
     (hr : CandidateValMatch.InTableVal c (.RefT rt)) (codes : List (List instr)) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Elem_ok:rule:iter:0» c rt codes⟩) n (.success (.of ())) finish) :
-    ∀code∈codes,∀k,Eval specTecProgram (.call ⟨Unit,SpecTecCall.Const_ok c (.RefT rt) code⟩) k (.success (.of ())) k := by
+    (h : Eval Body (.call ⟨Unit,Call.«Elem_ok:rule:iter:0» c rt codes⟩) n (.success (.of ())) finish) :
+    ∀code∈codes,∀k,Eval Body (.call ⟨Unit,Call.Const_ok c (.RefT rt) code⟩) k (.success (.of ())) k := by
   have hv := (ElemInitDecision.elem_init_valid_iff_iter c rt codes n finish env.ready env.provenance env.nested hr).2 h |>.1
   rw [ElemInitDecision.elemInitValid,List.all_eq_true] at hv
   intro code hm k

@@ -7,19 +7,19 @@ namespace properties.wasm_module_ok.ModeConstValidation
 theorem datamode_active_const
     (c : SpecTec.context) (a : SpecTec.active)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Datamode_ok c (.Active a)⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Datamode_ok c (.Active a)⟩)
       n (.success (.of ())) finalSupply) :
     ∃ (vt : SpecTec.valtype) (start finish : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c vt a.OFFSET⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c vt a.OFFSET⟩)
         start (.success (.of ())) finish := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Datamode_ok:clause:0» c (.Active a))
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Datamode_ok:clause:1» c (.Active a)] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Datamode_ok:clause:1» c (.Active a)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -30,7 +30,7 @@ theorem datamode_active_const
         | guard_true hfalse =>
           simp [SpecTec.«exec:match:datamode:Passive»] at hfalse
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Datamode_ok:clause:1» c (.Active a))
           (fun _ => .unmatch))
         n (.success (.of ())) finalSupply at htail
@@ -61,20 +61,20 @@ theorem datamode_active_const
 theorem elemmode_active_const
     (c : SpecTec.context) (rt : SpecTec.reftype)
     (a : SpecTec.active) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Elemmode_ok c rt (.Active a)⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Elemmode_ok c rt (.Active a)⟩)
       n (.success (.of ())) finalSupply) :
     ∃ (vt : SpecTec.valtype) (start finish : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c vt a.OFFSET⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c vt a.OFFSET⟩)
         start (.success (.of ())) finish := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Elemmode_ok:clause:0» c rt (.Active a))
-        (fun _ => SpecTecExecution.firstSuccess
+        (fun _ => SpecTecExecution.tryClauses
           [fun _ => SpecTec.«Elemmode_ok:clause:1» c rt (.Active a),
-           fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)] ()))
+           fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -85,10 +85,10 @@ theorem elemmode_active_const
         | guard_true hfalse =>
           simp [SpecTec.«exec:match:elemmode:Passive»] at hfalse
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Elemmode_ok:clause:1» c rt (.Active a))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Elemmode_ok:clause:2» c rt (.Active a)]))
         n (.success (.of ())) finalSupply at htail
       cases htail with
       | orElse_success hactive =>
@@ -119,7 +119,7 @@ theorem elemmode_active_const
                             | bind_success hconst _ =>
                               exact ⟨_, _, _, hconst⟩
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Elemmode_ok:clause:2» c rt (.Active a))
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at htail

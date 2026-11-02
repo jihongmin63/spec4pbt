@@ -11,13 +11,13 @@ theorem free_global_ref_func
     (g : SpecTec.global) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (hmem : SpecTec.instr.«REF.FUNC» x ∈ g.GINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_global» g⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_global» g⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_global_clauses» g) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_global_clauses» g))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -42,13 +42,13 @@ theorem free_table_ref_func
     (t : SpecTec.table) (x : SpecTec.funcidx)
     (result : SpecTec.free) (n finalSupply : Nat)
     (hmem : SpecTec.instr.«REF.FUNC» x ∈ t.TINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_table» t⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_table» t⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_table_clauses» t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_table_clauses» t))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>

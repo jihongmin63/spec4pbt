@@ -7,9 +7,9 @@ namespace properties.wasm_module_ok.MatchValtypeShape
 theorem match_valtype_true_shape
     (c : SpecTec.context) (u t : SpecTec.valtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+        SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
       start (.success (.of true)) fin) :
     u = .BotT ∨
       (∃ a b : SpecTec.numtype,
@@ -20,13 +20,13 @@ theorem match_valtype_true_shape
         u = .RefT a ∧ t = .RefT b) := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$match_valtype_clauses» c.TYPES u t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$match_valtype_clauses» c.TYPES u t))
       start (.success (.of true)) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.«$match_valtype_clauses» c.TYPES u t) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.«$match_valtype_clauses» c.TYPES u t)
         start (.of true) fin).1 hbody
     unfold SpecTec.«$match_valtype_clauses» at hselected
     cases hselected with
@@ -110,7 +110,7 @@ theorem match_valtype_true_shape
           | next _ hselected =>
             cases hselected with
             | here h4 =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.pure false) start (.success (.of true)) fin at h4
               cases h4
             | next _ hnone => cases hnone

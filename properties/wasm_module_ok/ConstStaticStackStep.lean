@@ -20,21 +20,21 @@ theorem static_stack_entries_next_round
     (popped pushed : SpecTec.inferresulttype)
     (round : Nat)
     (start middle instructionFinish popStart popFinish pushFinish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» current i⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» current i⟩)
       start (.success (.of true)) middle)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok current irt i⟩)
+        SpecTec.Call.Instr_ok current irt i⟩)
       middle (.success (.of iit)) instructionFinish)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» current
+        SpecTec.Call.«$pop» current
           (.NoEllipses, iit.1.INS.2) (.NoEllipses, available)⟩)
       popStart (.success (.of popped)) popFinish)
-    (hpush : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpush : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» current iit.1.OUTS popped⟩)
+        SpecTec.Call.«$push» current iit.1.OUTS popped⟩)
       popFinish (.success (.of pushed)) pushFinish)
     (hstack : ∀ t ∈ available,
       t ∈ FiniteClosure.iterate
@@ -80,9 +80,9 @@ theorem static_stack_entries_next_round
     start middle instructionFinish popStart popFinish pushFinish
     hconst hcall hpop hpush houts hstackCurrent hready
       hactualCurrent hrequired
-  have hpush' : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hpush' : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» current (.NoEllipses, [u]) popped⟩)
+        SpecTec.Call.«$push» current (.NoEllipses, [u]) popped⟩)
       popFinish (.success (.of pushed)) pushFinish := by
     simpa only [houts] using hpush
   have htable := StackClosure.pop_push_entries_closed

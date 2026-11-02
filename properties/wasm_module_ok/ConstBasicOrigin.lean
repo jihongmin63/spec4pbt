@@ -9,9 +9,9 @@ def EmptyOneEffect (c : SpecTec.context)
     (irt : SpecTec.inferresulttype) (u : SpecTec.valtype)
     (n : Nat) (i : SpecTec.instr) : Prop :=
   ConstSyntaxDecision.syntaxAllowed c i = true ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       n (.success (.of
         (⟨{ INS := (.NoEllipses, []),
              OUTS := (.NoEllipses, [u]) },

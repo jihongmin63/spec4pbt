@@ -84,9 +84,9 @@ theorem pop_required_mem_saturation
     (c : SpecTec.context)
     (need available sources : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start finish : Nat)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish)
     (hready : CandidateTypeReady.Ready c)

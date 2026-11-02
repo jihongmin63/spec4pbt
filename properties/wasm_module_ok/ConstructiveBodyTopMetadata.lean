@@ -36,8 +36,8 @@ structure Top (c : context) where
   top : heaptype
   valid : HeaptypeValidation.heaptypeValid c heap=true
   baseTop : top∈HeaptypeValidation.baseHeaptypes
-  call : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨heaptype,SpecTecCall.«$top_of_heap_type» c.TYPES heap⟩) n (.success (.of top)) n
+  call : ∀n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨heaptype,Call.«$top_of_heap_type» c.TYPES heap⟩) n (.success (.of top)) n
 
 def base (c : context) (pair : heaptype × heaptype) (hp : pair∈basePairs) : Top c :=
   ⟨pair.1,pair.2,by

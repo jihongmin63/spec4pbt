@@ -78,8 +78,8 @@ theorem indexedHeapMatch_def_def_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.DefHT dtQ)⟩)
       n (.success (.of ((indexedHeapMatch c
         (.DefHT dtP) (.DefHT dtQ)).getD false))) n := by
@@ -94,8 +94,8 @@ theorem indexedHeapMatch_statx_def_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.DefHT dtQ)⟩)
       n (.success (.of ((indexedHeapMatch c
         (.VarHT (.StatX p)) (.DefHT dtQ)).getD false))) n := by
@@ -110,8 +110,8 @@ theorem indexedHeapMatch_def_statx_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.DefHT dtP) (.VarHT (.StatX q))⟩)
       n (.success (.of ((indexedHeapMatch c
         (.DefHT dtP) (.VarHT (.StatX q))).getD false))) n := by
@@ -126,8 +126,8 @@ theorem indexedHeapMatch_statx_statx_eval
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype» c.TYPES
         (.VarHT (.StatX p)) (.VarHT (.StatX q))⟩)
       n (.success (.of ((indexedHeapMatch c
         (.VarHT (.StatX p)) (.VarHT (.StatX q))).getD false))) n := by

@@ -72,8 +72,8 @@ theorem pairedConstants_sound (c : context) (hr : CandidateTypeReady.Ready c)
     (hp : CandidateUniverseReady.Provenance c) (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (xs : List instr)
     (h : Gen.support (pairedConstants c hr hp hn) (target,xs)) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) n (.success (.of ())) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) n (.success (.of ())) n := by
   obtain ⟨plan,hp,code,hc,he⟩ := h
   cases he
   exact constants_sound c hr _ hn _ _ plan.2 xs hc n
@@ -98,8 +98,8 @@ theorem pairedConstants_complete (c : context) (hr : CandidateTypeReady.Ready c)
     (hp : CandidateUniverseReady.Provenance c) (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (ht : target∈ConstFieldCandidate.extendedCandidateUniverse c)
     (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) start (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩) start (.success (.of ())) finish) :
     Gen.support (pairedConstants c hr hp hn) (target,xs) := by
   let tgt : Target c := ⟨target,ConstExtendedCandidateReady.extended_candidate_in_table c hp hn target ht⟩
   obtain ⟨n,plan,hplan⟩ := original_has_plan c hr hp hn target tgt.property xs start finish h
@@ -143,8 +143,8 @@ theorem pairedConstants_exact (c : context) (hr : CandidateTypeReady.Ready c)
     (target : valtype) (xs : List instr) (n : Nat) :
     Gen.support (pairedConstants c hr hp hn) (target,xs) ↔
       target∈ConstFieldCandidate.extendedCandidateUniverse c ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩) n (.success (.of ())) n := by
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit,Call.Const_ok c target xs⟩) n (.success (.of ())) n := by
   constructor
   · intro h
     refine ⟨?_,pairedConstants_sound c hr hp hn target xs h n⟩

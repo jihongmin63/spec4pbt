@@ -24,7 +24,7 @@ open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironm
 
 theorem complete_headers (c : context) (env : Env c) (xs : List Nat) (hr : Ready c xs)
     (fs : List SpecTec.func) (he : fs.map (·.FTYPE)=xs) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Module_ok:rule:iter:2» c fs⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.«Module_ok:rule:iter:2» c fs⟩) n (.success (.of ())) finish) :
     ∃out : Result c xs,Gen.support (generate c env xs hr).generator out ∧ out.items=fs := by
   subst xs
   exact complete c env fs hr n finish h

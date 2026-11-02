@@ -9,9 +9,9 @@ theorem literal_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.num_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+        SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧
