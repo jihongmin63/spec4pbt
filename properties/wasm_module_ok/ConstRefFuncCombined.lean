@@ -10,9 +10,9 @@ theorem ref_func_constant_instruction_iff
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat) :
     ConstSyntaxDecision.syntaxAllowed c (.«REF.FUNC» x) = true ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
       n (.success (.of iit)) fin ↔
     ∃ dt : SpecTec.deftype,
       c.FUNCS[x]? = some dt ∧

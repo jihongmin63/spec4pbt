@@ -9,15 +9,15 @@ theorem const_ok_target_has_candidate_match
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) fin) :
     ∃ u : SpecTec.valtype,
       u ∈ FiniteValidTypes.candidateUniverse c ∧
       ∃ before after : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+            SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
           before (.success (.of true)) after := by
   obtain ⟨irt, indices, ellipses, middle,
     _, hno, hclosed, hpop⟩ :=

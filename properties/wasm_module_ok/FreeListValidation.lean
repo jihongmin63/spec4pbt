@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.FreeDeclarationValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -7,34 +8,34 @@ namespace properties.wasm_module_ok.FreeListValidation
 open properties.wasm_module_ok.FreeUnionValidation
 
 theorem free_list_cons_success_iff
-    {X : Type} (f : X → SpecTec.SpecTecCall SpecTec.free)
+    {X : Type} (f : X → SpecTec.Call SpecTec.free)
     (item : X) (rest : List X)
     (result : SpecTec.free) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» X f (item :: rest)⟩)
+        SpecTec.Call.«$free_list» X f (item :: rest)⟩)
       n (.success (.of result)) finalSupply ↔
     ∃ (headFree tailFree : SpecTec.free) (middle₁ middle₂ : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free, f item⟩)
         n (.success (.of headFree)) middle₁ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free,
-          SpecTec.SpecTecCall.«$free_list» X f rest⟩)
+          SpecTec.Call.«$free_list» X f rest⟩)
         middle₁ (.success (.of tailFree)) middle₂ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free,
-          SpecTec.SpecTecCall.«$fold_left» SpecTec.free SpecTec.free
-            SpecTec.SpecTecCall.«$free_union» headFree [tailFree]⟩)
+          SpecTec.Call.«$fold_left» SpecTec.free SpecTec.free
+            SpecTec.Call.«$free_union» headFree [tailFree]⟩)
         middle₂ (.success (.of result)) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$free_list:clause:0» X f (item :: rest))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«$free_list:clause:1» X f (item :: rest)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«$free_list:clause:1» X f (item :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -44,7 +45,7 @@ theorem free_list_cons_success_iff
           cases hguard with
           | guard_true hcond => simp at hcond
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«$free_list:clause:1» X f (item :: rest))
             (fun _ => .unmatch))
           n (.success (.of result)) finalSupply at htail
@@ -70,18 +71,18 @@ theorem free_list_cons_success_iff
   · rintro ⟨headFree, tailFree, middle₁, middle₂,
       hhead, hrest, hfold⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$free_list_clauses» X f (item :: rest)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$free_list_clauses» X f (item :: rest)))
       n (.success (.of result)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$free_list:clause:0» X f (item :: rest)) n .unmatch n
       unfold SpecTec.«$free_list:clause:0»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by simp))
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$free_list:clause:1» X f (item :: rest))
       n (.success (.of result)) finalSupply
     unfold SpecTec.«$free_list:clause:1»
@@ -93,17 +94,17 @@ theorem free_list_cons_success_iff
     exact SpecTecExecution.Eval.pure _
 
 theorem free_list_preserves_funcs
-    {X : Type} (f : X → SpecTec.SpecTecCall SpecTec.free)
+    {X : Type} (f : X → SpecTec.Call SpecTec.free)
     (P : X → Prop) (x : SpecTec.funcidx)
     (hitem : ∀ (item : X) (out : SpecTec.free)
       (start finalSupply : Nat), P item →
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free, f item⟩)
         start (.success (.of out)) finalSupply → HasFunc out x)
     (xs : List X) (item : X) (hmem : item ∈ xs) (hP : P item)
     (result : SpecTec.free) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_list» X f xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_list» X f xs⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
   induction xs generalizing n finalSupply result with
   | nil => cases hmem
@@ -111,11 +112,8 @@ theorem free_list_preserves_funcs
       obtain ⟨headFree, tailFree, middle₁, middle₂,
         hhead, htail, hfold⟩ :=
         (free_list_cons_success_iff f head tail result n finalSupply).mp hcall
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request a b hp
-        cases hp
       obtain ⟨hresult, _⟩ :=
-        SpecTecExecution.eval_deterministic hdet hfold
+        properties.wasm_module_ok.Execution.eval_deterministic hfold
           (fold_left_singleton_total headFree tailFree middle₂)
       have hpart : HasFunc headFree x ∨ HasFunc tailFree x := by
         rcases List.mem_cons.mp hmem with h | h
@@ -129,12 +127,12 @@ theorem free_globals_ref_func
     (x : SpecTec.funcidx) (result : SpecTec.free)
     (n finalSupply : Nat)
     (hg : g ∈ gs) (href : SpecTec.instr.«REF.FUNC» x ∈ g.GINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» SpecTec.global
-          SpecTec.SpecTecCall.«$free_global» gs⟩)
+        SpecTec.Call.«$free_list» SpecTec.global
+          SpecTec.Call.«$free_global» gs⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
-  exact free_list_preserves_funcs SpecTec.SpecTecCall.«$free_global»
+  exact free_list_preserves_funcs SpecTec.Call.«$free_global»
     (fun a : SpecTec.global => SpecTec.instr.«REF.FUNC» x ∈ a.GINIT) x
     (by intro item out start finish hm hc
         exact FreeDeclarationValidation.free_global_ref_func
@@ -146,12 +144,12 @@ theorem free_tables_ref_func
     (x : SpecTec.funcidx) (result : SpecTec.free)
     (n finalSupply : Nat)
     (ht : t ∈ ts) (href : SpecTec.instr.«REF.FUNC» x ∈ t.TINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.free,
-        SpecTec.SpecTecCall.«$free_list» SpecTec.table
-          SpecTec.SpecTecCall.«$free_table» ts⟩)
+        SpecTec.Call.«$free_list» SpecTec.table
+          SpecTec.Call.«$free_table» ts⟩)
       n (.success (.of result)) finalSupply) : HasFunc result x := by
-  exact free_list_preserves_funcs SpecTec.SpecTecCall.«$free_table»
+  exact free_list_preserves_funcs SpecTec.Call.«$free_table»
     (fun a : SpecTec.table => SpecTec.instr.«REF.FUNC» x ∈ a.TINIT) x
     (by intro item out start finish hm hc
         exact FreeDeclarationValidation.free_table_ref_func

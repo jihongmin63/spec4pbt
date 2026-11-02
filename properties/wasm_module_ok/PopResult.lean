@@ -8,9 +8,9 @@ theorem pop_noellipses_success_result
     (c : SpecTec.context)
     (need available : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) fin) :
     result = (.NoEllipses,
@@ -19,15 +19,15 @@ theorem pop_noellipses_success_result
     c need available result start fin h
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ())
+          (.NoEllipses, need) (.NoEllipses, available)))
       start (.success (.of result)) fin at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
+      (SpecTecExecution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ()
+          (.NoEllipses, need) (.NoEllipses, available))
         start (.of result) fin).1 hbody
     unfold SpecTec.«$pop_clauses» at hselected
     cases hselected with
@@ -93,9 +93,9 @@ theorem pop_noellipses_result_entries_from_input
     (c : SpecTec.context)
     (need available : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) fin)
     (t : SpecTec.valtype) (ht : t ∈ result.2) :

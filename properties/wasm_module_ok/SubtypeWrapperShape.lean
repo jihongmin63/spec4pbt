@@ -8,9 +8,9 @@ theorem subtype_subtype_all_static
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok c x
+        SpecTec.Call.Subtype_sub_ok c x
           (.SubT fin hts strt)⟩)
       start (.success (.of ())) finish) :
     ∀ ht ∈ hts,
@@ -18,15 +18,15 @@ theorem subtype_subtype_all_static
         ht = .VarHT (.StatX y) ∧ y < x := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.Subtype_sub_ok_clauses c x
-          (SpecTec.subtype.SubT fin hts strt)) ())
+          (SpecTec.subtype.SubT fin hts strt)))
       start (.success (.of ())) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
+      (SpecTecExecution.tryClauses_success_iff
         (SpecTec.Subtype_sub_ok_clauses c x
-          (SpecTec.subtype.SubT fin hts strt)) ()
+          (SpecTec.subtype.SubT fin hts strt))
         start (.of ()) finish).1 hbody
     unfold SpecTec.Subtype_sub_ok_clauses at hselected
     cases hselected with

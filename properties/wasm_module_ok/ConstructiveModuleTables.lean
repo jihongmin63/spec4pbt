@@ -81,7 +81,7 @@ theorem generate_audit (c : context) (env : Env c) : ConstructiveGenAudit.Struct
   ⟨ConstructiveGenAudit.arbNat_audit,fun n => (sized n c env).audit⟩
 
 theorem execute (c : context) (env : Env c) (out : Result c) (n : Nat) :
-    SpecTecExecution.Eval specTecProgram (.call ⟨context,SpecTecCall.Tables_ok c out.items⟩)
+    SpecTecExecution.Eval Body (.call ⟨context,Call.Tables_ok c out.items⟩)
       n (.success (.of out.after)) n :=
   (TablesDecision.tables_result_iff_call c out.after out.items n n env.ready env.provenance env.nested).1
     ⟨out.correct,rfl⟩

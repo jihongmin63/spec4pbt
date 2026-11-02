@@ -22,17 +22,17 @@ theorem static_subtype_sub_ok_result_of_ready
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish n : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[y]? = some dt) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+        SpecTec.Call.Subtype_sub_ok' c x strt
           (.VarHT (.StatX y))⟩)
       n (if staticSuperMatch c x y strt dt = true then
         .success (.of ()) else .unmatch) n := by

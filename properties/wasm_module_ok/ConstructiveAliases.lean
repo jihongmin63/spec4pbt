@@ -99,8 +99,8 @@ theorem externalRefs_finite (table : List SpecTec.deftype) (target : SpecTec.def
 theorem externalRefs_exact (table : List SpecTec.deftype) (target : SpecTec.deftype)
     (representative : Nat) (hrep : table[representative]? = some target)
     (tv : SpecTec.typevar) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.heaptype, SpecTec.SpecTecCall.«$subst_of» tv table⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.heaptype, SpecTec.Call.«$subst_of» tv table⟩)
       start (.success (.of (.DefHT target : SpecTec.heaptype))) finish ↔
       Gen.support (externalRefs table target representative) tv ∧ finish = start := by
   rw [externalRefs_support table target representative hrep]

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.InstrRefDispatch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -9,7 +10,7 @@ theorem ref_func_clause_total
     (x : SpecTec.funcidx) (dt : SpecTec.deftype) (n : Nat)
     (hget : c.FUNCS[x]? = some dt)
     (href : FreeUnionValidation.HasFunc c.REFS x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:51» c irt (.«REF.FUNC» x))
       n (.success (.of
         (⟨{ INS := (.NoEllipses, []),
@@ -33,7 +34,7 @@ theorem ref_func_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:51» c irt (.«REF.FUNC» x))
       n (.success (.of iit)) fin) :
     ∃ dt : SpecTec.deftype,
@@ -49,11 +50,8 @@ theorem ref_func_clause_exact
     RefFuncValidation.ref_func_clause_requires_membership c irt x iit n fin h
   have hget : c.FUNCS[x]? = some c.FUNCS[x] :=
     List.getElem?_eq_getElem hlt
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (ref_func_clause_total c irt x c.FUNCS[x] n hget href)
   cases hout
   exact ⟨c.FUNCS[x], hget, href, rfl, hsupply⟩
@@ -62,9 +60,9 @@ theorem ref_func_instruction_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.funcidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
       n (.success (.of iit)) fin ↔
     ∃ dt : SpecTec.deftype,
       c.FUNCS[x]? = some dt ∧

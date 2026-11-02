@@ -14,9 +14,9 @@ theorem instrs_syntax_entries_closed
       ConstAdditionalSyntaxValidation.Syntax base i)
     (hc : FiniteValidTypes.candidateUniverse c =
       FiniteValidTypes.candidateUniverse base)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c (.NoEllipses, stack) xs⟩)
+        SpecTec.Call.Instrs_ok c (.NoEllipses, stack) xs⟩)
       start (.success (.of result)) fin)
     (hstack : ∀ t ∈ stack,
       t ∈ FiniteValidTypes.candidateUniverse base) :

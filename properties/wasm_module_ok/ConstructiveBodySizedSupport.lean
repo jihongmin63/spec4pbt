@@ -22,8 +22,8 @@ theorem ending (depth : Nat) (root c : context) (stack : inferresulttype) (outpu
     (er : Env root) (ec : Env c) (hs : StackBacked c stack)
     (ho : ∀t∈outputs,CandidateValMatch.InTableVal root t) (he : c.TYPES=root.TYPES)
     (ell : ellipses) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» root (.NoEllipses,outputs) stack⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» root (.NoEllipses,outputs) stack⟩)
       n (.success (.of ((ell,[]) : inferresulttype))) finish) :
     (∃tail,Gen.support (sized depth root c stack outputs er ec hs ho he).generator tail ∧ tail.val=[]) ∧ finish=n := by
   obtain ⟨⟨tail,ht,hval⟩,hn⟩ := ConstructiveBodyEndingCoverage.original root c stack outputs er

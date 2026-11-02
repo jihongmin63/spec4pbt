@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.MatchFunctionConditional
 import properties.wasm_module_ok.MatchStructtypeConditional
 import properties.wasm_module_ok.MatchArrayConditional
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -27,26 +28,26 @@ theorem struct_pair_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.structtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_strtype»
+        SpecTec.Call.«$match_strtype»
           dts (.DefStructT a) (.DefStructT b)⟩)
       n (.success (.of
         (strMatch heapMatch (.DefStructT a) (.DefStructT b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_strtype_clauses»
-        dts (.DefStructT a) (.DefStructT b)) ())
+        dts (.DefStructT a) (.DefStructT b)))
     n (.success (.of
       (strMatch heapMatch (.DefStructT a) (.DefStructT b)))) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$match_strtype:clause:0»
       dts (.DefStructT a) (.DefStructT b))
     n (.success (.of
@@ -65,34 +66,34 @@ theorem array_pair_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.arraytype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_strtype»
+        SpecTec.Call.«$match_strtype»
           dts (.DefArrayT a) (.DefArrayT b)⟩)
       n (.success (.of
         (strMatch heapMatch (.DefArrayT a) (.DefArrayT b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_strtype_clauses»
-        dts (.DefArrayT a) (.DefArrayT b)) ())
+        dts (.DefArrayT a) (.DefArrayT b)))
     n (.success (.of
       (strMatch heapMatch (.DefArrayT a) (.DefArrayT b)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_strtype:clause:0»
         dts (.DefArrayT a) (.DefArrayT b)) n .unmatch n
     unfold SpecTec.«$match_strtype:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by
         simp [SpecTec.«exec:match:strtype:DefStructT»]))
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_strtype:clause:1»
         dts (.DefArrayT a) (.DefArrayT b))
       n (.success (.of
@@ -111,42 +112,42 @@ theorem func_pair_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.functype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_strtype»
+        SpecTec.Call.«$match_strtype»
           dts (.DefFuncT a) (.DefFuncT b)⟩)
       n (.success (.of
         (strMatch heapMatch (.DefFuncT a) (.DefFuncT b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_strtype_clauses»
-        dts (.DefFuncT a) (.DefFuncT b)) ())
+        dts (.DefFuncT a) (.DefFuncT b)))
     n (.success (.of
       (strMatch heapMatch (.DefFuncT a) (.DefFuncT b)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_strtype:clause:0»
         dts (.DefFuncT a) (.DefFuncT b)) n .unmatch n
     unfold SpecTec.«$match_strtype:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by
         simp [SpecTec.«exec:match:strtype:DefStructT»]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_strtype:clause:1»
           dts (.DefFuncT a) (.DefFuncT b)) n .unmatch n
       unfold SpecTec.«$match_strtype:clause:1»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false (by
           simp [SpecTec.«exec:match:strtype:DefArrayT»]))
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_strtype:clause:2»
           dts (.DefFuncT a) (.DefFuncT b))
         n (.success (.of
@@ -165,16 +166,16 @@ theorem mixed_pair_false
     (dts : List SpecTec.deftype)
     (a b : SpecTec.strtype) (n : Nat)
     (hmixed : strTag a ≠ strTag b) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_strtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_strtype» dts a b⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$match_strtype_clauses» dts a b) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$match_strtype_clauses» dts a b))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_strtype:clause:0» dts a b) n .unmatch n
     unfold SpecTec.«$match_strtype:clause:0»
     cases ha : SpecTec.«exec:match:strtype:DefStructT» a with
@@ -189,8 +190,8 @@ theorem mixed_pair_false
         (SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false (by
             simp [SpecTec.«exec:match:strtype:DefStructT»]))))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_strtype:clause:1» dts a b) n .unmatch n
       unfold SpecTec.«$match_strtype:clause:1»
       cases ha : SpecTec.«exec:match:strtype:DefArrayT» a with
@@ -205,8 +206,8 @@ theorem mixed_pair_false
           (SpecTecExecution.Eval.bind_unmatch
             (SpecTecExecution.Eval.guard_false (by
               simp [SpecTec.«exec:match:strtype:DefArrayT»]))))
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$match_strtype:clause:2» dts a b) n .unmatch n
         unfold SpecTec.«$match_strtype:clause:2»
         cases ha : SpecTec.«exec:match:strtype:DefFuncT» a with
@@ -221,20 +222,20 @@ theorem mixed_pair_false
             (SpecTecExecution.Eval.bind_unmatch
               (SpecTecExecution.Eval.guard_false (by
                 simp [SpecTec.«exec:match:strtype:DefFuncT»]))))
-      · apply SpecTecExecution.firstSuccess_cons_success
+      · apply SpecTecExecution.tryClauses_cons_success
         exact SpecTecExecution.Eval.pure false
 
 theorem match_strtype_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.strtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_strtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_strtype» dts a b⟩)
       n (.success (.of (strMatch heapMatch a b))) n := by
   cases a with
   | DefStructT a =>
@@ -257,22 +258,19 @@ theorem match_strtype_success_iff_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.strtype) (result : Bool) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_strtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_strtype» dts a b⟩)
       n (.success (.of result)) finish ↔
     result = strMatch heapMatch a b ∧ finish = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (match_strtype_total_of_heap dts heapMatch hheap a b n)
     cases hout
     exact ⟨rfl, hsupply⟩

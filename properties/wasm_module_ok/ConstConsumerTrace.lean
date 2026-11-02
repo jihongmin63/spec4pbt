@@ -18,16 +18,16 @@ theorem trace_snoc_of_match
     (u : SpecTec.valtype) (i : SpecTec.instr)
     (htrace : ConstConstructiveTrace.Trace origin initial xs current
       (.NoEllipses, available) start middle)
-    (hinstr : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hinstr : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok current (.NoEllipses, available) i⟩)
+        SpecTec.Call.Instr_ok current (.NoEllipses, available) i⟩)
       middle (.success (.of
         (⟨{ INS := (.NoEllipses, required),
              OUTS := (.NoEllipses, [u]) },
            ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype))) afterInstr)
     (hlen : required.length ≤ available.length)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         (available.drop (available.length - required.length)) required⟩)
       afterInstr (.success (.of ())) afterMatch) :
     ConstConstructiveTrace.Trace origin initial (xs ++ [i]) current
@@ -53,16 +53,16 @@ theorem trace_snoc_after_operands
     (u : SpecTec.valtype) (i : SpecTec.instr)
     (htrace : ConstConstructiveTrace.Trace origin initial xs current
       (.NoEllipses, stack ++ actual) start n)
-    (hinstr : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hinstr : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok current (.NoEllipses, stack ++ actual) i⟩)
+        SpecTec.Call.Instr_ok current (.NoEllipses, stack ++ actual) i⟩)
       n (.success (.of
         (⟨{ INS := (.NoEllipses, required),
              OUTS := (.NoEllipses, [u]) },
            ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype))) n)
     (hlength : required.length = actual.length)
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         actual required⟩)
       n (.success (.of ())) n) :
     ConstConstructiveTrace.Trace origin initial (xs ++ [i]) current
@@ -75,8 +75,8 @@ theorem trace_snoc_after_operands
       ((stack ++ actual).length - required.length) = stack := by
     rw [hlength]
     simp
-  have hmatch' : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+  have hmatch' : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         ((stack ++ actual).drop
           ((stack ++ actual).length - required.length)) required⟩)
       n (.success (.of ())) n := by

@@ -28,42 +28,42 @@ structure FreeModuleTrace (m : SpecTec.module)
   n6 : Nat
   n7 : Nat
   n9 : Nat
-  globals : SpecTecExecution.Eval SpecTec.specTecProgram
+  globals : SpecTecExecution.Eval SpecTec.Body
     (.call ⟨SpecTec.free,
-      SpecTec.SpecTecCall.«$free_list» SpecTec.global
-        SpecTec.SpecTecCall.«$free_global» m.GLOBALS⟩)
+      SpecTec.Call.«$free_list» SpecTec.global
+        SpecTec.Call.«$free_global» m.GLOBALS⟩)
     n1 (.success (.of f2)) n2
-  tables : SpecTecExecution.Eval SpecTec.specTecProgram
+  tables : SpecTecExecution.Eval SpecTec.Body
     (.call ⟨SpecTec.free,
-      SpecTec.SpecTecCall.«$free_list» SpecTec.table
-        SpecTec.SpecTecCall.«$free_table» m.TABLES⟩)
+      SpecTec.Call.«$free_list» SpecTec.table
+        SpecTec.Call.«$free_table» m.TABLES⟩)
     n2 (.success (.of f3)) n3
-  elems : SpecTecExecution.Eval SpecTec.specTecProgram
+  elems : SpecTecExecution.Eval SpecTec.Body
     (.call ⟨SpecTec.free,
-      SpecTec.SpecTecCall.«$free_list» SpecTec.elem
-        SpecTec.SpecTecCall.«$free_elem» m.ELEMS⟩)
+      SpecTec.Call.«$free_list» SpecTec.elem
+        SpecTec.Call.«$free_elem» m.ELEMS⟩)
     n5 (.success (.of f6)) n6
-  datas : SpecTecExecution.Eval SpecTec.specTecProgram
+  datas : SpecTecExecution.Eval SpecTec.Body
     (.call ⟨SpecTec.free,
-      SpecTec.SpecTecCall.«$free_list» SpecTec.data
-        SpecTec.SpecTecCall.«$free_data» m.DATAS⟩)
+      SpecTec.Call.«$free_list» SpecTec.data
+        SpecTec.Call.«$free_data» m.DATAS⟩)
     n6 (.success (.of f7)) n7
-  unions : SpecTecExecution.Eval SpecTec.specTecProgram
+  unions : SpecTecExecution.Eval SpecTec.Body
     (.call ⟨SpecTec.free,
-      SpecTec.SpecTecCall.«$free_unions»
+      SpecTec.Call.«$free_unions»
         [f1, f2, f3, f4, f5, f6, f7, f8, f9]⟩)
     n9 (.success (.of result)) finalSupply
 
 theorem free_module_trace (m : SpecTec.module)
     (result : SpecTec.free) (start finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) :
     Nonempty (FreeModuleTrace m result start finalSupply) := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$free_module_clauses» m) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$free_module_clauses» m))
       start (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -117,8 +117,8 @@ theorem free_module_global_ref_func
     (start finalSupply : Nat)
     (hg : g ∈ m.GLOBALS)
     (href : SpecTec.instr.«REF.FUNC» x ∈ g.GINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) : HasFunc result x := by
   obtain ⟨trace⟩ := free_module_trace m result start finalSupply hcall
   have hcomponent : HasFunc trace.f2 x :=
@@ -136,8 +136,8 @@ theorem free_module_table_ref_func
     (start finalSupply : Nat)
     (ht : t ∈ m.TABLES)
     (href : SpecTec.instr.«REF.FUNC» x ∈ t.TINIT)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) : HasFunc result x := by
   obtain ⟨trace⟩ := free_module_trace m result start finalSupply hcall
   have hcomponent : HasFunc trace.f3 x :=
@@ -155,8 +155,8 @@ theorem free_module_elem_init_ref_func
     (result : SpecTec.free) (start finalSupply : Nat)
     (he : e ∈ m.ELEMS) (hinit : init ∈ e.EINIT)
     (href : SpecTec.instr.«REF.FUNC» x ∈ init)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) : HasFunc result x := by
   obtain ⟨trace⟩ := free_module_trace m result start finalSupply hcall
   have hcomponent : HasFunc trace.f6 x :=
@@ -175,8 +175,8 @@ theorem free_module_elem_offset_ref_func
     (result : SpecTec.free) (start finalSupply : Nat)
     (he : e ∈ m.ELEMS) (hmode : e.EMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) : HasFunc result x := by
   obtain ⟨trace⟩ := free_module_trace m result start finalSupply hcall
   have hcomponent : HasFunc trace.f6 x :=
@@ -195,8 +195,8 @@ theorem free_module_data_offset_ref_func
     (result : SpecTec.free) (start finalSupply : Nat)
     (hd : d ∈ m.DATAS) (hmode : d.DMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module» m⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module» m⟩)
       start (.success (.of result)) finalSupply) : HasFunc result x := by
   obtain ⟨trace⟩ := free_module_trace m result start finalSupply hcall
   have hcomponent : HasFunc trace.f7 x :=
@@ -215,9 +215,9 @@ theorem module_ok_global_ref_in_free
     (hg : g ∈ m.GLOBALS)
     (href : SpecTec.instr.«REF.FUNC» x ∈ g.GINIT) :
     ∃ (free : SpecTec.free) (n : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free,
-          SpecTec.SpecTecCall.«$free_module»
+          SpecTec.Call.«$free_module»
             ({{m with FUNCS := []} with START := none})⟩)
         0 (.success (.of free)) n ∧ HasFunc free x := by
   obtain ⟨trace⟩ := Validity.module_ok_full_trace m hmodule
@@ -232,9 +232,9 @@ theorem module_ok_table_ref_in_free
     (ht : t ∈ m.TABLES)
     (href : SpecTec.instr.«REF.FUNC» x ∈ t.TINIT) :
     ∃ (free : SpecTec.free) (n : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.free,
-          SpecTec.SpecTecCall.«$free_module»
+          SpecTec.Call.«$free_module»
             ({{m with FUNCS := []} with START := none})⟩)
         0 (.success (.of free)) n ∧ HasFunc free x := by
   obtain ⟨trace⟩ := Validity.module_ok_full_trace m hmodule

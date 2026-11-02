@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.RollingValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -11,24 +12,24 @@ def rollTypevar (tv : SpecTec.typevar) (x y : Nat) : SpecTec.heaptype :=
   | .RecX _ => .VarHT tv
 
 theorem s_roll_rec_total (n x y start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$s_roll» (.RecX n) (x, y)⟩)
+        SpecTec.Call.«$s_roll» (.RecX n) (x, y)⟩)
       start (.success (.of (rollTypevar (.RecX n) x y))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$s_roll_clauses» (.RecX n) (x, y)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$s_roll_clauses» (.RecX n) (x, y)))
     start (.success (.of (rollTypevar (.RecX n) x y))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$s_roll:clause:0» (.RecX n) (x, y)) start .unmatch start
     unfold SpecTec.«$s_roll:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp [SpecTec.«exec:match:typevar:StatX»]
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$s_roll:clause:1» (.RecX n) (x, y))
       start (.success (.of (rollTypevar (.RecX n) x y))) start
     simpa [SpecTec.«$s_roll:clause:1», rollTypevar] using
@@ -36,17 +37,17 @@ theorem s_roll_rec_total (n x y start : Nat) :
 
 theorem s_roll_stat_outside_total (n x y start : Nat)
     (hout : ¬ (x ≤ n ∧ n < y)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$s_roll» (.StatX n) (x, y)⟩)
+        SpecTec.Call.«$s_roll» (.StatX n) (x, y)⟩)
       start (.success (.of (rollTypevar (.StatX n) x y))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$s_roll_clauses» (.StatX n) (x, y)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$s_roll_clauses» (.StatX n) (x, y)))
     start (.success (.of (rollTypevar (.StatX n) x y))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$s_roll:clause:0» (.StatX n) (x, y)) start .unmatch start
     unfold SpecTec.«$s_roll:clause:0»
     apply SpecTecExecution.Eval.bind_success
@@ -54,8 +55,8 @@ theorem s_roll_stat_outside_total (n x y start : Nat)
         (by simp [SpecTec.«exec:match:typevar:StatX»])
     · apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false hout
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$s_roll:clause:1» (.StatX n) (x, y))
       start (.success (.of (rollTypevar (.StatX n) x y))) start
     simpa [SpecTec.«$s_roll:clause:1», rollTypevar, hout] using
@@ -78,17 +79,17 @@ private theorem roll_sub_toNat (n x : Nat) (hx : x ≤ n) :
 
 theorem s_roll_stat_inside_total (n x y start : Nat)
     (hin : x ≤ n ∧ n < y) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$s_roll» (.StatX n) (x, y)⟩)
+        SpecTec.Call.«$s_roll» (.StatX n) (x, y)⟩)
       start (.success (.of (rollTypevar (.StatX n) x y))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$s_roll_clauses» (.StatX n) (x, y)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$s_roll_clauses» (.StatX n) (x, y)))
     start (.success (.of (rollTypevar (.StatX n) x y))) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$s_roll:clause:0» (.StatX n) (x, y))
     start (.success (.of (rollTypevar (.StatX n) x y))) start
   unfold SpecTec.«$s_roll:clause:0»
@@ -105,8 +106,8 @@ theorem s_roll_stat_inside_total (n x y start : Nat)
             (SpecTec.heaptype.VarHT (.RecX (n - x))) (n := start))
 
 theorem s_roll_total (tv : SpecTec.typevar) (x y start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.heaptype, SpecTec.SpecTecCall.«$s_roll» tv (x, y)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.heaptype, SpecTec.Call.«$s_roll» tv (x, y)⟩)
       start (.success (.of (rollTypevar tv x y))) start := by
   cases tv with
   | RecX n => exact s_roll_rec_total n x y start
@@ -117,11 +118,11 @@ theorem s_roll_total (tv : SpecTec.typevar) (x y start : Nat) :
 
 theorem s_roll_deterministic (tv : SpecTec.typevar) (x y start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.heaptype, SpecTec.SpecTecCall.«$s_roll» tv (x, y)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.heaptype, SpecTec.Call.«$s_roll» tv (x, y)⟩)
       start outcome finalSupply) :
     outcome = .success (.of (rollTypevar tv x y)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (s_roll_total tv x y start)
 
 end properties.wasm_module_not_ok.Rejection

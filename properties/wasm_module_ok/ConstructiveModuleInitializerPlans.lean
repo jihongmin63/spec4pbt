@@ -30,8 +30,8 @@ def plans (c : context) (env : Env c) (round : Nat) : List (Productive c env) :=
     | some plan => [⟨t,plan⟩]
 
 abbrev Constant (c : context) (target : valtype) :=
-  {code : List instr // ∀n,SpecTecExecution.Eval specTecProgram
-    (.call ⟨Unit,SpecTecCall.Const_ok c target code⟩) n (.success (.of ())) n}
+  {code : List instr // ∀n,SpecTecExecution.Eval Body
+    (.call ⟨Unit,Call.Const_ok c target code⟩) n (.success (.of ())) n}
 
 def expressions (c : context) (env : Env c) (p : Productive c env) : Audited (Constant c p.1.val) :=
   ⟨ConstructiveAttach.refine
@@ -45,8 +45,8 @@ theorem catalog_mem (c : context) (t : Source c) : t∈catalog c := by
   exact Subtype.ext rfl
 
 theorem plans_complete (c : context) (env : Env c) (target : Source c) (code : List instr)
-    (start finish : Nat) (h : SpecTecExecution.Eval specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target.val code⟩) start (.success (.of ())) finish) :
+    (start finish : Nat) (h : SpecTecExecution.Eval Body
+      (.call ⟨Unit,Call.Const_ok c target.val code⟩) start (.success (.of ())) finish) :
     ∃round,∃p : Productive c env,p∈plans c env round ∧ p.1=target := by
   obtain ⟨round,plan,hp⟩ := original_has_plan c env.ready env.provenance env.nested
     target.val (backed c target) code start finish h

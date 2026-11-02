@@ -33,8 +33,8 @@ theorem closed_weaken (c d : context) (tail : List deftype) (he : d.TYPES = c.TY
 def record (c : context) (sts : List SpecTec.subtype)
     (hb : GroupBound (c.TYPES.length+sts.length) sts)
     (hc : ValidatedTypeChain.ValidatedTypes c) (n : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of (extended c sts hb))) n) : Stored (extended c sts hb) where
   base := c.TYPES.length
   source := sts
@@ -45,8 +45,8 @@ def record (c : context) (sts : List SpecTec.subtype)
 theorem record_closed (c : context) (sts : List SpecTec.subtype)
     (hb : GroupBound (c.TYPES.length+sts.length) sts)
     (hc : ValidatedTypeChain.ValidatedTypes c) (n : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of (extended c sts hb))) n) :
     closed (extended c sts hb) (record c sts hb hc n hrect) =
       groupValue c.TYPES c.TYPES.length (Nat.le_refl _) sts hb := by
@@ -62,8 +62,8 @@ theorem record_closed (c : context) (sts : List SpecTec.subtype)
 def next (c : context) (sts : List SpecTec.subtype)
     (hb : GroupBound (c.TYPES.length+sts.length) sts)
     (hc : ValidatedTypeChain.ValidatedTypes c) (n : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of (extended c sts hb))) n) (history : List (Stored c)) :
     List (Stored (extended c sts hb)) :=
   history.map (weaken c (extended c sts hb) _ rfl) ++ [record c sts hb hc n hrect]
@@ -73,8 +73,8 @@ definition, including repetitions and zero-length groups. -/
 theorem next_covers (c : context) (sts : List SpecTec.subtype)
     (hb : GroupBound (c.TYPES.length+sts.length) sts)
     (hc : ValidatedTypeChain.ValidatedTypes c) (n : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       n (.success (.of (extended c sts hb))) n) (history : List (Stored c))
     (hh : Covers c history) : Covers (extended c sts hb) (next c sts hb hc n hrect history) := by
   intro p dt hget

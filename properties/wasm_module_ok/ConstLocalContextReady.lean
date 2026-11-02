@@ -10,9 +10,9 @@ types used by the finite candidate universe. -/
 theorem init_locals_provenance
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish)
     (hprov : CandidateUniverseReady.Provenance c) :
     CandidateUniverseReady.Provenance d := by
@@ -34,9 +34,9 @@ preserves. -/
 theorem init_locals_nested_table_ready
     (c d : SpecTec.context) (indices : List SpecTec.idx)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of d)) finish)
     (hready : CandidateNestedReady.nestedTableReady c = true) :
     CandidateNestedReady.nestedTableReady d = true := by

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.MatchValtypeConditional
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -13,40 +14,40 @@ def storageMatch (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool) :
 
 theorem match_packtype_total (dts : List SpecTec.deftype)
     (a b : SpecTec.packtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_packtype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_packtype» dts a b⟩)
       n (.success (.of (decide (a = b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$match_packtype_clauses» dts a b) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$match_packtype_clauses» dts a b))
     n (.success (.of (decide (a = b)))) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure (decide (a = b))
 
 theorem match_storage_val_pair_total
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts
         (.ValStorageT a) (.ValStorageT b)⟩)
       n (.success (.of
         (storageMatch heapMatch (.ValStorageT a) (.ValStorageT b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_storagetype_clauses» dts
-        (.ValStorageT a) (.ValStorageT b)) ())
+        (.ValStorageT a) (.ValStorageT b)))
     n (.success (.of
       (storageMatch heapMatch (.ValStorageT a) (.ValStorageT b)))) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$match_storagetype:clause:0» dts
       (.ValStorageT a) (.ValStorageT b))
     n (.success (.of
@@ -66,28 +67,28 @@ theorem match_storage_pack_pair_total
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (a b : SpecTec.packtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts
         (.PackStorageT a) (.PackStorageT b)⟩)
       n (.success (.of
         (storageMatch heapMatch (.PackStorageT a) (.PackStorageT b)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_storagetype_clauses» dts
-        (.PackStorageT a) (.PackStorageT b)) ())
+        (.PackStorageT a) (.PackStorageT b)))
     n (.success (.of
       (storageMatch heapMatch (.PackStorageT a) (.PackStorageT b)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_storagetype:clause:0» dts
         (.PackStorageT a) (.PackStorageT b)) n .unmatch n
     unfold SpecTec.«$match_storagetype:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:storagetype:ValStorageT»]))
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_storagetype:clause:1» dts
         (.PackStorageT a) (.PackStorageT b))
       n (.success (.of
@@ -106,18 +107,18 @@ theorem match_storage_val_pack_total
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (a : SpecTec.valtype) (b : SpecTec.packtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts
         (.ValStorageT a) (.PackStorageT b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_storagetype_clauses» dts
-        (.ValStorageT a) (.PackStorageT b)) ())
+        (.ValStorageT a) (.PackStorageT b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_storagetype:clause:0» dts
         (.ValStorageT a) (.PackStorageT b)) n .unmatch n
     unfold SpecTec.«$match_storagetype:clause:0»
@@ -126,41 +127,41 @@ theorem match_storage_val_pack_total
     · exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:storagetype:ValStorageT»]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_storagetype:clause:1» dts
           (.ValStorageT a) (.PackStorageT b)) n .unmatch n
       unfold SpecTec.«$match_storagetype:clause:1»
       exact SpecTecExecution.Eval.bind_unmatch
         (SpecTecExecution.Eval.guard_false
           (by simp [SpecTec.«exec:match:storagetype:PackStorageT»]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_storage_pack_val_total
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (a : SpecTec.packtype) (b : SpecTec.valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts
         (.PackStorageT a) (.ValStorageT b)⟩)
       n (.success (.of false)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$match_storagetype_clauses» dts
-        (.PackStorageT a) (.ValStorageT b)) ())
+        (.PackStorageT a) (.ValStorageT b)))
     n (.success (.of false)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$match_storagetype:clause:0» dts
         (.PackStorageT a) (.ValStorageT b)) n .unmatch n
     unfold SpecTec.«$match_storagetype:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:storagetype:ValStorageT»]))
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_storagetype:clause:1» dts
           (.PackStorageT a) (.ValStorageT b)) n .unmatch n
       unfold SpecTec.«$match_storagetype:clause:1»
@@ -169,20 +170,20 @@ theorem match_storage_pack_val_total
       · exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:storagetype:PackStorageT»]))
-    · apply SpecTecExecution.firstSuccess_cons_success
+    · apply SpecTecExecution.tryClauses_cons_success
       exact SpecTecExecution.Eval.pure false
 
 theorem match_storage_total_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.storagetype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts a b⟩)
       n (.success (.of (storageMatch heapMatch a b))) n := by
   cases a with
   | ValStorageT a =>
@@ -198,22 +199,19 @@ theorem match_storage_success_iff_of_heap
     (dts : List SpecTec.deftype)
     (heapMatch : SpecTec.heaptype → SpecTec.heaptype → Bool)
     (hheap : ∀ h₁ h₂ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h₁ h₂⟩)
+          SpecTec.Call.«$match_heaptype» dts h₁ h₂⟩)
         n (.success (.of (heapMatch h₁ h₂))) n)
     (a b : SpecTec.storagetype) (result : Bool) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_storagetype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_storagetype» dts a b⟩)
       n (.success (.of result)) finish ↔
     result = storageMatch heapMatch a b ∧ finish = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (match_storage_total_of_heap dts heapMatch hheap a b n)
     cases hout
     exact ⟨rfl, hsupply⟩

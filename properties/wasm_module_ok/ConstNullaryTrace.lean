@@ -15,9 +15,9 @@ theorem empty_one_effect_instrs_singleton
     (i : SpecTec.instr) (n : Nat)
     (h : ConstBasicOrigin.EmptyOneEffect c
       (SpecTec.ellipses.NoEllipses, []) u n i) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c
+        SpecTec.Call.Instrs_ok c
           (SpecTec.ellipses.NoEllipses, []) [i]⟩)
       n (.success (.of
         ((SpecTec.ellipses.NoEllipses, [u]),
@@ -49,9 +49,9 @@ theorem basic_base_instrs_singleton
     (n : Nat) (hu : u ∈ ConstBasicSeed.basicBase c) :
     ∃ i : SpecTec.instr,
       ConstSyntaxDecision.syntaxAllowed c i = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (SpecTec.ellipses.NoEllipses, []) [i]⟩)
         n (.success (.of
           ((SpecTec.ellipses.NoEllipses, [u]),
@@ -64,9 +64,9 @@ theorem basic_base_instrs_singleton
         (SpecTec.ellipses.NoEllipses, []) u n i) :
       ∃ i : SpecTec.instr,
         ConstSyntaxDecision.syntaxAllowed c i = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-            SpecTec.SpecTecCall.Instrs_ok c
+            SpecTec.Call.Instrs_ok c
               (SpecTec.ellipses.NoEllipses, []) [i]⟩)
           n (.success (.of
             ((SpecTec.ellipses.NoEllipses, [u]),

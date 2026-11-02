@@ -27,8 +27,8 @@ inductive DirectSyntax (m : SpecTec.module) : SpecTec.funcidx → Prop where
 theorem direct_hasFunc_free
     (m : SpecTec.module) (free : SpecTec.free)
     (n : Nat)
-    (hfree : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+    (hfree : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
         ({{m with FUNCS := []} with START := none})⟩)
       0 (.success (.of free)) n)
     (x : SpecTec.funcidx) (hocc : DirectSyntax m x) :
@@ -58,17 +58,17 @@ theorem direct_hasFunc_free
 theorem direct_instr_ok_iff_bound
     (m : SpecTec.module) (free : SpecTec.free)
     (nfree : Nat)
-    (hfree : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+    (hfree : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
         ({{m with FUNCS := []} with START := none})⟩)
       0 (.success (.of free)) nfree)
     (c : SpecTec.context) (hrefs : c.REFS = free)
     (x : SpecTec.funcidx) (hocc : DirectSyntax m x)
     (irt : SpecTec.inferresulttype) (n : Nat) :
     (∃ (result : SpecTec.inferinstrtype) (finalSupply : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt (.«REF.FUNC» x)⟩)
+          SpecTec.Call.Instr_ok c irt (.«REF.FUNC» x)⟩)
         n (.success (.of result)) finalSupply) ↔
       x < c.FUNCS.length := by
   constructor

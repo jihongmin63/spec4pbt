@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.FieldtypeListRollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,23 +11,23 @@ def rollStructtype (st : SpecTec.structtype) (x y : Nat) : SpecTec.structtype :=
 
 theorem subst_structtype_roll_total (st : SpecTec.structtype)
     (x y start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.structtype,
-        SpecTec.SpecTecCall.«$subst_structtype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» st⟩)
+        SpecTec.Call.«$subst_structtype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» st⟩)
       start (.success (.of (rollStructtype st x y))) start := by
   cases st with
   | StructT ys =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_structtype_clauses» (Nat × Nat) (x, y)
-            SpecTec.SpecTecCall.«$s_roll» (.StructT ys)) ())
+            SpecTec.Call.«$s_roll» (.StructT ys)))
         start (.success (.of (rollStructtype (.StructT ys) x y))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_structtype:clause:0» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» (.StructT ys))
+          SpecTec.Call.«$s_roll» (.StructT ys))
         start (.success (.of (rollStructtype (.StructT ys) x y))) start
       unfold SpecTec.«$subst_structtype:clause:0»
       apply SpecTecExecution.Eval.bind_success
@@ -40,23 +41,23 @@ def rollArraytype (arrayTy : SpecTec.arraytype) (x y : Nat) : SpecTec.arraytype 
 
 theorem subst_arraytype_roll_total (arrayTy : SpecTec.arraytype)
     (x y start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.arraytype,
-        SpecTec.SpecTecCall.«$subst_arraytype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» arrayTy⟩)
+        SpecTec.Call.«$subst_arraytype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» arrayTy⟩)
       start (.success (.of (rollArraytype arrayTy x y))) start := by
   cases arrayTy with
   | ArrayT yt =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_arraytype_clauses» (Nat × Nat) (x, y)
-            SpecTec.SpecTecCall.«$s_roll» (.ArrayT yt)) ())
+            SpecTec.Call.«$s_roll» (.ArrayT yt)))
         start (.success (.of (rollArraytype (.ArrayT yt) x y))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_arraytype:clause:0» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» (.ArrayT yt))
+          SpecTec.Call.«$s_roll» (.ArrayT yt))
         start (.success (.of (rollArraytype (.ArrayT yt) x y))) start
       unfold SpecTec.«$subst_arraytype:clause:0»
       apply SpecTecExecution.Eval.bind_success
@@ -67,25 +68,25 @@ theorem subst_arraytype_roll_total (arrayTy : SpecTec.arraytype)
 theorem subst_structtype_roll_deterministic (st : SpecTec.structtype)
     (x y start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.structtype,
-        SpecTec.SpecTecCall.«$subst_structtype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» st⟩)
+        SpecTec.Call.«$subst_structtype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» st⟩)
       start outcome finalSupply) :
     outcome = .success (.of (rollStructtype st x y)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_structtype_roll_total st x y start)
 
 theorem subst_arraytype_roll_deterministic (arrayTy : SpecTec.arraytype)
     (x y start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.arraytype,
-        SpecTec.SpecTecCall.«$subst_arraytype» (Nat × Nat) (x, y)
-          SpecTec.SpecTecCall.«$s_roll» arrayTy⟩)
+        SpecTec.Call.«$subst_arraytype» (Nat × Nat) (x, y)
+          SpecTec.Call.«$s_roll» arrayTy⟩)
       start outcome finalSupply) :
     outcome = .success (.of (rollArraytype arrayTy x y)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_arraytype_roll_total arrayTy x y start)
 
 end properties.wasm_module_not_ok.Rejection

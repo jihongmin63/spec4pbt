@@ -17,8 +17,8 @@ theorem typed_produces (c : context) (stack : inferresulttype) (env : Env c) (t 
   exact ⟨_,rfl,rfl⟩
 
 theorem original (c : context) (stack : inferresulttype) (env : Env c) (hs : StackBacked c stack)
-    (ts : Option (List valtype)) (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.SELECT ts)⟩) n (.success (.of effect)) finish) :
+    (ts : Option (List valtype)) (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.SELECT ts)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env hs) (.SELECT ts) effect ∧ finish=n := by
   cases ts with
   | none =>

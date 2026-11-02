@@ -8,9 +8,9 @@ theorem subtype_sub_iter_all_static
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (strt : SpecTec.strtype) (hts : List SpecTec.heaptype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
+        SpecTec.Call.«Subtype_sub_ok:rule:iter:0» c x strt hts⟩)
       start (.success (.of ())) finish) :
     ∀ ht ∈ hts,
       ∃ y : SpecTec.typeidx,
@@ -22,13 +22,13 @@ theorem subtype_sub_iter_all_static
   | cons hd tl ih =>
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl)))
           start (.success (.of ())) finish at hbody
         obtain ⟨idx, hselected⟩ :=
-          (SpecTecExecution.firstSuccess_success_iff
-            (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl)) ()
+          (SpecTecExecution.tryClauses_success_iff
+            (SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» c x strt (hd :: tl))
             start (.of ()) finish).1 hbody
         unfold SpecTec.«Subtype_sub_ok:rule:iter:0_clauses» at hselected
         cases hselected with

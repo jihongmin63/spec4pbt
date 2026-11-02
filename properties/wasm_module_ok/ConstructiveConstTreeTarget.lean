@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveConstTreeCoverage
 import properties.wasm_module_ok.ConstFinalPopMatch
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveConstTreeTarget
 open SpecTec properties.wasm_module_ok
@@ -19,26 +20,23 @@ theorem const_tree_target (c : context)
     (hn : CandidateNestedReady.nestedTableReady c=true)
     (target : valtype) (ht : CandidateValMatch.InTableVal c target)
     (xs : List instr) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Const_ok c target xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Const_ok c target xs⟩)
       start (.success (.of ())) finish) :
     ∃ tree,Good c tree ∧ tree.code=xs ∧ ∀ n,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit,SpecTecCall.Match_resulttype c [tree.output] [target]⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit,Call.Match_resulttype c [tree.output] [target]⟩)
         n (.success (.of ())) n := by
   obtain ⟨tree,hgood,hcode⟩ := const_tree c hr hp hn target xs start finish h
   refine ⟨tree,hgood,hcode,?_⟩
   obtain ⟨hs,irt,indices,ell,middle,hxs,hpop⟩ :=
     (ConstDecisionTrace.const_ok_decision_trace_iff c target xs start finish).1 h
   have hknown := ConstConstructiveTrace.trace_to_instrs (tree_trace c tree hgood [] start)
-  have hknown' : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype × List idx,SpecTecCall.Instrs_ok c (.NoEllipses,[]) xs⟩)
+  have hknown' : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype × List idx,Call.Instrs_ok c (.NoEllipses,[]) xs⟩)
       start (.success (.of (((.NoEllipses,[tree.output]),[]) : inferresulttype × List idx))) start := by
     simpa only [List.nil_append,hcode] using hknown
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hx
-    cases hx
-  obtain ⟨he,hsupply⟩ := SpecTecExecution.eval_deterministic hdet hxs hknown'
+  obtain ⟨he,hsupply⟩ := properties.wasm_module_ok.Execution.eval_deterministic hxs hknown'
   cases he
   obtain ⟨a,b,hm⟩ := ConstFinalPopMatch.final_const_pop_matches c target tree.output ell middle finish hpop
   have hactual : ∀ t∈[tree.output],CandidateValMatch.InTableVal c t := by

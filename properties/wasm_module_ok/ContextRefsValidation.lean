@@ -95,8 +95,8 @@ theorem mems_result_refs (c result : SpecTec.context)
 
 theorem imports_ok_refs (c result : SpecTec.context)
     (is : List SpecTec.«import») (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       n (.success (.of result)) finalSupply) :
     result.REFS = c.REFS :=
   imports_result_refs c result is
@@ -105,8 +105,8 @@ theorem imports_ok_refs (c result : SpecTec.context)
 
 theorem funcs_ok_refs (c result : SpecTec.context)
     (fs : List SpecTec.func) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Funcs_ok c fs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Funcs_ok c fs⟩)
       n (.success (.of result)) finalSupply) :
     result.REFS = c.REFS :=
   funcs_result_refs c result fs
@@ -115,8 +115,8 @@ theorem funcs_ok_refs (c result : SpecTec.context)
 
 theorem mems_ok_refs (c result : SpecTec.context)
     (ms : List SpecTec.memory) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Mems_ok c ms⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Mems_ok c ms⟩)
       n (.success (.of result)) finalSupply) :
     result.REFS = c.REFS :=
   mems_result_refs c result ms
@@ -156,8 +156,8 @@ theorem tags_result_refs (c result : SpecTec.context)
 
 theorem tags_ok_refs (c result : SpecTec.context)
     (ts : List SpecTec.tag) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tags_ok c ts⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tags_ok c ts⟩)
       n (.success (.of result)) finalSupply) :
     result.REFS = c.REFS :=
   tags_result_refs c result ts

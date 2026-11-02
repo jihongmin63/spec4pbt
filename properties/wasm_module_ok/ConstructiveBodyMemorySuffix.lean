@@ -11,7 +11,7 @@ def addrTest : addrtype → addrtype → Bool
 theorem addrTest_eq (want addr : addrtype) : addrTest want addr=true ↔ addr=want := by
   cases want <;> cases addr <;> decide
 
-def tail {α : Type} (c : context) (want : addrtype) (offset : Nat) (value : α) : Plan SpecTecRequest :=
+def tail {α : Type} (c : context) (want : addrtype) (offset : Nat) (value : α) : Plan Request :=
   .bind (.guard (0<c.MEMS.length)) fun (_ : Unit) =>
     match (c.MEMS[0]? : Option memtype) with
     | some mt =>
@@ -24,7 +24,7 @@ def tail {α : Type} (c : context) (want : addrtype) (offset : Nat) (value : α)
     | none => .unmatch
 
 theorem tail_original {α : Type} (c : context) (want : addrtype) (offset : Nat) (value got : α)
-    (n finish : Nat) (h : Eval SpecTec.specTecProgram (tail c want offset value) n (.success (.of got)) finish) :
+    (n finish : Nat) (h : Eval SpecTec.Body (tail c want offset value) n (.success (.of got)) finish) :
     ∃lim,c.MEMS[0]?=some (.MemoryT want lim) ∧ OffsetBound want offset ∧ got=value ∧ finish=n := by
   unfold tail at h
   obtain ⟨_,h⟩ := (bind_guard _ _ _ _ _).1 h
@@ -43,10 +43,10 @@ theorem tail_original {α : Type} (c : context) (want : addrtype) (offset : Nat)
       | I64AT => exact ⟨lim,rfl,trivial,(pure_success _ _ _ _).1 h⟩
 
 theorem pack_original (size : Nat) (pt : packtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨Unit,SpecTecCall.Pack_ok (Int.ofNat size) pt⟩) n (.success (.of ())) finish) :
+    (h : Eval SpecTec.Body (.call ⟨Unit,Call.Pack_ok (Int.ofNat size) pt⟩) n (.success (.of ())) finish) :
     ConstructiveBodyScalarSizes.packSize pt<Int.ofNat size ∧ finish=n := by
   cases h with | call h =>
-    obtain ⟨k,hs⟩ := (firstSuccess_success_iff (SpecTec.Pack_ok_clauses (Int.ofNat size) pt) () n (.of ()) finish).1 h
+    obtain ⟨k,hs⟩ := (tryClauses_success_iff (SpecTec.Pack_ok_clauses (Int.ofNat size) pt) n (.of ()) finish).1 h
     cases hs with
     | here h =>
       unfold SpecTec.«Pack_ok:clause:0» at h

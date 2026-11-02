@@ -10,8 +10,8 @@ open ConstructiveFreshSignatures ConstructiveFreshSoundness
 open ConstructiveTypeEnvironment ConstructiveTypeCopy ConstructiveTypeCopySemantics
 
 theorem original_closed (c result : context) (sts : List SpecTec.subtype) (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish)
     (hb : GroupBound (c.TYPES.length+sts.length) sts) : result = extended c sts hb := by
   have hc := CandidateRectypeTable.rectype_success_candidateContext c result sts start finish hrect
@@ -23,8 +23,8 @@ theorem original_closed (c result : context) (sts : List SpecTec.subtype) (start
 
 theorem original_layout (c result : context) (env : List (Signature c))
     (hmeta : Tracks c (headers c env)) (sts : List SpecTec.subtype) (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     ParentLayout c.TYPES.length sts ((sts.map entryOf).map Entry.parent) := by
   constructor
@@ -54,8 +54,8 @@ theorem fresh_complete (c result : context) (env : List (Signature c))
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hmeta : Tracks c (headers c env)) (hdenote : Describes c c env)
     (sts : List SpecTec.subtype) (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish)
     (hb : GroupBound (c.TYPES.length+sts.length) sts)
     (hfresh : ∀ p i : Nat, c.TYPES[p]? ≠ some (.DefT

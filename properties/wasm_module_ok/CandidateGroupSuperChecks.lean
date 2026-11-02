@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.CandidateGroupSuperIter
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,9 +23,9 @@ theorem iter6_success_iff_pairedChecks
     (hready : CandidateTypeReady.Ready c) :
     CandidateSourceChecks.sourceChecks c sts = true →
     ns.length = sts.length →
-    (SpecTecExecution.Eval SpecTec.specTecProgram
+    (SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6» c base ns sts⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:6» c base ns sts⟩)
       n (.success (.of ())) finish ↔
       pairedChecks c base ns sts = true ∧ finish = n) := by
   induction ns generalizing sts n finish with
@@ -34,12 +35,8 @@ theorem iter6_success_iff_pairedChecks
           intro _ _
           constructor
           · intro h
-            have hdet : SpecTecExecution.PrimitiveDeterministic
-                SpecTec.specTecProgram := by
-              intro request a b hp
-              cases hp
             obtain ⟨_, hsupply⟩ :=
-              SpecTecExecution.eval_deterministic hdet h
+              properties.wasm_module_ok.Execution.eval_deterministic h
                 (CandidateGroupSuperIter.iter6_nil_success c base n)
             exact ⟨rfl, hsupply⟩
           · rintro ⟨_, rfl⟩
@@ -62,9 +59,9 @@ theorem iter6_success_iff_pairedChecks
                 simpa [CandidateSourceChecks.sourceChecks] using hsource
               have hlenTail : is.length = sts.length := by
                 simpa using hlen
-              have hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+              have hsub : SpecTecExecution.Eval SpecTec.Body
                   (.call ⟨Unit,
-                    SpecTec.SpecTecCall.Subtype_ok c (.SubT fin hts strt)⟩)
+                    SpecTec.Call.Subtype_ok c (.SubT fin hts strt)⟩)
                   n (.success (.of ())) n :=
                 (SubtypeValidation.subtype_success_iff_valid
                   c (.SubT fin hts strt) n n).2 ⟨hparts.1, rfl⟩
@@ -89,9 +86,9 @@ theorem iter6_success_iff_pairedChecks
                   simpa [pairedChecks] using hall
                 apply (CandidateGroupSuperIter.iter6_cons_success_iff
                   c base i is (.SubT fin hts strt) sts finish finish).2
-                have hsub' : SpecTecExecution.Eval SpecTec.specTecProgram
+                have hsub' : SpecTecExecution.Eval SpecTec.Body
                     (.call ⟨Unit,
-                      SpecTec.SpecTecCall.Subtype_ok c
+                      SpecTec.Call.Subtype_ok c
                         (.SubT fin hts strt)⟩)
                     finish (.success (.of ())) finish :=
                   (SubtypeValidation.subtype_success_iff_valid

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.LocalValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -15,17 +16,17 @@ def localTypes (ls : List SpecTec.«local») :
   ls.map LocalValidation.localType
 
 theorem local_iter_nil_success (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.localtype,
-        SpecTec.SpecTecCall.«Funcbody_ok:rule:iter:1» c []⟩)
+        SpecTec.Call.«Funcbody_ok:rule:iter:1» c []⟩)
       n (.success (.of ([] : List SpecTec.localtype))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«Funcbody_ok:rule:iter:1_clauses» c []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«Funcbody_ok:rule:iter:1_clauses» c []))
     n (.success (.of ([] : List SpecTec.localtype))) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Funcbody_ok:rule:iter:1:clause:0» c [])
     n (.success (.of ([] : List SpecTec.localtype))) n
   exact SpecTecExecution.Eval.pure []
@@ -34,36 +35,36 @@ theorem local_iter_cons_success_iff
     (c : SpecTec.context) (l : SpecTec.«local»)
     (ls : List SpecTec.«local»)
     (result : List SpecTec.localtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.localtype,
-        SpecTec.SpecTecCall.«Funcbody_ok:rule:iter:1» c (l :: ls)⟩)
+        SpecTec.Call.«Funcbody_ok:rule:iter:1» c (l :: ls)⟩)
       n (.success (.of result)) finalSupply ↔
     ∃ (lt : SpecTec.localtype) (rest : List SpecTec.localtype)
       (middle : Nat),
       result = lt :: rest ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.localtype, SpecTec.SpecTecCall.Local_ok c l⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.localtype, SpecTec.Call.Local_ok c l⟩)
         n (.success (.of lt)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨List SpecTec.localtype,
-          SpecTec.SpecTecCall.«Funcbody_ok:rule:iter:1» c ls⟩)
+          SpecTec.Call.«Funcbody_ok:rule:iter:1» c ls⟩)
         middle (.success (.of rest)) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Funcbody_ok:rule:iter:1:clause:0» c (l :: ls))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.unmatch) n (.success (.of result)) finalSupply at hfirst
         cases hfirst
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls))
             (fun _ => .unmatch))
           n (.success (.of result)) finalSupply at htail
@@ -81,17 +82,17 @@ theorem local_iter_cons_success_iff
         | orElse_unmatch _ hlast => cases hlast
   · rintro ⟨lt, rest, middle, rfl, hlocal, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«Funcbody_ok:rule:iter:1_clauses» c (l :: ls)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«Funcbody_ok:rule:iter:1_clauses» c (l :: ls)))
       n (.success (.of (lt :: rest))) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Funcbody_ok:rule:iter:1:clause:0» c (l :: ls))
         n .unmatch n
       exact SpecTecExecution.Eval.unmatch
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Funcbody_ok:rule:iter:1:clause:1» c (l :: ls))
         n (.success (.of (lt :: rest))) finalSupply
       unfold SpecTec.«Funcbody_ok:rule:iter:1:clause:1»
@@ -102,9 +103,9 @@ theorem local_iter_cons_success_iff
 theorem local_iter_success_iff_valid
     (c : SpecTec.context) (ls : List SpecTec.«local»)
     (result : List SpecTec.localtype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨List SpecTec.localtype,
-        SpecTec.SpecTecCall.«Funcbody_ok:rule:iter:1» c ls⟩)
+        SpecTec.Call.«Funcbody_ok:rule:iter:1» c ls⟩)
       n (.success (.of result)) finalSupply ↔
     allLocalsValid c ls = true ∧
     result = localTypes ls ∧ finalSupply = n := by
@@ -112,11 +113,8 @@ theorem local_iter_success_iff_valid
   | nil =>
     constructor
     · intro h
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨hout, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet h
+        properties.wasm_module_ok.Execution.eval_deterministic h
           (local_iter_nil_success c n)
       cases hout
       exact ⟨rfl, rfl, hsupply⟩

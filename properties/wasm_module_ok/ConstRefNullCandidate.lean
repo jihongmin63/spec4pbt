@@ -9,9 +9,9 @@ theorem ref_null_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (ht : SpecTec.heaptype) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«REF.NULL» ht)⟩)
+        SpecTec.Call.Instr_ok c irt (.«REF.NULL» ht)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

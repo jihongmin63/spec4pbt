@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.CandidateHeapMatch
 import properties.wasm_module_ok.MatchValtypeLocal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -22,8 +23,8 @@ theorem candidate_val_match_total
     (c : SpecTec.context) (u t : SpecTec.valtype) (n : Nat)
     (hready : CandidateTypeReady.Ready c)
     (hu : InTableVal c u) (ht : InTableVal c t) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
       n (.success (.of (candidateValMatch c u t))) n := by
   exact MatchValtypeLocal.match_valtype_total_of_local_heap_at
     c.TYPES (fun h1 h2 =>
@@ -38,18 +39,14 @@ theorem candidate_val_match_iff
     (b : Bool) (start finish : Nat)
     (hready : CandidateTypeReady.Ready c)
     (hu : InTableVal c u) (ht : InTableVal c t) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_valtype» c.TYPES u t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_valtype» c.TYPES u t⟩)
       start (.success (.of b)) finish ↔
     b = candidateValMatch c u t ∧ finish = start := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (candidate_val_match_total c u t start hready hu ht)
     cases hout
     exact ⟨rfl, hsupply⟩

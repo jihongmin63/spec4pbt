@@ -3,6 +3,7 @@ import properties.wasm_module_ok.CandidateProvenanceGlobals
 import properties.wasm_module_ok.CandidateProvenanceElemDataFuncs
 import properties.wasm_module_ok.ConstTraceNestedReady
 import properties.wasm_module_ok.EmptyStageValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -38,18 +39,14 @@ theorem global_result_next_invariants
 
 theorem globals_nil_success_iff
     (c out : SpecTec.context) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Globals_ok c []⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok c []⟩)
       start (.success (.of out)) finish ↔
     c = out ∧ finish = start := by
   constructor
   · intro hcall
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request a b hp
-      cases hp
     obtain ⟨hout, hfinish⟩ :=
-      SpecTecExecution.eval_deterministic hdet hcall
+      properties.wasm_module_ok.Execution.eval_deterministic hcall
         (EmptyStageValidation.globals_nil_total c start)
     exact ⟨by cases hout; rfl, hfinish⟩
   · rintro ⟨hout, hfinish⟩
@@ -60,24 +57,24 @@ theorem globals_nil_success_iff
 theorem globals_cons_success_iff
     (c out : SpecTec.context) (g : SpecTec.global)
     (rest : List SpecTec.global) (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Globals_ok c (g :: rest)⟩)
+        SpecTec.Call.Globals_ok c (g :: rest)⟩)
       start (.success (.of out)) finish ↔
     ∃ next : SpecTec.context, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Global_ok c g⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Global_ok c g⟩)
         start (.success (.of next)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Globals_ok next rest⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok next rest⟩)
         middle (.success (.of out)) finish := by
   constructor
   · intro hcall
     cases hcall with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Globals_ok_clauses c (g :: rest)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Globals_ok_clauses c (g :: rest)))
         start (.success (.of out)) finish at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -94,9 +91,9 @@ theorem globals_cons_success_iff
                 cases hpure with
                 | pure => exact ⟨next, middle, hhead, hrest⟩
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)] ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)])
           start (.success (.of out)) finish at htail
         cases htail with
         | orElse_success hsecond =>
@@ -108,12 +105,12 @@ theorem globals_cons_success_iff
         | orElse_unmatch _ hnone => cases hnone
   · rintro ⟨next, middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Globals_ok_clauses c (g :: rest)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Globals_ok_clauses c (g :: rest)))
       start (.success (.of out)) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Globals_ok:clause:0» c (g :: rest))
       start (.success (.of out)) finish
     unfold SpecTec.«Globals_ok:clause:0»
@@ -130,8 +127,8 @@ theorem globals_result_iff_call
     (hprov : CandidateUniverseReady.Provenance c)
     (hnested : CandidateNestedReady.nestedTableReady c = true) :
     globalsResult c gs = some out ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Globals_ok c gs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok c gs⟩)
         start (.success (.of out)) finish := by
   induction gs generalizing c out start finish with
   | nil =>

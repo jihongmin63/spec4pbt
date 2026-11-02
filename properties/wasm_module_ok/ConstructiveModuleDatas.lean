@@ -7,7 +7,7 @@ structure Result (c : context) where
   items : List SpecTec.data
   after : context
   env : Env after
-  correct : ∀n,Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok c items⟩) n (.success (.of after)) n
+  correct : ∀n,Eval Body (.call ⟨context,Call.Datas_ok c items⟩) n (.success (.of after)) n
 
 def done (c : context) (env : Env c) : Result c := ⟨[],c,env,EmptyStageValidation.datas_nil_total c⟩
 def cons (c : context) (head : Step c) (tail : Result head.after) : Result c :=
@@ -23,7 +23,7 @@ theorem generate_audit (c : context) (env : Env c) : ConstructiveGenAudit.Struct
   ⟨ConstructiveGenAudit.arbNat_audit,fun n => (sized n c env).audit⟩
 
 theorem sized_complete (c result : context) (env : Env c) (xs : List SpecTec.data) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok c xs⟩) start (.success (.of result)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Datas_ok c xs⟩) start (.success (.of result)) finish) :
     ∃out : Result c,Gen.support (sized xs.length c env).generator out ∧ out.items=xs ∧ out.after=result := by
   induction xs generalizing c start finish with
   | nil => exact ⟨done c env,rfl,rfl,(ConstructiveModuleElemDataRules.datas_nil c result start finish h).1.symm⟩
@@ -35,7 +35,7 @@ theorem sized_complete (c result : context) (env : Env c) (xs : List SpecTec.dat
     exact ⟨cons c head tail,⟨head,hg,tail,hg',rfl⟩,by simp [cons,he,hs],hout⟩
 
 theorem generate_complete (c result : context) (env : Env c) (xs : List SpecTec.data) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok c xs⟩) start (.success (.of result)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Datas_ok c xs⟩) start (.success (.of result)) finish) :
     ∃out : Result c,Gen.support (generate c env) out ∧ out.items=xs ∧ out.after=result := by
   obtain ⟨out,hg,hs,ho⟩ := sized_complete c result env xs start finish h
   exact ⟨out,⟨xs.length,by simp,hg⟩,hs,ho⟩

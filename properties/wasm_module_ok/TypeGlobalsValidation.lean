@@ -6,14 +6,14 @@ namespace properties.wasm_module_ok.TypeGlobalsValidation
 
 theorem rectype_ok_globals (c result : SpecTec.context)
     (rt : SpecTec.rectype) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Rectype_ok c rt⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Rectype_ok c rt⟩)
       n (.success (.of result)) finalSupply) :
     result.GLOBALS = c.GLOBALS := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Rectype_ok_clauses c rt) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Rectype_ok_clauses c rt))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -38,14 +38,14 @@ theorem rectype_ok_globals (c result : SpecTec.context)
 
 theorem type_ok_globals (c result : SpecTec.context)
     (t : SpecTec.type) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
       n (.success (.of result)) finalSupply) :
     result.GLOBALS = c.GLOBALS := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Type_ok_clauses c t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Type_ok_clauses c t))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -58,18 +58,18 @@ theorem type_ok_globals (c result : SpecTec.context)
 
 theorem types_ok_globals (c result : SpecTec.context)
     (ts : List SpecTec.type) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c ts⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c ts⟩)
       n (.success (.of result)) finalSupply) :
     result.GLOBALS = c.GLOBALS := by
   induction ts generalizing c n finalSupply result with
   | nil =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c [])
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Types_ok:clause:1» c []] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Types_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -79,7 +79,7 @@ theorem types_ok_globals (c result : SpecTec.context)
             cases hguard with
             | guard_true hcond => simp at hcond
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c [])
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -94,10 +94,10 @@ theorem types_ok_globals (c result : SpecTec.context)
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Types_ok:clause:0» c (t :: rest))
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Types_ok:clause:1» c (t :: rest)] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Types_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -116,7 +116,7 @@ theorem types_ok_globals (c result : SpecTec.context)
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (type_ok_globals c c₁ t n middle hhead)
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Types_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -134,9 +134,9 @@ theorem types_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok c ts⟩)
+        SpecTec.Call.Types_ok c ts⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by

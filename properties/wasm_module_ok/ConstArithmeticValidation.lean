@@ -12,16 +12,16 @@ def arithmeticOps : List SpecTec.instr :=
 theorem arithmetic_is_const
     (c : SpecTec.context) (i : SpecTec.instr)
     (n : Nat) (h : i ∈ arithmeticOps) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c i) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c i))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:0» c i)
     n (.success (.of true)) n
   unfold SpecTec.«$is_const:clause:0»
@@ -32,9 +32,9 @@ theorem arithmetic_is_const
 
 theorem i32_add_is_const
     (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$is_const» c
+        SpecTec.Call.«$is_const» c
           (.BINOP (.I32 .IAdd))⟩)
       n (.success (.of true)) n :=
   arithmetic_is_const c _ n (by simp [arithmeticOps])
@@ -42,24 +42,24 @@ theorem i32_add_is_const
 theorem const_literal_is_const
     (c : SpecTec.context) (v : SpecTec.num_)
     (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c
         (.CONST v)⟩)
       n (.success (.of true)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$is_const_clauses» c (.CONST v)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$is_const_clauses» c (.CONST v)))
     n (.success (.of true)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c (.CONST v))
       n .unmatch n
     unfold SpecTec.«$is_const:clause:0»
     exact SpecTecExecution.Eval.bind_unmatch
       (SpecTecExecution.Eval.guard_false (by simp))
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$is_const:clause:1» c (.CONST v))
     n (.success (.of true)) n
   unfold SpecTec.«$is_const:clause:1»
@@ -69,17 +69,17 @@ theorem const_literal_is_const
 
 theorem const_iter_nil_total
     (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0»
         c []⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«Const_ok:rule:iter:0_clauses» c []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«Const_ok:rule:iter:0_clauses» c []))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Const_ok:rule:iter:0:clause:0» c [])
     n (.success (.of ())) n
   unfold SpecTec.«Const_ok:rule:iter:0:clause:0»
@@ -88,8 +88,8 @@ theorem const_iter_nil_total
 theorem arithmetic_iter_total
     (c : SpecTec.context) (xs : List SpecTec.instr)
     (n : Nat) (hall : ∀ i ∈ xs, i ∈ arithmeticOps) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0»
         c xs⟩)
       n (.success (.of ())) n := by
   induction xs with
@@ -107,8 +107,8 @@ def simpleConstSyntax (i : SpecTec.instr) : Prop :=
 theorem simple_const_iter_total
     (c : SpecTec.context) (xs : List SpecTec.instr)
     (n : Nat) (hall : ∀ i ∈ xs, simpleConstSyntax i) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0»
         c xs⟩)
       n (.success (.of ())) n := by
   induction xs with
@@ -117,8 +117,8 @@ theorem simple_const_iter_total
       apply (ConstSyntaxValidation.const_iter_cons_success_iff
         c i rest n n).2
       have hhead := hall i (by simp)
-      have his : SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+      have his : SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
           n (.success (.of true)) n := by
         rcases hhead with harith | ⟨v, rfl⟩
         · exact arithmetic_is_const c i n harith

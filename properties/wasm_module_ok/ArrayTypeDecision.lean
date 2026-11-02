@@ -16,21 +16,21 @@ def arrayTypeResult (c : SpecTec.context) (x : SpecTec.typeidx) :
 theorem array_type_success_iff
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (arr : SpecTec.arraytype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.arraytype,
-        SpecTec.SpecTecCall.«$array_type» c x⟩)
+        SpecTec.Call.«$array_type» c x⟩)
       n (.success (.of arr)) finalSupply ↔
     ∃ dt : SpecTec.deftype,
       c.TYPES[x]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.strtype,
-          SpecTec.SpecTecCall.«$expanddt» dt⟩)
+          SpecTec.Call.«$expanddt» dt⟩)
         n (.success (.of (SpecTec.strtype.DefArrayT arr))) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$array_type:clause:0» c x)
           (fun _ => .unmatch))
         n (.success (.of arr)) finalSupply at hbody
@@ -67,12 +67,12 @@ theorem array_type_success_iff
     have hindex : x < c.TYPES.length :=
       (List.getElem?_eq_some_iff.mp hget).1
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$array_type_clauses» c x) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$array_type_clauses» c x))
       n (.success (.of arr)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$array_type:clause:0» c x)
       n (.success (.of arr)) finalSupply
     unfold SpecTec.«$array_type:clause:0»
@@ -87,9 +87,9 @@ theorem array_type_success_iff
 theorem array_type_success_iff_result
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (arr : SpecTec.arraytype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.arraytype,
-        SpecTec.SpecTecCall.«$array_type» c x⟩)
+        SpecTec.Call.«$array_type» c x⟩)
       n (.success (.of arr)) finalSupply ↔
     arrayTypeResult c x = some arr ∧ finalSupply = n := by
   rw [array_type_success_iff]

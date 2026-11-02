@@ -50,9 +50,9 @@ theorem i31_step_iff_instr_effect
       SpecTec.valtype.NumT .I32T ∈ s ∧
       u = .RefT (.«% %» .NoNull .I31HT) ∧
       ConstSyntaxDecision.syntaxAllowed c .«REF.I31» = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt .«REF.I31»⟩)
+          SpecTec.Call.Instr_ok c irt .«REF.I31»⟩)
         n (.success (.of
           (⟨{ INS := (.NoEllipses, [.NumT .I32T]),
                OUTS := (.NoEllipses, [u]) },
@@ -73,9 +73,9 @@ theorem i31_step_of_instr_effect
     (s : Finset SpecTec.valtype) (u : SpecTec.valtype)
     (iit : SpecTec.inferinstrtype) (start fin : Nat)
     (hinput : SpecTec.valtype.NumT .I32T ∈ s)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt .«REF.I31»⟩)
+        SpecTec.Call.Instr_ok c irt .«REF.I31»⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     i31Step s u = true := by

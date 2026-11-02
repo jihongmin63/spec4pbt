@@ -11,22 +11,22 @@ theorem validated_match_deftype_total_of_substitutions
     (start : Nat) (hc : ValidatedTypes c)
     (hsubst : ∀ p dtP, p < c.TYPES.length → c.TYPES[p]? = some dtP →
       ∃ sP : SpecTec.deftype,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.deftype,
-            SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-              c.TYPES SpecTec.SpecTecCall.«$subst_of» dtP⟩)
+            SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+              c.TYPES SpecTec.Call.«$subst_of» dtP⟩)
           start (.success (.of sP)) start)
     (hsubstQ : ∃ sQ : SpecTec.deftype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.deftype,
-          SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-            c.TYPES SpecTec.SpecTecCall.«$subst_of» dtQ⟩)
+          SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+            c.TYPES SpecTec.Call.«$subst_of» dtQ⟩)
         start (.success (.of sQ)) start) :
     ∀ p dtP, p < c.TYPES.length → c.TYPES[p]? = some dtP →
       ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
           start (.success (.of r)) start := by
   intro p
   induction p using Nat.strongRecOn with

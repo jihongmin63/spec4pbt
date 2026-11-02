@@ -11,38 +11,38 @@ def vector : valtype → Bool
   | _ => false
 
 theorem numeric_total (t : valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$is_num_type» t⟩) n (.success (.of (numeric t))) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$is_num_type» t⟩) n (.success (.of (numeric t))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$is_num_type_clauses» t) ()) n _ n
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$is_num_type_clauses» t)) n _ n
   cases t
   all_goals
     repeat
       first
-      | apply SpecTecExecution.firstSuccess_cons_success
+      | apply SpecTecExecution.tryClauses_cons_success
         first
         | exact SpecTecExecution.Eval.pure _
         | exact SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl) (SpecTecExecution.Eval.pure _)
-      | apply SpecTecExecution.firstSuccess_cons_unmatch
+      | apply SpecTecExecution.tryClauses_cons_unmatch
         · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by
             simp [SpecTec.«exec:match:valtype:NumT»,SpecTec.«exec:match:valtype:VecT»,SpecTec.«exec:match:valtype:BotT»]))
 
 theorem vector_total (t : valtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$is_vec_type» t⟩) n (.success (.of (vector t))) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$is_vec_type» t⟩) n (.success (.of (vector t))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.«$is_vec_type_clauses» t) ()) n _ n
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.«$is_vec_type_clauses» t)) n _ n
   cases t
   all_goals
     repeat
       first
-      | apply SpecTecExecution.firstSuccess_cons_success
+      | apply SpecTecExecution.tryClauses_cons_success
         first
         | exact SpecTecExecution.Eval.pure _
         | exact SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl) (SpecTecExecution.Eval.pure _)
-      | apply SpecTecExecution.firstSuccess_cons_unmatch
+      | apply SpecTecExecution.tryClauses_cons_unmatch
         · exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by
             simp [SpecTec.«exec:match:valtype:NumT»,SpecTec.«exec:match:valtype:VecT»,SpecTec.«exec:match:valtype:BotT»]))
 

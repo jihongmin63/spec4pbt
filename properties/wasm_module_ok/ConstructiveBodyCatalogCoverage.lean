@@ -10,7 +10,7 @@ theorem arity_le_size (i : instr) : ConstructiveBodyAtomicCoverage.arity i≤siz
 theorem original (c : context) (stack : inferresulttype) (env : Env c) (hs : StackBacked c stack)
     (i : instr) (depth : Nat) (hd : ConstructiveBodyAtomicCoverage.arity i≤depth) (child : ConstructiveBodyControlProductions.Builder)
     (hc : ConstructiveBodyChildCoverage.Complete child i) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩)
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩)
       n (.success (.of effect)) finish) : Covers (catalog c stack env hs depth child) i effect ∧ finish=n := by
   by_cases ha : ConstructiveBodyAtomicCoverage.Atomic i
   · exact ConstructiveBodyAtomicCoverage.original c stack env hs i ha depth hd child effect n finish h

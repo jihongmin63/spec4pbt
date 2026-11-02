@@ -101,9 +101,9 @@ theorem struct_explicit_step_iff_instr_effect
         u = .RefT (.«% %» .NoNull (.DefHT dt)) ∧
         (∀ t ∈ ts, t ∈ s) ∧
         ConstSyntaxDecision.syntaxAllowed c (.«STRUCT.NEW» x .Explicit) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
+            SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, ts),
                  OUTS := (.NoEllipses, [u]) },

@@ -9,8 +9,8 @@ def globaltypeValid (c : SpecTec.context) : SpecTec.globaltype → Bool
 
 theorem globaltype_success_iff_valid (c : SpecTec.context)
     (gt : SpecTec.globaltype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Globaltype_ok c gt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Globaltype_ok c gt⟩)
       n (.success (.of ())) finalSupply ↔
     globaltypeValid c gt = true ∧ finalSupply = n := by
   cases gt with
@@ -19,7 +19,7 @@ theorem globaltype_success_iff_valid (c : SpecTec.context)
     · intro h
       cases h with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Globaltype_ok:clause:0» c (.GlobalT mutation t))
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at hbody
@@ -36,12 +36,12 @@ theorem globaltype_success_iff_valid (c : SpecTec.context)
         | orElse_unmatch _ hnone => cases hnone
     · rintro ⟨hv, rfl⟩
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Globaltype_ok_clauses c (.GlobalT mutation t)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Globaltype_ok_clauses c (.GlobalT mutation t)))
         finalSupply (.success (.of ())) finalSupply
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Globaltype_ok:clause:0» c (.GlobalT mutation t))
         finalSupply (.success (.of ())) finalSupply
       unfold SpecTec.«Globaltype_ok:clause:0»
@@ -56,8 +56,8 @@ def globaltypeOutcome (c : SpecTec.context) (gt : SpecTec.globaltype) :
 
 theorem globaltype_total (c : SpecTec.context)
     (gt : SpecTec.globaltype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Globaltype_ok c gt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Globaltype_ok c gt⟩)
       n (globaltypeOutcome c gt) n := by
   cases gt with
   | GlobalT mutation t =>
@@ -68,19 +68,19 @@ theorem globaltype_total (c : SpecTec.context)
           c (.GlobalT mutation t) n n).2 ⟨hv, rfl⟩
     | false =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Globaltype_ok_clauses c (.GlobalT mutation t)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Globaltype_ok_clauses c (.GlobalT mutation t)))
         n (globaltypeOutcome c (.GlobalT mutation t)) n
       simp only [globaltypeOutcome, globaltypeValid, hv]
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Globaltype_ok:clause:0» c (.GlobalT mutation t))
           n .unmatch n
         unfold SpecTec.«Globaltype_ok:clause:0»
         apply SpecTecExecution.Eval.bind_unmatch
         simpa [ValtypeTotal.valtypeOutcome, hv] using
           ValtypeTotal.valtype_total c t n
-      · exact SpecTecExecution.firstSuccess_nil () n
+      · exact SpecTecExecution.tryClauses_nil n
 
 end properties.wasm_module_ok.GlobaltypeValidation

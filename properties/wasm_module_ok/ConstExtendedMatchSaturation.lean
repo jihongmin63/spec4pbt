@@ -56,9 +56,9 @@ theorem pop_required_mem_extended_saturation
     (c : SpecTec.context)
     (need available sources : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start finish : Nat)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish)
     (hready : CandidateTypeReady.Ready c)
@@ -93,16 +93,16 @@ theorem const_pop_inputs_in_extended_saturation
     (available sources : List SpecTec.valtype)
     (result : SpecTec.inferresulttype)
     (start middle instructionFinish popStart popFinish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       start (.success (.of true)) middle)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       middle (.success (.of iit)) instructionFinish)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, iit.1.INS.2) (.NoEllipses, available)⟩)
       popStart (.success (.of result)) popFinish)
     (hready : CandidateTypeReady.Ready c)

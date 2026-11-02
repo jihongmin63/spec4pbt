@@ -9,9 +9,9 @@ theorem rectype_ok_local_same_group_lookup
     (sts sts' : List SpecTec.subtype)
     (start finish i q : Nat)
     (dts tail : List SpecTec.deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length) (hq : q < i)
     (hafter : after = {before with TYPES := before.TYPES ++ dts})

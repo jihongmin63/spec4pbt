@@ -45,8 +45,8 @@ theorem const_ok_implies_fillable
       tr.c5, tr.c6, tr.c7, tr.c8])
     (t : SpecTec.valtype) (xs : SpecTec.const)
     (start finish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish)
     (htarget : t ∈ ConstFieldCandidate.extendedCandidateUniverse c)
     (htable : CandidateValMatch.InTableVal c t) :
@@ -65,8 +65,8 @@ theorem const_fillable_iff_const_ok
     (htable : CandidateValMatch.InTableVal c t) :
     constFillable c t = true ↔
       ∃ (xs : SpecTec.const) (start finish : Nat),
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
           start (.success (.of ())) finish := by
   exact ConstProductiveDecision.productive_fillable_iff_const_ok_any_counters
     m tr c hc t htarget htable
@@ -81,8 +81,8 @@ theorem no_const_ok_of_not_fillable
     (htable : CandidateValMatch.InTableVal c t)
     (hfalse : constFillable c t = false) :
     ¬ ∃ (xs : SpecTec.const) (start finish : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
         start (.success (.of ())) finish := by
   rintro ⟨xs, start, finish, hconst⟩
   have htrue := const_ok_implies_fillable

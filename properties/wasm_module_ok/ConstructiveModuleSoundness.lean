@@ -13,7 +13,7 @@ theorem original (out : Result) : SpecTec.Module_ok (module out) := by
   let p := out.prelude
   let refs := ConstructiveFreeModule.moduleFree (ConstructiveModulePrelude.raw p)
   obtain ⟨names,hex⟩ := (ConstructiveExports.exports_exact p.data.after (.«`{ % `}» []) p.exports.val 0).1 p.exports.property
-  have hf : Eval specTecProgram (.call ⟨context,SpecTecCall.Funcs_ok p.before.imports.after out.functions.items⟩)
+  have hf : Eval Body (.call ⟨context,Call.Funcs_ok p.before.imports.after out.functions.items⟩)
       0 (.success (.of p.before.headers.after)) 0 := by
     apply (FuncsValidation.funcs_success_iff_result _ _ _ 0 0).2
     refine ⟨?_,rfl⟩

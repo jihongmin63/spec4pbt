@@ -18,9 +18,9 @@ theorem vector_seed_iff_instr_effect
     vectorSeed u = true ↔
       ∃ v : SpecTec.vec_,
         ConstSyntaxDecision.syntaxAllowed c (.«VEC.CONST» v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+            SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

@@ -13,20 +13,20 @@ def strtypeValid (c : SpecTec.context) : SpecTec.strtype → Bool
 theorem struct_success_iff_child
     (c : SpecTec.context) (st : SpecTec.structtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Strtype_ok c (.DefStructT st)⟩)
+        SpecTec.Call.Strtype_ok c (.DefStructT st)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Structtype_ok c st⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Structtype_ok c st⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Strtype_ok_clauses c (.DefStructT st)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Strtype_ok_clauses c (.DefStructT st))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected
       cases hselected with
@@ -60,12 +60,12 @@ theorem struct_success_iff_child
           | next _ hnone => cases hnone
   · intro hstruct
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Strtype_ok_clauses c (.DefStructT st)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Strtype_ok_clauses c (.DefStructT st)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Strtype_ok:clause:0» c (.DefStructT st))
       n (.success (.of ())) finish
     unfold SpecTec.«Strtype_ok:clause:0»
@@ -77,20 +77,20 @@ theorem struct_success_iff_child
 theorem array_success_iff_child
     (c : SpecTec.context) (arr : SpecTec.arraytype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Strtype_ok c (.DefArrayT arr)⟩)
+        SpecTec.Call.Strtype_ok c (.DefArrayT arr)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Arraytype_ok c arr⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Arraytype_ok c arr⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Strtype_ok_clauses c (.DefArrayT arr)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Strtype_ok_clauses c (.DefArrayT arr))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected
       cases hselected with
@@ -124,20 +124,20 @@ theorem array_success_iff_child
           | next _ hnone => cases hnone
   · intro harray
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Strtype_ok_clauses c (.DefArrayT arr)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Strtype_ok_clauses c (.DefArrayT arr)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Strtype_ok:clause:0» c (.DefArrayT arr))
         n .unmatch n
       unfold SpecTec.«Strtype_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [SpecTec.«exec:match:strtype:DefStructT»]
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Strtype_ok:clause:1» c (.DefArrayT arr))
         n (.success (.of ())) finish
       unfold SpecTec.«Strtype_ok:clause:1»
@@ -149,20 +149,20 @@ theorem array_success_iff_child
 theorem func_success_iff_child
     (c : SpecTec.context) (ft : SpecTec.functype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Strtype_ok c (.DefFuncT ft)⟩)
+        SpecTec.Call.Strtype_ok c (.DefFuncT ft)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Functype_ok c ft⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Functype_ok c ft⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Strtype_ok_clauses c (.DefFuncT ft)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Strtype_ok_clauses c (.DefFuncT ft))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Strtype_ok_clauses at hselected
       cases hselected with
@@ -196,28 +196,28 @@ theorem func_success_iff_child
           | next _ hnone => cases hnone
   · intro hfunc
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Strtype_ok_clauses c (.DefFuncT ft)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Strtype_ok_clauses c (.DefFuncT ft)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Strtype_ok:clause:0» c (.DefFuncT ft))
         n .unmatch n
       unfold SpecTec.«Strtype_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp [SpecTec.«exec:match:strtype:DefStructT»]
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Strtype_ok:clause:1» c (.DefFuncT ft))
           n .unmatch n
         unfold SpecTec.«Strtype_ok:clause:1»
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:strtype:DefArrayT»]
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Strtype_ok:clause:2» c (.DefFuncT ft))
           n (.success (.of ())) finish
         unfold SpecTec.«Strtype_ok:clause:2»
@@ -229,8 +229,8 @@ theorem func_success_iff_child
 theorem strtype_success_iff_valid
     (c : SpecTec.context) (st : SpecTec.strtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Strtype_ok c st⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Strtype_ok c st⟩)
       n (.success (.of ())) finish ↔
     strtypeValid c st = true ∧ finish = n := by
   cases st with

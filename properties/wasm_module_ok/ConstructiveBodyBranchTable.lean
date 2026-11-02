@@ -43,44 +43,44 @@ theorem lists_complete (c : context) (actual : List valtype) (base : Target c ac
 def indices {c : context} {actual : List valtype} (xs : List (Target c actual)) : List Nat := xs.map (fun t => t.entry.index)
 
 theorem bounds (c : context) (actual : List valtype) (xs : List (Target c actual)) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.«Instr_ok:br_table:iter:3» c (indices xs)⟩) n (.success (.of ())) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.«Instr_ok:br_table:iter:3» c (indices xs)⟩) n (.success (.of ())) n := by
   induction xs with
   | nil =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:br_table:iter:3_clauses» c []) ()) n (.success (.of ())) n
-    apply SpecTecExecution.firstSuccess_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:br_table:iter:3_clauses» c [])) n (.success (.of ())) n
+    apply SpecTecExecution.tryClauses_cons_success
     exact SpecTecExecution.Eval.pure _
   | cons x xs ih =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:br_table:iter:3_clauses» c (x.entry.index::indices xs)) ()) n (.success (.of ())) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:br_table:iter:3_clauses» c (x.entry.index::indices xs))) n (.success (.of ())) n
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact SpecTecExecution.Eval.unmatch
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«Instr_ok:br_table:iter:3:clause:1»
     apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true (List.getElem?_eq_some_iff.mp x.entry.lookup).1)
     exact SpecTecExecution.Eval.bind_success ih (SpecTecExecution.Eval.pure _)
 
 theorem targets_call (c : context) (actual : List valtype) (xs : List (Target c actual))
     (env : Env c) (ha : ∀t∈actual,CandidateValMatch.InTableVal c t) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.«Instr_ok:br_table:iter:4» c actual (indices xs)⟩) n (.success (.of ())) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.«Instr_ok:br_table:iter:4» c actual (indices xs)⟩) n (.success (.of ())) n := by
   induction xs with
   | nil =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual []) ()) n (.success (.of ())) n
-    apply SpecTecExecution.firstSuccess_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual [])) n (.success (.of ())) n
+    apply SpecTecExecution.tryClauses_cons_success
     exact SpecTecExecution.Eval.pure _
   | cons x xs ih =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual (x.entry.index::indices xs)) ()) n (.success (.of ())) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual (x.entry.index::indices xs))) n (.success (.of ())) n
+    apply SpecTecExecution.tryClauses_cons_unmatch
     · exact SpecTecExecution.Eval.unmatch
-    apply SpecTecExecution.firstSuccess_cons_success
+    apply SpecTecExecution.tryClauses_cons_success
     unfold SpecTec.«Instr_ok:br_table:iter:4:clause:1»
     simp only [x.entry.lookup]
     apply SpecTecExecution.Eval.bind_success
@@ -92,12 +92,12 @@ theorem branchTable (c : context) (stack : inferresulttype) (env : Env c) (hs : 
     (base : Entry c.LABELS)
     (hm : MatchResulttypeDecision.matchPairs c (ConstructiveBodyInitTypes.operandTypes stack base.value.length) base.value=true)
     (xs : List (Target c (ConstructiveBodyInitTypes.operandTypes stack base.value.length))) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_TABLE (indices xs) base.index)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_TABLE (indices xs) base.index)⟩)
       n (.success (.of ((⟨(.Ellipses,ConstructiveBodyInitTypes.operandTypes stack base.value.length++[.NumT .I32T]),
         (.Ellipses,[])⟩,[]) : inferinstrtype))) n := by
   apply (ConstructiveBodyRoute.unique_rule c stack (.BR_TABLE (indices xs) base.index) 10 (by decide) rfl (by decide) _ n n).2
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Instr_ok:clause:10» c stack (.BR_TABLE (indices xs) base.index)) n (.success (.of _)) n
   unfold SpecTec.«Instr_ok:clause:10»
   apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)

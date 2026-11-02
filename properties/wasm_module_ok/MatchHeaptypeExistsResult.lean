@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.MatchHeaptypeBasic
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -9,13 +10,13 @@ theorem match_heaptype_exists_result_of_head_classifier
     (hts : List SpecTec.heaptype) (f : SpecTec.heaptype → Bool)
     (start : Nat)
     (hhead : ∀ h ∈ hts,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h (.DefHT dt)⟩)
+          SpecTec.Call.«$match_heaptype» dts h (.DefHT dt)⟩)
         start (.success (.of (f h))) start) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_heaptype_exists» dts hts dt⟩)
+        SpecTec.Call.«$match_heaptype_exists» dts hts dt⟩)
       start (.success (.of (hts.any f))) start := by
   induction hts with
   | nil =>
@@ -23,9 +24,9 @@ theorem match_heaptype_exists_result_of_head_classifier
   | cons h tl ih =>
       have hh := hhead h (by simp)
       have htail : ∀ h' ∈ tl,
-          SpecTecExecution.Eval SpecTec.specTecProgram
+          SpecTecExecution.Eval SpecTec.Body
             (.call ⟨Bool,
-              SpecTec.SpecTecCall.«$match_heaptype» dts h' (.DefHT dt)⟩)
+              SpecTec.Call.«$match_heaptype» dts h' (.DefHT dt)⟩)
             start (.success (.of (f h'))) start := by
         intro h' hm
         exact hhead h' (by simp [hm])
@@ -45,22 +46,19 @@ theorem match_heaptype_exists_result_iff_of_head_classifier
     (hts : List SpecTec.heaptype) (f : SpecTec.heaptype → Bool)
     (start : Nat)
     (hhead : ∀ h ∈ hts,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» dts h (.DefHT dt)⟩)
+          SpecTec.Call.«$match_heaptype» dts h (.DefHT dt)⟩)
         start (.success (.of (f h))) start)
     (result : Bool) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_heaptype_exists» dts hts dt⟩)
+        SpecTec.Call.«$match_heaptype_exists» dts hts dt⟩)
       start (.success (.of result)) start ↔
     result = hts.any f := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
-    obtain ⟨hout, _⟩ := SpecTecExecution.eval_deterministic hdet h
+    obtain ⟨hout, _⟩ := properties.wasm_module_ok.Execution.eval_deterministic h
       (match_heaptype_exists_result_of_head_classifier
         dts dt hts f start hhead)
     cases hout

@@ -16,8 +16,8 @@ structure Stored (c : context) where
   bound : GroupBound (base+source.length) source
   provenance : ∃ before after : context, ∃ start finish : Nat, ∃ tail : List deftype,
     ValidatedTypeChain.ValidatedTypes before ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok before (.RecT source)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok before (.RecT source)⟩)
       start (.success (.of after)) finish ∧
     c.TYPES = after.TYPES ++ tail ∧ base = before.TYPES.length
 
@@ -32,8 +32,8 @@ theorem copy_audit (c : context) (s : Stored c) : ConstructiveGenAudit.Structura
 
 theorem copy_sound (c : context) (hc : ValidatedTypeChain.ValidatedTypes c)
     (s : Stored c) (rt : rectype) (hg : Gen.support (copy c s) rt) (n : Nat) :
-    ∃ out : context, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c rt⟩) n (.success (.of out)) n := by
+    ∃ out : context, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c rt⟩) n (.success (.of out)) n := by
   obtain ⟨before,after,start,finish,tail,hbefore,hrect,he,hbase⟩ := s.provenance
   cases rt with
   | RecT outs =>
@@ -44,8 +44,8 @@ theorem copy_sound (c : context) (hc : ValidatedTypeChain.ValidatedTypes c)
 
 theorem copy_complete (c result : context) (s : Stored c) (outs : List SpecTec.subtype)
     (start finish : Nat)
-    (hout : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT outs)⟩)
+    (hout : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT outs)⟩)
       start (.success (.of result)) finish)
     (hclosed : CandidateRectypeTable.transformed c outs = some (closed c s)) :
     Gen.support (copy c s) (.RecT outs) := by
@@ -91,8 +91,8 @@ theorem groups_sound (c : context) (env : List (Signature c)) (history : List (S
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hmeta : Tracks c (headers c env)) (hdenote : Describes c c env)
     (rt : rectype) (hg : Gen.support (groups c env history) rt) (n : Nat) :
-    ∃ out : context, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c rt⟩) n (.success (.of out)) n := by
+    ∃ out : context, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c rt⟩) n (.success (.of out)) n := by
   rcases (groups_support c env history rt).1 hg with hf | ⟨s,_,hs⟩
   · exact ConstructiveFreshSoundness.fresh_sound c env (CandidateTypeReady.validated_types_ready c hc)
       ((CandidateNestedReady.nestedTableReady_true_iff c).2
@@ -106,8 +106,8 @@ theorem groups_complete (c result : context) (env : List (Signature c)) (history
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hmeta : Tracks c (headers c env)) (hdenote : Describes c c env) (hhistory : Covers c history)
     (sts : List SpecTec.subtype) (start finish : Nat)
-    (hout : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (hout : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) : Gen.support (groups c env history) (.RecT sts) := by
   classical
   have hb := ConstructiveTypeCopySource.original_bound c result sts start finish hout

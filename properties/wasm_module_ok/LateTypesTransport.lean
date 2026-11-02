@@ -40,8 +40,8 @@ theorem trace_header_types (m : SpecTec.module)
 
 theorem completed_bodies_for_trace (m : SpecTec.module)
     (tr : Validity.ModuleOkTrace m) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Module_ok:rule:iter:2»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Module_ok:rule:iter:2»
         tr.c8 ((m.FUNCS.map (·.FTYPE)).map
           HeaderBodyCompletion.completedFunction)⟩)
       tr.n11 (.success (.of ())) tr.n11 := by

@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.RectypeRollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,18 +11,18 @@ def rollDeftypes (x : Nat) (rect : SpecTec.rectype) :
   | .RecT sts => rolledDefs (.RecT sts) 0 sts.length
 
 theorem rolldt_total (x : Nat) (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List SpecTec.deftype, SpecTec.SpecTecCall.«$rolldt» x rect⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List SpecTec.deftype, SpecTec.Call.«$rolldt» x rect⟩)
       start (.success (.of (rollDeftypes x rect))) start := by
   cases rect with
   | RecT sts =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$rolldt_clauses» x (.RecT sts)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$rolldt_clauses» x (.RecT sts)))
         start (.success (.of (rollDeftypes x (.RecT sts)))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$rolldt:clause:0» x (.RecT sts))
         start (.success (.of (rollDeftypes x (.RecT sts)))) start
       unfold SpecTec.«$rolldt:clause:0»
@@ -40,11 +41,11 @@ theorem rolldt_total (x : Nat) (rect : SpecTec.rectype) (start : Nat) :
 theorem rolldt_deterministic (x : Nat) (rect : SpecTec.rectype)
     (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨List SpecTec.deftype, SpecTec.SpecTecCall.«$rolldt» x rect⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨List SpecTec.deftype, SpecTec.Call.«$rolldt» x rect⟩)
       start outcome finalSupply) :
     outcome = .success (.of (rollDeftypes x rect)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (rolldt_total x rect start)
 
 end properties.wasm_module_not_ok.Rejection

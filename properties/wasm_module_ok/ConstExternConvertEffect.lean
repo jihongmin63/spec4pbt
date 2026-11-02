@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstArrayExplicitDispatch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -9,15 +10,15 @@ theorem extern_convert_clause_total
     (op : SpecTec.externop_) (ht1 ht2 : SpecTec.heaptype)
     (nu : SpecTec.null) (ht : SpecTec.heaptype)
     (start middle fin : Nat)
-    (htype : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htype : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$type_externop» op⟩)
+        SpecTec.Call.«$type_externop» op⟩)
       start (.success (.of (ht1, ht2))) middle)
-    (hpeek : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpeek : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.reftype,
-        SpecTec.SpecTecCall.«$peek_ref» 0 irt⟩)
+        SpecTec.Call.«$peek_ref» 0 irt⟩)
       middle (.success (.of (SpecTec.reftype.«% %» nu ht))) fin) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:77» c irt (.«EXTERN.CONVERT» op))
       start (.success (.of
         (⟨{ INS := (.NoEllipses, [.RefT (.«% %» nu ht1)]),
@@ -34,18 +35,18 @@ theorem extern_convert_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:77» c irt (.«EXTERN.CONVERT» op))
       start (.success (.of iit)) fin) :
     ∃ ht1 ht2 : SpecTec.heaptype, ∃ nu : SpecTec.null,
       ∃ ht : SpecTec.heaptype, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-          SpecTec.SpecTecCall.«$type_externop» op⟩)
+          SpecTec.Call.«$type_externop» op⟩)
         start (.success (.of (ht1, ht2))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.reftype,
-          SpecTec.SpecTecCall.«$peek_ref» 0 irt⟩)
+          SpecTec.Call.«$peek_ref» 0 irt⟩)
         middle (.success (.of (SpecTec.reftype.«% %» nu ht))) fin ∧
       iit =
         (⟨{ INS := (.NoEllipses, [.RefT (.«% %» nu ht1)]),
@@ -53,13 +54,13 @@ theorem extern_convert_clause_exact
           ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) := by
   have hparts : ∃ ht1 ht2 : SpecTec.heaptype, ∃ nu : SpecTec.null,
       ∃ ht : SpecTec.heaptype, ∃ middle finalSupply : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-          SpecTec.SpecTecCall.«$type_externop» op⟩)
+          SpecTec.Call.«$type_externop» op⟩)
         start (.success (.of (ht1, ht2))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.reftype,
-          SpecTec.SpecTecCall.«$peek_ref» 0 irt⟩)
+          SpecTec.Call.«$peek_ref» 0 irt⟩)
         middle (.success (.of (SpecTec.reftype.«% %» nu ht))) finalSupply := by
     unfold SpecTec.«Instr_ok:clause:77» at h
     cases h with
@@ -78,11 +79,8 @@ theorem extern_convert_clause_exact
               exact ⟨ht1, ht2, nu, ht, _, _, htype, hpeek⟩
   obtain ⟨ht1, ht2, nu, ht, middle, finalSupply,
     htype, hpeek⟩ := hparts
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (extern_convert_clause_total c irt op ht1 ht2 nu ht
         start middle finalSupply htype hpeek)
   cases hout
@@ -93,18 +91,18 @@ theorem extern_convert_clause_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:77» c irt (.«EXTERN.CONVERT» op))
       start (.success (.of iit)) fin ↔
     ∃ ht1 ht2 : SpecTec.heaptype, ∃ nu : SpecTec.null,
       ∃ ht : SpecTec.heaptype, ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-          SpecTec.SpecTecCall.«$type_externop» op⟩)
+          SpecTec.Call.«$type_externop» op⟩)
         start (.success (.of (ht1, ht2))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.reftype,
-          SpecTec.SpecTecCall.«$peek_ref» 0 irt⟩)
+          SpecTec.Call.«$peek_ref» 0 irt⟩)
         middle (.success (.of (SpecTec.reftype.«% %» nu ht))) fin ∧
       iit =
         (⟨{ INS := (.NoEllipses, [.RefT (.«% %» nu ht1)]),

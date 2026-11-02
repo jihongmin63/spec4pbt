@@ -5,10 +5,10 @@ namespace properties.wasm_module_ok.ConstructiveModuleModes
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironment ConstructiveConstTableCore
 open ConstructiveModuleInitializerPlans ConstructiveBodyIndexedTypes
 
-abbrev DataMode (c : context) := {m : datamode // ∀n,Eval specTecProgram
-  (.call ⟨Unit,SpecTecCall.Datamode_ok c m⟩) n (.success (.of ())) n}
-abbrev ElemMode (c : context) (rt : reftype) := {m : elemmode // ∀n,Eval specTecProgram
-  (.call ⟨Unit,SpecTecCall.Elemmode_ok c rt m⟩) n (.success (.of ())) n}
+abbrev DataMode (c : context) := {m : datamode // ∀n,Eval Body
+  (.call ⟨Unit,Call.Datamode_ok c m⟩) n (.success (.of ())) n}
+abbrev ElemMode (c : context) (rt : reftype) := {m : elemmode // ∀n,Eval Body
+  (.call ⟨Unit,Call.Elemmode_ok c rt m⟩) n (.success (.of ())) n}
 
 def passiveData (c : context) : DataMode c := ⟨.Passive,ConstructiveModuleModeRules.data_passive c⟩
 def activeData (c : context) (mem : Memory c)
@@ -38,7 +38,7 @@ def elem (c : context) (env : Env c) (rt : reftype)
   (Audited.pure (passiveElem c rt)).merge (Audited.pure (declarativeElem c rt)::elemBranches c env rt hr)
 
 theorem data_complete (c : context) (env : Env c) (mode : datamode) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Datamode_ok c mode⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.Datamode_ok c mode⟩) n (.success (.of ())) finish) :
     ∃out : DataMode c,Gen.support (data c env).generator out ∧ out.val=mode := by
   cases mode with
   | Passive => exact ⟨passiveData c,(merge_support _ _ _).2 ⟨Audited.pure _,List.mem_cons_self,rfl⟩,rfl⟩
@@ -58,7 +58,7 @@ theorem data_complete (c : context) (env : Env c) (mode : datamode) (n finish : 
 
 theorem elem_complete (c : context) (env : Env c) (rt : reftype)
     (hr : CandidateValMatch.InTableVal c (.RefT rt)) (mode : elemmode) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Elemmode_ok c rt mode⟩) n (.success (.of ())) finish) :
+    (h : Eval Body (.call ⟨Unit,Call.Elemmode_ok c rt mode⟩) n (.success (.of ())) finish) :
     ∃out : ElemMode c rt,Gen.support (elem c env rt hr).generator out ∧ out.val=mode := by
   cases mode with
   | Passive => exact ⟨passiveElem c rt,(merge_support _ _ _).2 ⟨Audited.pure _,List.mem_cons_self,rfl⟩,rfl⟩

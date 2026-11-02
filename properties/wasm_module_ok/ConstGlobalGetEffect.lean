@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstRefNullDispatch
 import properties.wasm_module_ok.ConstGlobalGetValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,7 +11,7 @@ theorem global_get_clause_total
     (x : SpecTec.globalidx) (m : SpecTec.«mut»)
     (t : SpecTec.valtype) (n : Nat)
     (hget : c.GLOBALS[x]? = some (.GlobalT m t)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:28» c irt (.«GLOBAL.GET» x))
       n (.success (.of
         (⟨{ INS := (.NoEllipses, []),
@@ -29,7 +30,7 @@ theorem global_get_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.globalidx) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:28» c irt (.«GLOBAL.GET» x))
       n (.success (.of iit)) fin) :
     ∃ m : SpecTec.«mut», ∃ t : SpecTec.valtype,
@@ -54,11 +55,8 @@ theorem global_get_clause_exact
                 cases gt with
                 | GlobalT m t => exact ⟨m, t, rfl⟩
   obtain ⟨m, t, hget⟩ := hget
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (global_get_clause_total c irt x m t n hget)
   cases hout
   exact ⟨m, t, hget, rfl, hsupply⟩

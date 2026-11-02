@@ -24,8 +24,8 @@ theorem Ref.backed {c : context} (r : Ref c) : CandidateValMatch.InTableVal c (.
   CandidateValMembership.valid_candidate_in_table c _ ((FiniteValidTypes.validCandidates_spec c _).2 r.valid)
 
 theorem Ref.call {c : context} (r : Ref c) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Reftype_ok c r.value⟩) n (.success (.of ())) n := by
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Reftype_ok c r.value⟩) n (.success (.of ())) n := by
   cases r with | mk rt hv =>
    cases rt with | «% %» nu heap =>
     exact (ValtypeValidation.reftype_success_iff c nu heap n n).2

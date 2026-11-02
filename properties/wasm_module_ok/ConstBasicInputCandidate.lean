@@ -10,9 +10,9 @@ theorem binop_inputs_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.binop_) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.BINOP op)⟩)
+        SpecTec.Call.Instr_ok c irt (.BINOP op)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ FiniteValidTypes.candidateUniverse c := by
@@ -31,9 +31,9 @@ theorem vec_const_inputs_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.vec_) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«VEC.CONST» v)⟩)
+        SpecTec.Call.Instr_ok c irt (.«VEC.CONST» v)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ FiniteValidTypes.candidateUniverse c := by
@@ -44,9 +44,9 @@ theorem vec_const_inputs_candidate
 theorem ref_i31_inputs_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (iit : SpecTec.inferinstrtype) (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt .«REF.I31»⟩)
+        SpecTec.Call.Instr_ok c irt .«REF.I31»⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ FiniteValidTypes.candidateUniverse c := by
@@ -64,9 +64,9 @@ theorem extern_convert_inputs_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (start finish : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+        SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
       start (.success (.of iit)) finish) :
     ∀ t ∈ iit.1.INS.2,
       t ∈ FiniteValidTypes.candidateUniverse c := by

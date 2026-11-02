@@ -38,8 +38,8 @@ theorem funcs_header_invariant
 theorem funcs_success_iff_header_result
     (c : SpecTec.context) (fs : List SpecTec.func)
     (out : SpecTec.context) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Funcs_ok c fs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Funcs_ok c fs⟩)
       n (.success (.of out)) finalSupply ↔
       headerResult c (fs.map (·.FTYPE)) = some out ∧
         finalSupply = n := by
@@ -71,9 +71,9 @@ theorem headersCorrect_sound
     (c : SpecTec.context) (xs : List SpecTec.typeidx)
     (h : Gen.support (headersCorrect c).val xs) :
     ∃ out : SpecTec.context,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Funcs_ok c
+          SpecTec.Call.Funcs_ok c
             (xs.map headerFunction)⟩)
         0 (.success (.of out)) 0 := by
   rw [(headersCorrect c).property] at h
@@ -88,9 +88,9 @@ theorem headersCorrect_sound
 theorem headersCorrect_complete
     (c : SpecTec.context) (fs : List SpecTec.func)
     (out : SpecTec.context) (n finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Funcs_ok c fs⟩)
+        SpecTec.Call.Funcs_ok c fs⟩)
       n (.success (.of out)) finalSupply) :
     Gen.support (headersCorrect c).val
       (fs.map (·.FTYPE)) := by

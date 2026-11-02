@@ -21,9 +21,9 @@ theorem validated_position_uniform_group
     ∃ strt : SpecTec.strtype,
     ∃ sts' : List SpecTec.subtype,
       ValidatedTypes before ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+          SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
         start (.success (.of after)) finish ∧
       p = before.TYPES.length + i ∧
       i < sts.length ∧

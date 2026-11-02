@@ -10,14 +10,14 @@ private theorem package_result
     (c : SpecTec.context) (source target : SpecTec.heaptype)
     (n : Nat) (r : Bool)
     (hsupport : ReadyHeapMatch.readyHeapMatch c source target = some r)
-    (heval : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    (heval : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source target⟩)
       n (.success (.of ((ReadyHeapMatch.readyHeapMatch c source target).getD false))) n) :
     ∃ value : Bool,
       ReadyHeapMatch.readyHeapMatch c source target = some value ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES source target⟩)
         n (.success (.of value)) n := by
   exact ⟨r, hsupport, by simpa [hsupport] using heval⟩
@@ -37,8 +37,8 @@ theorem ready_reachable_pair_result
         target = .DefHT dt ∧ c.TYPES[q]? = some dt)) :
     ∃ r : Bool,
       ReadyHeapMatch.readyHeapMatch c source target = some r ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES source target⟩)
         n (.success (.of r)) n := by
   rcases hsource with hbase | ⟨p, dtP, rfl, hP⟩
@@ -97,8 +97,8 @@ theorem ready_reverse_pair_result
         target = .VarHT (.StatX p) ∧ c.TYPES[p]? = some dt) :
     ∃ r : Bool,
       ReadyHeapMatch.readyHeapMatch c source target = some r ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
           c.TYPES source target⟩)
         n (.success (.of r)) n := by
   rcases hsource with hbase | ⟨q, dtQ, rfl, hQ⟩
@@ -136,9 +136,9 @@ theorem static_structural_match_result
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish n : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
@@ -149,9 +149,9 @@ theorem static_structural_match_result
     ∃ strtU : SpecTec.strtype,
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT fin hts strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+          SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
         n (.success (.of
           (MatchStrtypeConditional.strMatch
             (fun h1 h2 => (ReadyHeapMatch.readyHeapMatch c h1 h2).getD false)

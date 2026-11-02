@@ -9,9 +9,9 @@ theorem implicit_output_has_seed
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (u : SpecTec.valtype) (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Implicit)⟩)
       start (.success (.of iit)) fin)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :
     ConstStructImplicitProduction.structImplicitSeed c u = true := by
@@ -35,9 +35,9 @@ theorem explicit_output_has_step
     (x : SpecTec.typeidx) (iit : SpecTec.inferinstrtype)
     (s : Finset SpecTec.valtype) (u : SpecTec.valtype)
     (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
+        SpecTec.Call.Instr_ok c irt (.«STRUCT.NEW» x .Explicit)⟩)
       start (.success (.of iit)) fin)
     (hinputs : ∀ t ∈ iit.1.INS.2, t ∈ s)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :

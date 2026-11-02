@@ -12,27 +12,27 @@ theorem validated_match_deftype_of_predecessors
     (hc : ValidatedTypes c) (hp : p < c.TYPES.length)
     (hlookup : c.TYPES[p]? = some dtP)
     (hsubstP : ∃ sP : SpecTec.deftype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.deftype,
-          SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-            c.TYPES SpecTec.SpecTecCall.«$subst_of» dtP⟩)
+          SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+            c.TYPES SpecTec.Call.«$subst_of» dtP⟩)
         start (.success (.of sP)) start)
     (hsubstQ : ∃ sQ : SpecTec.deftype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.deftype,
-          SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-            c.TYPES SpecTec.SpecTecCall.«$subst_of» dtQ⟩)
+          SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+            c.TYPES SpecTec.Call.«$subst_of» dtQ⟩)
         start (.success (.of sQ)) start)
     (hmatch : ∀ k dtK, k < p → c.TYPES[k]? = some dtK →
       ∃ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtK dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtK dtQ⟩)
           start (.success (.of r)) start) :
     ∃ r : Bool,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+          SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
         start (.success (.of r)) start := by
   by_cases heq : dtP = dtQ
   · subst dtQ

@@ -16,21 +16,21 @@ inductive Trace : SpecTec.context → SpecTec.inferresulttype →
       {i : SpecTec.instr} {rest : List SpecTec.instr}
       {iit : SpecTec.inferinstrtype}
       {n middle₁ middle₂ middle₃ middle₄ finish : Nat}
-      (hinstr : SpecTecExecution.Eval SpecTec.specTecProgram
+      (hinstr : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+          SpecTec.Call.Instr_ok c irt i⟩)
         n (.success (.of iit)) middle₁)
-      (hinit : SpecTecExecution.Eval SpecTec.specTecProgram
+      (hinit : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+          SpecTec.Call.«$init_locals» c iit.2⟩)
         middle₁ (.success (.of next)) middle₂)
-      (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+      (hpop : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c iit.1.INS irt⟩)
+          SpecTec.Call.«$pop» c iit.1.INS irt⟩)
         middle₂ (.success (.of popped)) middle₃)
-      (hpush : SpecTecExecution.Eval SpecTec.specTecProgram
+      (hpush : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$push» c iit.1.OUTS popped⟩)
+          SpecTec.Call.«$push» c iit.1.OUTS popped⟩)
         middle₃ (.success (.of pushed)) middle₄)
       (htail : Trace next pushed rest finalContext finalStack middle₄ finish) :
       Trace c irt (i :: rest) finalContext finalStack n finish
@@ -40,9 +40,9 @@ theorem trace_to_instrs
     {irt finalStack : SpecTec.inferresulttype}
     {xs : List SpecTec.instr} {start finish : Nat}
     (h : Trace c irt xs finalContext finalStack start finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt xs⟩)
+        SpecTec.Call.Instrs_ok c irt xs⟩)
       start (.success (.of (finalStack, ([] : List SpecTec.idx)))) finish := by
   induction h with
   | nil c irt n =>
@@ -61,9 +61,9 @@ theorem instrs_to_trace
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (finalStack : SpecTec.inferresulttype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt xs⟩)
+        SpecTec.Call.Instrs_ok c irt xs⟩)
       start (.success (.of
         (finalStack, ([] : List SpecTec.idx)))) finish) :
     ∃ finalContext : SpecTec.context,
@@ -117,9 +117,9 @@ theorem instrs_success_indices_nil
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (result : SpecTec.inferresulttype × List SpecTec.idx)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt xs⟩)
+        SpecTec.Call.Instrs_ok c irt xs⟩)
       start (.success (.of result)) finish) :
     result.2 = [] := by
   induction xs generalizing c irt start with
@@ -143,9 +143,9 @@ theorem instrs_success_iff_trace
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (result : SpecTec.inferresulttype × List SpecTec.idx)
     (start finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt xs⟩)
+        SpecTec.Call.Instrs_ok c irt xs⟩)
       start (.success (.of result)) finish ↔
     result.2 = [] ∧
       ∃ finalContext : SpecTec.context,
@@ -175,21 +175,21 @@ theorem trace_snoc
     {iit : SpecTec.inferinstrtype}
     {n middleSupply afterInstr afterInit afterPop afterPush : Nat}
     (hfirst : Trace c irt xs middle middleStack n middleSupply)
-    (hinstr : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hinstr : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok middle middleStack i⟩)
+        SpecTec.Call.Instr_ok middle middleStack i⟩)
       middleSupply (.success (.of iit)) afterInstr)
-    (hinit : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hinit : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» middle iit.2⟩)
+        SpecTec.Call.«$init_locals» middle iit.2⟩)
       afterInstr (.success (.of next)) afterInit)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» middle iit.1.INS middleStack⟩)
+        SpecTec.Call.«$pop» middle iit.1.INS middleStack⟩)
       afterInit (.success (.of popped)) afterPop)
-    (hpush : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpush : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» middle iit.1.OUTS popped⟩)
+        SpecTec.Call.«$push» middle iit.1.OUTS popped⟩)
       afterPop (.success (.of pushed)) afterPush) :
     Trace c irt (xs ++ [i]) next pushed n afterPush := by
   exact trace_append hfirst

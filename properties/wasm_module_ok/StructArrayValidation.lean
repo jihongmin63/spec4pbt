@@ -13,21 +13,21 @@ def arraytypeValid (c : SpecTec.context) : SpecTec.arraytype → Bool
 theorem structtype_success_iff_iter
     (c : SpecTec.context) (fields : List SpecTec.fieldtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Structtype_ok c (.StructT fields)⟩)
+        SpecTec.Call.Structtype_ok c (.StructT fields)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Structtype_ok:rule:iter:0» c fields⟩)
+        SpecTec.Call.«Structtype_ok:rule:iter:0» c fields⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Structtype_ok_clauses c (.StructT fields)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Structtype_ok_clauses c (.StructT fields))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Structtype_ok_clauses at hselected
       cases hselected with
@@ -40,12 +40,12 @@ theorem structtype_success_iff_iter
       | next _ hnone => cases hnone
   · intro hiter
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Structtype_ok_clauses c (.StructT fields)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Structtype_ok_clauses c (.StructT fields)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Structtype_ok:clause:0» c (.StructT fields))
       n (.success (.of ())) finish
     unfold SpecTec.«Structtype_ok:clause:0»
@@ -55,8 +55,8 @@ theorem structtype_success_iff_iter
 theorem structtype_success_iff_valid
     (c : SpecTec.context) (st : SpecTec.structtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Structtype_ok c st⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Structtype_ok c st⟩)
       n (.success (.of ())) finish ↔
     structtypeValid c st = true ∧ finish = n := by
   cases st with
@@ -68,20 +68,20 @@ theorem structtype_success_iff_valid
 theorem arraytype_success_iff_field
     (c : SpecTec.context) (ft : SpecTec.fieldtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Arraytype_ok c (.ArrayT ft)⟩)
+        SpecTec.Call.Arraytype_ok c (.ArrayT ft)⟩)
       n (.success (.of ())) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Fieldtype_ok c ft⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Fieldtype_ok c ft⟩)
       n (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Arraytype_ok_clauses c (.ArrayT ft)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Arraytype_ok_clauses c (.ArrayT ft))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Arraytype_ok_clauses at hselected
       cases hselected with
@@ -94,12 +94,12 @@ theorem arraytype_success_iff_field
       | next _ hnone => cases hnone
   · intro hfield
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Arraytype_ok_clauses c (.ArrayT ft)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Arraytype_ok_clauses c (.ArrayT ft)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Arraytype_ok:clause:0» c (.ArrayT ft))
       n (.success (.of ())) finish
     unfold SpecTec.«Arraytype_ok:clause:0»
@@ -109,8 +109,8 @@ theorem arraytype_success_iff_field
 theorem arraytype_success_iff_valid
     (c : SpecTec.context) (arr : SpecTec.arraytype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Arraytype_ok c arr⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Arraytype_ok c arr⟩)
       n (.success (.of ())) finish ↔
     arraytypeValid c arr = true ∧ finish = n := by
   cases arr with

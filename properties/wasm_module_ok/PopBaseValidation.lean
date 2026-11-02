@@ -7,23 +7,23 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.PopBaseValidation
 
 theorem pop_empty_total (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, ([] : List SpecTec.valtype))
           (.NoEllipses, ([] : List SpecTec.valtype))⟩)
       n (.success (.of
         (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$pop_clauses» c
         (.NoEllipses, ([] : List SpecTec.valtype))
-        (.NoEllipses, ([] : List SpecTec.valtype))) ())
+        (.NoEllipses, ([] : List SpecTec.valtype))))
     n (.success (.of
       (SpecTec.ellipses.NoEllipses, ([] : List SpecTec.valtype)))) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c
         (.NoEllipses, ([] : List SpecTec.valtype))
         (.NoEllipses, ([] : List SpecTec.valtype))) n .unmatch n
@@ -31,8 +31,8 @@ theorem pop_empty_total (c : SpecTec.context) (n : Nat) :
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp [SpecTec.«exec:match:ellipses:Ellipses»]
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$pop:clause:1» c
           (.NoEllipses, ([] : List SpecTec.valtype))
           (.NoEllipses, ([] : List SpecTec.valtype))) n .unmatch n
@@ -43,8 +43,8 @@ theorem pop_empty_total (c : SpecTec.context) (n : Nat) :
       · apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:Ellipses»]
-    · apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$pop:clause:2» c
             (.NoEllipses, ([] : List SpecTec.valtype))
             (.NoEllipses, ([] : List SpecTec.valtype))) n .unmatch n
@@ -52,8 +52,8 @@ theorem pop_empty_total (c : SpecTec.context) (n : Nat) :
         apply SpecTecExecution.Eval.bind_unmatch
         apply SpecTecExecution.Eval.guard_false
         simp [SpecTec.«exec:match:ellipses:Ellipses»]
-      · apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$pop:clause:3» c
             (.NoEllipses, ([] : List SpecTec.valtype))
             (.NoEllipses, ([] : List SpecTec.valtype)))
@@ -86,8 +86,8 @@ theorem pop_empty_total (c : SpecTec.context) (n : Nat) :
                       ([] : List SpecTec.valtype))
 
 theorem block_empty_total (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Block_ok c
         (.InstrT [] [] []) ([] : SpecTec.const)⟩)
       n (.success (.of ())) n := by
   apply (BlockTrace.block_success_iff c [] [] [] [] n n).2

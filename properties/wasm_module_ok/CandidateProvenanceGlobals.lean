@@ -8,15 +8,15 @@ theorem global_ok_provenance
     (c out : SpecTec.context) (g : SpecTec.global)
     (start finish : Nat)
     (hprov : CandidateUniverseReady.Provenance c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Global_ok c g⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Global_ok c g⟩)
       start (.success (.of out)) finish) :
     CandidateUniverseReady.Provenance out := by
   cases h with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Global_ok_clauses c g) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Global_ok_clauses c g))
         start (.success (.of out)) finish at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -43,18 +43,18 @@ theorem globals_ok_provenance
     (c out : SpecTec.context) (gs : List SpecTec.global)
     (start finish : Nat)
     (hprov : CandidateUniverseReady.Provenance c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Globals_ok c gs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok c gs⟩)
       start (.success (.of out)) finish) :
     CandidateUniverseReady.Provenance out := by
   induction gs generalizing c out start finish with
   | nil =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c [])
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Globals_ok:clause:1» c []] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Globals_ok:clause:1» c []]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -64,7 +64,7 @@ theorem globals_ok_provenance
                   cases hguard with
                   | guard_true hcond => simp at hcond
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c [])
                   (fun _ => .unmatch))
                 start (.success (.of out)) finish at htail
@@ -79,10 +79,10 @@ theorem globals_ok_provenance
   | cons g rest ih =>
       cases h with
       | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Globals_ok:clause:0» c (g :: rest))
-              (fun _ => SpecTecExecution.firstSuccess
-                [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)] ()))
+              (fun _ => SpecTecExecution.tryClauses
+                [fun _ => SpecTec.«Globals_ok:clause:1» c (g :: rest)]))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hfirst =>
@@ -102,7 +102,7 @@ theorem globals_ok_provenance
                                     (global_ok_provenance c next g start middle
                                       hprov hhead) hrest
           | orElse_unmatch _ htail =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
+              change SpecTecExecution.Eval SpecTec.Body
                 (.orElse (SpecTec.«Globals_ok:clause:1» c (g :: rest))
                   (fun _ => .unmatch))
                 start (.success (.of out)) finish at htail

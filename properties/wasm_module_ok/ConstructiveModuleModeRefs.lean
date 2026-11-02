@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.ConstructiveModuleModeRules
 import properties.wasm_module_ok.ConstructiveModuleRefsBounds
 import properties.wasm_module_ok.ConstructivePreludeRefs
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveModuleModeRefs
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructivePreludeRefs ConstructiveBodyEvalReduction
@@ -14,11 +15,11 @@ abbrev ElemAvailable (refs : SpecTec.free) : elemmode → Prop
 
 theorem data_replace (refs : SpecTec.free) (c : context) (mode : datamode) (n finish : Nat)
     (ha : DataAvailable refs mode)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Datamode_ok c mode⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.Datamode_ok (replace refs c) mode⟩) n (.success (.of ())) finish := by
+    (h : Eval Body (.call ⟨Unit,Call.Datamode_ok c mode⟩) n (.success (.of ())) finish) :
+    Eval Body (.call ⟨Unit,Call.Datamode_ok (replace refs c) mode⟩) n (.success (.of ())) finish := by
   cases mode with
   | Passive =>
-    have hn := (eval_deterministic deterministic h (ConstructiveModuleModeRules.data_passive c n)).2
+    have hn := (properties.wasm_module_ok.Execution.eval_deterministic h (ConstructiveModuleModeRules.data_passive c n)).2
     subst finish;exact ConstructiveModuleModeRules.data_passive _ n
   | Active a =>
     obtain ⟨addr,lim,hx,hc⟩ := ConstructiveModuleModeRules.data_active_original c a n finish h
@@ -27,8 +28,8 @@ theorem data_replace (refs : SpecTec.free) (c : context) (mode : datamode) (n fi
 
 theorem elem_replace (refs : SpecTec.free) (c : context) (rt : reftype) (mode : elemmode) (n finish : Nat)
     (ha : ElemAvailable refs mode)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.Elemmode_ok c rt mode⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.Elemmode_ok (replace refs c) rt mode⟩) n (.success (.of ())) finish := by
+    (h : Eval Body (.call ⟨Unit,Call.Elemmode_ok c rt mode⟩) n (.success (.of ())) finish) :
+    Eval Body (.call ⟨Unit,Call.Elemmode_ok (replace refs c) rt mode⟩) n (.success (.of ())) finish := by
   cases mode with
   | Passive =>
     have hn := (ElemModeBaseDecision.passive_success_iff c rt n finish).1 h
@@ -38,7 +39,7 @@ theorem elem_replace (refs : SpecTec.free) (c : context) (rt : reftype) (mode : 
     subst finish;exact ElemModeBaseDecision.declarative_total _ rt n
   | Active a =>
     cases h with | call h =>
-      obtain ⟨_,hs⟩ := (firstSuccess_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) () n (.of ()) finish).1 h
+      obtain ⟨_,hs⟩ := (tryClauses_success_iff (SpecTec.Elemmode_ok_clauses c rt (.Active a)) n (.of ()) finish).1 h
       cases hs with
       | here h =>
         unfold SpecTec.«Elemmode_ok:clause:0» at h
@@ -62,11 +63,11 @@ theorem elem_replace (refs : SpecTec.free) (c : context) (rt : reftype) (mode : 
                   cases h with | bind_success hc hp =>
                     cases hp
                     apply Eval.call
-                    change Eval specTecProgram (firstSuccess (SpecTec.Elemmode_ok_clauses (replace refs c) rt (.Active a)) ()) n _ finish
-                    apply firstSuccess_cons_unmatch
+                    change Eval Body (tryClauses (SpecTec.Elemmode_ok_clauses (replace refs c) rt (.Active a))) n _ finish
+                    apply tryClauses_cons_unmatch
                     · unfold SpecTec.«Elemmode_ok:clause:0»
                       exact Eval.bind_unmatch (Eval.guard_false (by simp [SpecTec.«exec:match:elemmode:Passive»]))
-                    apply firstSuccess_cons_success
+                    apply tryClauses_cons_success
                     unfold SpecTec.«Elemmode_ok:clause:1»
                     apply Eval.bind_success (Eval.guard_true rfl)
                     apply Eval.bind_success (Eval.guard_true hb)

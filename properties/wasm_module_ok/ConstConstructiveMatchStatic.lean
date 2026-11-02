@@ -18,8 +18,8 @@ theorem match_resulttype_at_static_context
     (hactual : ∀ a ∈ actual, CandidateValMatch.InTableVal origin a)
     (hrequired : ∀ r ∈ required,
       CandidateValMatch.InTableVal origin r) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         actual required⟩)
       n (.success (.of ())) n := by
   have hpairsCurrent : List.Forall₂

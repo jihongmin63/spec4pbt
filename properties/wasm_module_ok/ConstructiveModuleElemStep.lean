@@ -17,7 +17,7 @@ structure Step (c : context) where
   item : SpecTec.elem
   after : context
   env : Env after
-  correct : ∀n,Eval specTecProgram (.call ⟨context,SpecTecCall.Elem_ok c item⟩) n (.success (.of after)) n
+  correct : ∀n,Eval Body (.call ⟨context,Call.Elem_ok c item⟩) n (.success (.of after)) n
 
 def step (c : context) (env : Env c) (r : Reference c) (init : Initializers c (.RefT r.val))
     (mode : ConstructiveModuleModes.ElemMode c r.val) : Step c where
@@ -64,7 +64,7 @@ def one (c : context) (env : Env c) : Audited (Step c) :=
     (emptyBranch c env).merge (branches c env round)
 
 theorem complete (c out : context) (env : Env c) (item : SpecTec.elem) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Elem_ok c item⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Elem_ok c item⟩) n (.success (.of out)) finish) :
     ∃s : Step c,Gen.support (one c env).generator s ∧ s.item=item ∧ s.after=out := by
   obtain ⟨n1,n2,hr,hi,hm,ho⟩ := ConstructiveModuleElemDataRules.elem_original c out item n finish h
   let r : Reference c := ⟨item.ETYPE,((ReftypeTotal.reftype_success_iff_valid c item.ETYPE n n1).1 hr).1⟩

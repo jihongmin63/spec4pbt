@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveBodyCatchOriginal
 import properties.wasm_module_ok.ConstructiveBodyTryTable
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyCatchLists
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveBodyCatches ConstructiveBodyCatchCoverage ConstructiveConstTableCore
@@ -44,19 +45,18 @@ theorem covered_list (c : context) (env : Env c) (xs : List SpecTec.«catch»)
 
 theorem iter_covered (c : context) (env : Env c) (outputs : List valtype)
     (xs : List SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.«Instr_ok:try_table:iter:0» c outputs xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.«Instr_ok:try_table:iter:0» c outputs xs⟩)
       start (.success (.of ())) finish) :
     (∀x∈xs,Covers c env x) ∧ finish=start := by
   induction xs generalizing start finish with
   | nil =>
     have hs := ConstructiveBodyTryTable.handlers_total c outputs [] start
-    have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro request a b h; cases h
-    exact ⟨by simp,(SpecTecExecution.eval_deterministic hd h hs).2⟩
+    exact ⟨by simp,(properties.wasm_module_ok.Execution.eval_deterministic h hs).2⟩
   | cons x xs ih =>
     cases h with | call h =>
-     change SpecTecExecution.Eval SpecTec.specTecProgram
-       (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:try_table:iter:0_clauses» c outputs (x::xs)) ())
+     change SpecTecExecution.Eval SpecTec.Body
+       (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:try_table:iter:0_clauses» c outputs (x::xs)))
        start (.success (.of ())) finish at h
      cases h with
      | orElse_success h => cases h
@@ -77,8 +77,8 @@ theorem iter_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem lists_complete (c : context) (env : Env c) (outputs : List valtype)
     (xs : List SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.«Instr_ok:try_table:iter:0» c outputs xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.«Instr_ok:try_table:iter:0» c outputs xs⟩)
       start (.success (.of ())) finish) :
     ∃ys : List (Handler c),Gen.support (lists c env).generator ys ∧ ys.map Subtype.val=xs ∧ finish=start := by
   obtain ⟨hc,hf⟩ := iter_covered c env outputs xs start finish h

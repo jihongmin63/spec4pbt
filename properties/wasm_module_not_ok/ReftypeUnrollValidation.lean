@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.HeaptypeUnrollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,23 +11,23 @@ def unrollReftype (rt : SpecTec.reftype) (rect : SpecTec.rectype) : SpecTec.reft
 
 theorem subst_reftype_unroll_total (rt : SpecTec.reftype)
     (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.reftype,
-        SpecTec.SpecTecCall.«$subst_reftype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» rt⟩)
+        SpecTec.Call.«$subst_reftype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» rt⟩)
       start (.success (.of (unrollReftype rt rect))) start := by
   cases rt with
   | «% %» null ht =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$subst_reftype_clauses» SpecTec.rectype rect
-            SpecTec.SpecTecCall.«$s_unroll» (.«% %» null ht)) ())
+            SpecTec.Call.«$s_unroll» (.«% %» null ht)))
         start (.success (.of (unrollReftype (.«% %» null ht) rect))) start
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_reftype:clause:0» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.«% %» null ht))
+          SpecTec.Call.«$s_unroll» (.«% %» null ht))
         start (.success (.of (unrollReftype (.«% %» null ht) rect))) start
       unfold SpecTec.«$subst_reftype:clause:0»
       apply SpecTecExecution.Eval.bind_success
@@ -38,13 +39,13 @@ theorem subst_reftype_unroll_total (rt : SpecTec.reftype)
 theorem subst_reftype_unroll_deterministic (rt : SpecTec.reftype)
     (rect : SpecTec.rectype) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.reftype,
-        SpecTec.SpecTecCall.«$subst_reftype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» rt⟩)
+        SpecTec.Call.«$subst_reftype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» rt⟩)
       start outcome finalSupply) :
     outcome = .success (.of (unrollReftype rt rect)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_reftype_unroll_total rt rect start)
 
 end properties.wasm_module_not_ok.Rejection

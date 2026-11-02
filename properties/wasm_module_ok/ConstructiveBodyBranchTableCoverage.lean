@@ -1,26 +1,25 @@
 import properties.wasm_module_ok.ConstructiveBodyBranchTable
 import properties.wasm_module_ok.ConstructiveBodyProductionCoverage
 import properties.wasm_module_ok.ConstructiveBodyOperatorCalls
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyBranchTableCoverage
 open SpecTec properties.wasm_module_ok ConstructiveConstTableCore
 open ConstructiveBodyEnvironment ConstructiveBodyProductions ConstructiveBodyLookup ConstructiveBodyBranchTable ConstructiveBodyProductionCoverage
 
-private theorem deterministic : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-  intro request a b h; cases h
 
 theorem iter_complete (c : context) (env : Env c) (actual : List valtype)
     (ha : ∀t∈actual,CandidateValMatch.InTableVal c t) (xs : List Nat) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.«Instr_ok:br_table:iter:4» c actual xs⟩) start (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.«Instr_ok:br_table:iter:4» c actual xs⟩) start (.success (.of ())) finish) :
     ∃ys : List (Target c actual),indices ys=xs ∧ finish=start := by
   induction xs generalizing start finish with
   | nil =>
-    exact ⟨[],rfl,(SpecTecExecution.eval_deterministic deterministic h (targets_call c actual [] env ha start)).2⟩
+    exact ⟨[],rfl,(properties.wasm_module_ok.Execution.eval_deterministic h (targets_call c actual [] env ha start)).2⟩
   | cons x xs ih =>
     cases h with | call h =>
-     change SpecTecExecution.Eval SpecTec.specTecProgram
-       (SpecTecExecution.firstSuccess (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual (x::xs)) ())
+     change SpecTecExecution.Eval SpecTec.Body
+       (SpecTecExecution.tryClauses (SpecTec.«Instr_ok:br_table:iter:4_clauses» c actual (x::xs)))
        start (.success (.of ())) finish at h
      cases h with
      | orElse_success h => cases h
@@ -61,12 +60,12 @@ theorem production_produces (c : context) (stack : inferresulttype) (env : Env c
 
 theorem original (c : context) (stack : inferresulttype) (env : Env c) (hstack : StackBacked c stack)
     (xs : List Nat) (y : Nat) (result : inferinstrtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_TABLE xs y)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_TABLE xs y)⟩)
       start (.success (.of result)) finish) :
     Covers (productions c stack env hstack) (.BR_TABLE xs y) result ∧ finish=start := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.BR_TABLE xs y) 10 (by decide) rfl (by decide) result start finish).1 h
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:10» c stack (.BR_TABLE xs y)) start _ finish at hs
+  change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:10» c stack (.BR_TABLE xs y)) start _ finish at hs
   unfold SpecTec.«Instr_ok:clause:10» at hs
   cases hs with | bind_success hg tail =>
    cases hg

@@ -8,9 +8,9 @@ theorem final_const_pop_singleton
     (c : SpecTec.context) (t : SpecTec.valtype)
     (stack : List SpecTec.valtype)
     (ellipses : SpecTec.ellipses) (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, [t]) (.NoEllipses, stack)⟩)
       start (.success (.of
         (ellipses, ([] : List SpecTec.valtype)))) fin) :

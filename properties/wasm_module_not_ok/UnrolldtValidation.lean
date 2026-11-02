@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.RectypeUnrollValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -14,9 +15,9 @@ def unrollDeftypeResult (dt : SpecTec.deftype) : Option SpecTec.subtype :=
 private theorem unrolldt_some (sts : List SpecTec.subtype)
     (n start : Nat) (st : SpecTec.subtype)
     (hget : (unrollSubtypes sts (.RecT sts))[n]? = some st) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.subtype,
-        SpecTec.SpecTecCall.«$unrolldt» (.DefT (.RecT sts) n)⟩)
+        SpecTec.Call.«$unrolldt» (.DefT (.RecT sts) n)⟩)
       start (.success (.of st)) start := by
   have hbound : n < (unrollSubtypes sts (.RecT sts)).length := by
     by_contra h
@@ -25,12 +26,12 @@ private theorem unrolldt_some (sts : List SpecTec.subtype)
     rw [hget] at hnone
     cases hnone
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$unrolldt_clauses» (.DefT (.RecT sts) n)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$unrolldt_clauses» (.DefT (.RecT sts) n)))
     start (.success (.of st)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$unrolldt:clause:0» (.DefT (.RecT sts) n))
     start (.success (.of st)) start
   unfold SpecTec.«$unrolldt:clause:0»
@@ -44,21 +45,21 @@ private theorem unrolldt_some (sts : List SpecTec.subtype)
 private theorem unrolldt_none (sts : List SpecTec.subtype)
     (n start : Nat)
     (hget : (unrollSubtypes sts (.RecT sts))[n]? = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.subtype,
-        SpecTec.SpecTecCall.«$unrolldt» (.DefT (.RecT sts) n)⟩)
+        SpecTec.Call.«$unrolldt» (.DefT (.RecT sts) n)⟩)
       start .unmatch start := by
   have hbound : ¬ n < (unrollSubtypes sts (.RecT sts)).length := by
     have hle : (unrollSubtypes sts (.RecT sts)).length ≤ n :=
       List.getElem?_eq_none_iff.mp hget
     omega
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«$unrolldt_clauses» (.DefT (.RecT sts) n)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«$unrolldt_clauses» (.DefT (.RecT sts) n)))
     start .unmatch start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$unrolldt:clause:0» (.DefT (.RecT sts) n))
       start .unmatch start
     unfold SpecTec.«$unrolldt:clause:0»
@@ -67,7 +68,7 @@ private theorem unrolldt_none (sts : List SpecTec.subtype)
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false
       (by simpa [unrollRectype] using hbound)
-  · exact SpecTecExecution.firstSuccess_nil () start
+  · exact SpecTecExecution.tryClauses_nil start
 
 def unrollDeftypeOutcome (dt : SpecTec.deftype) :
     SpecTecExecution.Outcome SpecTecExecution.Value :=
@@ -76,8 +77,8 @@ def unrollDeftypeOutcome (dt : SpecTec.deftype) :
   | none => .unmatch
 
 theorem unrolldt_total (dt : SpecTec.deftype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
       start (unrollDeftypeOutcome dt) start := by
   cases dt with
   | DefT rect n =>
@@ -94,11 +95,11 @@ theorem unrolldt_total (dt : SpecTec.deftype) (start : Nat) :
 theorem unrolldt_deterministic (dt : SpecTec.deftype)
     (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
       start outcome finalSupply) :
     outcome = unrollDeftypeOutcome dt ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (unrolldt_total dt start)
 
 end properties.wasm_module_not_ok.Rejection

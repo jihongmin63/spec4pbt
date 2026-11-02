@@ -10,14 +10,14 @@ theorem pop_push_entries_closed
     (need outs available : List SpecTec.valtype)
     (popped pushed : SpecTec.inferresulttype)
     (start middle fin : Nat)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of popped)) middle)
-    (hpush : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpush : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$push» c
+        SpecTec.Call.«$push» c
           (.NoEllipses, outs) popped⟩)
       middle (.success (.of pushed)) fin)
     (P : SpecTec.valtype → Prop)

@@ -7,31 +7,31 @@ namespace properties.wasm_module_ok.ConstSyntaxValidation
 theorem const_iter_cons_success_iff
     (c : SpecTec.context) (i : SpecTec.instr)
     (rest : List SpecTec.instr) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0» c (i :: rest)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0» c (i :: rest)⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
         n (.success (.of true)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0» c rest⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0» c rest⟩)
         middle (.success (.of ())) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Const_ok:rule:iter:0:clause:0» c (i :: rest))
-          (fun _ => SpecTecExecution.firstSuccess
-            [fun _ => SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest)] ()))
+          (fun _ => SpecTecExecution.tryClauses
+            [fun _ => SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest)]))
         n (.success (.of ())) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
         unfold SpecTec.«Const_ok:rule:iter:0:clause:0» at hfirst
         cases hfirst
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest))
             (fun _ => .unmatch))
           n (.success (.of ())) finalSupply at htail
@@ -53,18 +53,18 @@ theorem const_iter_cons_success_iff
         | orElse_unmatch _ hnone => cases hnone
   · rintro ⟨middle, his, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«Const_ok:rule:iter:0_clauses» c (i :: rest)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«Const_ok:rule:iter:0_clauses» c (i :: rest)))
       n (.success (.of ())) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Const_ok:rule:iter:0:clause:0» c (i :: rest))
         n .unmatch n
       unfold SpecTec.«Const_ok:rule:iter:0:clause:0»
       exact SpecTecExecution.Eval.unmatch
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Const_ok:rule:iter:0:clause:1» c (i :: rest))
       n (.success (.of ())) finalSupply
     unfold SpecTec.«Const_ok:rule:iter:0:clause:1»
@@ -77,13 +77,13 @@ theorem const_iter_cons_success_iff
 theorem const_iter_member_is_const
     (c : SpecTec.context) (xs : List SpecTec.instr)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Const_ok:rule:iter:0» c xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Const_ok:rule:iter:0» c xs⟩)
       n (.success (.of ())) finalSupply)
     (i : SpecTec.instr) (hmem : i ∈ xs) :
     ∃ start finish : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
         start (.success (.of true)) finish := by
   induction xs generalizing n finalSupply with
   | nil => simp at hmem
@@ -98,17 +98,17 @@ theorem const_iter_member_is_const
 theorem const_ok_member_is_const
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) finalSupply)
     (i : SpecTec.instr) (hmem : i ∈ xs) :
     ∃ start finish : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
         start (.success (.of true)) finish := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Const_ok:clause:0» c t xs) (fun _ => .unmatch))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with

@@ -10,9 +10,9 @@ theorem rectype_sub_iter_all_static
     (c : SpecTec.context) (x : SpecTec.idx)
     (ns : List SpecTec.n) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6» c x ns sts⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:6» c x ns sts⟩)
       start (.success (.of ())) finish) :
     ∀ n fin hts strt,
       (n, SpecTec.subtype.SubT fin hts strt) ∈ List.zip ns sts →
@@ -31,15 +31,15 @@ theorem rectype_sub_iter_all_static
       | cons st₀ sts =>
           cases h with
           | call hbody =>
-            change SpecTecExecution.Eval SpecTec.specTecProgram
-              (SpecTecExecution.firstSuccess
+            change SpecTecExecution.Eval SpecTec.Body
+              (SpecTecExecution.tryClauses
                 (SpecTec.«Rectype_ok:rule:iter:6_clauses»
-                  c x (n₀ :: ns) (st₀ :: sts)) ())
+                  c x (n₀ :: ns) (st₀ :: sts)))
               start (.success (.of ())) finish at hbody
             obtain ⟨idx, hselected⟩ :=
-              (SpecTecExecution.firstSuccess_success_iff
+              (SpecTecExecution.tryClauses_success_iff
                 (SpecTec.«Rectype_ok:rule:iter:6_clauses»
-                  c x (n₀ :: ns) (st₀ :: sts)) ()
+                  c x (n₀ :: ns) (st₀ :: sts))
                 start (.of ()) finish).1 hbody
             unfold SpecTec.«Rectype_ok:rule:iter:6_clauses» at hselected
             cases hselected with
@@ -70,9 +70,9 @@ theorem rectype_ok_source_all_static
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish i : Nat) (fin : SpecTec.final)
     (hts : List SpecTec.heaptype) (strt : SpecTec.strtype)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt)) :

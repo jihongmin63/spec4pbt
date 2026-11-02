@@ -51,7 +51,7 @@ theorem generate_audit (c : context) (env : Env c) : ConstructiveGenAudit.Struct
   ⟨ConstructiveGenAudit.arbNat_audit,fun n => (sized n c env).audit⟩
 
 theorem execute (c : context) (out : Result c) (n : Nat) :
-    SpecTecExecution.Eval specTecProgram (.call ⟨context,SpecTecCall.Tags_ok c out.items⟩)
+    SpecTecExecution.Eval Body (.call ⟨context,Call.Tags_ok c out.items⟩)
       n (.success (.of out.after)) n :=
   (TagsValidation.tags_success_iff_result c out.items out.after n n).2 ⟨out.correct,rfl⟩
 

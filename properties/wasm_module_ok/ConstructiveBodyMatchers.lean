@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveBodyEnvironment
 import properties.wasm_module_ok.MatchResulttypeLocal
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyMatchers
 open SpecTec properties.wasm_module_ok
@@ -34,8 +35,8 @@ theorem result_total (c : context) (xs ys : List valtype) (n : Nat)
     (hr : CandidateTypeReady.Ready c)
     (hx : ∀t∈xs,CandidateValMatch.InTableVal c t)
     (hy : ∀t∈ys,CandidateValMatch.InTableVal c t) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$match_resulttype» c.TYPES xs ys⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$match_resulttype» c.TYPES xs ys⟩)
       n (.success (.of (MatchResulttypeDecision.matchPairs c xs ys))) n := by
   rw [←result_matches]
   exact MatchResulttypeLocal.match_resulttype_total_of_local_valtype_at c.TYPES
@@ -46,14 +47,13 @@ theorem result_exact (c : context) (xs ys : List valtype) (value : Bool) (start 
     (hr : CandidateTypeReady.Ready c)
     (hx : ∀t∈xs,CandidateValMatch.InTableVal c t)
     (hy : ∀t∈ys,CandidateValMatch.InTableVal c t) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$match_resulttype» c.TYPES xs ys⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$match_resulttype» c.TYPES xs ys⟩)
       start (.success (.of value)) finish ↔
     value=MatchResulttypeDecision.matchPairs c xs ys ∧ finish=start := by
   constructor
   · intro h
-    have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro request a b h; cases h
-    obtain ⟨he,hf⟩ := SpecTecExecution.eval_deterministic hd h (result_total c xs ys start hr hx hy)
+    obtain ⟨he,hf⟩ := properties.wasm_module_ok.Execution.eval_deterministic h (result_total c xs ys start hr hx hy)
     cases he
     exact ⟨rfl,hf⟩
   · rintro ⟨rfl,rfl⟩

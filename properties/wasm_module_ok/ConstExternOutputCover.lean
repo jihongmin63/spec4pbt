@@ -9,9 +9,9 @@ theorem extern_output_has_step
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (s : Finset SpecTec.valtype) (t u : SpecTec.valtype)
     (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+        SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
       start (.success (.of iit)) fin)
     (hinputs : iit.1.INS = (.NoEllipses, [t]))
     (hinput : t ∈ s)
@@ -47,9 +47,9 @@ theorem extern_output_has_step_of_all_inputs
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (s : Finset SpecTec.valtype) (u : SpecTec.valtype)
     (start fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+        SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
       start (.success (.of iit)) fin)
     (hinputs : ∀ t ∈ iit.1.INS.2, t ∈ s)
     (houts : iit.1.OUTS = (.NoEllipses, [u])) :

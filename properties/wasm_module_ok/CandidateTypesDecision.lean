@@ -20,9 +20,9 @@ theorem types_result_of_success
     (c result : SpecTec.context) (ts : List SpecTec.type)
     (start finish : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok c ts⟩)
+        SpecTec.Call.Types_ok c ts⟩)
       start (.success (.of result)) finish) :
     typesResult c ts = some result := by
   induction ts generalizing c result start finish with
@@ -53,9 +53,9 @@ theorem types_success_of_result
     (n : Nat)
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hresult : typesResult c ts = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Types_ok c ts⟩)
+        SpecTec.Call.Types_ok c ts⟩)
       n (.success (.of result)) n := by
   induction ts generalizing c result n with
   | nil =>
@@ -88,9 +88,9 @@ theorem types_result_iff_success
     (c result : SpecTec.context) (ts : List SpecTec.type)
     (n : Nat) (hc : ValidatedTypeChain.ValidatedTypes c) :
     typesResult c ts = some result ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.Types_ok c ts⟩)
+          SpecTec.Call.Types_ok c ts⟩)
         n (.success (.of result)) n := by
   exact ⟨types_success_of_result c result ts n hc,
     fun h => types_result_of_success c result ts n n hc h⟩

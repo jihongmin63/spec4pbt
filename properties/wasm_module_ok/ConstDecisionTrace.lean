@@ -8,20 +8,20 @@ namespace properties.wasm_module_ok.ConstDecisionTrace
 theorem const_ok_decision_trace_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) fin ↔
     (∀ i ∈ xs, ConstSyntaxDecision.syntaxAllowed c i = true) ∧
     ∃ (irt : SpecTec.inferresulttype) (indices : List SpecTec.idx)
       (ellipses : SpecTec.ellipses) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, []) xs⟩)
         n (.success (.of (irt, indices))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.ellipses × SpecTec.resulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) irt⟩)
         middle (.success (.of (ellipses, ([] : List SpecTec.valtype))))
           fin := by

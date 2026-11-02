@@ -1,15 +1,16 @@
 import properties.wasm_module_ok.ConstructiveBodyValidReferences
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyReferenceBranchOriginal
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveBodyNonemptyLabels
 
 theorem onNull (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_ON_NULL x)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_ON_NULL x)⟩) n (.success (.of effect)) finish) :
     ∃(e : ConstructiveBodyLookup.Entry c.LABELS) (nu : SpecTec.null) (heap : heaptype),e.index=x ∧
       PeekRefDecision.peekRefResult (PeekDecision.peekResult 0 stack)=some (.«% %» nu heap) := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.BR_ON_NULL x) 11 (by decide) rfl (by decide) effect n finish).1 h
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:11» c stack (.BR_ON_NULL x)) n _ finish at hs
+  change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:11» c stack (.BR_ON_NULL x)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:11» at hs
   cases hs with | bind_success hg tail =>
    cases hg
@@ -23,13 +24,13 @@ theorem onNull (c : context) (stack : inferresulttype) (x : Nat) (effect : infer
 
 theorem onNonNull (c : context) (stack : inferresulttype) (env : Env c) (hb : StackBacked c stack)
     (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_ON_NON_NULL x)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_ON_NON_NULL x)⟩) n (.success (.of effect)) finish) :
     ∃(label : Label c) (nu : SpecTec.null) (heap : heaptype),label.entry.index=x ∧
       PeekRefDecision.peekRefResult (PeekDecision.peekResult 0 stack)=some (.«% %» nu heap) ∧
       CandidateValMatch.candidateValMatch c (.RefT (.«% %» .NoNull heap)) label.last=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.BR_ON_NON_NULL x) 12 (by decide) rfl (by decide) effect n finish).1 h
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:12» c stack (.BR_ON_NON_NULL x)) n _ finish at hs
+  change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:12» c stack (.BR_ON_NON_NULL x)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:12» at hs
   cases hs with | bind_success hg tail =>
    cases hg
@@ -64,29 +65,28 @@ theorem onNonNull (c : context) (stack : inferresulttype) (env : Env c) (hb : St
                 exact ⟨label,nu,heap,rfl,hpeek,hm.1.symm.trans htrue⟩
 
 private theorem ref_valid (c : context) (r : reftype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨Unit,SpecTecCall.Reftype_ok c r⟩) n (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨Unit,Call.Reftype_ok c r⟩) n (.success (.of ())) finish) :
     ValtypeValidation.valtypeValid c (.RefT r)=true := by
   cases r with | «% %» nu heap =>
    exact (HeaptypeValidation.heaptype_success_iff_valid c heap n finish).1
      ((ValtypeValidation.reftype_success_iff c nu heap n finish).1 h) |>.1
 
 private theorem difference_exact (a b actual : reftype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨reftype,SpecTecCall.«$diff_reftype» a b⟩) n (.success (.of actual)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨reftype,Call.«$diff_reftype» a b⟩) n (.success (.of actual)) finish) :
     actual=ConstructiveBodyReferenceDifference.difference a b := by
-  have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro r a b h; cases h
-  have he := (SpecTecExecution.eval_deterministic hd h (ConstructiveBodyReferenceDifference.total a b n)).1
+  have he := (properties.wasm_module_ok.Execution.eval_deterministic h (ConstructiveBodyReferenceDifference.total a b n)).1
   cases he
   rfl
 
 theorem onCast (c : context) (stack : inferresulttype) (env : Env c)
     (x : Nat) (r1 r2 : reftype) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_ON_CAST x r1 r2)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_ON_CAST x r1 r2)⟩) n (.success (.of effect)) finish) :
     ∃(label : Label c) (a b : ConstructiveBodyValidReferences.Ref c),label.entry.index=x ∧ a.value=r1 ∧ b.value=r2 ∧
       ConstructiveBodyReferenceMatcher.refMatch c b.value a.value=true ∧
       CandidateValMatch.candidateValMatch c (.RefT b.value) label.last=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.BR_ON_CAST x r1 r2) 13 (by decide) rfl (by decide) effect n finish).1 h
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:13» c stack (.BR_ON_CAST x r1 r2)) n _ finish at hs
+  change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:13» c stack (.BR_ON_CAST x r1 r2)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:13» at hs
   cases hs with | bind_success hg tail =>
    cases hg
@@ -126,13 +126,13 @@ theorem onCast (c : context) (stack : inferresulttype) (env : Env c)
 
 theorem onCastFail (c : context) (stack : inferresulttype) (env : Env c)
     (x : Nat) (r1 r2 : reftype) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.BR_ON_CAST_FAIL x r1 r2)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.BR_ON_CAST_FAIL x r1 r2)⟩) n (.success (.of effect)) finish) :
     ∃(label : Label c) (a b : ConstructiveBodyValidReferences.Ref c),label.entry.index=x ∧ a.value=r1 ∧ b.value=r2 ∧
       ConstructiveBodyReferenceMatcher.refMatch c b.value a.value=true ∧
       CandidateValMatch.candidateValMatch c (.RefT (ConstructiveBodyReferenceDifference.difference a.value b.value)) label.last=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.BR_ON_CAST_FAIL x r1 r2) 14 (by decide) rfl (by decide) effect n finish).1 h
-  change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:14» c stack (.BR_ON_CAST_FAIL x r1 r2)) n _ finish at hs
+  change SpecTecExecution.Eval SpecTec.Body (SpecTec.«Instr_ok:clause:14» c stack (.BR_ON_CAST_FAIL x r1 r2)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:14» at hs
   cases hs with | bind_success hg tail =>
    cases hg

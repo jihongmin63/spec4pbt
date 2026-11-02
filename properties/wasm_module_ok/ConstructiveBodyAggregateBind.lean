@@ -3,9 +3,9 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyAggregateBind
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyAggregateMetadata ConstructiveConstAggregateBuilders
 
-theorem struct_bind (c : context) (x : Nat) (k : structtype → Plan SpecTecRequest) (n finish : Nat) (value : Value)
-    (h : Eval SpecTec.specTecProgram (.bind (.call ⟨structtype,SpecTecCall.«$struct_type» c x⟩) k) n (.success value) finish) :
-    ∃s : StructIndex c,s.index=x ∧ Eval SpecTec.specTecProgram (k (.StructT s.fields)) n (.success value) finish := by
+theorem struct_bind (c : context) (x : Nat) (k : structtype → Plan Request) (n finish : Nat) (value : Value)
+    (h : Eval SpecTec.Body (.bind (.call ⟨structtype,Call.«$struct_type» c x⟩) k) n (.success value) finish) :
+    ∃s : StructIndex c,s.index=x ∧ Eval SpecTec.Body (k (.StructT s.fields)) n (.success value) finish := by
   cases h with | bind_success hs tail =>
     rename_i middle st
     cases st with | StructT fields =>
@@ -14,9 +14,9 @@ theorem struct_bind (c : context) (x : Nat) (k : structtype → Plan SpecTecRequ
       obtain ⟨s,hx,hf⟩ := structResult_inverse c x fields hr
       exact ⟨s,hx,by simpa only [hf] using tail⟩
 
-theorem array_bind (c : context) (x : Nat) (k : arraytype → Plan SpecTecRequest) (n finish : Nat) (value : Value)
-    (h : Eval SpecTec.specTecProgram (.bind (.call ⟨arraytype,SpecTecCall.«$array_type» c x⟩) k) n (.success value) finish) :
-    ∃a : ArrayIndex c,a.index=x ∧ Eval SpecTec.specTecProgram (k (.ArrayT a.field)) n (.success value) finish := by
+theorem array_bind (c : context) (x : Nat) (k : arraytype → Plan Request) (n finish : Nat) (value : Value)
+    (h : Eval SpecTec.Body (.bind (.call ⟨arraytype,Call.«$array_type» c x⟩) k) n (.success value) finish) :
+    ∃a : ArrayIndex c,a.index=x ∧ Eval SpecTec.Body (k (.ArrayT a.field)) n (.success value) finish := by
   cases h with | bind_success hs tail =>
     rename_i middle atype
     cases atype with | ArrayT field =>

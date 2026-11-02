@@ -2,6 +2,7 @@ import properties.wasm_module_ok.ConstructiveFreeModule
 import properties.wasm_module_ok.DeclarationConstValidation
 import properties.wasm_module_ok.ModeConstValidation
 import properties.wasm_module_ok.Validity
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveFreeCoverage
 open SpecTec SpecTecExecution
@@ -10,7 +11,7 @@ open properties.wasm_module_ok.ConstructiveFreeConstants properties.wasm_module_
 
 private theorem constant_flat (c : context) (t : valtype) (xs : SpecTec.const)
     (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Unit, SpecTecCall.Const_ok c t xs⟩)
+    (h : Eval Body (.call ⟨Unit, Call.Const_ok c t xs⟩)
       n (.success (.of ())) finish) : ∀ i ∈ xs, Flat i := by
   have hs := (ConstExactSyntaxBoundary.const_ok_success_iff c t xs n finish).1 h |>.1
   exact fun i hi => syntax_flat c i (hs i hi)
@@ -53,13 +54,12 @@ theorem module_ok_prelude_flat (m : SpecTec.module) (h : SpecTec.Module_ok m) :
 
 theorem module_free_exact (m : SpecTec.module) (h : PreludeFlat m)
     (result : free) (n finish : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_module»
+    Eval Body (.call ⟨free, Call.«$free_module»
       ({{m with FUNCS := []} with START := none})⟩)
       n (.success (.of result)) finish ↔ result = moduleFree m ∧ finish = n := by
   constructor
   · intro he
-    have hdet : PrimitiveDeterministic specTecProgram := by intro req x y hp; cases hp
-    obtain ⟨hv, hn⟩ := eval_deterministic hdet he (module_free_total m n h)
+    obtain ⟨hv, hn⟩ := properties.wasm_module_ok.Execution.eval_deterministic he (module_free_total m n h)
     cases hv
     exact ⟨rfl, hn⟩
   · rintro ⟨rfl, rfl⟩
@@ -67,7 +67,7 @@ theorem module_free_exact (m : SpecTec.module) (h : PreludeFlat m)
 
 /-- Total executable reference summary for every original valid module. -/
 theorem module_ok_computed_refs (m : SpecTec.module) (h : SpecTec.Module_ok m) (n : Nat) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_module»
+    Eval Body (.call ⟨free, Call.«$free_module»
       ({{m with FUNCS := []} with START := none})⟩)
       n (.success (.of (moduleFree m))) n :=
   module_free_total m n (module_ok_prelude_flat m h)

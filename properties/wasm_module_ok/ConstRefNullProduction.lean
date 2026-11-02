@@ -43,9 +43,9 @@ theorem ref_null_seed_iff_instr_effect
       ∃ ht : SpecTec.heaptype,
         u = .RefT (.«% %» .Null ht) ∧
         ConstSyntaxDecision.syntaxAllowed c (.«REF.NULL» ht) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«REF.NULL» ht)⟩)
+            SpecTec.Call.Instr_ok c irt (.«REF.NULL» ht)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

@@ -13,11 +13,11 @@ theorem node_cover (c : context) (hr : CandidateTypeReady.Ready c)
     (hp : CandidateUniverseReady.Provenance c) (hn : CandidateNestedReady.nestedTableReady c=true)
     (table : List (Entry c)) (i : instr) (u : valtype) (children : List Tree) (need : List valtype)
     (hs : ConstAdditionalSyntaxValidation.Syntax c i)
-    (hi : ∀stack n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c (.NoEllipses,stack++outputs children) i⟩)
+    (hi : ∀stack n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c (.NoEllipses,stack++outputs children) i⟩)
       n (.success (.of (effect need u))) n)
-    (hm : ∀n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs children) need⟩)
+    (hm : ∀n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (outputs children) need⟩)
       n (.success (.of ())) n)
     (hk : ∀t∈children,Good c t) (hc : ∀t∈children,Covers table t) :
     Covers (seeds c hp ++ expand c hr hn table) (.node i u children) := by

@@ -8,9 +8,9 @@ theorem rectype_ok_appended_static_supertype_cases
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish i j k : Nat) (fin : SpecTec.final)
     (hts : List SpecTec.heaptype) (strt : SpecTec.strtype)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))

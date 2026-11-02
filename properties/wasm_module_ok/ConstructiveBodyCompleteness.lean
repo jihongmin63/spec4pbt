@@ -13,7 +13,7 @@ theorem sized_complete (depth : Nat) :
       (code : List instr) (finalContext : context) (finalStack : inferresulttype) (ell : ellipses)
       (n middle finish : Nat),sizeOf code≤depth →
       ConstConstructiveTrace.Trace c stack code finalContext finalStack n middle →
-      Eval SpecTec.specTecProgram (.call ⟨inferresulttype,SpecTecCall.«$pop» root (.NoEllipses,outputs) finalStack⟩)
+      Eval SpecTec.Body (.call ⟨inferresulttype,Call.«$pop» root (.NoEllipses,outputs) finalStack⟩)
         middle (.success (.of ((ell,[]) : inferresulttype))) finish →
       (∃tail,Gen.support (sized depth root c stack outputs er ec hs ho he).generator tail ∧ tail.val=code) ∧ finish=n := by
   induction depth with
@@ -55,7 +55,7 @@ the generator support. All environment assumptions concern the existing context.
 theorem bodies_complete (c : context) (env : Env c) (ins outs : List valtype)
     (hi : ∀t∈ins,CandidateValMatch.InTableVal c t) (ho : ∀t∈outs,CandidateValMatch.InTableVal c t)
     (code : List instr) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨Unit,SpecTecCall.Block_ok c (.InstrT ins outs []) code⟩)
+    (h : Eval SpecTec.Body (.call ⟨Unit,Call.Block_ok c (.InstrT ins outs []) code⟩)
       n (.success (.of ())) finish) : Gen.support (bodies c env ins outs hi ho) code ∧ finish=n := by
   obtain ⟨fs,indices,el,mid,hseq,hfinal⟩ := (BlockTrace.block_success_iff c ins outs [] code n finish).1 h
   obtain ⟨_,fc,htr⟩ := (ConstConstructiveTrace.instrs_success_iff_trace code c (.NoEllipses,ins) (fs,indices) n mid).1 hseq
@@ -69,7 +69,7 @@ theorem bodies_exact (c : context) (env : Env c) (ins outs : List valtype)
     (hi : ∀t∈ins,CandidateValMatch.InTableVal c t) (ho : ∀t∈outs,CandidateValMatch.InTableVal c t)
     (code : List instr) (n : Nat) :
     Gen.support (bodies c env ins outs hi ho) code ↔
-    Eval SpecTec.specTecProgram (.call ⟨Unit,SpecTecCall.Block_ok c (.InstrT ins outs []) code⟩)
+    Eval SpecTec.Body (.call ⟨Unit,Call.Block_ok c (.InstrT ins outs []) code⟩)
       n (.success (.of ())) n := by
   exact ⟨fun h => bodies_sound c env ins outs hi ho code h n,
     fun h => (bodies_complete c env ins outs hi ho code n n h).1⟩

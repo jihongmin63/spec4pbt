@@ -10,10 +10,10 @@ theorem subst_deftype_call_prefix
     (dt : SpecTec.deftype) (pref tail : List SpecTec.deftype)
     (result : SpecTec.deftype) (start : Nat)
     (h : substDeftypeResult dt pref = some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.deftype,
-        SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-          (pref ++ tail) SpecTec.SpecTecCall.«$subst_of» dt⟩)
+        SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+          (pref ++ tail) SpecTec.Call.«$subst_of» dt⟩)
       start (.success (.of result)) start := by
   have hext := SubstPrefixDeftype.substDeftypeResult_prefix
     dt pref tail result h

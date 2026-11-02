@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstStructExplicitDispatch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -8,12 +9,12 @@ theorem numeric_binop_clause_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.binop_) (nt : SpecTec.numtype)
     (start fin : Nat)
-    (htype : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htype : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop op⟩)
       start (.success (.of nt)) fin) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:82» c irt (.BINOP op))
       start (.success (.of
         (⟨{ INS := (.NoEllipses, [.NumT nt, .NumT nt]),
@@ -29,13 +30,13 @@ theorem numeric_binop_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.binop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:82» c irt (.BINOP op))
       start (.success (.of iit)) fin) :
     ∃ nt : SpecTec.numtype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.numtype,
-          SpecTec.SpecTecCall.«$type_num»
+          SpecTec.Call.«$type_num»
             SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop op⟩)
         start (.success (.of nt)) fin ∧
       iit =
@@ -43,9 +44,9 @@ theorem numeric_binop_clause_exact
              OUTS := (.NoEllipses, [.NumT nt]) },
           ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) := by
   have hparts : ∃ nt : SpecTec.numtype, ∃ finalSupply : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.numtype,
-          SpecTec.SpecTecCall.«$type_num»
+          SpecTec.Call.«$type_num»
             SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop op⟩)
         start (.success (.of nt)) finalSupply := by
     unfold SpecTec.«Instr_ok:clause:82» at h
@@ -56,11 +57,8 @@ theorem numeric_binop_clause_exact
       | bind_success htype _ =>
         exact ⟨_, _, htype⟩
   obtain ⟨nt, finalSupply, htype⟩ := hparts
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (numeric_binop_clause_total c irt op nt start finalSupply htype)
   cases hout
   cases hsupply
@@ -70,13 +68,13 @@ theorem numeric_binop_clause_iff
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.binop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:82» c irt (.BINOP op))
       start (.success (.of iit)) fin ↔
     ∃ nt : SpecTec.numtype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.numtype,
-          SpecTec.SpecTecCall.«$type_num»
+          SpecTec.Call.«$type_num»
             SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop op⟩)
         start (.success (.of nt)) fin ∧
       iit =

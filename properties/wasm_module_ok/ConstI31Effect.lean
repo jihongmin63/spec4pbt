@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstVectorDispatch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -6,7 +7,7 @@ namespace properties.wasm_module_ok.ConstI31Effect
 
 theorem i31_clause_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:57» c irt .«REF.I31»)
       n (.success (.of
         (⟨{ INS := (.NoEllipses, [.NumT .I32T]),
@@ -20,7 +21,7 @@ theorem i31_clause_total
 theorem i31_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (iit : SpecTec.inferinstrtype) (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:57» c irt .«REF.I31»)
       n (.success (.of iit)) fin) :
     iit =
@@ -28,11 +29,8 @@ theorem i31_clause_exact
            OUTS := (.NoEllipses, [.RefT (.«% %» .NoNull .I31HT)]) },
         ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) ∧
     fin = n := by
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h (i31_clause_total c irt n)
+    properties.wasm_module_ok.Execution.eval_deterministic h (i31_clause_total c irt n)
   cases hout
   exact ⟨rfl, hsupply⟩
 

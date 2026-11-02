@@ -67,8 +67,8 @@ theorem select_closure_sources_with_match
       CandidateValMatch.InTableVal c r) :
     ∃ actual : List SpecTec.valtype,
       (∀ a ∈ actual, a ∈ s) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Match_resulttype c
           actual required⟩)
         n (.success (.of ())) n := by
   obtain ⟨actual, hmem, hpairs⟩ :=

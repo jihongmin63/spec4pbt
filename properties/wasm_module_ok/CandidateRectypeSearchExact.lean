@@ -52,9 +52,9 @@ theorem rectypeGroupGen_exact
     (hc : ValidatedTypeChain.ValidatedTypes c) :
     Gen.support (rectypeGroupGen c) (.RecT sts) ↔
       ∃ result : SpecTec.context,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+            SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
           n (.success (.of result)) n := by
   exact (rectypeGroupGen_support_iff c (.RecT sts)).trans
     (CandidateRectypeDecision.rectypePasses_iff_success c sts n hc)

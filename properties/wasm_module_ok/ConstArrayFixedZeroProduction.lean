@@ -64,9 +64,9 @@ theorem array_fixed_zero_seed_iff_instr_effect
         c.TYPES[x]? = some dt ∧
         u = .RefT (.«% %» .NoNull (.DefHT dt)) ∧
         ConstSyntaxDecision.syntaxAllowed c (.«ARRAY.NEW_FIXED» x 0) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«ARRAY.NEW_FIXED» x 0)⟩)
+            SpecTec.Call.Instr_ok c irt (.«ARRAY.NEW_FIXED» x 0)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

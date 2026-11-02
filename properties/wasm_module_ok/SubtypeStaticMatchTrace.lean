@@ -9,8 +9,8 @@ namespace properties.wasm_module_ok.SubtypeStaticMatchTrace
 theorem subtype_sub_ok_static_match_trace
     (c : SpecTec.context) (x y : SpecTec.typeidx)
     (strt : SpecTec.strtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt
         (.VarHT (.StatX y))⟩)
       start (.success (.of ())) finish) :
     ∃ dt : SpecTec.deftype,
@@ -19,23 +19,23 @@ theorem subtype_sub_ok_static_match_trace
     ∃ strtU : SpecTec.strtype,
     ∃ middle : Nat,
       c.TYPES[y]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         start (.success (.of (SpecTec.subtype.SubT fin hts strtU))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+          SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
         middle (.success (.of true)) finish ∧
       y < x ∧ fin = .NoFinal := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))))
       start (.success (.of ())) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y)))
         start (.of ()) finish).1 hbody
     unfold SpecTec.Subtype_sub_ok'_clauses at hselected
     cases hselected with
@@ -73,7 +73,7 @@ theorem subtype_sub_ok_static_match_trace
                         subst matchResult
                         exact ⟨dt, fin, hts, strtU, middle,
                           hlookup, hunroll, hmatch, hy, hfin⟩
-            · change SpecTecExecution.Eval SpecTec.specTecProgram
+            · change SpecTecExecution.Eval SpecTec.Body
                 .unmatch _ (.success (.of ())) _ at h3
               cases h3
     | next _ hrest =>
@@ -83,8 +83,8 @@ theorem subtype_sub_ok_static_target_indexed
     (c : SpecTec.context) (x y : SpecTec.typeidx)
     (strt : SpecTec.strtype) (start finish : Nat)
     (hready : CandidateNestedReady.nestedTableReady c = true)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok' c x strt
         (.VarHT (.StatX y))⟩)
       start (.success (.of ())) finish) :
     ∃ dt : SpecTec.deftype,
@@ -95,9 +95,9 @@ theorem subtype_sub_ok_static_target_indexed
       c.TYPES[y]? = some dt ∧
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT fin hts strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+          SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
         middle (.success (.of true)) finish ∧
       y < x ∧ fin = .NoFinal ∧
       ∀ ht, ht ∈ ReadyMatchReachability.sourceHeaptypes strtU →
@@ -132,9 +132,9 @@ theorem static_pair_classes_before_match
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hready : CandidateNestedReady.nestedTableReady c = true)

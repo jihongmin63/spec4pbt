@@ -48,9 +48,9 @@ private theorem initLocalsResult_static_fields
 theorem init_locals_static_fields
     (c c₁ : SpecTec.context) (indices : List SpecTec.idx)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.«$init_locals» c indices⟩)
+        SpecTec.Call.«$init_locals» c indices⟩)
       start (.success (.of c₁)) fin) :
     c₁.TYPES = c.TYPES ∧
     c₁.FUNCS = c.FUNCS ∧

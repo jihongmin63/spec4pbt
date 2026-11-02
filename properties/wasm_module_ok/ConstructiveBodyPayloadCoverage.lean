@@ -8,8 +8,8 @@ open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveB
 theorem mapped {α : Type} (c : context) (stack : inferresulttype) (env : Env c)
     (ins outs : List valtype) (hi : ∀t∈ins,ConstructiveBodyOperatorProductions.Plain t) (ho : ∀t∈outs,ConstructiveBodyOperatorProductions.Plain t)
     (g : Audited α) (make : α → instr)
-    (sound : ∀a n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (make a)⟩)
+    (sound : ∀a n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (make a)⟩)
       n (.success (.of (ConstructiveBodyControl.effect ins outs []))) n)
     (a : α) (ha : Gen.support g.generator a) :
     Produces (ConstructiveBodyOperatorProductions.production c stack env ins outs hi ho g make sound) (make a) := by

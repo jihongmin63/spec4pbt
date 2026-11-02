@@ -11,9 +11,9 @@ theorem rectype_ok_appended_supertype_length
     (dts : List SpecTec.deftype)
     (fin : SpecTec.final) (hts hts' : List SpecTec.heaptype)
     (strt strt' : SpecTec.strtype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))

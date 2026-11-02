@@ -26,9 +26,9 @@ theorem numeric_seed_iff_instr_effect
     numericSeed u = true ↔
       ∃ v : SpecTec.num_,
         ConstSyntaxDecision.syntaxAllowed c (.CONST v) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.CONST v)⟩)
+            SpecTec.Call.Instr_ok c irt (.CONST v)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

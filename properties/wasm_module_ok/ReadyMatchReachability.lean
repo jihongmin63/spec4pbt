@@ -234,9 +234,9 @@ theorem source_strtype_valid_of_subtype_success
     (c : SpecTec.context) (fin : SpecTec.final)
     (hts : List SpecTec.heaptype) (strt : SpecTec.strtype)
     (start finish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c (.SubT fin hts strt)⟩)
+        SpecTec.Call.Subtype_ok c (.SubT fin hts strt)⟩)
       start (.success (.of ())) finish) :
     StrtypeValidation.strtypeValid c strt = true := by
   have hvalid :=
@@ -249,9 +249,9 @@ theorem source_heaptype_base_or_stat_of_subtype_success
     (c : SpecTec.context) (fin : SpecTec.final)
     (hts : List SpecTec.heaptype) (strt : SpecTec.strtype)
     (ht : SpecTec.heaptype) (start finish : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c (.SubT fin hts strt)⟩)
+        SpecTec.Call.Subtype_ok c (.SubT fin hts strt)⟩)
       start (.success (.of ())) finish)
     (hmem : ht ∈ sourceHeaptypes strt) :
     ht ∈ HeaptypeValidation.baseHeaptypes ∨

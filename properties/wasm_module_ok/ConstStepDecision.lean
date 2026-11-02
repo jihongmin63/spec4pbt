@@ -69,23 +69,23 @@ theorem constant_step_result_iff_calls
       ConstSyntaxDecision.syntaxAllowed c i = true ∧
       ∃ (iit : SpecTec.inferinstrtype)
         (popped : SpecTec.inferresulttype),
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c
+            SpecTec.Call.Instr_ok c
               (.NoEllipses, available) i⟩)
           n (.success (.of iit)) n ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.context,
-            SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+            SpecTec.Call.«$init_locals» c iit.2⟩)
           n (.success (.of c)) n ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferresulttype,
-            SpecTec.SpecTecCall.«$pop» c iit.1.INS
+            SpecTec.Call.«$pop» c iit.1.INS
               (.NoEllipses, available)⟩)
           n (.success (.of popped)) n ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferresulttype,
-            SpecTec.SpecTecCall.«$push» c iit.1.OUTS popped⟩)
+            SpecTec.Call.«$push» c iit.1.OUTS popped⟩)
           n (.success (.of pushed)) n := by
   constructor
   · intro hstep
@@ -97,16 +97,16 @@ theorem constant_step_result_iff_calls
     have hlocals : iit.2 = [] :=
       (ConstInstrDecision.constant_instruction_input_shape
         c (.NoEllipses, available) i iit hi).choose_spec.2
-    have hinit : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hinit : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+          SpecTec.Call.«$init_locals» c iit.2⟩)
         n (.success (.of c)) n := by
       apply (LocalInitValidation.init_locals_success_iff_result
         c iit.2 c n n).2
       simp [hlocals, LocalInitValidation.initLocalsResult]
-    have hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpop : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c iit.1.INS
+          SpecTec.Call.«$pop» c iit.1.INS
             (.NoEllipses, available)⟩)
         n (.success (.of popped)) n := by
       rw [hins]
@@ -176,23 +176,23 @@ def StepCalls (c : SpecTec.context)
   ConstSyntaxDecision.syntaxAllowed c i = true ∧
     ∃ (iit : SpecTec.inferinstrtype)
       (popped : SpecTec.inferresulttype),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c
+          SpecTec.Call.Instr_ok c
             (.NoEllipses, available) i⟩)
         start (.success (.of iit)) middle₁ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+          SpecTec.Call.«$init_locals» c iit.2⟩)
         middle₁ (.success (.of c)) middle₂ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c iit.1.INS
+          SpecTec.Call.«$pop» c iit.1.INS
             (.NoEllipses, available)⟩)
         middle₂ (.success (.of popped)) middle₃ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$push» c iit.1.OUTS popped⟩)
+          SpecTec.Call.«$push» c iit.1.OUTS popped⟩)
         middle₃ (.success (.of pushed)) finish
 
 theorem constant_step_calls_any_counters
@@ -224,9 +224,9 @@ theorem constant_step_calls_any_counters
     have hm₂ :=
       ((LocalInitValidation.init_locals_success_iff_result
         c iit.2 c middle₁ middle₂).1 hinit).2
-    have hpop' : SpecTecExecution.Eval SpecTec.specTecProgram
+    have hpop' : SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, need) (.NoEllipses, available)⟩)
         middle₂ (.success (.of popped)) middle₃ := by
       simpa only [hins] using hpop

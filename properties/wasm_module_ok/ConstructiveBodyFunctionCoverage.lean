@@ -7,8 +7,8 @@ open SpecTec properties.wasm_module_ok ConstructiveBodyFunctionMetadata Construc
  theorem from_production (c : context) (stack : inferresulttype) (ps : List (ConstructiveBodyProductions.Production c stack))
     (p : ConstructiveBodyProductions.Production c stack) (i : instr) (effect : inferinstrtype) (n finish : Nat)
     (hp : p∈ps) (hi : Produces p i)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩) n (.success (.of effect)) finish) :
     Covers ps i effect ∧ finish=n := by
   obtain ⟨v,hv,he⟩ := hi
   have hs := v.property n
@@ -23,8 +23,8 @@ theorem direct_produces (c : context) (stack : inferresulttype) (env : Env c) (s
   exact ⟨_,rfl,rfl⟩
 
 theorem direct_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.CALL x)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.CALL x)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.CALL x) effect ∧ finish=n := by
   obtain ⟨sig,hi⟩ := ConstructiveBodyFunctionOriginal.direct c stack x effect n finish h
   apply from_production c stack (all c stack env) (direct c stack env sig) _ effect n finish
@@ -38,8 +38,8 @@ theorem reference_produces (c : context) (stack : inferresulttype) (env : Env c)
   exact ⟨_,rfl,rfl⟩
 
 theorem reference_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.CALL_REF x)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.CALL_REF x)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.CALL_REF x) effect ∧ finish=n := by
   obtain ⟨sig,hi⟩ := ConstructiveBodyFunctionOriginal.reference c stack x effect n finish h
   apply from_production c stack (all c stack env) (reference c stack env sig) _ effect n finish
@@ -53,8 +53,8 @@ theorem indirect_produces (c : context) (stack : inferresulttype) (env : Env c) 
   exact ⟨_,rfl,rfl⟩
 
 theorem indirect_original (c : context) (stack : inferresulttype) (env : Env c) (x y : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.CALL_INDIRECT x y)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.CALL_INDIRECT x y)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.CALL_INDIRECT x y) effect ∧ finish=n := by
   obtain ⟨tab,sig,hx,hi⟩ := ConstructiveBodyFunctionOriginal.indirect c stack env x y effect n finish h
   apply from_production c stack (all c stack env) (indirect c stack env tab sig) _ effect n finish
@@ -69,8 +69,8 @@ theorem returnDirect_produces (c : context) (stack : inferresulttype) (env : Env
   exact ⟨_,rfl,rfl⟩
 
 theorem returnDirect_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.RETURN_CALL x)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.RETURN_CALL x)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.RETURN_CALL x) effect ∧ finish=n := by
   obtain ⟨sig,hi,hm⟩ := ConstructiveBodyFunctionOriginal.returnDirect c stack env x effect n finish h
   apply from_production c stack (all c stack env) (returnDirect c stack env sig hm) _ effect n finish
@@ -85,8 +85,8 @@ theorem returnReference_produces (c : context) (stack : inferresulttype) (env : 
   exact ⟨_,rfl,rfl⟩
 
 theorem returnReference_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.RETURN_CALL_REF x)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.RETURN_CALL_REF x)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.RETURN_CALL_REF x) effect ∧ finish=n := by
   obtain ⟨sig,hi,hm⟩ := ConstructiveBodyFunctionOriginal.returnReference c stack env x effect n finish h
   apply from_production c stack (all c stack env) (returnReference c stack env sig hm) _ effect n finish
@@ -101,8 +101,8 @@ theorem returnIndirect_produces (c : context) (stack : inferresulttype) (env : E
   exact ⟨_,rfl,rfl⟩
 
 theorem returnIndirect_original (c : context) (stack : inferresulttype) (env : Env c) (x y : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.RETURN_CALL_INDIRECT x y)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.RETURN_CALL_INDIRECT x y)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.RETURN_CALL_INDIRECT x y) effect ∧ finish=n := by
   obtain ⟨tab,sig,hx,hi,hm⟩ := ConstructiveBodyFunctionOriginal.returnIndirect c stack env x y effect n finish h
   apply from_production c stack (all c stack env) (returnIndirect c stack env tab sig hm) _ effect n finish
@@ -116,8 +116,8 @@ theorem throwTag_produces (c : context) (stack : inferresulttype) (env : Env c) 
   exact ⟨_,rfl,rfl⟩
 
 theorem throwTag_original (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
-    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.THROW x)⟩) n (.success (.of effect)) finish) :
+    (effect : inferinstrtype) (n finish : Nat) (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c stack (.THROW x)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.THROW x) effect ∧ finish=n := by
   obtain ⟨tag,hi⟩ := ConstructiveBodyFunctionOriginal.throwTag c stack x effect n finish h
   apply from_production c stack (all c stack env) (throwTag c stack env tag) _ effect n finish

@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.UnrollSubstitutionLeaf
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -17,21 +18,21 @@ private theorem subst_heaptype_fixed_total (ht : SpecTec.heaptype)
       ht = .FuncHT ∨ ht = .NoFuncHT ∨ ht = .ExnHT ∨
       ht = .NoExnHT ∨ ht = .ExternHT ∨ ht = .NoExternHT ∨
       ht = .BotHT) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» ht⟩)
+        SpecTec.Call.«$subst_heaptype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» ht⟩)
       start (.success (.of ht)) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» ht) ())
+        SpecTec.Call.«$s_unroll» ht))
     start (.success (.of ht)) start
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«$subst_heaptype:clause:0» SpecTec.rectype rect
-      SpecTec.SpecTecCall.«$s_unroll» ht)
+      SpecTec.Call.«$s_unroll» ht)
     start (.success (.of ht)) start
   unfold SpecTec.«$subst_heaptype:clause:0»
   apply SpecTecExecution.Eval.bind_success
@@ -40,28 +41,28 @@ private theorem subst_heaptype_fixed_total (ht : SpecTec.heaptype)
 
 private theorem subst_heaptype_var_total (tv : SpecTec.typevar)
     (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.VarHT tv)⟩)
+        SpecTec.Call.«$subst_heaptype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» (.VarHT tv)⟩)
       start (.success (.of (unrollTypevar tv rect))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» (.VarHT tv)) ())
+        SpecTec.Call.«$s_unroll» (.VarHT tv)))
     start (.success (.of (unrollTypevar tv rect))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:0» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» (.VarHT tv)) start .unmatch start
+        SpecTec.Call.«$s_unroll» (.VarHT tv)) start .unmatch start
     unfold SpecTec.«$subst_heaptype:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp)
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:1» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» (.VarHT tv))
+        SpecTec.Call.«$s_unroll» (.VarHT tv))
       start (.success (.of (unrollTypevar tv rect))) start
     unfold SpecTec.«$subst_heaptype:clause:1»
     apply SpecTecExecution.Eval.bind_success
@@ -73,36 +74,36 @@ private theorem subst_heaptype_var_total (tv : SpecTec.typevar)
 
 private theorem subst_heaptype_def_total (dt : SpecTec.deftype)
     (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.DefHT dt)⟩)
+        SpecTec.Call.«$subst_heaptype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» (.DefHT dt)⟩)
       start (.success (.of (SpecTec.heaptype.DefHT dt))) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$subst_heaptype_clauses» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» (.DefHT dt)) ())
+        SpecTec.Call.«$s_unroll» (.DefHT dt)))
     start (.success (.of (SpecTec.heaptype.DefHT dt))) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$subst_heaptype:clause:0» SpecTec.rectype rect
-        SpecTec.SpecTecCall.«$s_unroll» (.DefHT dt)) start .unmatch start
+        SpecTec.Call.«$s_unroll» (.DefHT dt)) start .unmatch start
     unfold SpecTec.«$subst_heaptype:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false (by simp)
-  · apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_heaptype:clause:1» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.DefHT dt)) start .unmatch start
+          SpecTec.Call.«$s_unroll» (.DefHT dt)) start .unmatch start
       unfold SpecTec.«$subst_heaptype:clause:1»
       apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«sub:heaptype:heaptypeVar»])
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$subst_heaptype:clause:2» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» (.DefHT dt))
+          SpecTec.Call.«$s_unroll» (.DefHT dt))
         start (.success (.of (SpecTec.heaptype.DefHT dt))) start
       unfold SpecTec.«$subst_heaptype:clause:2»
       apply SpecTecExecution.Eval.bind_success
@@ -112,10 +113,10 @@ private theorem subst_heaptype_def_total (dt : SpecTec.deftype)
 
 theorem subst_heaptype_unroll_total (ht : SpecTec.heaptype)
     (rect : SpecTec.rectype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» ht⟩)
+        SpecTec.Call.«$subst_heaptype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» ht⟩)
       start (.success (.of (unrollHeaptype ht rect))) start := by
   cases ht with
   | VarHT tv => exact subst_heaptype_var_total tv rect start
@@ -137,13 +138,13 @@ theorem subst_heaptype_unroll_total (ht : SpecTec.heaptype)
 theorem subst_heaptype_unroll_deterministic (ht : SpecTec.heaptype)
     (rect : SpecTec.rectype) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_heaptype» SpecTec.rectype rect
-          SpecTec.SpecTecCall.«$s_unroll» ht⟩)
+        SpecTec.Call.«$subst_heaptype» SpecTec.rectype rect
+          SpecTec.Call.«$s_unroll» ht⟩)
       start outcome finalSupply) :
     outcome = .success (.of (unrollHeaptype ht rect)) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_heaptype_unroll_total ht rect start)
 
 end properties.wasm_module_not_ok.Rejection

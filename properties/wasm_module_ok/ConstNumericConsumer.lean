@@ -10,8 +10,8 @@ namespace properties.wasm_module_ok.ConstNumericConsumer
 
 theorem match_numeric_pair
     (c : SpecTec.context) (nt : SpecTec.numtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         [.NumT nt, .NumT nt] [.NumT nt, .NumT nt]⟩)
       n (.success (.of ())) n := by
   apply (MatchResulttypeValidation.match_resulttype_success_iff
@@ -28,8 +28,8 @@ theorem match_numeric_pair
 
 theorem match_numeric_singleton
     (c : SpecTec.context) (nt : SpecTec.numtype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         [.NumT nt] [.NumT nt]⟩)
       n (.success (.of ())) n := by
   apply (MatchResulttypeValidation.match_resulttype_success_iff
@@ -41,46 +41,46 @@ theorem match_numeric_singleton
   simpa using MatchValtypeBasic.match_valtype_num_total c.TYPES nt nt n
 
 theorem type_num_i32_binop (op : SpecTec.ibinop) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop
           (.I32 op)⟩)
       n (.success (.of SpecTec.numtype.I32T)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$type_num_clauses»
         SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop
-        (.I32 op)) ())
+        (.I32 op)))
     n (.success (.of SpecTec.numtype.I32T)) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   unfold SpecTec.«$type_num:clause:0»
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
   · exact SpecTecExecution.Eval.pure _
 
 theorem type_num_i64_binop (op : SpecTec.ibinop) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop
           (.I64 op)⟩)
       n (.success (.of SpecTec.numtype.I64T)) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
       (SpecTec.«$type_num_clauses»
         SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop
-        (.I64 op)) ())
+        (.I64 op)))
     n (.success (.of SpecTec.numtype.I64T)) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
+  apply SpecTecExecution.tryClauses_cons_unmatch
   ·
     unfold SpecTec.«$type_num:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact SpecTecExecution.Eval.guard_false
       (by simp [SpecTec.«exec:match:op:I32»])
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   unfold SpecTec.«$type_num:clause:1»
   apply SpecTecExecution.Eval.bind_success
   · exact SpecTecExecution.Eval.guard_true rfl
@@ -91,9 +91,9 @@ theorem allowed_arithmetic_type
     (h : SpecTec.instr.BINOP op ∈
       ConstArithmeticValidation.arithmeticOps) :
     ∃ nt : SpecTec.numtype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.numtype,
-          SpecTec.SpecTecCall.«$type_num»
+          SpecTec.Call.«$type_num»
             SpecTec.ibinop SpecTec.ibinop
             SpecTec.fbinop SpecTec.fbinop op⟩)
         n (.success (.of nt)) n := by
@@ -121,9 +121,9 @@ theorem append_numeric_binop
     (op : SpecTec.binop_)
     (htrace : ConstConstructiveTrace.Trace origin initial xs current
       (.NoEllipses, stack ++ [.NumT nt, .NumT nt]) start n)
-    (htype : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htype : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop SpecTec.fbinop SpecTec.fbinop op⟩)
       n (.success (.of nt)) n) :
     ConstConstructiveTrace.Trace origin initial (xs ++ [.BINOP op]) current
@@ -135,8 +135,8 @@ theorem append_numeric_binop
            OUTS := (.NoEllipses, [.NumT nt]) },
          ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype)
       n n).2 ⟨nt, htype, rfl⟩
-  have hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype current
+  have hmatch : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype current
         ((stack ++ ([.NumT nt, .NumT nt] : List SpecTec.valtype)).drop
           ((stack ++ ([.NumT nt, .NumT nt] : List SpecTec.valtype)).length - 2))
         [.NumT nt, .NumT nt]⟩)
@@ -156,8 +156,8 @@ theorem append_numeric_binop
 theorem i32_add_const_expression
     (c : SpecTec.context) (n : Nat) :
     ∃ xs : List SpecTec.instr,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c
           (.NumT .I32T) xs⟩)
         n (.success (.of ())) n := by
   have hbase : SpecTec.valtype.NumT .I32T ∈
@@ -180,9 +180,9 @@ theorem i32_add_const_expression
   have hbinop := append_numeric_binop [] .I32T (.I32 .IAdd)
     (by simpa using htrace)
     (type_num_i32_binop .IAdd n)
-  have hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, [.NumT .I32T])
           (.NoEllipses, [.NumT .I32T])⟩)
       n (.success (.of (SpecTec.ellipses.NoEllipses,
@@ -210,15 +210,15 @@ theorem numeric_binop_const_expression
     (nt : SpecTec.numtype) (op : SpecTec.binop_)
     (hallowed : SpecTec.instr.BINOP op ∈
       ConstArithmeticValidation.arithmeticOps)
-    (htype : SpecTecExecution.Eval SpecTec.specTecProgram
+    (htype : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.ibinop SpecTec.ibinop
           SpecTec.fbinop SpecTec.fbinop op⟩)
       n (.success (.of nt)) n) :
     ∃ xs : List SpecTec.instr,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c
           (.NumT nt) xs⟩)
         n (.success (.of ())) n := by
   have hbase : SpecTec.valtype.NumT nt ∈
@@ -240,9 +240,9 @@ theorem numeric_binop_const_expression
       [] n
   have hbinop := append_numeric_binop [] nt op
     (by simpa using htrace) htype
-  have hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, [.NumT nt])
           (.NoEllipses, [.NumT nt])⟩)
       n (.success (.of (SpecTec.ellipses.NoEllipses,
@@ -269,8 +269,8 @@ theorem allowed_arithmetic_const_expression
     (hallowed : SpecTec.instr.BINOP op ∈
       ConstArithmeticValidation.arithmeticOps) :
     ∃ (nt : SpecTec.numtype) (xs : List SpecTec.instr),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Const_ok c
           (.NumT nt) xs⟩)
         n (.success (.of ())) n := by
   obtain ⟨nt, htype⟩ := allowed_arithmetic_type op n hallowed

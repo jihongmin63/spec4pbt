@@ -1,25 +1,26 @@
 import properties.wasm_module_not_ok.Rejection
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 namespace properties.wasm_module_not_ok.Rejection
 
 theorem types_ok_nil_success (c : SpecTec.context) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c []⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c []⟩)
       start (.success (.of c)) start := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Types_ok_clauses c []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Types_ok_clauses c []))
     start (.success (.of c)) start
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Types_ok:clause:0» c []) start .unmatch start
     unfold SpecTec.«Types_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Types_ok:clause:1» c []) start (.success (.of c)) start
     unfold SpecTec.«Types_ok:clause:1»
     apply SpecTecExecution.Eval.bind_success
@@ -31,21 +32,21 @@ theorem types_ok_nil_success (c : SpecTec.context) (start : Nat) :
 theorem types_ok_cons_success (c c1 c2 : SpecTec.context)
     (t : SpecTec.type) (ts : List SpecTec.type)
     (start middle finalSupply : Nat)
-    (ht : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+    (ht : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
       start (.success (.of c1)) middle)
-    (hrest : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c1 ts⟩)
+    (hrest : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c1 ts⟩)
       middle (.success (.of c2)) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c (t :: ts)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c (t :: ts)⟩)
       start (.success (.of c2)) finalSupply := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Types_ok_clauses c (t :: ts)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Types_ok_clauses c (t :: ts)))
     start (.success (.of c2)) finalSupply
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Types_ok:clause:0» c (t :: ts))
     start (.success (.of c2)) finalSupply
   unfold SpecTec.«Types_ok:clause:0»
@@ -60,25 +61,25 @@ theorem types_ok_cons_success (c c1 c2 : SpecTec.context)
 theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
     (t : SpecTec.type) (ts : List SpecTec.type)
     (start finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c (t :: ts)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c (t :: ts)⟩)
       start (.success (.of c2)) finalSupply) :
     ∃ (c1 : SpecTec.context) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
         start (.success (.of c1)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c1 ts⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c1 ts⟩)
         middle (.success (.of c2)) finalSupply := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Types_ok_clauses c (t :: ts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Types_ok_clauses c (t :: ts)))
       start (.success (.of c2)) finalSupply at hbody
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Types_ok:clause:0» c (t :: ts))
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Types_ok:clause:1» c (t :: ts)]))
       start (.success (.of c2)) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -94,7 +95,7 @@ theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
               cases hpure with
               | pure => exact ⟨_, _, ht, hrest⟩
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Types_ok:clause:1» c (t :: ts))
           (fun _ => .unmatch))
         start (.success (.of c2)) finalSupply at htail
@@ -110,25 +111,25 @@ theorem types_ok_cons_success_inv (c c2 : SpecTec.context)
 
 theorem types_ok_nil_deterministic (c : SpecTec.context) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c []⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c []⟩)
       start outcome finalSupply) :
     outcome = .success (.of c) ∧ finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (types_ok_nil_success c start)
 
 theorem types_ok_cons_success_iff (c c2 : SpecTec.context)
     (t : SpecTec.type) (ts : List SpecTec.type)
     (start finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c (t :: ts)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c (t :: ts)⟩)
       start (.success (.of c2)) finalSupply ↔
     ∃ (c1 : SpecTec.context) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
         start (.success (.of c1)) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Types_ok c1 ts⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Types_ok c1 ts⟩)
         middle (.success (.of c2)) finalSupply := by
   constructor
   · exact types_ok_cons_success_inv c c2 t ts start finalSupply
@@ -137,20 +138,20 @@ theorem types_ok_cons_success_iff (c c2 : SpecTec.context)
 
 theorem type_ok_success_iff_rectype_ok (c c1 : SpecTec.context)
     (t : SpecTec.type) (start finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Type_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Type_ok c t⟩)
       start (.success (.of c1)) finalSupply ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Rectype_ok c t⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Rectype_ok c t⟩)
       start (.success (.of c1)) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.Type_ok_clauses c t) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.Type_ok_clauses c t))
         start (.success (.of c1)) finalSupply at hbody
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Type_ok:clause:0» c t) (fun _ => .unmatch))
         start (.success (.of c1)) finalSupply at hbody
       cases hbody with
@@ -163,11 +164,11 @@ theorem type_ok_success_iff_rectype_ok (c c1 : SpecTec.context)
       | orElse_unmatch _ htail => cases htail
   · intro hrect
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Type_ok_clauses c t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Type_ok_clauses c t))
       start (.success (.of c1)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Type_ok:clause:0» c t)
       start (.success (.of c1)) finalSupply
     unfold SpecTec.«Type_ok:clause:0»

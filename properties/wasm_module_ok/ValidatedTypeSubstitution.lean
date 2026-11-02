@@ -13,10 +13,10 @@ theorem validated_type_substitution_fixed
     (hc : ValidatedTypeChain.ValidatedTypes c)
     (hp : p < c.TYPES.length)
     (hlookup : c.TYPES[p]? = some dtP) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.deftype,
-        SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-          c.TYPES SpecTec.SpecTecCall.«$subst_of» dtP⟩)
+        SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+          c.TYPES SpecTec.Call.«$subst_of» dtP⟩)
       start (.success (.of dtP)) start := by
   obtain ⟨before, after, sts, s, f, i, tail,
       fin, hts, strt, dts, sts', _hbefore, hrect,
@@ -51,10 +51,10 @@ theorem validated_type_substitution_fixed
         some (.DefT (.RecT sts') i) :=
     SubstOutputDeftype.substDeftypeResult_output_fixed
       _ before.TYPES c.TYPES _ hsource
-  have hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+  have hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.deftype,
-        SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-          c.TYPES SpecTec.SpecTecCall.«$subst_of»
+        SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+          c.TYPES SpecTec.Call.«$subst_of»
             (SpecTec.deftype.DefT (.RecT sts') i)⟩)
       start (.success (.of (SpecTec.deftype.DefT (.RecT sts') i))) start := by
     simpa [optionOutcome, hfixed] using
@@ -70,10 +70,10 @@ theorem validated_type_substitution_total
     (hp : p < c.TYPES.length) :
     ∃ dtP sP : SpecTec.deftype,
       c.TYPES[p]? = some dtP ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.deftype,
-          SpecTec.SpecTecCall.«$subst_deftype» (List SpecTec.deftype)
-            c.TYPES SpecTec.SpecTecCall.«$subst_of» dtP⟩)
+          SpecTec.Call.«$subst_deftype» (List SpecTec.deftype)
+            c.TYPES SpecTec.Call.«$subst_of» dtP⟩)
         start (.success (.of sP)) start := by
   let dtP : SpecTec.deftype := c.TYPES[p]
   have hlookup : c.TYPES[p]? = some dtP := List.getElem?_eq_getElem hp

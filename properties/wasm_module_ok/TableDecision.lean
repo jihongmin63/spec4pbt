@@ -32,8 +32,8 @@ theorem table_result_iff_call
     (hprov : CandidateUniverseReady.Provenance c)
     (hnested : CandidateNestedReady.nestedTableReady c = true) :
     tableResult c tab = some out ∧ finish = start ↔
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Table_ok c tab⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.context, SpecTec.Call.Table_ok c tab⟩)
         start (.success (.of out)) finish := by
   cases tab with
   | mk tt init =>
@@ -59,14 +59,14 @@ theorem table_result_iff_call
         subst out
         subst finish
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Table_ok_clauses c ⟨.TableT addr lim rt, init⟩) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Table_ok_clauses c ⟨.TableT addr lim rt, init⟩))
           start (.success (.of
             ({c with TABLES := c.TABLES ++ [.TableT addr lim rt]} :
               SpecTec.context))) start
-        apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Table_ok:clause:0» c ⟨.TableT addr lim rt, init⟩)
           start (.success (.of
             ({c with TABLES := c.TABLES ++ [.TableT addr lim rt]} :
@@ -81,9 +81,9 @@ theorem table_result_iff_call
       · intro hcall
         cases hcall with
         | call hbody =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
-            (SpecTecExecution.firstSuccess
-              (SpecTec.Table_ok_clauses c ⟨.TableT addr lim rt, init⟩) ())
+          change SpecTecExecution.Eval SpecTec.Body
+            (SpecTecExecution.tryClauses
+              (SpecTec.Table_ok_clauses c ⟨.TableT addr lim rt, init⟩))
             start (.success (.of out)) finish at hbody
           cases hbody with
           | orElse_success hclause =>

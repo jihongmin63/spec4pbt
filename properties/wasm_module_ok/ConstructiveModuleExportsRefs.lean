@@ -21,8 +21,8 @@ theorem exports_result (refs : SpecTec.free) (c : context) (used : nameset) (es 
 
 theorem exports_replace (refs : SpecTec.free) (c : context) (used out : nameset) (es : List SpecTec.export)
     (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨nameset,SpecTecCall.Exports_ok c used es⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨nameset,SpecTecCall.Exports_ok (replace refs c) used es⟩) n (.success (.of out)) finish := by
+    (h : Eval Body (.call ⟨nameset,Call.Exports_ok c used es⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨nameset,Call.Exports_ok (replace refs c) used es⟩) n (.success (.of out)) finish := by
   rw [ExportsValidation.exports_success_iff_result] at h ⊢
   exact ⟨by rw [exports_result];exact h.1,h.2⟩
 #print axioms exports_replace

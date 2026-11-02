@@ -9,9 +9,9 @@ open properties.wasm_module_not_ok.Rejection
 theorem rectype_ok_appended_position_subst
     (c c' : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of c')) finish) :
     ∃ dts : List SpecTec.deftype,
       c' = {c with TYPES := c.TYPES ++ dts} ∧
@@ -19,24 +19,24 @@ theorem rectype_ok_appended_position_subst
         ∃ dt' : SpecTec.deftype,
           dts[i]? = some dt' ∧
           ∃ before after : Nat,
-            SpecTecExecution.Eval SpecTec.specTecProgram
+            SpecTecExecution.Eval SpecTec.Body
               (.call ⟨SpecTec.deftype,
-                SpecTec.SpecTecCall.«$subst_deftype»
+                SpecTec.Call.«$subst_deftype»
                   (List SpecTec.deftype) c.TYPES
-                  SpecTec.SpecTecCall.«$subst_of»
+                  SpecTec.Call.«$subst_of»
                   (.DefT
                     (.RecT (rollSubtypes sts c.TYPES.length
                       (sts.length + c.TYPES.length))) i)⟩)
               before (.success (.of dt')) after) := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Rectype_ok_clauses c (.RecT sts)))
       start (.success (.of c')) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
-        (SpecTec.Rectype_ok_clauses c (.RecT sts)) ()
+      (SpecTecExecution.tryClauses_success_iff
+        (SpecTec.Rectype_ok_clauses c (.RecT sts))
         start (.of c') finish).1 hbody
     unfold SpecTec.Rectype_ok_clauses at hselected
     cases hselected with

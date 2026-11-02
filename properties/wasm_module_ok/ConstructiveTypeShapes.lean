@@ -79,7 +79,7 @@ def shapes (c : context) : Gen strtype :=
   cases s <;> simp [shapes, StrtypeValidation.strtypeValid]
 
 theorem shapes_exact (c : context) (s : strtype) (start finish : Nat) :
-    Eval specTecProgram (.call ⟨Unit, SpecTecCall.Strtype_ok c s⟩)
+    Eval Body (.call ⟨Unit, Call.Strtype_ok c s⟩)
       start (.success (.of ())) finish ↔
       Gen.support (shapes c) s ∧ finish = start := by
   rw [shapes_support, StrtypeValidation.strtype_success_iff_valid]

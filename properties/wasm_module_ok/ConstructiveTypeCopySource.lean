@@ -84,8 +84,8 @@ theorem group_bound (c : context) (ss : List SpecTec.subtype)
 /-- Every original successful recursive group supplies the reifier domain.
 This is backward coverage, not a soundness assumption on a generated group. -/
 theorem original_bound (before after : context) (ss : List SpecTec.subtype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok before (.RecT ss)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok before (.RecT ss)⟩)
       start (.success (.of after)) finish) : GroupBound (before.TYPES.length+ss.length) ss := by
   have hc := CandidateRectypeTable.rectype_success_candidateContext before after ss start finish h
   have hb := group_bound after ss

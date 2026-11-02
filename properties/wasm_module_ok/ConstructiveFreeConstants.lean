@@ -23,7 +23,7 @@ theorem syntax_flat (c : context) (i : instr)
   rcases hi with rfl | rfl | rfl | rfl | rfl | rfl <;> trivial
 
 theorem flat_instr_free_total (i : instr) (n : Nat) (h : Flat i) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_instr» i⟩)
+    Eval Body (.call ⟨free, Call.«$free_instr» i⟩)
       n (.success (.of (instrFree i))) n := by
   cases i <;> try exact h.elim
   all_goals first
@@ -60,15 +60,15 @@ theorem flat_instr_free_total (i : instr) (n : Nat) (h : Flat i) :
 
 theorem flat_list_free_total (xs : List instr) (n : Nat)
     (h : ∀ i ∈ xs, Flat i) :
-    Eval specTecProgram
-      (.call ⟨free, SpecTecCall.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959» xs⟩)
+    Eval Body
+      (.call ⟨free, Call.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959» xs⟩)
       n (.success (.of (listFree instrFree xs))) n := by
   induction xs with
   | nil =>
     apply Eval.call
-    change Eval specTecProgram (firstSuccess
-      (SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959_clauses» []) ()) _ _ _
-    apply firstSuccess_cons_success
+    change Eval Body (tryClauses
+      (SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959_clauses» [])) _ _ _
+    apply tryClauses_cons_success
     unfold SpecTec.«$free_list:specialized:627ab0672e3a767978c05fd35fc5a959:clause:0»
     apply Eval.bind_success (Eval.guard_true rfl)
     apply Eval.bind_success (free_empty_total n)
@@ -80,17 +80,17 @@ theorem flat_list_free_total (xs : List instr) (n : Nat)
       ih (by intro j hj; exact h j (by simp [hj])), fold_left_singleton_total _ _ n⟩
 
 theorem shift_empty_total (n : Nat) :
-    Eval specTecProgram (.call ⟨set Nat, SpecTecCall.«$free_shift» (.«`{ % `}» [])⟩)
+    Eval Body (.call ⟨set Nat, Call.«$free_shift» (.«`{ % `}» [])⟩)
       n (.success (.of (set.«`{ % `}» ([] : List Nat)))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_shift_clauses» _) ()) _ _ _
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.«$free_shift_clauses» _)) _ _ _
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_shift:clause:0»
   apply Eval.bind_success
   · apply Eval.call
-    change Eval specTecProgram (firstSuccess (SpecTec.«$map_set_clauses» Nat Nat
-      SpecTecCall.«$add_minus_one» (.«`{ % `}» [])) ()) _ _ _
-    apply firstSuccess_cons_success
+    change Eval Body (tryClauses (SpecTec.«$map_set_clauses» Nat Nat
+      Call.«$add_minus_one» (.«`{ % `}» []))) _ _ _
+    apply tryClauses_cons_success
     unfold SpecTec.«$map_set:clause:0»
     apply Eval.bind_success (Eval.guard_true rfl)
     exact Eval.pure _
@@ -99,11 +99,11 @@ theorem shift_empty_total (n : Nat) :
 def constFree (xs : List instr) : free := listFree instrFree xs
 
 theorem block_free_total (xs : List instr) (n : Nat) (h : ∀ i ∈ xs, Flat i) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_block» xs⟩)
+    Eval Body (.call ⟨free, Call.«$free_block» xs⟩)
       n (.success (.of (constFree xs))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_block_clauses» xs) ()) _ _ _
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.«$free_block_clauses» xs)) _ _ _
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_block:clause:0»
   apply Eval.bind_success (flat_list_free_total xs n h)
   simp only [list_labels]
@@ -116,11 +116,11 @@ theorem block_free_total (xs : List instr) (n : Nat) (h : ∀ i ∈ xs, Flat i) 
   exact Eval.pure _
 
 theorem const_free_total (xs : List instr) (n : Nat) (h : ∀ i ∈ xs, Flat i) :
-    Eval specTecProgram (.call ⟨free, SpecTecCall.«$free_const» xs⟩)
+    Eval Body (.call ⟨free, Call.«$free_const» xs⟩)
       n (.success (.of (constFree xs))) n := by
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.«$free_const_clauses» xs) ()) _ _ _
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.«$free_const_clauses» xs)) _ _ _
+  apply tryClauses_cons_success
   unfold SpecTec.«$free_const:clause:0»
   apply Eval.bind_success (block_free_total xs n h)
   exact Eval.pure _

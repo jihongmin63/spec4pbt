@@ -11,14 +11,14 @@ theorem static_subtype_sub_ok_success_of_match
     (hlookup : c.TYPES[y]? = some dt)
     (hunroll : properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
       some (.SubT fin hts strtU))
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+        SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
       n (.success (.of true)) n)
     (hlt : y < x) (hfin : fin = .NoFinal) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+        SpecTec.Call.Subtype_sub_ok' c x strt
           (.VarHT (.StatX y))⟩)
       n (.success (.of ())) n := by
   have hy : y < c.TYPES.length :=
@@ -27,12 +27,12 @@ theorem static_subtype_sub_ok_success_of_match
     (UnrollInterface.unrolldt_success_iff dt
       (.SubT fin hts strtU) n n).2 ⟨hunroll, rfl⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Subtype_sub_ok':clause:0» c x strt (.VarHT (.StatX y)))
     n (.success (.of ())) n
   unfold SpecTec.«Subtype_sub_ok':clause:0»
@@ -62,14 +62,14 @@ theorem static_subtype_sub_ok_unmatch_of_guard_false
     (hlookup : c.TYPES[y]? = some dt)
     (hunroll : properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
       some (.SubT fin hts strtU))
-    (hmatch : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hmatch : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+        SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
       n (.success (.of result)) n)
     (hguard : ¬ ((y < x ∧ fin = .NoFinal) ∧ result = true)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+        SpecTec.Call.Subtype_sub_ok' c x strt
           (.VarHT (.StatX y))⟩)
       n .unmatch n := by
   have hy : y < c.TYPES.length :=
@@ -78,12 +78,12 @@ theorem static_subtype_sub_ok_unmatch_of_guard_false
     (UnrollInterface.unrolldt_success_iff dt
       (.SubT fin hts strtU) n n).2 ⟨hunroll, rfl⟩
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.Subtype_sub_ok'_clauses c x strt (.VarHT (.StatX y))))
     n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Subtype_sub_ok':clause:0» c x strt (.VarHT (.StatX y)))
       n .unmatch n
     unfold SpecTec.«Subtype_sub_ok':clause:0»
@@ -103,16 +103,16 @@ theorem static_subtype_sub_ok_unmatch_of_guard_false
             · exact hmatch
             · exact SpecTecExecution.Eval.bind_unmatch
                 (SpecTecExecution.Eval.guard_false hguard)
-  · exact SpecTecExecution.firstSuccess_nil () n
+  · exact SpecTecExecution.tryClauses_nil n
 
 theorem static_subtype_sub_ok_total_of_ready
     (c : SpecTec.context) (x y : SpecTec.typeidx)
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish n : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
@@ -124,9 +124,9 @@ theorem static_subtype_sub_ok_total_of_ready
     ∃ result : Bool,
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT fin hts strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.Subtype_sub_ok' c x strt
+          SpecTec.Call.Subtype_sub_ok' c x strt
             (.VarHT (.StatX y))⟩)
         n (if (y < x ∧ fin = .NoFinal) ∧ result = true then
           .success (.of ()) else .unmatch) n := by

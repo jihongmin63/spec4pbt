@@ -9,7 +9,7 @@ structure Step (c : context) where
   item : SpecTec.data
   after : context
   env : Env after
-  correct : ∀n,Eval specTecProgram (.call ⟨context,SpecTecCall.Data_ok c item⟩) n (.success (.of after)) n
+  correct : ∀n,Eval Body (.call ⟨context,Call.Data_ok c item⟩) n (.success (.of after)) n
 
 def step (c : context) (env : Env c) (mode : ConstructiveModuleModes.DataMode c) (text : String) : Step c :=
   ⟨⟨text,mode.val⟩,{c with DATAS:=c.DATAS++[datatype.OK]},ConstructiveModuleEnvironment.withDatas c env _,
@@ -19,7 +19,7 @@ def one (c : context) (env : Env c) : Audited (Step c) :=
     (⟨ConstructiveModuleStrings.strings,ConstructiveModuleStrings.strings_audit⟩ : Audited String).map (step c env mode)
 
 theorem complete (c out : context) (env : Env c) (item : SpecTec.data) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Data_ok c item⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Data_ok c item⟩) n (.success (.of out)) finish) :
     ∃s : Step c,Gen.support (one c env).generator s ∧ s.item=item ∧ s.after=out := by
   obtain ⟨hm,ho⟩ := ConstructiveModuleElemDataRules.data_original c out item n finish h
   obtain ⟨mode,hmode,he⟩ := ConstructiveModuleModes.data_complete c env item.DMODE n finish hm

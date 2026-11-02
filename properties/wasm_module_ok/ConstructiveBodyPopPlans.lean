@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveConstProductivePlans
 import properties.wasm_module_ok.PopGeneralValidation
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyPopPlans
 open SpecTec properties.wasm_module_ok
@@ -44,12 +45,12 @@ theorem actual_table (c : context) (need available : inferresulttype)
     · exact ha t (List.mem_of_mem_drop hs)
 
 theorem pop_NE_clause (c : context) (need available : List valtype) (n : Nat)
-    (hm : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    (hm : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (MakeValidation.makeResult .BotT (need.length-min need.length available.length) ++
           available.drop (available.length-min need.length available.length)) need⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:1» c (.NoEllipses,need) (.Ellipses,available))
       n (.success (.of ((.Ellipses,available.take (available.length-min need.length available.length)) : inferresulttype))) n := by
   have ha : min need.length available.length≤available.length := Nat.min_le_right _ _
@@ -81,12 +82,12 @@ theorem pop_NE_clause (c : context) (need available : List valtype) (n : Nat)
   exact SpecTecExecution.Eval.pure _
 
 theorem pop_EE_clause (c : context) (need available : List valtype) (n : Nat)
-    (hm : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    (hm : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (MakeValidation.makeResult .BotT (need.length-min need.length available.length) ++
           available.drop (available.length-min need.length available.length)) need⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c (.Ellipses,need) (.Ellipses,available))
       n (.success (.of ((.Ellipses,[]) : inferresulttype))) n := by
   have ha : min need.length available.length≤available.length := Nat.min_le_right _ _
@@ -115,11 +116,11 @@ theorem pop_EE_clause (c : context) (need available : List valtype) (n : Nat)
   exact SpecTecExecution.Eval.pure _
 
 theorem pop_EN_clause (c : context) (need available : List valtype) (n : Nat)
-    (hm : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    (hm : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (available.drop (available.length-min need.length available.length)) need⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:2» c (.Ellipses,need) (.NoEllipses,available))
       n (.success (.of ((.NoEllipses,[]) : inferresulttype))) n := by
   have ha : min need.length available.length≤available.length := Nat.min_le_right _ _
@@ -143,11 +144,11 @@ theorem pop_EN_clause (c : context) (need available : List valtype) (n : Nat)
   exact SpecTecExecution.Eval.pure _
 
 theorem pop_dispatch (c : context) (need available : inferresulttype) (n : Nat)
-    (hm : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (actual need available) need.2⟩)
+    (hm : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (actual need available) need.2⟩)
       n (.success (.of ())) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» c need available⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» c need available⟩)
       n (.success (.of (remaining need available))) n := by
   rcases need with ⟨ne,ns⟩
   rcases available with ⟨ae,as⟩
@@ -156,39 +157,39 @@ theorem pop_dispatch (c : context) (need available : inferresulttype) (n : Nat)
     cases ae with
     | Ellipses =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.«$pop_clauses» c (.Ellipses,ns) (.Ellipses,as)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.«$pop_clauses» c (.Ellipses,ns) (.Ellipses,as)))
         n (.success (.of (remaining (.Ellipses,ns) (.Ellipses,as)))) n
-      apply SpecTecExecution.firstSuccess_cons_success
+      apply SpecTecExecution.tryClauses_cons_success
       exact pop_EE_clause c ns as n hm
     | NoEllipses =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.«$pop_clauses» c (.Ellipses,ns) (.NoEllipses,as)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.«$pop_clauses» c (.Ellipses,ns) (.NoEllipses,as)))
         n (.success (.of (remaining (.Ellipses,ns) (.NoEllipses,as)))) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«$pop:clause:0» c (.Ellipses,ns) (.NoEllipses,as)) n .unmatch n
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body (SpecTec.«$pop:clause:0» c (.Ellipses,ns) (.NoEllipses,as)) n .unmatch n
         unfold SpecTec.«$pop:clause:0»
         apply SpecTecExecution.Eval.bind_success (SpecTecExecution.Eval.guard_true rfl)
         exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:ellipses:Ellipses»]))
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«$pop:clause:1» c (.Ellipses,ns) (.NoEllipses,as)) n .unmatch n
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body (SpecTec.«$pop:clause:1» c (.Ellipses,ns) (.NoEllipses,as)) n .unmatch n
         unfold SpecTec.«$pop:clause:1»
         exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:ellipses:NoEllipses»]))
-      apply SpecTecExecution.firstSuccess_cons_success
+      apply SpecTecExecution.tryClauses_cons_success
       exact pop_EN_clause c ns as n hm
   | NoEllipses =>
     cases ae with
     | Ellipses =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess (SpecTec.«$pop_clauses» c (.NoEllipses,ns) (.Ellipses,as)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses (SpecTec.«$pop_clauses» c (.NoEllipses,ns) (.Ellipses,as)))
         n (.success (.of (remaining (.NoEllipses,ns) (.Ellipses,as)))) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram (SpecTec.«$pop:clause:0» c (.NoEllipses,ns) (.Ellipses,as)) n .unmatch n
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body (SpecTec.«$pop:clause:0» c (.NoEllipses,ns) (.Ellipses,as)) n .unmatch n
         unfold SpecTec.«$pop:clause:0»
         exact SpecTecExecution.Eval.bind_unmatch (SpecTecExecution.Eval.guard_false (by simp [SpecTec.«exec:match:ellipses:Ellipses»]))
-      apply SpecTecExecution.firstSuccess_cons_success
+      apply SpecTecExecution.tryClauses_cons_success
       exact pop_NE_clause c ns as n hm
     | NoEllipses =>
       have hlen := (MatchResulttypeValidation.match_resulttype_success_iff c _ _ n n).1 hm |>.1
@@ -206,8 +207,8 @@ theorem pop_plan_sound (c : context) (need available result : inferresulttype) (
     (hn : ∀t∈need.2,CandidateValMatch.InTableVal c t)
     (ha : ∀t∈available.2,CandidateValMatch.InTableVal c t)
     (h : popPlan c need available=some result) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» c need available⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» c need available⟩)
       n (.success (.of result)) n := by
   unfold popPlan at h
   split at h
@@ -220,11 +221,11 @@ theorem pop_plan_sound (c : context) (need available result : inferresulttype) (
 
 theorem clause0_has_match (c : context) (ns as : List valtype)
     (r : inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:0» c (.Ellipses,ns) (.Ellipses,as))
       start (.success (.of r)) finish) :
-    ∃a b, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    ∃a b, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (actual (.Ellipses,ns) (.Ellipses,as)) ns⟩) a (.success (.of ())) b := by
   unfold SpecTec.«$pop:clause:0» at h
   cases h with | bind_success _ h =>
@@ -252,11 +253,11 @@ theorem clause0_has_match (c : context) (ns as : List valtype)
 
 theorem clause1_has_match (c : context) (ns as : List valtype)
     (r : inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:1» c (.NoEllipses,ns) (.Ellipses,as))
       start (.success (.of r)) finish) :
-    ∃a b, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    ∃a b, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (actual (.NoEllipses,ns) (.Ellipses,as)) ns⟩) a (.success (.of ())) b := by
   unfold SpecTec.«$pop:clause:1» at h
   cases h with | bind_success _ h =>
@@ -284,11 +285,11 @@ theorem clause1_has_match (c : context) (ns as : List valtype)
 
 theorem clause2_has_match (c : context) (ns as : List valtype)
     (r : inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:2» c (.Ellipses,ns) (.NoEllipses,as))
       start (.success (.of r)) finish) :
-    ∃a b, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    ∃a b, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (actual (.Ellipses,ns) (.NoEllipses,as)) ns⟩) a (.success (.of ())) b := by
   unfold SpecTec.«$pop:clause:2» at h
   cases h with | bind_success _ h =>
@@ -313,11 +314,11 @@ theorem clause2_has_match (c : context) (ns as : List valtype)
 
 theorem clause3_has_match (c : context) (ns as : List valtype)
     (r : inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$pop:clause:3» c (.NoEllipses,ns) (.NoEllipses,as))
       start (.success (.of r)) finish) :
-    ∃a b, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c
+    ∃a b, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c
         (actual (.NoEllipses,ns) (.NoEllipses,as)) ns⟩) a (.success (.of ())) b := by
   unfold SpecTec.«$pop:clause:3» at h
   cases h with | bind_success _ h =>
@@ -341,19 +342,19 @@ theorem clause3_has_match (c : context) (ns as : List valtype)
         exact ⟨_,_,by simpa only [actual,width,ht] using hm⟩
 
 theorem pop_has_match (c : context) (need available r : inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» c need available⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» c need available⟩)
       start (.success (.of r)) finish) :
-    ∃a b, SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c (actual need available) need.2⟩)
+    ∃a b, SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c (actual need available) need.2⟩)
       a (.success (.of ())) b := by
   rcases need with ⟨ne,ns⟩
   rcases available with ⟨ae,as⟩
   cases h with | call h =>
-   change SpecTecExecution.Eval SpecTec.specTecProgram
-     (SpecTecExecution.firstSuccess (SpecTec.«$pop_clauses» c (ne,ns) (ae,as)) ())
+   change SpecTecExecution.Eval SpecTec.Body
+     (SpecTecExecution.tryClauses (SpecTec.«$pop_clauses» c (ne,ns) (ae,as)))
      start (.success (.of r)) finish at h
-   obtain ⟨idx,h⟩ := (SpecTecExecution.firstSuccess_success_iff _ _ _ _ _).1 h
+   obtain ⟨idx,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.«$pop_clauses» at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩⟩
    · cases ne <;> cases ae
@@ -402,8 +403,8 @@ theorem pop_plan_complete (c : context) (need available result : inferresulttype
     (start finish : Nat) (hr : CandidateTypeReady.Ready c)
     (hn : ∀t∈need.2,CandidateValMatch.InTableVal c t)
     (ha : ∀t∈available.2,CandidateValMatch.InTableVal c t)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferresulttype,SpecTecCall.«$pop» c need available⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferresulttype,Call.«$pop» c need available⟩)
       start (.success (.of result)) finish) :
     popPlan c need available=some result ∧ finish=start := by
   obtain ⟨a,b,hm⟩ := pop_has_match c need available result start finish h
@@ -411,9 +412,7 @@ theorem pop_plan_complete (c : context) (need available result : inferresulttype
     (actual_table c need available ha) hn hm
   have hp : popPlan c need available=some (remaining need available) := by simp [popPlan,hb]
   have hs := pop_plan_sound c need available _ start hr hn ha hp
-  have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request x y hx; cases hx
-  obtain ⟨he,hf⟩ := SpecTecExecution.eval_deterministic hd h hs
+  obtain ⟨he,hf⟩ := properties.wasm_module_ok.Execution.eval_deterministic h hs
   cases he
   exact ⟨hp,hf⟩
 

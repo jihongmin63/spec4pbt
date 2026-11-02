@@ -11,8 +11,8 @@ structure Result (before : context) where
   types : List SpecTec.type
   after : context
   state : State after
-  correct : ∀ n : Nat, SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨context,SpecTec.SpecTecCall.Types_ok before types⟩) n (.success (.of after)) n
+  correct : ∀ n : Nat, SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨context,SpecTec.Call.Types_ok before types⟩) n (.success (.of after)) n
 
 def done (c : context) (state : State c) : Result c :=
   ⟨[],c,state,EmptyStageValidation.types_nil_total c⟩
@@ -62,8 +62,8 @@ theorem sized_length (count : Nat) (c : context) (state : State c) (out : Result
 
 theorem sized_complete (c result : context) (state : State c) (ts : List SpecTec.type)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Types_ok c ts⟩) start (.success (.of result)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Types_ok c ts⟩) start (.success (.of result)) finish) :
     ∃ out : Result c, Gen.support (sized ts.length c state) out ∧
       out.types = ts ∧ out.after = result := by
   induction ts generalizing c result start finish with
@@ -86,8 +86,8 @@ theorem sized_complete (c result : context) (state : State c) (ts : List SpecTec
 
 theorem generate_complete (c result : context) (state : State c) (ts : List SpecTec.type)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Types_ok c ts⟩) start (.success (.of result)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Types_ok c ts⟩) start (.success (.of result)) finish) :
     ∃ out : Result c, Gen.support (generate c state) out ∧ out.types = ts ∧ out.after = result := by
   obtain ⟨out,hg,hs,ho⟩ := sized_complete c result state ts start finish h
   exact ⟨out,⟨ts.length,by simp,hg⟩,hs,ho⟩
@@ -96,8 +96,8 @@ theorem generate_complete (c result : context) (state : State c) (ts : List Spec
 count, arbitrary group size, every raw alias and both fresh/copy classes. -/
 theorem types_exact (c : context) (state : State c) (ts : List SpecTec.type) (n : Nat) :
     Gen.support (types c state) ts ↔ ∃ result : context,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨context,SpecTec.SpecTecCall.Types_ok c ts⟩) n (.success (.of result)) n := by
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨context,SpecTec.Call.Types_ok c ts⟩) n (.success (.of result)) n := by
   constructor
   · rintro ⟨out,_,rfl⟩
     exact ⟨out.after,out.correct n⟩

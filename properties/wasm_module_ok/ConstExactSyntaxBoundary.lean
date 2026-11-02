@@ -8,19 +8,19 @@ namespace properties.wasm_module_ok.ConstExactSyntaxBoundary
 theorem const_ok_success_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) fin ↔
     (∀ i ∈ xs, ConstAdditionalSyntaxValidation.Syntax c i) ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Block_ok c
         (.InstrT [] [t] []) xs⟩)
       n (.success (.of ())) fin := by
   constructor
   · intro hcall
     cases hcall with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Const_ok:clause:0» c t xs)
           (fun _ => .unmatch))
         n (.success (.of ())) fin at hbody
@@ -40,12 +40,12 @@ theorem const_ok_success_iff
       | orElse_unmatch _ hnone => cases hnone
   · rintro ⟨hall, hblock⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Const_ok_clauses c t xs) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Const_ok_clauses c t xs))
       n (.success (.of ())) fin
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Const_ok:clause:0» c t xs)
       n (.success (.of ())) fin
     unfold SpecTec.«Const_ok:clause:0»
@@ -57,20 +57,20 @@ theorem const_ok_success_iff
 theorem const_ok_trace_iff
     (c : SpecTec.context) (t : SpecTec.valtype)
     (xs : SpecTec.const) (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       n (.success (.of ())) fin ↔
     (∀ i ∈ xs, ConstAdditionalSyntaxValidation.Syntax c i) ∧
     ∃ (irt : SpecTec.inferresulttype) (indices : List SpecTec.idx)
       (ellipses : SpecTec.ellipses) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, []) xs⟩)
         n (.success (.of (irt, indices))) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.ellipses × SpecTec.resulttype,
-          SpecTec.SpecTecCall.«$pop» c
+          SpecTec.Call.«$pop» c
             (.NoEllipses, [t]) irt⟩)
         middle (.success (.of (ellipses, ([] : List SpecTec.valtype))))
           fin := by

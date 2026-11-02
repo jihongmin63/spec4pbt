@@ -11,9 +11,9 @@ theorem static_structural_match_total
     (sourceFin : SpecTec.final) (sourceHts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (dt : SpecTec.deftype)
     (subStart subFinish n : Nat)
-    (hsub : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hsub : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c
+        SpecTec.Call.Subtype_ok c
           (.SubT sourceFin sourceHts strt)⟩)
       subStart (.success (.of ())) subFinish)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
@@ -25,9 +25,9 @@ theorem static_structural_match_total
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT fin hts strtU) ∧
       ∃ result : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_strtype» c.TYPES strt strtU⟩)
+            SpecTec.Call.«$match_strtype» c.TYPES strt strtU⟩)
           n (.success (.of result)) n := by
   classical
   obtain ⟨fin, hts, strtU, hunroll, hforward⟩ :=
@@ -47,9 +47,9 @@ theorem static_structural_match_total
       h2 ∈ ReadyMatchReachability.sourceHeaptypes strt)
   have htotal : ∀ h1 h2, relevant h1 h2 →
       ∃ result : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_heaptype» c.TYPES h1 h2⟩)
+            SpecTec.Call.«$match_heaptype» c.TYPES h1 h2⟩)
           n (.success (.of result)) n := by
     intro h1 h2 hp
     rcases hp with ⟨hs, ht⟩ | ⟨ht, hs⟩
@@ -60,9 +60,9 @@ theorem static_structural_match_total
       if hp : relevant h1 h2 then Classical.choose (htotal h1 h2 hp)
       else false
   have hpair : ∀ h1 h2, relevant h1 h2 →
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Bool,
-          SpecTec.SpecTecCall.«$match_heaptype» c.TYPES h1 h2⟩)
+          SpecTec.Call.«$match_heaptype» c.TYPES h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n := by
     intro h1 h2 hp
     simpa [heapMatch, dif_pos hp] using

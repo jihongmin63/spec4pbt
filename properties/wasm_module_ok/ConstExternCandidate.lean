@@ -8,17 +8,17 @@ namespace properties.wasm_module_ok.ConstExternCandidate
 theorem type_externop_output
     (op : SpecTec.externop_) (ht1 ht2 : SpecTec.heaptype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$type_externop» op⟩)
+        SpecTec.Call.«$type_externop» op⟩)
       start (.success (.of (ht1, ht2))) fin) :
     ht2 = .AnyHT ∨ ht2 = .ExternHT := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«$type_externop:clause:0» op)
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«$type_externop:clause:1» op] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«$type_externop:clause:1» op]))
       start (.success (.of (ht1, ht2))) fin at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -28,7 +28,7 @@ theorem type_externop_output
         cases hpure with
         | pure => exact Or.inl rfl
     | orElse_unmatch _ hrest =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$type_externop:clause:1» op)
           (fun _ => .unmatch))
         start (.success (.of (ht1, ht2))) fin at hrest
@@ -45,9 +45,9 @@ theorem extern_convert_effect_candidate
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (op : SpecTec.externop_) (iit : SpecTec.inferinstrtype)
     (start fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+        SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
       start (.success (.of iit)) fin) :
     ∃ need outs : List SpecTec.valtype,
       iit.1.INS = (.NoEllipses, need) ∧

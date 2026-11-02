@@ -12,8 +12,8 @@ def signature (c : context) (x : Nat) (hf : (FunctionTypeValidation.funcTypeResu
   | none => False.elim (by simp [he] at hf)
 
 abbrev Result (c : context) (x : Nat) :=
-  {f : SpecTec.func // f.FTYPE=x ∧ ∀n,SpecTecExecution.Eval specTecProgram
-    (.call ⟨Unit,SpecTecCall.Funcbody_ok c f⟩) n (.success (.of ())) n}
+  {f : SpecTec.func // f.FTYPE=x ∧ ∀n,SpecTecExecution.Eval Body
+    (.call ⟨Unit,Call.Funcbody_ok c f⟩) n (.success (.of ())) n}
 
 def finish (c : context) (env : Env c) (x : Nat) (args results : List valtype)
     (hf : FunctionTypeValidation.funcTypeResult c x=some (.FuncT args results)) (ls : Locals c)
@@ -47,7 +47,7 @@ theorem generate_audit (c : context) (env : Env c) (x : Nat)
 
 theorem fromSignature_complete (c : context) (env : Env c) (x : Nat) (s : Signature c x)
     (f : SpecTec.func) (hx : f.FTYPE=x) (start endSupply : Nat)
-    (h : SpecTecExecution.Eval specTecProgram (.call ⟨Unit,SpecTecCall.Funcbody_ok c f⟩)
+    (h : SpecTecExecution.Eval Body (.call ⟨Unit,Call.Funcbody_ok c f⟩)
       start (.success (.of ())) endSupply) :
     ∃out : Result c x,Gen.support (fromSignature c env x s).generator out ∧ out.val=f := by
   obtain ⟨args,results,hf,hl,hbody⟩ := (FuncbodyTrace.funcbody_success_iff_precomputed c f start endSupply).1 h
@@ -69,7 +69,7 @@ theorem fromSignature_complete (c : context) (env : Env c) (x : Nat) (s : Signat
 theorem generate_complete (c : context) (env : Env c) (x : Nat)
     (hf : (FunctionTypeValidation.funcTypeResult c x).isSome=true)
     (f : SpecTec.func) (hx : f.FTYPE=x) (start endSupply : Nat)
-    (h : SpecTecExecution.Eval specTecProgram (.call ⟨Unit,SpecTecCall.Funcbody_ok c f⟩)
+    (h : SpecTecExecution.Eval Body (.call ⟨Unit,Call.Funcbody_ok c f⟩)
       start (.success (.of ())) endSupply) :
     ∃out : Result c x,Gen.support (generate c env x hf) out ∧ out.val=f :=
   fromSignature_complete c env x (signature c x hf) f hx start endSupply h

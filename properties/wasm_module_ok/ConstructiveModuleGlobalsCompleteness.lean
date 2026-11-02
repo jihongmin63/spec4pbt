@@ -55,8 +55,8 @@ theorem sized_complete (c result : context) (env : Env c) (xs : List SpecTec.glo
       exact ⟨cons c head tail,sized_cons xs.length round c env g hg head hhead tail hg',by simp [cons,he,hxs],hout⟩
 
 theorem generate_complete (c result : context) (env : Env c) (xs : List SpecTec.global)
-    (start finish : Nat) (h : SpecTecExecution.Eval specTecProgram
-      (.call ⟨context,SpecTecCall.Globals_ok c xs⟩) start (.success (.of result)) finish) :
+    (start finish : Nat) (h : SpecTecExecution.Eval Body
+      (.call ⟨context,Call.Globals_ok c xs⟩) start (.success (.of result)) finish) :
     ∃out : Result c, Gen.support (generate c env) out ∧ out.items=xs ∧ out.after=result := by
   have hr := (GlobalsDecision.globals_result_iff_call c result xs start finish
     env.ready env.provenance env.nested).2 h |>.1

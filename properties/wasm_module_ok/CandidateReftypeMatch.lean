@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.CandidateValMatch
 import properties.wasm_module_ok.MatchReftypeLocal
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -19,8 +20,8 @@ theorem candidate_reftype_match_total
     (n : Nat) (hready : CandidateTypeReady.Ready c)
     (hsource : CandidateValMatch.InTableVal c (.RefT source))
     (htarget : CandidateValMatch.InTableVal c (.RefT target)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_reftype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_reftype»
         c.TYPES source target⟩)
       n (.success (.of (candidateReftypeMatch c source target))) n := by
   cases source with
@@ -41,19 +42,15 @@ theorem candidate_reftype_match_iff
     (hready : CandidateTypeReady.Ready c)
     (hsource : CandidateValMatch.InTableVal c (.RefT source))
     (htarget : CandidateValMatch.InTableVal c (.RefT target)) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_reftype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_reftype»
         c.TYPES source target⟩)
       start (.success (.of b)) finish ↔
     b = candidateReftypeMatch c source target ∧ finish = start := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (candidate_reftype_match_total c source target start
           hready hsource htarget)
     cases hout

@@ -12,31 +12,31 @@ theorem match_array_total_of_local_heap_at
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT a) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT b) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         n (.success (.of (heapMatch h1 h2))) n)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT b) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT a) →
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         n (.success (.of (heapMatch h2 h1))) n) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_arraytype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_arraytype» dts a b⟩)
       n (.success (.of (MatchArrayConditional.arrayMatch heapMatch a b))) n := by
   cases a with
   | ArrayT a =>
     cases b with
     | ArrayT b =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_arraytype_clauses» dts
-            (.ArrayT a) (.ArrayT b)) ())
+            (.ArrayT a) (.ArrayT b)))
         n (.success (.of
           (MatchArrayConditional.arrayMatch heapMatch (.ArrayT a) (.ArrayT b)))) n
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_arraytype:clause:0» dts
           (.ArrayT a) (.ArrayT b))
         n (.success (.of
@@ -58,31 +58,31 @@ theorem match_array_total_of_local_heap
     (hheap : ∀ h1 h2,
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT a) →
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT b) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h1 h2⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h1 h2⟩)
         supply (.success (.of (heapMatch h1 h2))) supply)
     (hheapReverse : ∀ h2 h1,
       h2 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT b) →
       h1 ∈ ReadyMatchReachability.sourceHeaptypes (.DefArrayT a) →
-      ∀ supply, SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype» dts h2 h1⟩)
+      ∀ supply, SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_heaptype» dts h2 h1⟩)
         supply (.success (.of (heapMatch h2 h1))) supply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_arraytype» dts a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_arraytype» dts a b⟩)
       n (.success (.of (MatchArrayConditional.arrayMatch heapMatch a b))) n := by
   cases a with
   | ArrayT a =>
     cases b with
     | ArrayT b =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$match_arraytype_clauses» dts
-            (.ArrayT a) (.ArrayT b)) ())
+            (.ArrayT a) (.ArrayT b)))
         n (.success (.of
           (MatchArrayConditional.arrayMatch heapMatch (.ArrayT a) (.ArrayT b)))) n
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$match_arraytype:clause:0» dts
           (.ArrayT a) (.ArrayT b))
         n (.success (.of

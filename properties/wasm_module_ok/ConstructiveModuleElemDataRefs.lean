@@ -13,8 +13,8 @@ abbrev DataAvailable (refs : SpecTec.free) (d : SpecTec.data) := ConstructiveMod
 
 theorem initializers_replace (refs : SpecTec.free) (c : context) (rt : reftype) (codes : List (List instr)) (n finish : Nat)
     (ha : ∀xs∈codes,Available refs xs)
-    (h : Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Elem_ok:rule:iter:0» c rt codes⟩) n (.success (.of ())) finish) :
-    Eval specTecProgram (.call ⟨Unit,SpecTecCall.«Elem_ok:rule:iter:0» (replace refs c) rt codes⟩) n (.success (.of ())) finish := by
+    (h : Eval Body (.call ⟨Unit,Call.«Elem_ok:rule:iter:0» c rt codes⟩) n (.success (.of ())) finish) :
+    Eval Body (.call ⟨Unit,Call.«Elem_ok:rule:iter:0» (replace refs c) rt codes⟩) n (.success (.of ())) finish := by
   induction codes generalizing n with
   | nil =>
     exact (ElemInitDecision.elem_iter_nil_success_iff _ rt n finish).2
@@ -27,15 +27,15 @@ theorem initializers_replace (refs : SpecTec.free) (c : context) (rt : reftype) 
 
 theorem elem_replace (refs : SpecTec.free) (c out : context) (e : SpecTec.elem) (n finish : Nat)
     (ha : ElementAvailable refs e)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Elem_ok c e⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Elem_ok (replace refs c) e⟩) n (.success (.of (replace refs out))) finish := by
+    (h : Eval Body (.call ⟨context,Call.Elem_ok c e⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Elem_ok (replace refs c) e⟩) n (.success (.of (replace refs out))) finish := by
   obtain ⟨n1,n2,hr,hi,hm,ho⟩ := ConstructiveModuleElemDataRules.elem_original c out e n finish h
   have hv := (ReftypeTotal.reftype_success_iff_valid c e.ETYPE n n1).1 hr
   have hr' := (ReftypeTotal.reftype_success_iff_valid (replace refs c) e.ETYPE n n1).2 hv
   rw [ho]
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.Elem_ok_clauses (replace refs c) e) ()) n _ finish
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.Elem_ok_clauses (replace refs c) e)) n _ finish
+  apply tryClauses_cons_success
   unfold SpecTec.«Elem_ok:clause:0»
   apply Eval.bind_success hr'
   apply Eval.bind_success (initializers_replace refs c e.ETYPE e.EINIT n1 n2 ha.1 hi)
@@ -44,18 +44,18 @@ theorem elem_replace (refs : SpecTec.free) (c out : context) (e : SpecTec.elem) 
 
 theorem data_replace (refs : SpecTec.free) (c out : context) (e : SpecTec.data) (n finish : Nat)
     (ha : DataAvailable refs e)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Data_ok c e⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Data_ok (replace refs c) e⟩) n (.success (.of (replace refs out))) finish := by
+    (h : Eval Body (.call ⟨context,Call.Data_ok c e⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Data_ok (replace refs c) e⟩) n (.success (.of (replace refs out))) finish := by
   obtain ⟨hm,ho⟩ := ConstructiveModuleElemDataRules.data_original c out e n finish h
   rw [ho]
   apply Eval.call
-  change Eval specTecProgram (firstSuccess (SpecTec.Data_ok_clauses (replace refs c) e) ()) n _ finish
-  apply firstSuccess_cons_success
+  change Eval Body (tryClauses (SpecTec.Data_ok_clauses (replace refs c) e)) n _ finish
+  apply tryClauses_cons_success
   unfold SpecTec.«Data_ok:clause:0»
   exact Eval.bind_success (ConstructiveModuleModeRefs.data_replace refs c e.DMODE n finish ha hm) (Eval.pure _)
 
 theorem elem_bounded (c out : context) (e : SpecTec.elem) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Elem_ok c e⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Elem_ok c e⟩) n (.success (.of out)) finish) :
     ElementAvailable (ConstructiveModuleRefsBounds.allFunctions c) e := by
   obtain ⟨n1,n2,hr,hi,hm,ho⟩ := ConstructiveModuleElemDataRules.elem_original c out e n finish h
   constructor
@@ -72,7 +72,7 @@ theorem elem_bounded (c out : context) (e : SpecTec.elem) (n finish : Nat)
       exact ConstructiveModuleRefsBounds.allFunctions_has c x (ConstructiveModuleRefsBounds.constant_bound c vt a.OFFSET j k hc x hx)
 
 theorem data_bounded (c out : context) (e : SpecTec.data) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Data_ok c e⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Data_ok c e⟩) n (.success (.of out)) finish) :
     DataAvailable (ConstructiveModuleRefsBounds.allFunctions c) e := by
   obtain ⟨hm,_⟩ := ConstructiveModuleElemDataRules.data_original c out e n finish h
   change ConstructiveModuleModeRefs.DataAvailable (ConstructiveModuleRefsBounds.allFunctions c) e.DMODE

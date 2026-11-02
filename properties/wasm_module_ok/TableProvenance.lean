@@ -92,8 +92,8 @@ theorem tables_ok_provenance (c out : SpecTec.context)
     (hready : CandidateTypeReady.Ready c)
     (hcandidates : CandidateUniverseReady.Provenance c)
     (hnested : CandidateNestedReady.nestedTableReady c = true)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tables_ok c tabs⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tables_ok c tabs⟩)
       start (.success (.of out)) finish) : Provenance out := by
   exact tables_result_provenance c out tabs hprov
     ((TablesDecision.tables_result_iff_call c out tabs start finish
@@ -182,8 +182,8 @@ theorem imports_result_provenance (c out : SpecTec.context)
 theorem imports_ok_provenance (c out : SpecTec.context)
     (is : List SpecTec.«import») (start finish : Nat)
     (hprov : Provenance c)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       start (.success (.of out)) finish) : Provenance out := by
   exact imports_result_provenance c out is hprov
     ((ImportsValidation.imports_success_iff_result

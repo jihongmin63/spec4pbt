@@ -11,8 +11,8 @@ open properties.wasm_module_ok.ConstructiveTypeCopyRealization
 transformation after arbitrary later groups have extended the prefix. -/
 theorem stored_closure (before after c : context) (sts : List SpecTec.subtype)
     (start finish : Nat) (tail : List deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (he : c.TYPES=after.TYPES++tail)
     (hle : before.TYPES.length≤c.TYPES.length)
@@ -39,14 +39,14 @@ theorem stored_closure (before after c : context) (sts : List SpecTec.subtype)
 valid ASTs. No normalized syntax or chosen representative is imposed. -/
 theorem copy_complete (before after c result : context) (sts outs : List SpecTec.subtype)
     (start finish newStart newFinish : Nat) (tail : List deftype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (he : c.TYPES=after.TYPES++tail)
     (hle : before.TYPES.length≤c.TYPES.length)
     (hb : GroupBound (before.TYPES.length+sts.length) sts)
-    (hout : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT outs)⟩)
+    (hout : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT outs)⟩)
       newStart (.success (.of result)) newFinish)
     (hsame : CandidateRectypeTable.transformed c outs=CandidateRectypeTable.transformed before sts) :
     Gen.support (group c.TYPES before.TYPES.length hle sts hb) (.RecT outs) := by

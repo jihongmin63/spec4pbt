@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ImportValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -19,24 +20,24 @@ def importsOutcome (c : SpecTec.context) (is : List SpecTec.«import») :
 
 theorem imports_total (c : SpecTec.context)
     (is : List SpecTec.«import») (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       n (importsOutcome c is) n := by
   induction is generalizing c with
   | nil =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Imports_ok_clauses c []) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Imports_ok_clauses c []))
       n (importsOutcome c []) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Imports_ok:clause:0» c []) n .unmatch n
       unfold SpecTec.«Imports_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Imports_ok:clause:1» c [])
         n (importsOutcome c []) n
       unfold SpecTec.«Imports_ok:clause:1»
@@ -48,39 +49,39 @@ theorem imports_total (c : SpecTec.context)
     cases hhead : ImportValidation.importDeclResult c i with
     | none =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Imports_ok_clauses c (i :: is)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Imports_ok_clauses c (i :: is)))
         n (importsOutcome c (i :: is)) n
       simp only [importsOutcome, importsResult, hhead, Option.bind_none]
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Imports_ok:clause:0» c (i :: is)) n .unmatch n
         unfold SpecTec.«Imports_ok:clause:0»
         apply SpecTecExecution.Eval.bind_success
         · exact SpecTecExecution.Eval.guard_true rfl
         · apply SpecTecExecution.Eval.bind_unmatch
           exact ImportValidation.import_ok_none c i n hhead
-      · apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+      · apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Imports_ok:clause:1» c (i :: is)) n .unmatch n
           unfold SpecTec.«Imports_ok:clause:1»
           apply SpecTecExecution.Eval.bind_unmatch
           apply SpecTecExecution.Eval.guard_false
           simp
-        · exact SpecTecExecution.firstSuccess_nil () n
+        · exact SpecTecExecution.tryClauses_nil n
     | some c₁ =>
       cases htail : importsResult c₁ is with
       | none =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Imports_ok_clauses c (i :: is)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Imports_ok_clauses c (i :: is)))
           n (importsOutcome c (i :: is)) n
         simp only [importsOutcome, importsResult, hhead,
           Option.bind_some, htail]
-        apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Imports_ok:clause:0» c (i :: is)) n .unmatch n
           unfold SpecTec.«Imports_ok:clause:0»
           apply SpecTecExecution.Eval.bind_success
@@ -90,24 +91,24 @@ theorem imports_total (c : SpecTec.context)
                 c i c₁ n n).2 ⟨hhead, rfl⟩
             · apply SpecTecExecution.Eval.bind_unmatch
               simpa [importsOutcome, htail] using ih c₁
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
-          · change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_unmatch
+          · change SpecTecExecution.Eval SpecTec.Body
               (SpecTec.«Imports_ok:clause:1» c (i :: is)) n .unmatch n
             unfold SpecTec.«Imports_ok:clause:1»
             apply SpecTecExecution.Eval.bind_unmatch
             apply SpecTecExecution.Eval.guard_false
             simp
-          · exact SpecTecExecution.firstSuccess_nil () n
+          · exact SpecTecExecution.tryClauses_nil n
       | some result =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Imports_ok_clauses c (i :: is)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Imports_ok_clauses c (i :: is)))
           n (importsOutcome c (i :: is)) n
         simp only [importsOutcome, importsResult, hhead,
           Option.bind_some, htail]
-        apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Imports_ok:clause:0» c (i :: is))
           n (.success (.of result)) n
         unfold SpecTec.«Imports_ok:clause:0»
@@ -123,17 +124,14 @@ theorem imports_total (c : SpecTec.context)
 theorem imports_success_iff_result (c : SpecTec.context)
     (is : List SpecTec.«import») (result : SpecTec.context)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       n (.success (.of result)) finalSupply ↔
     importsResult c is = some result ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (imports_total c is n)
+      properties.wasm_module_ok.Execution.eval_deterministic h (imports_total c is n)
     cases hr : importsResult c is with
     | none => simp [importsOutcome, hr] at hout
     | some result' =>
@@ -146,8 +144,8 @@ theorem imports_success_iff_result (c : SpecTec.context)
 theorem imports_none (c : SpecTec.context)
     (is : List SpecTec.«import») (n : Nat)
     (hr : importsResult c is = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Imports_ok c is⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Imports_ok c is⟩)
       n .unmatch n := by
   simpa [importsOutcome, hr] using imports_total c is n
 

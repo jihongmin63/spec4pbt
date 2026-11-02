@@ -105,8 +105,8 @@ theorem completed_body_total
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (ft : SpecTec.functype) (n : Nat)
     (hft : FunctionTypeValidation.funcTypeResult c x = some ft) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Funcbody_ok c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Funcbody_ok c
         (completedFunction x)⟩)
       n (.success (.of ())) n := by
   cases ft with
@@ -122,8 +122,8 @@ theorem completed_bodies_of_types
     (n : Nat)
     (hall : ∀ x ∈ xs,
       ∃ ft, FunctionTypeValidation.funcTypeResult c x = some ft) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Module_ok:rule:iter:2» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Module_ok:rule:iter:2» c
         (xs.map completedFunction)⟩)
       n (.success (.of ())) n := by
   induction xs generalizing n with
@@ -142,8 +142,8 @@ theorem completed_bodies_total
     (c out : SpecTec.context) (xs : List SpecTec.typeidx)
     (n : Nat)
     (h : FuncHeadersStageGenerator.headerResult c xs = some out) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Module_ok:rule:iter:2» c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Module_ok:rule:iter:2» c
         (xs.map completedFunction)⟩)
       n (.success (.of ())) n := by
   exact completed_bodies_of_types c xs n
@@ -155,8 +155,8 @@ theorem completed_bodies_total_of_same_types
     (h : FuncHeadersStageGenerator.headerResult
       headerContext xs = some out)
     (htypes : headerContext.TYPES = bodyContext.TYPES) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Module_ok:rule:iter:2»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Module_ok:rule:iter:2»
         bodyContext (xs.map completedFunction)⟩)
       n (.success (.of ())) n := by
   apply completed_bodies_of_types bodyContext xs n

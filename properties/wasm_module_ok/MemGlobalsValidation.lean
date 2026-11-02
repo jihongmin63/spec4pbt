@@ -41,9 +41,9 @@ theorem mems_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Mems_ok c ms⟩)
+        SpecTec.Call.Mems_ok c ms⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by

@@ -22,8 +22,8 @@ theorem special_base_def_result
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hsource : source ∈ specialBaseSources) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.DefHT dt)⟩)
       n (.success (.of (specialBaseMatch dt source))) n := by
   simp [specialBaseSources] at hsource
@@ -61,8 +61,8 @@ theorem special_base_statx_result
     (hready : CandidateTypeReady.Ready c)
     (hlookup : c.TYPES[p]? = some dt)
     (hsource : source ∈ specialBaseSources) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_heaptype»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_heaptype»
         c.TYPES source (.VarHT (.StatX p))⟩)
       n (.success (.of (specialBaseMatch dt source))) n := by
   simp [specialBaseSources] at hsource

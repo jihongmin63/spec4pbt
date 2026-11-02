@@ -29,14 +29,14 @@ theorem ready_match_heaptype_exists_search
     (hunroll : unrollDeftypeResult dtP = some (.SubT fin hts strt))
     (hIH : ∀ k dt, k < p → c.TYPES[k]? = some dt →
       ∀ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dt dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dt dtQ⟩)
           start (.success (.of r)) start ↔
         r = matchIndex c k q) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_heaptype_exists» c.TYPES hts dtQ⟩)
+        SpecTec.Call.«$match_heaptype_exists» c.TYPES hts dtQ⟩)
       start (.success (.of (hts.any (headSearch c p q)))) start := by
   have hedges :=
     ReadyTypeInterfaces.ready_unrolled_supertype_member_for_result

@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.bundle.Helpers
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -6,16 +7,16 @@ namespace properties.wasm_module_ok.InstrsValidation
 
 theorem instrs_nil_total (c : SpecTec.context)
     (irt : SpecTec.inferresulttype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt []⟩)
+        SpecTec.Call.Instrs_ok c irt []⟩)
       n (.success (.of (irt, ([] : List SpecTec.idx)))) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Instrs_ok_clauses c irt []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Instrs_ok_clauses c irt []))
     n (.success (.of (irt, ([] : List SpecTec.idx)))) n
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Instrs_ok:clause:0» c irt [])
     n (.success (.of (irt, ([] : List SpecTec.idx)))) n
   unfold SpecTec.«Instrs_ok:clause:0»
@@ -28,18 +29,15 @@ theorem instrs_nil_success_iff (c : SpecTec.context)
     (irt : SpecTec.inferresulttype)
     (result : SpecTec.inferresulttype × List SpecTec.idx)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt []⟩)
+        SpecTec.Call.Instrs_ok c irt []⟩)
       n (.success (.of result)) finalSupply ↔
     result = (irt, ([] : List SpecTec.idx)) ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (instrs_nil_total c irt n)
+      properties.wasm_module_ok.Execution.eval_deterministic h (instrs_nil_total c irt n)
     cases hout
     exact ⟨rfl, hsupply⟩
   · rintro ⟨rfl, rfl⟩
@@ -50,42 +48,42 @@ theorem instrs_cons_success_iff
     (instr : SpecTec.instr) (rest : List SpecTec.instr)
     (result : SpecTec.inferresulttype × List SpecTec.idx)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c irt (instr :: rest)⟩)
+        SpecTec.Call.Instrs_ok c irt (instr :: rest)⟩)
       n (.success (.of result)) finalSupply ↔
     ∃ (iit : SpecTec.inferinstrtype) (c₁ : SpecTec.context)
       (popped pushed : SpecTec.inferresulttype)
       (middle₁ middle₂ middle₃ middle₄ : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferinstrtype,
-          SpecTec.SpecTecCall.Instr_ok c irt instr⟩)
+          SpecTec.Call.Instr_ok c irt instr⟩)
         n (.success (.of iit)) middle₁ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.context,
-          SpecTec.SpecTecCall.«$init_locals» c iit.2⟩)
+          SpecTec.Call.«$init_locals» c iit.2⟩)
         middle₁ (.success (.of c₁)) middle₂ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$pop» c iit.1.INS irt⟩)
+          SpecTec.Call.«$pop» c iit.1.INS irt⟩)
         middle₂ (.success (.of popped)) middle₃ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype,
-          SpecTec.SpecTecCall.«$push» c iit.1.OUTS popped⟩)
+          SpecTec.Call.«$push» c iit.1.OUTS popped⟩)
         middle₃ (.success (.of pushed)) middle₄ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c₁ pushed rest⟩)
+          SpecTec.Call.Instrs_ok c₁ pushed rest⟩)
         middle₄ (.success (.of result)) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Instrs_ok:clause:0» c irt (instr :: rest))
-          (fun _ => SpecTecExecution.firstSuccess
+          (fun _ => SpecTecExecution.tryClauses
             [fun _ => SpecTec.«Instrs_ok:clause:1» c irt
-              (instr :: rest)] ()))
+              (instr :: rest)]))
         n (.success (.of result)) finalSupply at hbody
       cases hbody with
       | orElse_success hfirst =>
@@ -95,7 +93,7 @@ theorem instrs_cons_success_iff
           cases hguard with
           | guard_true hcond => simp at hcond
       | orElse_unmatch _ htail =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Instrs_ok:clause:1» c irt
               (instr :: rest))
             (fun _ => .unmatch))
@@ -130,20 +128,20 @@ theorem instrs_cons_success_iff
       middle₁, middle₂, middle₃, middle₄,
       hinstr, hinit, hpop, hpush, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Instrs_ok_clauses c irt (instr :: rest)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Instrs_ok_clauses c irt (instr :: rest)))
       n (.success (.of result)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Instrs_ok:clause:0» c irt (instr :: rest))
         n .unmatch n
       unfold SpecTec.«Instrs_ok:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       apply SpecTecExecution.Eval.guard_false
       simp
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Instrs_ok:clause:1» c irt (instr :: rest))
         n (.success (.of result)) finalSupply
       unfold SpecTec.«Instrs_ok:clause:1»

@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ConstructiveBodyProductionCoverage
 import properties.wasm_module_ok.ConstructiveBodyEvalReduction
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyStepCoverage
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyEnvironment ConstructiveBodyProductions ConstructiveBodyProductionCoverage ConstructiveConstTableCore
@@ -10,19 +11,19 @@ theorem original (c : context) (stack : inferresulttype) (env : Env c)
     (hs : StackBacked c stack) (ps : List (Production c stack)) (i : instr) (effect : inferinstrtype)
     (nextContext : context) (popped nextStack : inferresulttype) (n n1 n2 n3 n4 : Nat)
     (hc : Covers ps i effect)
-    (hi : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack i⟩) n (.success (.of effect)) n1)
-    (hl : Eval SpecTec.specTecProgram (.call ⟨context,SpecTecCall.«$init_locals» c effect.2⟩) n1 (.success (.of nextContext)) n2)
-    (hp : Eval SpecTec.specTecProgram (.call ⟨inferresulttype,SpecTecCall.«$pop» c effect.1.INS stack⟩) n2 (.success (.of popped)) n3)
-    (hq : Eval SpecTec.specTecProgram (.call ⟨inferresulttype,SpecTecCall.«$push» c effect.1.OUTS popped⟩) n3 (.success (.of nextStack)) n4) :
+    (hi : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack i⟩) n (.success (.of effect)) n1)
+    (hl : Eval SpecTec.Body (.call ⟨context,Call.«$init_locals» c effect.2⟩) n1 (.success (.of nextContext)) n2)
+    (hp : Eval SpecTec.Body (.call ⟨inferresulttype,Call.«$pop» c effect.1.INS stack⟩) n2 (.success (.of popped)) n3)
+    (hq : Eval SpecTec.Body (.call ⟨inferresulttype,Call.«$push» c effect.1.OUTS popped⟩) n3 (.success (.of nextStack)) n4) :
     ∃p∈ps,∃g s,prepare c stack env hs p=some g ∧ Gen.support g.generator s ∧
       s.instruction=i ∧ s.nextContext=nextContext ∧ s.nextStack=nextStack ∧ n4=n := by
   obtain ⟨p,hpMem,heff,v,hv,hiv⟩ := hc
   subst effect
   have hi' := v.property n
   rw [hiv] at hi'
-  have hn1 := (eval_deterministic ConstructiveBodyEvalReduction.deterministic hi hi').2
+  have hn1 := (properties.wasm_module_ok.Execution.eval_deterministic hi hi').2
   subst n1
-  obtain ⟨hctx,hn2⟩ := eval_deterministic ConstructiveBodyEvalReduction.deterministic hl (p.initialized n)
+  obtain ⟨hctx,hn2⟩ := properties.wasm_module_ok.Execution.eval_deterministic hl (p.initialized n)
   have hctx : nextContext=p.nextContext := by cases hctx; rfl
   subst nextContext
   subst n2

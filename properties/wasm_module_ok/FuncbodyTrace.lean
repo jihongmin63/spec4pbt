@@ -17,21 +17,21 @@ def bodyContext (c : SpecTec.context)
 theorem funcbody_success_iff
     (c : SpecTec.context) (f : SpecTec.func)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Funcbody_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Funcbody_ok c f⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ (args results : List SpecTec.valtype)
       (locals : List SpecTec.localtype) (middle₁ middle₂ : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.functype,
-          SpecTec.SpecTecCall.«$func_type» c f.FTYPE⟩)
+          SpecTec.Call.«$func_type» c f.FTYPE⟩)
         n (.success (.of (SpecTec.functype.FuncT args results))) middle₁ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨List SpecTec.localtype,
-          SpecTec.SpecTecCall.«Funcbody_ok:rule:iter:1» c f.LOCALS⟩)
+          SpecTec.Call.«Funcbody_ok:rule:iter:1» c f.LOCALS⟩)
         middle₁ (.success (.of locals)) middle₂ ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Block_ok
           (bodyContext c args results locals)
           (SpecTec.instrtype.InstrT [] results []) f.BODY⟩)
         middle₂ (.success (.of ())) finalSupply := by
@@ -39,7 +39,7 @@ theorem funcbody_success_iff
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Funcbody_ok:clause:0» c f)
           (fun _ => .unmatch))
         n (.success (.of ())) finalSupply at hbody
@@ -71,11 +71,11 @@ theorem funcbody_success_iff
   · rintro ⟨args, results, locals, middle₁, middle₂,
       htype, hlocals, hblock⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Funcbody_ok_clauses c f) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Funcbody_ok_clauses c f))
       n (.success (.of ())) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Funcbody_ok:clause:0» c f)
       n (.success (.of ())) finalSupply
     unfold SpecTec.«Funcbody_ok:clause:0»
@@ -89,17 +89,17 @@ theorem funcbody_success_iff
 theorem funcbody_success_iff_local_valid
     (c : SpecTec.context) (f : SpecTec.func)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Funcbody_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Funcbody_ok c f⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ (args results : List SpecTec.valtype) (middle : Nat),
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.functype,
-          SpecTec.SpecTecCall.«$func_type» c f.FTYPE⟩)
+          SpecTec.Call.«$func_type» c f.FTYPE⟩)
         n (.success (.of (SpecTec.functype.FuncT args results))) middle ∧
       LocalListValidation.allLocalsValid c f.LOCALS = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Block_ok
           (bodyContext c args results
             (LocalListValidation.localTypes f.LOCALS))
           (SpecTec.instrtype.InstrT [] results []) f.BODY⟩)
@@ -127,15 +127,15 @@ theorem funcbody_success_iff_local_valid
 theorem funcbody_success_iff_precomputed
     (c : SpecTec.context) (f : SpecTec.func)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Funcbody_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Funcbody_ok c f⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ (args results : List SpecTec.valtype),
       FunctionTypeValidation.funcTypeResult c f.FTYPE =
         some (.FuncT args results) ∧
       LocalListValidation.allLocalsValid c f.LOCALS = true ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Block_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Block_ok
           (bodyContext c args results
             (LocalListValidation.localTypes f.LOCALS))
           (SpecTec.instrtype.InstrT [] results []) f.BODY⟩)

@@ -5,22 +5,22 @@ set_option autoImplicit false
 namespace properties.wasm_module_ok.StartValidation
 
 theorem start_none_success (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c none⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c none⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Start_ok_clauses c none) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Start_ok_clauses c none))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Start_ok:clause:0» c none) n .unmatch n
     unfold SpecTec.«Start_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     apply SpecTecExecution.Eval.guard_false
     simp
-  · apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+  · apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Start_ok:clause:1» c none)
       n (.success (.of ())) n
     unfold SpecTec.«Start_ok:clause:1»
@@ -32,20 +32,20 @@ theorem start_none_success (c : SpecTec.context) (n : Nat) :
 theorem functype_of_strtype_success_iff
     (st : SpecTec.strtype) (ft : SpecTec.functype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.functype,
-        SpecTec.SpecTecCall.«$functype_of_strtype» st⟩)
+        SpecTec.Call.«$functype_of_strtype» st⟩)
       n (.success (.of ft)) finalSupply ↔
       st = .DefFuncT ft ∧ finalSupply = n := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$functype_of_strtype_clauses» st) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$functype_of_strtype_clauses» st))
         n (.success (.of ft)) finalSupply at hbody
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$functype_of_strtype:clause:0» st)
           (fun _ => .unmatch))
         n (.success (.of ft)) finalSupply at hbody
@@ -67,12 +67,12 @@ theorem functype_of_strtype_success_iff
     subst st
     subst finalSupply
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$functype_of_strtype_clauses» (.DefFuncT ft)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$functype_of_strtype_clauses» (.DefFuncT ft)))
       n (.success (.of ft)) n
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$functype_of_strtype:clause:0» (.DefFuncT ft))
       n (.success (.of ft)) n
     unfold SpecTec.«$functype_of_strtype:clause:0»
@@ -85,21 +85,21 @@ theorem start_some_of_expanddt
     (c : SpecTec.context) (s : SpecTec.start) (dt : SpecTec.deftype)
     (n finalSupply : Nat)
     (hget : c.FUNCS[s.SFUNC]? = some dt)
-    (hexpand : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+    (hexpand : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.strtype, SpecTec.Call.«$expanddt» dt⟩)
       n (.success (.of (SpecTec.strtype.DefFuncT
         (SpecTec.functype.FuncT [] [])))) finalSupply) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c (some s)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c (some s)⟩)
       n (.success (.of ())) finalSupply := by
   have hindex : s.SFUNC < c.FUNCS.length :=
     (List.getElem?_eq_some_iff.mp hget).1
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Start_ok_clauses c (some s)) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Start_ok_clauses c (some s)))
     n (.success (.of ())) finalSupply
-  apply SpecTecExecution.firstSuccess_cons_success
-  change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_success
+  change SpecTecExecution.Eval SpecTec.Body
     (SpecTec.«Start_ok:clause:0» c (some s))
     n (.success (.of ())) finalSupply
   unfold SpecTec.«Start_ok:clause:0»
@@ -120,24 +120,24 @@ theorem start_some_of_expanddt
 theorem start_some_success_inv
     (c : SpecTec.context) (s : SpecTec.start)
     (n finalSupply : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c (some s)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c (some s)⟩)
       n (.success (.of ())) finalSupply) :
     ∃ dt : SpecTec.deftype,
       c.FUNCS[s.SFUNC]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.strtype, SpecTec.Call.«$expanddt» dt⟩)
         n (.success (.of (SpecTec.strtype.DefFuncT
           (SpecTec.functype.FuncT [] [])))) finalSupply := by
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Start_ok_clauses c (some s)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Start_ok_clauses c (some s)))
       n (.success (.of ())) finalSupply at hbody
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    change SpecTecExecution.Eval SpecTec.Body
       (.orElse (SpecTec.«Start_ok:clause:0» c (some s))
-        (fun _ => SpecTecExecution.firstSuccess
-          [fun _ => SpecTec.«Start_ok:clause:1» c (some s)] ()))
+        (fun _ => SpecTecExecution.tryClauses
+          [fun _ => SpecTec.«Start_ok:clause:1» c (some s)]))
       n (.success (.of ())) finalSupply at hbody
     cases hbody with
     | orElse_success hfirst =>
@@ -176,7 +176,7 @@ theorem start_some_success_inv
                         | cons _ _ => cases htail
                       | cons _ _ => cases htail
     | orElse_unmatch _ htail =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Start_ok:clause:1» c (some s))
           (fun _ => .unmatch))
         n (.success (.of ())) finalSupply at htail
@@ -192,13 +192,13 @@ theorem start_some_success_inv
 theorem start_some_success_iff
     (c : SpecTec.context) (s : SpecTec.start)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c (some s)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c (some s)⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ dt : SpecTec.deftype,
       c.FUNCS[s.SFUNC]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.strtype, SpecTec.Call.«$expanddt» dt⟩)
         n (.success (.of (SpecTec.strtype.DefFuncT
           (SpecTec.functype.FuncT [] [])))) finalSupply := by
   constructor
@@ -209,22 +209,22 @@ theorem start_some_success_iff
 theorem expanddt_success_iff_unrolldt
     (dt : SpecTec.deftype) (st : SpecTec.strtype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.strtype, SpecTec.SpecTecCall.«$expanddt» dt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.strtype, SpecTec.Call.«$expanddt» dt⟩)
       n (.success (.of st)) finalSupply ↔
     ∃ (fin : SpecTec.final) (supers : List SpecTec.heaptype),
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         n (.success (.of (SpecTec.subtype.SubT fin supers st))) finalSupply := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$expanddt_clauses» dt) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$expanddt_clauses» dt))
         n (.success (.of st)) finalSupply at hbody
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«$expanddt:clause:0» dt)
           (fun _ => .unmatch))
         n (.success (.of st)) finalSupply at hbody
@@ -241,11 +241,11 @@ theorem expanddt_success_iff_unrolldt
       | orElse_unmatch _ hlast => cases hlast
   · rintro ⟨fin, supers, hunroll⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.«$expanddt_clauses» dt) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.«$expanddt_clauses» dt))
       n (.success (.of st)) finalSupply
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$expanddt:clause:0» dt)
       n (.success (.of st)) finalSupply
     unfold SpecTec.«$expanddt:clause:0»
@@ -255,14 +255,14 @@ theorem expanddt_success_iff_unrolldt
 theorem start_some_success_iff_unrolldt
     (c : SpecTec.context) (s : SpecTec.start)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c (some s)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c (some s)⟩)
       n (.success (.of ())) finalSupply ↔
     ∃ (dt : SpecTec.deftype) (fin : SpecTec.final)
         (supers : List SpecTec.heaptype),
       c.FUNCS[s.SFUNC]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         n (.success (.of (SpecTec.subtype.SubT fin supers
           (.DefFuncT (.FuncT [] []))))) finalSupply := by
   rw [start_some_success_iff]

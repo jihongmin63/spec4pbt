@@ -36,8 +36,8 @@ theorem arithmetic_cover (c : context) (hr : CandidateTypeReady.Ready c) (table 
 
 theorem extern_cover (c : context) (hr : CandidateTypeReady.Ready c) (table : List (Entry c))
     (op : externop_) (nu : null) (ht : heaptype) (tree : Typed c (.RefT (.«% %» nu ht)))
-    (hm : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c [.RefT (.«% %» nu ht)]
+    (hm : ∀ n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c [.RefT (.«% %» nu ht)]
         [.RefT (.«% %» nu (ExternopTypeDecision.typeExternopResult op).1)]⟩)
       n (.success (.of ())) n)
     (hc : Covers table tree.val) :
@@ -75,8 +75,8 @@ theorem extern_cover (c : context) (hr : CandidateTypeReady.Ready c) (table : Li
 
 theorem extern_bottom_cover (c : context) (hr : CandidateTypeReady.Ready c) (table : List (Entry c))
     (op : externop_) (tree : Typed c .BotT)
-    (hm : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c [.BotT]
+    (hm : ∀ n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c [.BotT]
         [.RefT (.«% %» .NoNull (ExternopTypeDecision.typeExternopResult op).1)]⟩)
       n (.success (.of ())) n)
     (hc : Covers table tree.val) :

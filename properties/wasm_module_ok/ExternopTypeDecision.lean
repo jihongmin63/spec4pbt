@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstExternCandidate
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,20 +11,20 @@ def typeExternopResult : SpecTec.externop_ →
   | .Externalize => (.AnyHT, .ExternHT)
 
 theorem type_externop_total (op : SpecTec.externop_) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$type_externop» op⟩)
+        SpecTec.Call.«$type_externop» op⟩)
       n (.success (.of (typeExternopResult op))) n := by
   cases op with
   | Internalize =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$type_externop_clauses» .Internalize) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$type_externop_clauses» .Internalize))
       n (.success (.of (SpecTec.heaptype.ExternHT,
         SpecTec.heaptype.AnyHT))) n
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$type_externop:clause:0» .Internalize)
       n (.success (.of (SpecTec.heaptype.ExternHT,
         SpecTec.heaptype.AnyHT))) n
@@ -33,21 +34,21 @@ theorem type_externop_total (op : SpecTec.externop_) (n : Nat) :
     · exact SpecTecExecution.Eval.pure _
   | Externalize =>
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«$type_externop_clauses» .Externalize) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«$type_externop_clauses» .Externalize))
       n (.success (.of (SpecTec.heaptype.AnyHT,
         SpecTec.heaptype.ExternHT))) n
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_externop:clause:0» .Externalize)
         n .unmatch n
       unfold SpecTec.«$type_externop:clause:0»
       apply SpecTecExecution.Eval.bind_unmatch
       exact SpecTecExecution.Eval.guard_false
         (by simp [SpecTec.«exec:match:externop_:Internalize»])
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_externop:clause:1» .Externalize)
         n (.success (.of (SpecTec.heaptype.AnyHT,
           SpecTec.heaptype.ExternHT))) n
@@ -60,19 +61,15 @@ theorem type_externop_success_iff_result
     (op : SpecTec.externop_)
     (pair : SpecTec.heaptype × SpecTec.heaptype)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype × SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$type_externop» op⟩)
+        SpecTec.Call.«$type_externop» op⟩)
       n (.success (.of pair)) finalSupply ↔
     pair = typeExternopResult op ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h
+      properties.wasm_module_ok.Execution.eval_deterministic h
         (type_externop_total op n)
     cases hout
     exact ⟨rfl, hsupply⟩

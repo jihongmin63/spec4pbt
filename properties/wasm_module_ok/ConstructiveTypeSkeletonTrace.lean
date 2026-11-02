@@ -4,6 +4,7 @@ import properties.wasm_module_ok.RectypeStaticBound
 import properties.wasm_module_ok.ValidatedStrtypeSubstitution
 import properties.wasm_module_ok.UnrollPositionBridge
 import properties.wasm_module_ok.MatchStrtypeConditional
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveTypeSkeletonTrace
@@ -31,16 +32,13 @@ def Tracks (c : context) (hs : List Header) : Prop :=
   hs.length = c.TYPES.length ∧ ∀ i, hs[i]? = headerAt c.TYPES i
 
 theorem match_kind (dts : List deftype) (a b : strtype) (start finish : Nat)
-    (h : Eval specTecProgram (.call ⟨Bool, SpecTecCall.«$match_strtype» dts a b⟩)
+    (h : Eval Body (.call ⟨Bool, Call.«$match_strtype» dts a b⟩)
       start (.success (.of true)) finish) : kind a = kind b := by
   by_contra hne
   have htag : MatchStrtypeConditional.strTag a ≠ MatchStrtypeConditional.strTag b := by
     cases a <;> cases b <;> simp_all [kind, MatchStrtypeConditional.strTag]
   have hfalse := MatchStrtypeConditional.mixed_pair_false dts a b start htag
-  have hdet : PrimitiveDeterministic specTecProgram := by
-    intro request x y hp
-    cases hp
-  have heq := (eval_deterministic hdet h hfalse).1
+  have heq := (properties.wasm_module_ok.Execution.eval_deterministic h hfalse).1
   cases heq
 
 theorem kind_roll (st : strtype) (lo hi : Nat) :
@@ -58,8 +56,8 @@ theorem kind_subst (st out : strtype) (dts : List deftype)
 
 theorem headerAt_new (before after : context) (sts : List SpecTec.subtype)
     (start finish i : Nat) (s : SpecTec.subtype)
-    (hrect : Eval specTecProgram
-      (.call ⟨context, SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : Eval Body
+      (.call ⟨context, Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hsource : sts[i]? = some s) :
     headerAt after.TYPES (before.TYPES.length + i) = some (header s) := by
@@ -86,8 +84,8 @@ theorem headerAt_new (before after : context) (sts : List SpecTec.subtype)
 theorem tracks_extend (before after : context) (hs : List Header)
     (sts : List SpecTec.subtype) (start finish : Nat)
     (htrack : Tracks before hs)
-    (hrect : Eval specTecProgram
-      (.call ⟨context, SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : Eval Body
+      (.call ⟨context, Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish) :
     Tracks after (hs ++ sts.map header) := by
   have htracklen := htrack.1
@@ -119,8 +117,8 @@ theorem tracks_extend (before after : context) (hs : List Header)
 of the same structural kind. No readiness or full-module hypothesis is used. -/
 theorem original_parent (c : context) (x y : Nat) (st : strtype)
     (start finish : Nat)
-    (h : Eval specTecProgram
-      (.call ⟨Unit, SpecTecCall.Subtype_sub_ok' c x st (.VarHT (.StatX y))⟩)
+    (h : Eval Body
+      (.call ⟨Unit, Call.Subtype_sub_ok' c x st (.VarHT (.StatX y))⟩)
       start (.success (.of ())) finish) :
     y < x ∧ headerAt c.TYPES y = some ⟨.NoFinal, kind st⟩ := by
   obtain ⟨dt, f, ps, target, middle, hlookup, hunroll, hmatch, hlt, hfin⟩ :=
@@ -152,8 +150,8 @@ def entryOf (st : SpecTec.subtype) : Entry := ⟨header st, parentOf (supers st)
 theorem original_entry (before after : context) (hs : List Header)
     (sts : List SpecTec.subtype) (start finish i : Nat) (s : SpecTec.subtype)
     (htrack : Tracks before hs)
-    (hrect : Eval specTecProgram
-      (.call ⟨context, SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : Eval Body
+      (.call ⟨context, Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hsource : sts[i]? = some s) :
     EntryAllowed (hs ++ (sts.take i).map header) (entryOf s) ∧
@@ -232,8 +230,8 @@ constructing every compatible field/signature remains a separate obligation. -/
 theorem original_skeleton (before after : context) (hs : List Header)
     (sts : List SpecTec.subtype) (start finish : Nat)
     (htrack : Tracks before hs)
-    (hrect : Eval specTecProgram
-      (.call ⟨context, SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+    (hrect : Eval Body
+      (.call ⟨context, Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish) :
     Gen.support (skeleton hs) (sts.map entryOf) ∧
       ∀ s ∈ sts, supers s = (entryOf s).parent.toList.map (fun y => .VarHT (.StatX y)) := by

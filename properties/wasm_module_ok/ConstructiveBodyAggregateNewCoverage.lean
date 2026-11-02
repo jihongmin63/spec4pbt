@@ -7,7 +7,7 @@ open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveB
 
 theorem structExplicit (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
     (effect : inferinstrtype) (n finish bound : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«STRUCT.NEW» x .Explicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«STRUCT.NEW» x .Explicit)⟩)
       n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyAggregateNew.all c stack env bound) (.«STRUCT.NEW» x .Explicit) effect ∧ finish=n := by
   obtain ⟨index,hx⟩ := ConstructiveBodyAggregateNewOriginal.structExplicit c stack x effect n finish h
@@ -18,7 +18,7 @@ theorem structExplicit (c : context) (stack : inferresulttype) (env : Env c) (x 
 
 theorem structImplicit (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
     (effect : inferinstrtype) (n finish bound : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«STRUCT.NEW» x .Implicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«STRUCT.NEW» x .Implicit)⟩)
       n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyAggregateNew.all c stack env bound) (.«STRUCT.NEW» x .Implicit) effect ∧ finish=n := by
   obtain ⟨index,hx,hd⟩ := ConstructiveBodyAggregateNewOriginal.structImplicit c stack x effect n finish h
@@ -29,7 +29,7 @@ theorem structImplicit (c : context) (stack : inferresulttype) (env : Env c) (x 
 
 theorem arrayExplicit (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
     (effect : inferinstrtype) (n finish bound : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW» x .Explicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW» x .Explicit)⟩)
       n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyAggregateNew.all c stack env bound) (.«ARRAY.NEW» x .Explicit) effect ∧ finish=n := by
   obtain ⟨index,hx⟩ := ConstructiveBodyAggregateNewOriginal.arrayExplicit c stack x effect n finish h
@@ -40,7 +40,7 @@ theorem arrayExplicit (c : context) (stack : inferresulttype) (env : Env c) (x :
 
 theorem arrayImplicit (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
     (effect : inferinstrtype) (n finish bound : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW» x .Implicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW» x .Implicit)⟩)
       n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyAggregateNew.all c stack env bound) (.«ARRAY.NEW» x .Implicit) effect ∧ finish=n := by
   obtain ⟨index,hx,hd⟩ := ConstructiveBodyAggregateNewOriginal.arrayImplicit c stack x effect n finish h
@@ -51,7 +51,7 @@ theorem arrayImplicit (c : context) (stack : inferresulttype) (env : Env c) (x :
 
 theorem arrayFixed (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (count : Nat)
     (effect : inferinstrtype) (n finish bound : Nat) (hc : count≤bound)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW_FIXED» x count)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW_FIXED» x count)⟩)
       n (.success (.of effect)) finish) :
     Covers (ConstructiveBodyAggregateNew.all c stack env bound) (.«ARRAY.NEW_FIXED» x count) effect ∧ finish=n := by
   obtain ⟨index,hx⟩ := ConstructiveBodyAggregateNewOriginal.arrayFixed c stack x count effect n finish h

@@ -5,6 +5,7 @@ import properties.wasm_module_ok.ConstExactSyntaxBoundary
 import properties.wasm_module_ok.PopMatchExtraction
 import properties.wasm_module_ok.LocalInitValidation
 import properties.wasm_module_ok.PushValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveRefs
@@ -14,11 +15,11 @@ open properties.wasm_module_ok
 theorem match_resulttype_transport (c d : SpecTec.context)
     (htypes : c.TYPES = d.TYPES) (a b : List SpecTec.valtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c a b⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c a b⟩)
       start (.success (.of ())) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype d a b⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype d a b⟩)
       start (.success (.of ())) finish := by
   obtain ⟨hlen, hiter⟩ :=
     (MatchResulttypeValidation.match_resulttype_success_iff c a b start finish).1 h
@@ -30,10 +31,7 @@ theorem match_resulttype_transport (c d : SpecTec.context)
     cases b with
     | cons _ _ => simp at hlen
     | nil =>
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro req x y hp
-        cases hp
-      have hfin := (SpecTecExecution.eval_deterministic hdet hiter
+      have hfin := (properties.wasm_module_ok.Execution.eval_deterministic hiter
         (MatchResulttypeValidation.match_iter_nil_total c start)).2
       subst finish
       exact MatchResulttypeValidation.match_iter_nil_total d start
@@ -51,13 +49,13 @@ theorem match_resulttype_transport (c d : SpecTec.context)
 theorem pop_match_exact (c : SpecTec.context)
     (need available : List SpecTec.valtype)
     (result : SpecTec.inferresulttype) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.inferresulttype, SpecTec.SpecTecCall.«$pop» c
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.inferresulttype, SpecTec.Call.«$pop» c
         (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish) :
     need.length ≤ available.length ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         (available.drop (available.length - need.length)) need⟩)
       start (.success (.of ())) finish := by
   have hlen := PopLength.pop_noellipses_success_requires_length
@@ -65,15 +63,15 @@ theorem pop_match_exact (c : SpecTec.context)
   refine ⟨hlen, ?_⟩
   cases h with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ())
+          (.NoEllipses, need) (.NoEllipses, available)))
       start (.success (.of result)) finish at hbody
     obtain ⟨idx, hselected⟩ :=
-      (SpecTecExecution.firstSuccess_success_iff
+      (SpecTecExecution.tryClauses_success_iff
         (SpecTec.«$pop_clauses» c
-          (.NoEllipses, need) (.NoEllipses, available)) ()
+          (.NoEllipses, need) (.NoEllipses, available))
         start (.of result) finish).1 hbody
     unfold SpecTec.«$pop_clauses» at hselected
     cases hselected with
@@ -131,9 +129,7 @@ theorem pop_match_exact (c : SpecTec.context)
                     cases htail with
                     | bind_success hrequire0 htail =>
                       have hb : available.length - need.length + need.length ≤ available.length := by omega
-                      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-                        intro req x y hp; cases hp
-                      have hcounter := (SpecTecExecution.eval_deterministic hdet hrequire0
+                      have hcounter := (properties.wasm_module_ok.Execution.eval_deterministic hrequire0
                         (SpecTecExecution.Eval.orElse_success
                           (SpecTecExecution.Eval.guard_true hb))).2
                       cases hcounter
@@ -170,12 +166,12 @@ theorem pop_match_exact (c : SpecTec.context)
 theorem pop_transport (c d : SpecTec.context) (htypes : c.TYPES = d.TYPES)
     (need available : List SpecTec.valtype) (result : SpecTec.inferresulttype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.inferresulttype, SpecTec.SpecTecCall.«$pop» c
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.inferresulttype, SpecTec.Call.«$pop» c
         (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.inferresulttype, SpecTec.SpecTecCall.«$pop» d
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.inferresulttype, SpecTec.Call.«$pop» d
         (.NoEllipses, need) (.NoEllipses, available)⟩)
       start (.success (.of result)) finish := by
   obtain ⟨hlen, hm⟩ := pop_match_exact c need available result start finish h
@@ -224,14 +220,14 @@ theorem const_instrs_replace_refs (c : SpecTec.context) (refs : SpecTec.free)
     (result : SpecTec.inferresulttype × List SpecTec.idx) (start finish : Nat)
     (hsyntax : ∀ i ∈ xs, ConstAdditionalSyntaxValidation.Syntax c i)
     (hrefs : ∀ x, SpecTec.instr.«REF.FUNC» x ∈ xs → FreeUnionValidation.HasFunc refs x)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c (.NoEllipses, available) xs⟩)
+        SpecTec.Call.Instrs_ok c (.NoEllipses, available) xs⟩)
       start (.success (.of result)) finish) :
     result.1.1 = .NoEllipses ∧
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok {c with REFS := refs} (.NoEllipses, available) xs⟩)
+        SpecTec.Call.Instrs_ok {c with REFS := refs} (.NoEllipses, available) xs⟩)
       start (.success (.of result)) finish := by
   induction xs generalizing available start with
   | nil =>
@@ -298,11 +294,11 @@ ModuleOkTrace, readiness, provenance, or productive-saturation premise. -/
 theorem const_ok_replace_refs (c : SpecTec.context) (refs : SpecTec.free)
     (t : SpecTec.valtype) (xs : SpecTec.const) (start finish : Nat)
     (hrefs : ∀ x, SpecTec.instr.«REF.FUNC» x ∈ xs → FreeUnionValidation.HasFunc refs x)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok {c with REFS := refs} t xs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok {c with REFS := refs} t xs⟩)
       start (.success (.of ())) finish := by
   obtain ⟨hsyntax, stack, indices, ell, middle, hseq, hpop⟩ :=
     (ConstExactSyntaxBoundary.const_ok_trace_iff c t xs start finish).1 h
@@ -348,17 +344,17 @@ theorem initializer_direct (m : SpecTec.module) (xs : SpecTec.const)
 needed by each original non-body constant. No additional export or syntax. -/
 theorem initializer_final_refs (m : SpecTec.module) (refs : SpecTec.free)
     (freeFinish : Nat)
-    (hfree : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.free, SpecTec.SpecTecCall.«$free_module»
+    (hfree : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.free, SpecTec.Call.«$free_module»
         ({{m with FUNCS := []} with START := none})⟩)
       0 (.success (.of refs)) freeFinish)
     (c : SpecTec.context) (t : SpecTec.valtype) (xs : SpecTec.const)
     (hsite : InitializerSite m xs) (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok c t xs⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok c t xs⟩)
       start (.success (.of ())) finish) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Const_ok {c with REFS := refs} t xs⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Const_ok {c with REFS := refs} t xs⟩)
       start (.success (.of ())) finish := by
   apply const_ok_replace_refs c refs t xs start finish _ h
   intro x hx

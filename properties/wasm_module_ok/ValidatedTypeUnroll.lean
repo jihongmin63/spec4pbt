@@ -13,8 +13,8 @@ theorem validated_types_position_unrolls
     (hc : ValidatedTypes c) (hp : p < c.TYPES.length) :
     ∃ dt : SpecTec.deftype, ∃ st : SpecTec.subtype,
       c.TYPES[p]? = some dt ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dt⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dt⟩)
         start (.success (.of st)) start := by
   obtain ⟨before, after, sts, rectStart, rectFinish, i, tail,
     fin, hts, strt, dts, sts', _hbefore, hrect,

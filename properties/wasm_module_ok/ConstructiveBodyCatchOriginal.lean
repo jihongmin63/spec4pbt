@@ -1,11 +1,12 @@
 import properties.wasm_module_ok.ConstructiveBodyCatchCoverage
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyCatchOriginal
 open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveBodyTagMetadata ConstructiveBodyCatches ConstructiveBodyCatchCoverage
 
 theorem clause0_covered (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Catch_ok:clause:0» c outputs raw) start (.success (.of ())) finish) : Covers c env raw := by
   unfold SpecTec.«Catch_ok:clause:0» at h
   cases h with | bind_success hg h =>
@@ -44,7 +45,7 @@ theorem clause0_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem clause1_covered (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Catch_ok:clause:1» c outputs raw) start (.success (.of ())) finish) : Covers c env raw := by
   unfold SpecTec.«Catch_ok:clause:1» at h
   cases h with | bind_success hg h =>
@@ -83,7 +84,7 @@ theorem clause1_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem clause2_covered (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Catch_ok:clause:2» c outputs raw) start (.success (.of ())) finish) : Covers c env raw := by
   unfold SpecTec.«Catch_ok:clause:2» at h
   cases h with | bind_success hg h =>
@@ -106,7 +107,7 @@ theorem clause2_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem clause3_covered (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Catch_ok:clause:3» c outputs raw) start (.success (.of ())) finish) : Covers c env raw := by
   unfold SpecTec.«Catch_ok:clause:3» at h
   cases h with | bind_success hg h =>
@@ -129,13 +130,13 @@ theorem clause3_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem original_covered (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Catch_ok c outputs raw⟩) start (.success (.of ())) finish) : Covers c env raw := by
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Catch_ok c outputs raw⟩) start (.success (.of ())) finish) : Covers c env raw := by
   cases h with | call h =>
-   change SpecTecExecution.Eval SpecTec.specTecProgram
-     (SpecTecExecution.firstSuccess (SpecTec.Catch_ok_clauses c outputs raw) ())
+   change SpecTecExecution.Eval SpecTec.Body
+     (SpecTecExecution.tryClauses (SpecTec.Catch_ok_clauses c outputs raw))
      start (.success (.of ())) finish at h
-   obtain ⟨k,h⟩ := (SpecTecExecution.firstSuccess_success_iff _ _ _ _ _).1 h
+   obtain ⟨k,h⟩ := (SpecTecExecution.tryClauses_success_iff _ _ _ _).1 h
    unfold SpecTec.Catch_ok_clauses at h
    rcases h with h|⟨_,h|⟨_,h|⟨_,h|⟨_,h⟩⟩⟩⟩
    · exact clause0_covered c env outputs raw start finish h
@@ -146,15 +147,14 @@ theorem original_covered (c : context) (env : Env c) (outputs : List valtype)
 
 theorem original_complete (c : context) (env : Env c) (outputs : List valtype)
     (raw : SpecTec.«catch») (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Catch_ok c outputs raw⟩) start (.success (.of ())) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Catch_ok c outputs raw⟩) start (.success (.of ())) finish) :
     Covers c env raw ∧ finish=start := by
   have hc := original_covered c env outputs raw start finish h
   obtain ⟨handler,hmem,he⟩ := hc
   have hs := handler.property outputs start
   rw [he] at hs
-  have hd : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by intro request a b h; cases h
-  exact ⟨⟨handler,hmem,he⟩,(SpecTecExecution.eval_deterministic hd h hs).2⟩
+  exact ⟨⟨handler,hmem,he⟩,(properties.wasm_module_ok.Execution.eval_deterministic h hs).2⟩
 
 #print axioms original_complete
 end properties.wasm_module_ok.ConstructiveBodyCatchOriginal

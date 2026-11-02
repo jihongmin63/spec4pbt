@@ -1,43 +1,42 @@
 import properties.wasm_module_ok.ConstructiveBodyPopPlans
+import properties.wasm_module_ok.Execution
 set_option autoImplicit false
 namespace properties.wasm_module_ok.ConstructiveBodyDispatch
 open SpecTec properties.wasm_module_ok
-private theorem deterministic : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-  intro request a b h; cases h
 
-theorem skip_head (head : SpecTecExecution.Clause SpecTecRequest Unit)
-    (rest : List (SpecTecExecution.Clause SpecTecRequest Unit)) (start finish : Nat)
-    (value : SpecTecExecution.Value) (h : SpecTecExecution.Eval SpecTec.specTecProgram
+theorem skip_head (head : SpecTecExecution.Action.{1} Request)
+    (rest : List (SpecTecExecution.Action.{1} Request)) (start finish : Nat)
+    (value : SpecTecExecution.Value) (h : SpecTecExecution.Eval SpecTec.Body
       (head ()) start .unmatch start) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (SpecTecExecution.firstSuccess (head::rest) ())
+    SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses (head::rest))
       start (.success value) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram (SpecTecExecution.firstSuccess rest ())
+    SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses rest)
       start (.success value) finish := by
   constructor
   · intro hs
     cases hs with
     | orElse_success hs =>
-      have hc := (SpecTecExecution.eval_deterministic deterministic hs h).1
+      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h).1
       cases hc
     | orElse_unmatch _ hs => exact hs
-  · exact SpecTecExecution.firstSuccess_cons_unmatch h
+  · exact SpecTecExecution.tryClauses_cons_unmatch h
 
-theorem keep_head (head : SpecTecExecution.Clause SpecTecRequest Unit)
-    (rest : List (SpecTecExecution.Clause SpecTecRequest Unit)) (start finish : Nat)
+theorem keep_head (head : SpecTecExecution.Action.{1} Request)
+    (rest : List (SpecTecExecution.Action.{1} Request)) (start finish : Nat)
     (value : SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess rest ()) start .unmatch start) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (SpecTecExecution.firstSuccess (head::rest) ())
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses rest) start .unmatch start) :
+    SpecTecExecution.Eval SpecTec.Body (SpecTecExecution.tryClauses (head::rest))
       start (.success value) finish ↔
-    SpecTecExecution.Eval SpecTec.specTecProgram (head ()) start (.success value) finish := by
+    SpecTecExecution.Eval SpecTec.Body (head ()) start (.success value) finish := by
   constructor
   · intro hs
     cases hs with
     | orElse_success hs => exact hs
     | orElse_unmatch _ hs =>
-      have hc := (SpecTecExecution.eval_deterministic deterministic hs h).1
+      have hc := (properties.wasm_module_ok.Execution.eval_deterministic hs h).1
       cases hc
-  · exact SpecTecExecution.firstSuccess_cons_success
+  · exact SpecTecExecution.tryClauses_cons_success
 
 #print axioms skip_head
 #print axioms keep_head

@@ -1,4 +1,5 @@
 import properties.wasm_module_not_ok.SubstOfValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -18,9 +19,9 @@ def substOfResult (tv : SpecTec.typevar)
 
 theorem subst_of_total_result (tv : SpecTec.typevar)
     (dts : List SpecTec.deftype) (start : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_of» tv dts⟩)
+        SpecTec.Call.«$subst_of» tv dts⟩)
       start (optionOutcome (substOfResult tv dts)) start := by
   cases tv with
   | RecX n =>
@@ -38,13 +39,13 @@ theorem subst_of_total_result (tv : SpecTec.typevar)
 theorem subst_of_deterministic_result (tv : SpecTec.typevar)
     (dts : List SpecTec.deftype) (start finalSupply : Nat)
     (outcome : SpecTecExecution.Outcome SpecTecExecution.Value)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.heaptype,
-        SpecTec.SpecTecCall.«$subst_of» tv dts⟩)
+        SpecTec.Call.«$subst_of» tv dts⟩)
       start outcome finalSupply) :
     outcome = optionOutcome (substOfResult tv dts) ∧
       finalSupply = start :=
-  SpecTecExecution.eval_deterministic program_primitive_deterministic h
+  properties.wasm_module_ok.Execution.eval_deterministic h
     (subst_of_total_result tv dts start)
 
 end properties.wasm_module_not_ok.Rejection

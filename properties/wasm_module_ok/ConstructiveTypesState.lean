@@ -63,8 +63,8 @@ def output (c : context) (state : State c) (x : Choice c state) : context :=
   extended c x.val (bound c state x)
 
 theorem execute (c : context) (state : State c) (x : Choice c state) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT x.val)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT x.val)⟩)
       n (.success (.of (output c state x))) n := by
   obtain ⟨out,hout⟩ := groups_sound c state.signatures state.history state.validated state.metadata state.denotes
     (.RecT x.val) x.property n
@@ -90,8 +90,8 @@ def advance (c : context) (state : State c) (x : Choice c state) : State (output
 
 theorem original_choice (c result : context) (state : State c) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨context,SpecTec.SpecTecCall.Rectype_ok c (.RecT sts)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨context,SpecTec.Call.Rectype_ok c (.RecT sts)⟩)
       start (.success (.of result)) finish) :
     Gen.support (groups c state.signatures state.history) (.RecT sts) :=
   groups_complete c result state.signatures state.history state.validated state.metadata state.denotes

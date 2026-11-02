@@ -24,17 +24,17 @@ theorem constant_instrs_cons_iff
         (.NoEllipses, available) i = some iit →
       iit.1.INS = (.NoEllipses, need) →
       ∀ t ∈ need, CandidateValMatch.InTableVal c t) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c
+        SpecTec.Call.Instrs_ok c
           (.NoEllipses, available) (i :: rest)⟩)
       start (.success (.of result)) finish ↔
     ∃ next : List SpecTec.valtype,
       ConstStepDecision.constantStepResult c available i =
         some (.NoEllipses, next) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, next) rest⟩)
         start (.success (.of result)) finish := by
   constructor
@@ -118,9 +118,9 @@ theorem constant_fold_result_iff_instrs_ok
     (hadmissible : FoldAdmissible c available xs) :
     ConstFoldDecision.constantFoldResult c available xs = some final ↔
       (∀ i ∈ xs, ConstSyntaxDecision.syntaxAllowed c i = true) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c
+          SpecTec.Call.Instrs_ok c
             (.NoEllipses, available) xs⟩)
         n (.success (.of (final, ([] : List SpecTec.idx)))) n := by
   induction xs generalizing available final with
@@ -222,15 +222,15 @@ theorem fold_admissible_of_provenance
         ConstSyntaxSingleton.syntax_instruction_singleton_outputs
           c (.NoEllipses, available) i iit 0 0
           ((ConstSyntaxDecision.syntaxAllowed_iff c i).1 hallowed) hcall
-      have hpop' : SpecTecExecution.Eval SpecTec.specTecProgram
+      have hpop' : SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferresulttype,
-            SpecTec.SpecTecCall.«$pop» c
+            SpecTec.Call.«$pop» c
               (.NoEllipses, need) (.NoEllipses, available)⟩)
           0 (.success (.of popped)) 0 := by
         simpa only [hins] using hpop
-      have hpush' : SpecTecExecution.Eval SpecTec.specTecProgram
+      have hpush' : SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferresulttype,
-            SpecTec.SpecTecCall.«$push» c
+            SpecTec.Call.«$push» c
               (.NoEllipses, [u]) popped⟩)
           0 (.success (.of
             ((.NoEllipses, next) : SpecTec.inferresulttype))) 0 := by
@@ -260,9 +260,9 @@ theorem constant_fold_empty_stack_iff_instrs_ok
     (hnested : CandidateNestedReady.nestedTableReady c = true) :
     ConstFoldDecision.constantFoldResult c [] xs = some final ↔
       (∀ i ∈ xs, ConstSyntaxDecision.syntaxAllowed c i = true) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-          SpecTec.SpecTecCall.Instrs_ok c (.NoEllipses, []) xs⟩)
+          SpecTec.Call.Instrs_ok c (.NoEllipses, []) xs⟩)
         n (.success (.of (final, ([] : List SpecTec.idx)))) n := by
   exact constant_fold_result_iff_instrs_ok c [] xs final n hready
     (fold_admissible_of_provenance c xs hready hprov hnested []
@@ -277,9 +277,9 @@ theorem constant_instrs_trace_normalize
     (hadmissible : FoldAdmissible c available xs)
     (hallowed : ∀ i ∈ xs,
       ConstSyntaxDecision.syntaxAllowed c i = true)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype × List SpecTec.idx,
-        SpecTec.SpecTecCall.Instrs_ok c
+        SpecTec.Call.Instrs_ok c
           (.NoEllipses, available) xs⟩)
       start (.success (.of result)) finish) :
     ∃ final : SpecTec.inferresulttype,

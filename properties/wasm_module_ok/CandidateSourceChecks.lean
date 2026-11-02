@@ -1,6 +1,7 @@
 import properties.wasm_module_ok.SubtypeValidation
 import properties.wasm_module_ok.CandidateRectypeTable
 import properties.wasm_module_ok.RectypeSourceValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -12,39 +13,39 @@ def sourceChecks (c : SpecTec.context) : List SpecTec.subtype → Bool
   | st :: sts => SubtypeValidation.subtypeValid c st && sourceChecks c sts
 
 theorem iter5_nil_success (c : SpecTec.context) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5» c []⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Rectype_ok:rule:iter:5» c []⟩)
       n (.success (.of ())) n := by
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess
-      (SpecTec.«Rectype_ok:rule:iter:5_clauses» c []) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses
+      (SpecTec.«Rectype_ok:rule:iter:5_clauses» c []))
     n (.success (.of ())) n
-  apply SpecTecExecution.firstSuccess_cons_success
+  apply SpecTecExecution.tryClauses_cons_success
   exact SpecTecExecution.Eval.pure ()
 
 theorem iter5_cons_success_iff
     (c : SpecTec.context) (st : SpecTec.subtype)
     (sts : List SpecTec.subtype) (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5» c (st :: sts)⟩)
+        SpecTec.Call.«Rectype_ok:rule:iter:5» c (st :: sts)⟩)
       n (.success (.of ())) finish ↔
     ∃ middle : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_ok c st⟩)
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Subtype_ok c st⟩)
         n (.success (.of ())) middle ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5» c sts⟩)
+          SpecTec.Call.«Rectype_ok:rule:iter:5» c sts⟩)
         middle (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (st :: sts)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (st :: sts))
           n (.of ()) finish).1 hbody
       unfold SpecTec.«Rectype_ok:rule:iter:5_clauses» at hselected
       cases hselected with
@@ -65,17 +66,17 @@ theorem iter5_cons_success_iff
           | next _ hnone => cases hnone
   · rintro ⟨middle, hhead, hrest⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (st :: sts)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.«Rectype_ok:rule:iter:5_clauses» c (st :: sts)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_unmatch
-    · change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_unmatch
+    · change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Rectype_ok:rule:iter:5:clause:0» c (st :: sts))
         n .unmatch n
       exact SpecTecExecution.Eval.unmatch
-    · apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+    · apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Rectype_ok:rule:iter:5:clause:1» c (st :: sts))
         n (.success (.of ())) finish
       unfold SpecTec.«Rectype_ok:rule:iter:5:clause:1»
@@ -86,20 +87,16 @@ theorem iter5_cons_success_iff
 theorem iter5_success_iff_sourceChecks
     (c : SpecTec.context) (sts : List SpecTec.subtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5» c sts⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Rectype_ok:rule:iter:5» c sts⟩)
       n (.success (.of ())) finish ↔
     sourceChecks c sts = true ∧ finish = n := by
   induction sts generalizing n finish with
   | nil =>
       constructor
       · intro h
-        have hdet : SpecTecExecution.PrimitiveDeterministic
-            SpecTec.specTecProgram := by
-          intro request x y hp
-          cases hp
         obtain ⟨_, hsupply⟩ :=
-          SpecTecExecution.eval_deterministic hdet h
+          properties.wasm_module_ok.Execution.eval_deterministic h
             (iter5_nil_success c n)
         exact ⟨rfl, hsupply⟩
       · rintro ⟨_, rfl⟩
@@ -132,9 +129,9 @@ context computed before subtype matching. -/
 theorem rectype_success_sourceChecks
     (before after candidate : SpecTec.context)
     (sts : List SpecTec.subtype) (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hcandidate : CandidateRectypeTable.candidateContext before sts =
       some candidate) :

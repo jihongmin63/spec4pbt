@@ -6,7 +6,7 @@ namespace properties.wasm_module_ok.ConstructiveModuleTraceFields
 open SpecTec properties.wasm_module_ok SpecTecExecution
 
 theorem globals_funcs (c out : context) (xs : List SpecTec.global) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Globals_ok c xs⟩) n (.success (.of out)) finish) : out.FUNCS=c.FUNCS := by
+    (h : Eval Body (.call ⟨context,Call.Globals_ok c xs⟩) n (.success (.of out)) finish) : out.FUNCS=c.FUNCS := by
   induction xs generalizing c n with
   | nil => exact congrArg context.FUNCS ((GlobalsDecision.globals_nil_success_iff c out n finish).1 h).1.symm
   | cons g gs ih =>

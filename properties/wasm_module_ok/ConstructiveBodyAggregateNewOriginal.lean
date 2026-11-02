@@ -4,7 +4,7 @@ namespace properties.wasm_module_ok.ConstructiveBodyAggregateNewOriginal
 open SpecTec properties.wasm_module_ok ConstructiveBodyAggregateMetadata ConstructiveConstAggregateBuilders
 
 theorem structExplicit (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«STRUCT.NEW» x .Explicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«STRUCT.NEW» x .Explicit)⟩)
       n (.success (.of effect)) finish) :
     ∃s : StructIndex c,s.index=x := by
   have hr := ((ConstInstrDecision.struct_explicit_result_iff c stack x effect n finish).2 ⟨rfl,h⟩).1
@@ -16,7 +16,7 @@ theorem structExplicit (c : context) (stack : inferresulttype) (x : Nat) (effect
       exact ⟨s,hx⟩
 
 theorem structImplicit (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«STRUCT.NEW» x .Implicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«STRUCT.NEW» x .Implicit)⟩)
       n (.success (.of effect)) finish) :
     ∃s : StructIndex c,s.index=x ∧ StructImplicitFieldsDecision.structFieldsDefaultable s.fields=true := by
   have hr := ((ConstInstrDecision.struct_implicit_result_iff c stack x effect n finish).2 ⟨rfl,h⟩).1
@@ -32,7 +32,7 @@ theorem structImplicit (c : context) (stack : inferresulttype) (x : Nat) (effect
       exact ⟨s,hx,by simpa only [hf] using hd⟩
 
 theorem arrayExplicit (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW» x .Explicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW» x .Explicit)⟩)
       n (.success (.of effect)) finish) :
     ∃a : ArrayIndex c,a.index=x := by
   have hr := ((ConstInstrDecision.array_explicit_result_iff c stack x effect n finish).2 ⟨rfl,h⟩).1
@@ -44,7 +44,7 @@ theorem arrayExplicit (c : context) (stack : inferresulttype) (x : Nat) (effect 
       exact ⟨a,hx⟩
 
 theorem arrayImplicit (c : context) (stack : inferresulttype) (x : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW» x .Implicit)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW» x .Implicit)⟩)
       n (.success (.of effect)) finish) :
     ∃a : ArrayIndex c,a.index=x ∧ DefaultableValidation.defaultable (UnpackedFieldDecision.unpackedFieldResult a.field)=true := by
   have hr := ((ConstInstrDecision.array_implicit_result_iff c stack x effect n finish).2 ⟨rfl,h⟩).1
@@ -60,7 +60,7 @@ theorem arrayImplicit (c : context) (stack : inferresulttype) (x : Nat) (effect 
       exact ⟨a,hx,by simpa only [hf] using hd⟩
 
 theorem arrayFixed (c : context) (stack : inferresulttype) (x : Nat) (count : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW_FIXED» x count)⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW_FIXED» x count)⟩)
       n (.success (.of effect)) finish) :
     ∃a : ArrayIndex c,a.index=x := by
   have hr := ((ConstInstrDecision.array_fixed_result_iff c stack x count effect n finish).2 ⟨rfl,h⟩).1

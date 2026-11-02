@@ -33,8 +33,8 @@ abbrev Covers (c : context) (env : Env c) (raw : SpecTec.«catch») :=
 theorem specific_covers (c : context) (env : Env c) (tag : Tag c) (withRef : Bool)
     (y : Nat) (target : List valtype) (hy : c.LABELS[y]?=some target)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$match_resulttype» c.TYPES (arguments tag withRef) target⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$match_resulttype» c.TYPES (arguments tag withRef) target⟩)
       start (.success (.of true)) finish) :
     Covers c env (if withRef then .CatchRef tag.index y else .Catch tag.index y) := by
   have hm := (ConstructiveBodyMatchers.result_exact c (arguments tag withRef) target true start finish env.ready
@@ -48,8 +48,8 @@ theorem specific_covers (c : context) (env : Env c) (tag : Tag c) (withRef : Boo
 theorem all_covers (c : context) (env : Env c) (withRef : Bool)
     (y : Nat) (target : List valtype) (hy : c.LABELS[y]?=some target)
     (start finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool,SpecTecCall.«$match_resulttype» c.TYPES (if withRef then [exn] else []) target⟩)
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool,Call.«$match_resulttype» c.TYPES (if withRef then [exn] else []) target⟩)
       start (.success (.of true)) finish) :
     Covers c env (if withRef then .CatchAllRef y else .CatchAll y) := by
   have hb : ∀t∈(if withRef then [exn] else []),CandidateValMatch.InTableVal c t := by

@@ -4,10 +4,10 @@ namespace properties.wasm_module_ok.ConstructiveBodyArrayBulkOriginal
 open SpecTec properties.wasm_module_ok SpecTecExecution ConstructiveBodyAggregateBind ConstructiveBodyEvalReduction ConstructiveBodyAggregateMetadata ConstructiveBodyAggregateCatalog ConstructiveBodyStorageMetadata ConstructiveBodyAggregateProductions ConstructiveBodyTypeClassifiers ConstructiveConstAggregateBuilders
 
 theorem newElem (c : context) (stack : inferresulttype) (env : ConstructiveBodyEnvironment.Env c) (x y : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW_ELEM» x y)⟩) n (.success (.of effect)) finish) :
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW_ELEM» x y)⟩) n (.success (.of effect)) finish) :
     ∃(a : ArrayIndex c) (e : ConstructiveBodyLookup.Entry c.ELEMS),a.index=x ∧ e.index=y ∧ CandidateValMatch.candidateValMatch c (.RefT e.value) (UnpackedFieldDecision.unpackedFieldResult a.field)=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«ARRAY.NEW_ELEM» x y) 67 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:67» c stack (.«ARRAY.NEW_ELEM» x y)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:67» c stack (.«ARRAY.NEW_ELEM» x y)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:67» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨a,hx,hs⟩ := array_bind c x _ n finish (.of effect) hs
@@ -23,10 +23,10 @@ theorem newElem (c : context) (stack : inferresulttype) (env : ConstructiveBodyE
     exact ⟨a,⟨y,value,hy⟩,hx,rfl,hp⟩
 
 theorem newData (c : context) (stack : inferresulttype) (env : ConstructiveBodyEnvironment.Env c) (x y : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.NEW_DATA» x y)⟩) n (.success (.of effect)) finish) :
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.NEW_DATA» x y)⟩) n (.success (.of effect)) finish) :
     ∃(a : ArrayIndex c) (e : ConstructiveBodyLookup.Entry c.DATAS),a.index=x ∧ e.index=y ∧ ConstructiveBodyArrayProductions.numericStorage (UnpackedFieldDecision.unpackedFieldResult a.field)=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«ARRAY.NEW_DATA» x y) 68 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:68» c stack (.«ARRAY.NEW_DATA» x y)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:68» c stack (.«ARRAY.NEW_DATA» x y)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:68» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨a,hx,hs⟩ := array_bind c x _ n finish (.of effect) hs
@@ -44,10 +44,10 @@ theorem newData (c : context) (stack : inferresulttype) (env : ConstructiveBodyE
     exact ⟨a,⟨y,.OK,hy⟩,hx,rfl,Bool.or_eq_true_iff.mpr hp⟩
 
 theorem initData (c : context) (stack : inferresulttype) (env : ConstructiveBodyEnvironment.Env c) (x y : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.INIT_DATA» x y)⟩) n (.success (.of effect)) finish) :
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.INIT_DATA» x y)⟩) n (.success (.of effect)) finish) :
     ∃(f : ArrayField c) (e : ConstructiveBodyLookup.Entry c.DATAS),f.owner.index=x ∧ e.index=y ∧ f.mutability=.Var ∧ ConstructiveBodyArrayProductions.numericStorage (UnpackedFieldDecision.unpackedStorageResult f.storage)=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«ARRAY.INIT_DATA» x y) 75 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:75» c stack (.«ARRAY.INIT_DATA» x y)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:75» c stack (.«ARRAY.INIT_DATA» x y)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:75» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨a,hx,hs⟩ := array_bind c x _ n finish (.of effect) hs
@@ -69,10 +69,10 @@ theorem initData (c : context) (stack : inferresulttype) (env : ConstructiveBody
       exact ⟨⟨a,mutability,storage,hf⟩,⟨y,.OK,hy⟩,hx,rfl,hm,Bool.or_eq_true_iff.mpr hp⟩
 
 theorem initElem (c : context) (stack : inferresulttype) (env : ConstructiveBodyEnvironment.Env c) (x y : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.INIT_ELEM» x y)⟩) n (.success (.of effect)) finish) :
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.INIT_ELEM» x y)⟩) n (.success (.of effect)) finish) :
     ∃(f : ArrayField c) (e : ConstructiveBodyLookup.Entry c.ELEMS),f.owner.index=x ∧ e.index=y ∧ f.mutability=.Var ∧ CandidateValMatch.candidateValMatch c (.RefT e.value) (UnpackedFieldDecision.unpackedStorageResult f.storage)=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«ARRAY.INIT_ELEM» x y) 76 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:76» c stack (.«ARRAY.INIT_ELEM» x y)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:76» c stack (.«ARRAY.INIT_ELEM» x y)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:76» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨a,hx,hs⟩ := array_bind c x _ n finish (.of effect) hs
@@ -92,10 +92,10 @@ theorem initElem (c : context) (stack : inferresulttype) (env : ConstructiveBody
       exact ⟨⟨a,mutability,storage,hf⟩,⟨y,value,hy⟩,hx,rfl,hm,hp⟩
 
 theorem copy (c : context) (stack : inferresulttype) (env : ConstructiveBodyEnvironment.Env c) (x y : Nat) (effect : inferinstrtype) (n finish : Nat)
-    (h : Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«ARRAY.COPY» x y)⟩) n (.success (.of effect)) finish) :
+    (h : Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«ARRAY.COPY» x y)⟩) n (.success (.of effect)) finish) :
     ∃f g : ArrayField c,f.owner.index=x ∧ g.owner.index=y ∧ f.mutability=.Var ∧ storageMatch c g.storage f.storage=true := by
   have hs := (ConstructiveBodyRoute.unique_rule c stack (.«ARRAY.COPY» x y) 73 (by decide) rfl (by decide) effect n finish).1 h
-  change Eval SpecTec.specTecProgram (SpecTec.«Instr_ok:clause:73» c stack (.«ARRAY.COPY» x y)) n _ finish at hs
+  change Eval SpecTec.Body (SpecTec.«Instr_ok:clause:73» c stack (.«ARRAY.COPY» x y)) n _ finish at hs
   unfold SpecTec.«Instr_ok:clause:73» at hs
   obtain ⟨_,hs⟩ := (bind_guard _ _ _ _ _).1 hs
   obtain ⟨a,hx,hs⟩ := array_bind c x _ n finish (.of effect) hs

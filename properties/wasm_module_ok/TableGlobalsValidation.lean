@@ -6,14 +6,14 @@ namespace properties.wasm_module_ok.TableGlobalsValidation
 
 theorem table_ok_globals (c result : SpecTec.context)
     (t : SpecTec.table) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Table_ok c t⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Table_ok c t⟩)
       n (.success (.of result)) finalSupply) :
     result.GLOBALS = c.GLOBALS := by
   cases hcall with
   | call hbody =>
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess (SpecTec.Table_ok_clauses c t) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses (SpecTec.Table_ok_clauses c t))
       n (.success (.of result)) finalSupply at hbody
     cases hbody with
     | orElse_success hclause =>
@@ -28,18 +28,18 @@ theorem table_ok_globals (c result : SpecTec.context)
 
 theorem tables_ok_globals (c result : SpecTec.context)
     (ts : List SpecTec.table) (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Tables_ok c ts⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Tables_ok c ts⟩)
       n (.success (.of result)) finalSupply) :
     result.GLOBALS = c.GLOBALS := by
   induction ts generalizing c n finalSupply result with
   | nil =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Tables_ok:clause:0» c [])
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Tables_ok:clause:1» c []] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Tables_ok:clause:1» c []]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -49,7 +49,7 @@ theorem tables_ok_globals (c result : SpecTec.context)
             cases hguard with
             | guard_true hcond => simp at hcond
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:1» c [])
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -64,10 +64,10 @@ theorem tables_ok_globals (c result : SpecTec.context)
   | cons t rest ih =>
       cases hcall with
       | call hbody =>
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        change SpecTecExecution.Eval SpecTec.Body
           (.orElse (SpecTec.«Tables_ok:clause:0» c (t :: rest))
-            (fun _ => SpecTecExecution.firstSuccess
-              [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)] ()))
+            (fun _ => SpecTecExecution.tryClauses
+              [fun _ => SpecTec.«Tables_ok:clause:1» c (t :: rest)]))
           n (.success (.of result)) finalSupply at hbody
         cases hbody with
         | orElse_success hfirst =>
@@ -86,7 +86,7 @@ theorem tables_ok_globals (c result : SpecTec.context)
                     exact (ih c₁ result middle finalSupply hrest).trans
                       (table_ok_globals c c₁ t n middle hhead)
         | orElse_unmatch _ htail =>
-          change SpecTecExecution.Eval SpecTec.specTecProgram
+          change SpecTecExecution.Eval SpecTec.Body
             (.orElse (SpecTec.«Tables_ok:clause:1» c (t :: rest))
               (fun _ => .unmatch))
             n (.success (.of result)) finalSupply at htail
@@ -104,9 +104,9 @@ theorem tables_success_no_bot_candidate
     (start fin : Nat)
     (hinput : SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse c)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Tables_ok c ts⟩)
+        SpecTec.Call.Tables_ok c ts⟩)
       start (.success (.of out)) fin) :
     SpecTec.valtype.BotT ∉
       FiniteValidTypes.candidateUniverse out := by

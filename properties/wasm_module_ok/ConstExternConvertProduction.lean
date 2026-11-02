@@ -102,9 +102,9 @@ theorem extern_step_iff_instr_effect
           some (.«% %» nu ht) ∧
         externInput nu op ∈ s ∧
         u = externOutput nu op ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+            SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
           start (.success (.of (externInstrType nu op))) start := by
   constructor
   · intro hstep
@@ -149,9 +149,9 @@ theorem extern_step_iff_instr_effect_exact
       ∃ (nu : SpecTec.null) (op : SpecTec.externop_),
         externInput nu op ∈ s ∧
         u = externOutput nu op ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+            SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
           start (.success (.of (externInstrType nu op))) start := by
   constructor
   · intro hstep
@@ -235,9 +235,9 @@ theorem extern_type_step_iff_instruction
         ConstSyntaxDecision.syntaxAllowed c (.«EXTERN.CONVERT» op) = true ∧
         externInput nu op ∈ s ∧
         u = externOutput nu op ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
+            SpecTec.Call.Instr_ok c irt (.«EXTERN.CONVERT» op)⟩)
           start (.success (.of (externInstrType nu op))) start := by
   constructor
   · intro hstep

@@ -53,27 +53,27 @@ theorem module_trace_refs (m : SpecTec.module)
 theorem in_set_func_true_of_hasFunc
     (f : SpecTec.free) (x : SpecTec.funcidx) (n : Nat)
     (h : HasFunc f x) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x f.FUNCS⟩)
       n (.success (.of true)) n := by
   cases hs : f.FUNCS with
   | «`{ % `}» xs =>
     have hx : x ∈ xs := by simpa only [HasFunc, hs] using h
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
         (SpecTec.«$in_set_clauses» SpecTec.funcidx x
-          (SpecTec.set.«`{ % `}» xs)) ())
+          (SpecTec.set.«`{ % `}» xs)))
       n (.success (.of true)) n
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$in_set:clause:0» SpecTec.funcidx x
         (SpecTec.set.«`{ % `}» xs))
       n (.success (.of true)) n
     simpa [SpecTec.«$in_set:clause:0», hx] using
       (SpecTecExecution.Eval.pure true :
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.pure true) n (.success (.of true)) n)
 
 theorem module_trace_global_ref_in_context
@@ -105,8 +105,8 @@ theorem module_trace_global_ref_guard
     (g : SpecTec.global) (x : SpecTec.funcidx) (n : Nat)
     (hg : g ∈ m.GLOBALS)
     (href : SpecTec.instr.«REF.FUNC» x ∈ g.GINIT) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x tr.c4.REFS.FUNCS⟩)
       n (.success (.of true)) n :=
   in_set_func_true_of_hasFunc tr.c4.REFS x n
@@ -117,8 +117,8 @@ theorem module_trace_table_ref_guard
     (t : SpecTec.table) (x : SpecTec.funcidx) (n : Nat)
     (ht : t ∈ m.TABLES)
     (href : SpecTec.instr.«REF.FUNC» x ∈ t.TINIT) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x tr.c2.REFS.FUNCS⟩)
       n (.success (.of true)) n :=
   in_set_func_true_of_hasFunc tr.c2.REFS x n
@@ -130,8 +130,8 @@ theorem module_trace_elem_init_ref_guard
     (x : SpecTec.funcidx) (n : Nat)
     (he : e ∈ m.ELEMS) (hinit : init ∈ e.EINIT)
     (href : SpecTec.instr.«REF.FUNC» x ∈ init) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x tr.c6.REFS.FUNCS⟩)
       n (.success (.of true)) n := by
   have h6 := (module_trace_refs m tr).2.2.2.2.2.2.1
@@ -147,8 +147,8 @@ theorem module_trace_elem_offset_ref_guard
     (x : SpecTec.funcidx) (n : Nat)
     (he : e ∈ m.ELEMS) (hmode : e.EMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x tr.c6.REFS.FUNCS⟩)
       n (.success (.of true)) n := by
   have h6 := (module_trace_refs m tr).2.2.2.2.2.2.1
@@ -164,8 +164,8 @@ theorem module_trace_data_offset_ref_guard
     (x : SpecTec.funcidx) (n : Nat)
     (hd : d ∈ m.DATAS) (hmode : d.DMODE = .Active a)
     (href : SpecTec.instr.«REF.FUNC» x ∈ a.OFFSET) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x tr.c7.REFS.FUNCS⟩)
       n (.success (.of true)) n := by
   have h7 := (module_trace_refs m tr).2.2.2.2.2.2.2.1

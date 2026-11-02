@@ -8,8 +8,8 @@ open properties.wasm_module_ok.ConstructiveConstBuilders
 structure Operands (c : context) (need : List valtype) where
   trees : List Tree
   good : ∀ t∈trees,Good c t
-  matching : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-    (.call ⟨Unit,SpecTecCall.Match_resulttype c (outputs trees) need⟩)
+  matching : ∀ n,SpecTecExecution.Eval SpecTec.Body
+    (.call ⟨Unit,Call.Match_resulttype c (outputs trees) need⟩)
     n (.success (.of ())) n
 
 def emptyOperands (c : context) : Operands c [] :=
@@ -32,8 +32,8 @@ structure ArrayIndex (c : context) where
 contains just the supplied instruction, type, and existing child trees. -/
 def independentNode (c : context) (i : instr) (u : valtype) (need : List valtype)
     (args : Operands c need) (hs : ConstAdditionalSyntaxValidation.Syntax c i)
-    (hi : ∀ irt n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c irt i⟩)
+    (hi : ∀ irt n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨inferinstrtype,Call.Instr_ok c irt i⟩)
       n (.success (.of (effect need u))) n) : Typed c u :=
   ⟨.node i u args.trees,⟨Good.node i u args.trees need hs (fun _ n => hi _ n) args.matching args.good,rfl⟩⟩
 
@@ -85,8 +85,8 @@ def arrayFixed (c : context) (index : ArrayIndex c) (count : Nat)
 
 def externConvert (c : context) (op : externop_) (nu : null) (ht : heaptype)
     (child : Typed c (.RefT (.«% %» nu ht)))
-    (hm : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c [.RefT (.«% %» nu ht)]
+    (hm : ∀ n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c [.RefT (.«% %» nu ht)]
         [.RefT (.«% %» nu (ExternopTypeDecision.typeExternopResult op).1)]⟩)
       n (.success (.of ())) n) :
     Typed c (.RefT (.«% %» nu (ExternopTypeDecision.typeExternopResult op).2)) :=
@@ -104,8 +104,8 @@ def externConvert (c : context) (op : externop_) (nu : null) (ht : heaptype)
       simpa only [he] using child.property.1⟩
 
 def externBottom (c : context) (op : externop_) (child : Typed c .BotT)
-    (hm : ∀ n,SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit,SpecTecCall.Match_resulttype c [.BotT]
+    (hm : ∀ n,SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit,Call.Match_resulttype c [.BotT]
         [.RefT (.«% %» .NoNull (ExternopTypeDecision.typeExternopResult op).1)]⟩)
       n (.success (.of ())) n) :
     Typed c (.RefT (.«% %» .NoNull (ExternopTypeDecision.typeExternopResult op).2)) :=

@@ -16,8 +16,8 @@ theorem match_iter_of_pairs (c : SpecTec.context)
       (∀ a ∈ actual, CandidateValMatch.InTableVal c a) →
       (∀ r ∈ required, CandidateValMatch.InTableVal c r) →
       ∀ n : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.«Match_resulttype:rule:iter:0»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.«Match_resulttype:rule:iter:0»
             c actual required⟩)
           n (.success (.of ())) n := by
   intro actual required hpairs
@@ -48,8 +48,8 @@ theorem match_resulttype_of_pairs (c : SpecTec.context)
       actual required)
     (hactual : ∀ a ∈ actual, CandidateValMatch.InTableVal c a)
     (hrequired : ∀ r ∈ required, CandidateValMatch.InTableVal c r) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Match_resulttype c
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Match_resulttype c
         actual required⟩)
       n (.success (.of ())) n := by
   apply (MatchResulttypeValidation.match_resulttype_success_iff

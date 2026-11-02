@@ -97,7 +97,7 @@ theorem exports_support (c : context) (used : nameset) (es : List SpecTec.«expo
 
 theorem exports_exact (c : context) (used : nameset) (es : List SpecTec.«export»)
     (n : Nat) : Gen.support (exports c used) es ↔
-      ∃ result : nameset, Eval specTecProgram (.call ⟨nameset, SpecTecCall.Exports_ok c used es⟩)
+      ∃ result : nameset, Eval Body (.call ⟨nameset, Call.Exports_ok c used es⟩)
         n (.success (.of result)) n := by
   rw [exports_support, ← result_iff_allowed]
   simp only [ExportsValidation.exports_success_iff_result, and_true]
@@ -126,8 +126,8 @@ theorem exports_total (c : context) (used : nameset) : Gen.total (exports c used
 
 theorem exports_exact_supply (c : context) (used : nameset)
     (es : List SpecTec.«export») (n finish : Nat) :
-    (∃ result : nameset, Eval specTecProgram
-      (.call ⟨nameset, SpecTecCall.Exports_ok c used es⟩)
+    (∃ result : nameset, Eval Body
+      (.call ⟨nameset, Call.Exports_ok c used es⟩)
       n (.success (.of result)) finish) ↔
       Gen.support (exports c used) es ∧ finish = n := by
   simp only [ExportsValidation.exports_success_iff_result, exists_and_right]

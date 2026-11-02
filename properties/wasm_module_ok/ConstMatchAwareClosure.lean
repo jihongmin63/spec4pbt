@@ -83,16 +83,16 @@ theorem output_mem_match_aware_step
     (result : SpecTec.inferresulttype)
     (s : Finset SpecTec.valtype) (u : SpecTec.valtype)
     (start middle instructionFinish popStart popFinish : Nat)
-    (hconst : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    (hconst : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       start (.success (.of true)) middle)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferinstrtype,
-        SpecTec.SpecTecCall.Instr_ok c irt i⟩)
+        SpecTec.Call.Instr_ok c irt i⟩)
       middle (.success (.of iit)) instructionFinish)
-    (hpop : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hpop : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.inferresulttype,
-        SpecTec.SpecTecCall.«$pop» c
+        SpecTec.Call.«$pop» c
           (.NoEllipses, iit.1.INS.2) (.NoEllipses, available)⟩)
       popStart (.success (.of result)) popFinish)
     (hbounded : s ⊆ FiniteValidTypes.candidateUniverse c)

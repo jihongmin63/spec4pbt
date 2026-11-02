@@ -9,13 +9,13 @@ theorem rectype_iter6_member
     (c : SpecTec.context) (x : SpecTec.typeidx)
     (ns : List SpecTec.n) (sts : List SpecTec.subtype)
     (start finish i : Nat) (n : SpecTec.n) (st : SpecTec.subtype)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6»
+    (h : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.«Rectype_ok:rule:iter:6»
         c x ns sts⟩) start (.success (.of ())) finish)
     (hn : ns[i]? = some n) (hs : sts[i]? = some st) :
     ∃ callStart callFinish : Nat,
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_sub_ok
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Unit, SpecTec.Call.Subtype_sub_ok
           c (x + n) st⟩)
         callStart (.success (.of ())) callFinish := by
   induction ns generalizing sts start finish i with
@@ -26,15 +26,15 @@ theorem rectype_iter6_member
       | cons headSt tailSt =>
           cases h with
           | call hbody =>
-              change SpecTecExecution.Eval SpecTec.specTecProgram
-                (SpecTecExecution.firstSuccess
+              change SpecTecExecution.Eval SpecTec.Body
+                (SpecTecExecution.tryClauses
                   (SpecTec.«Rectype_ok:rule:iter:6_clauses»
-                    c x (headN :: tailN) (headSt :: tailSt)) ())
+                    c x (headN :: tailN) (headSt :: tailSt)))
                 start (.success (.of ())) finish at hbody
               obtain ⟨idx, hselected⟩ :=
-                (SpecTecExecution.firstSuccess_success_iff
+                (SpecTecExecution.tryClauses_success_iff
                   (SpecTec.«Rectype_ok:rule:iter:6_clauses»
-                    c x (headN :: tailN) (headSt :: tailSt)) ()
+                    c x (headN :: tailN) (headSt :: tailSt))
                   start (.of ()) finish).1 hbody
               unfold SpecTec.«Rectype_ok:rule:iter:6_clauses» at hselected
               cases hselected with
@@ -63,32 +63,32 @@ theorem rectype_iter6_member
 theorem rectype_ok_extract_sub_iters
     (before after : SpecTec.context) (sts : List SpecTec.subtype)
     (start finish : Nat)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish) :
     ∃ ns : List SpecTec.n,
     ∃ dts : List SpecTec.deftype,
       after = {before with TYPES := before.TYPES ++ dts} ∧
       ns.length = sts.length ∧
       ∃ iter5Start iter5Finish iter6Start iter6Finish : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.«Rectype_ok:rule:iter:5»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.«Rectype_ok:rule:iter:5»
             after sts⟩)
           iter5Start (.success (.of ())) iter5Finish ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.«Rectype_ok:rule:iter:6»
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.«Rectype_ok:rule:iter:6»
             after before.TYPES.length ns sts⟩)
           iter6Start (.success (.of ())) iter6Finish := by
   cases hrect with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.Rectype_ok_clauses before (.RecT sts)) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.Rectype_ok_clauses before (.RecT sts)))
         start (.success (.of after)) finish at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Rectype_ok_clauses before (.RecT sts)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Rectype_ok_clauses before (.RecT sts))
           start (.of after) finish).1 hbody
       unfold SpecTec.Rectype_ok_clauses at hselected
       cases hselected with
@@ -128,9 +128,9 @@ theorem rectype_ok_supertype_static_call
     (start finish i : Nat)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))
@@ -139,9 +139,9 @@ theorem rectype_ok_supertype_static_call
     ∃ y : SpecTec.typeidx,
     ∃ callStart callFinish : Nat,
       ht = .VarHT (.StatX y) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (.call ⟨Unit,
-          SpecTec.SpecTecCall.Subtype_sub_ok' after
+          SpecTec.Call.Subtype_sub_ok' after
             (before.TYPES.length + n) strt (.VarHT (.StatX y))⟩)
         callStart (.success (.of ())) callFinish := by
   obtain ⟨ns, dts, hafter, hlen,
@@ -165,9 +165,9 @@ theorem rectype_ok_supertype_match_pair
     (start finish i : Nat)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))
@@ -183,8 +183,8 @@ theorem rectype_ok_supertype_match_pair
       after.TYPES[y]? = some dt ∧
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT finU htsU strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_strtype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_strtype»
           after.TYPES strt strtU⟩)
         matchStart (.success (.of true)) matchFinish ∧
       y < before.TYPES.length + n ∧ finU = .NoFinal := by
@@ -209,9 +209,9 @@ theorem rectype_ok_source_reference_lookup
     (start finish i : Nat)
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (raw : SpecTec.heaptype)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))
@@ -231,9 +231,9 @@ theorem rectype_ok_supertype_indexed_match_pair
     (fin : SpecTec.final) (hts : List SpecTec.heaptype)
     (strt : SpecTec.strtype) (ht : SpecTec.heaptype)
     (hbefore : ValidatedTypeChain.ValidatedTypes before)
-    (hrect : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hrect : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.context,
-        SpecTec.SpecTecCall.Rectype_ok before (.RecT sts)⟩)
+        SpecTec.Call.Rectype_ok before (.RecT sts)⟩)
       start (.success (.of after)) finish)
     (hi : i < sts.length)
     (hsource : sts[i]? = some (.SubT fin hts strt))
@@ -249,8 +249,8 @@ theorem rectype_ok_supertype_indexed_match_pair
       after.TYPES[y]? = some dt ∧
       properties.wasm_module_not_ok.Rejection.unrollDeftypeResult dt =
         some (.SubT finU htsU strtU) ∧
-      SpecTecExecution.Eval SpecTec.specTecProgram
-        (.call ⟨Bool, SpecTec.SpecTecCall.«$match_strtype»
+      SpecTecExecution.Eval SpecTec.Body
+        (.call ⟨Bool, SpecTec.Call.«$match_strtype»
           after.TYPES strt strtU⟩)
         matchStart (.success (.of true)) matchFinish ∧
       y < before.TYPES.length + n ∧ finU = .NoFinal ∧

@@ -9,8 +9,8 @@ open properties.wasm_module_ok.FreeUnionValidation
 theorem hasFunc_of_in_set_true
     (f : SpecTec.free) (x : SpecTec.funcidx)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$in_set»
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$in_set»
         SpecTec.funcidx x f.FUNCS⟩)
       n (.success (.of true)) finalSupply) :
     HasFunc f x := by
@@ -19,10 +19,10 @@ theorem hasFunc_of_in_set_true
     cases hcall with
     | call hbody =>
       rw [hs] at hbody
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$in_set_clauses» SpecTec.funcidx x
-            (SpecTec.set.«`{ % `}» xs)) ())
+            (SpecTec.set.«`{ % `}» xs)))
         n (.success (.of true)) finalSupply at hbody
       cases hbody with
       | orElse_success hclause =>
@@ -40,7 +40,7 @@ theorem ref_func_clause_success_of_membership
     (hget : c.FUNCS[x]? = some dt)
     (href : HasFunc c.REFS x) :
     ∃ result : SpecTec.inferinstrtype,
-      SpecTecExecution.Eval SpecTec.specTecProgram
+      SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«Instr_ok:clause:51» c irt (.«REF.FUNC» x))
         n (.success (.of result)) n := by
   refine ⟨({
@@ -65,7 +65,7 @@ theorem ref_func_clause_requires_membership
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (x : SpecTec.funcidx) (result : SpecTec.inferinstrtype)
     (n finalSupply : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hcall : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:51» c irt (.«REF.FUNC» x))
       n (.success (.of result)) finalSupply) :
     x < c.FUNCS.length ∧ HasFunc c.REFS x := by

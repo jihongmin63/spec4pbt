@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.ReftypeTotal
 import properties.wasm_module_ok.LimitsValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -19,7 +20,7 @@ def tabletypeOutcome (c : SpecTec.context) (tt : SpecTec.tabletype) :
 
 theorem tabletype_i32_clause_total (c : SpecTec.context)
     (lim : SpecTec.limits) (rt : SpecTec.reftype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Tabletype_ok:clause:0» c (.TableT .I32AT lim rt))
       n (tabletypeOutcome c (.TableT .I32AT lim rt)) n := by
   cases hr : ReftypeTotal.reftypeValid c rt with
@@ -62,7 +63,7 @@ theorem tabletype_i32_clause_total (c : SpecTec.context)
 
 theorem tabletype_i64_clause_total (c : SpecTec.context)
     (lim : SpecTec.limits) (rt : SpecTec.reftype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Tabletype_ok:clause:1» c (.TableT .I64AT lim rt))
       n (tabletypeOutcome c (.TableT .I64AT lim rt)) n := by
   cases hr : ReftypeTotal.reftypeValid c rt with
@@ -105,8 +106,8 @@ theorem tabletype_i64_clause_total (c : SpecTec.context)
 
 theorem tabletype_total (c : SpecTec.context)
     (tt : SpecTec.tabletype) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Tabletype_ok c tt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Tabletype_ok c tt⟩)
       n (tabletypeOutcome c tt) n := by
   cases tt with
   | TableT addr lim rt =>
@@ -115,26 +116,26 @@ theorem tabletype_total (c : SpecTec.context)
       cases hv : tabletypeValid c (.TableT .I32AT lim rt) with
       | true =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tabletype_ok_clauses c (.TableT .I32AT lim rt)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tabletype_ok_clauses c (.TableT .I32AT lim rt)))
           n (tabletypeOutcome c (.TableT .I32AT lim rt)) n
         simp only [tabletypeOutcome, hv, ite_true]
-        apply SpecTecExecution.firstSuccess_cons_success
+        apply SpecTecExecution.tryClauses_cons_success
         simpa [tabletypeOutcome, hv] using
           tabletype_i32_clause_total c lim rt n
       | false =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tabletype_ok_clauses c (.TableT .I32AT lim rt)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tabletype_ok_clauses c (.TableT .I32AT lim rt)))
           n (tabletypeOutcome c (.TableT .I32AT lim rt)) n
         simp only [tabletypeOutcome, hv]
-        apply SpecTecExecution.firstSuccess_cons_unmatch
+        apply SpecTecExecution.tryClauses_cons_unmatch
         · simpa [tabletypeOutcome, hv] using
             tabletype_i32_clause_total c lim rt n
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
-          · change SpecTecExecution.Eval SpecTec.specTecProgram
+        · apply SpecTecExecution.tryClauses_cons_unmatch
+          · change SpecTecExecution.Eval SpecTec.Body
               (SpecTec.«Tabletype_ok:clause:1» c (.TableT .I32AT lim rt))
               n .unmatch n
             unfold SpecTec.«Tabletype_ok:clause:1»
@@ -142,18 +143,18 @@ theorem tabletype_total (c : SpecTec.context)
             apply SpecTecExecution.Eval.guard_false
             change ¬ false = true
             decide
-          · exact SpecTecExecution.firstSuccess_nil () n
+          · exact SpecTecExecution.tryClauses_nil n
     | I64AT =>
       cases hv : tabletypeValid c (.TableT .I64AT lim rt) with
       | true =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tabletype_ok_clauses c (.TableT .I64AT lim rt)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tabletype_ok_clauses c (.TableT .I64AT lim rt)))
           n (tabletypeOutcome c (.TableT .I64AT lim rt)) n
         simp only [tabletypeOutcome, hv, ite_true]
-        apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Tabletype_ok:clause:0» c (.TableT .I64AT lim rt))
             n .unmatch n
           unfold SpecTec.«Tabletype_ok:clause:0»
@@ -161,18 +162,18 @@ theorem tabletype_total (c : SpecTec.context)
           apply SpecTecExecution.Eval.guard_false
           change ¬ false = true
           decide
-        · apply SpecTecExecution.firstSuccess_cons_success
+        · apply SpecTecExecution.tryClauses_cons_success
           simpa [tabletypeOutcome, hv] using
             tabletype_i64_clause_total c lim rt n
       | false =>
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess
-            (SpecTec.Tabletype_ok_clauses c (.TableT .I64AT lim rt)) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses
+            (SpecTec.Tabletype_ok_clauses c (.TableT .I64AT lim rt)))
           n (tabletypeOutcome c (.TableT .I64AT lim rt)) n
         simp only [tabletypeOutcome, hv]
-        apply SpecTecExecution.firstSuccess_cons_unmatch
-        · change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_unmatch
+        · change SpecTecExecution.Eval SpecTec.Body
             (SpecTec.«Tabletype_ok:clause:0» c (.TableT .I64AT lim rt))
             n .unmatch n
           unfold SpecTec.«Tabletype_ok:clause:0»
@@ -180,24 +181,21 @@ theorem tabletype_total (c : SpecTec.context)
           apply SpecTecExecution.Eval.guard_false
           change ¬ false = true
           decide
-        · apply SpecTecExecution.firstSuccess_cons_unmatch
+        · apply SpecTecExecution.tryClauses_cons_unmatch
           · simpa [tabletypeOutcome, hv] using
               tabletype_i64_clause_total c lim rt n
-          · exact SpecTecExecution.firstSuccess_nil () n
+          · exact SpecTecExecution.tryClauses_nil n
 
 theorem tabletype_success_iff_valid (c : SpecTec.context)
     (tt : SpecTec.tabletype) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Tabletype_ok c tt⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Tabletype_ok c tt⟩)
       n (.success (.of ())) finalSupply ↔
     tabletypeValid c tt = true ∧ finalSupply = n := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
     obtain ⟨hout, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet h (tabletype_total c tt n)
+      properties.wasm_module_ok.Execution.eval_deterministic h (tabletype_total c tt n)
     cases hv : tabletypeValid c tt with
     | true => exact ⟨rfl, hsupply⟩
     | false => simp [tabletypeOutcome, hv] at hout

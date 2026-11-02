@@ -16,9 +16,9 @@ private theorem ready_match_index_same_value
     (hQ : c.TYPES[q]? = some dtQ)
     (hIH : ∀ k dtK, k < p → c.TYPES[k]? = some dtK →
       ∀ result : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtK dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtK dtQ⟩)
           start (.success (.of result)) start ↔
         result = matchIndex c k q)
     (k₁ k₂ : Nat) (dtK : SpecTec.deftype)
@@ -42,15 +42,15 @@ theorem ready_def_head_matches_predecessor_search
     (hQ : c.TYPES[q]? = some dtQ)
     (hIH : ∀ k dt, k < p → c.TYPES[k]? = some dt →
       ∀ r : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dt dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dt dtQ⟩)
           start (.success (.of r)) start ↔
         r = matchIndex c k q)
     (hwitness : ∃ k : Nat, k < p ∧ c.TYPES[k]? = some dtK) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_heaptype» c.TYPES
+        SpecTec.Call.«$match_heaptype» c.TYPES
           (.DefHT dtK) (.DefHT dtQ)⟩)
       start (.success (.of
         ((List.range p).any fun k =>

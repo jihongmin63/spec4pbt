@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstStepTrace
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -11,21 +12,21 @@ def numericType : SpecTec.num_ → SpecTec.numtype
   | .F64 _ => .F64T
 
 theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨SpecTec.numtype,
-        SpecTec.SpecTecCall.«$type_num»
+        SpecTec.Call.«$type_num»
           SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 v⟩)
       n (.success (.of (numericType v))) n := by
   cases v with
   | I32 a =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$type_num_clauses»
-            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I32 a)) ())
+            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I32 a)))
         n (.success (.of SpecTec.numtype.I32T)) n
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_num:clause:0»
           SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I32 a))
         n (.success (.of SpecTec.numtype.I32T)) n
@@ -35,13 +36,13 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
       · exact SpecTecExecution.Eval.pure SpecTec.numtype.I32T
   | I64 a =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$type_num_clauses»
-            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I64 a)) ())
+            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I64 a)))
         n (.success (.of SpecTec.numtype.I64T)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:0»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I64 a))
           n .unmatch n
@@ -49,8 +50,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:I32»]))
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_num:clause:1»
           SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.I64 a))
         n (.success (.of SpecTec.numtype.I64T)) n
@@ -60,13 +61,13 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
       · exact SpecTecExecution.Eval.pure SpecTec.numtype.I64T
   | F32 a =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$type_num_clauses»
-            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F32 a)) ())
+            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F32 a)))
         n (.success (.of SpecTec.numtype.F32T)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:0»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F32 a))
           n .unmatch n
@@ -74,8 +75,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:I32»]))
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:1»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F32 a))
           n .unmatch n
@@ -83,8 +84,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:I64»]))
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_num:clause:2»
           SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F32 a))
         n (.success (.of SpecTec.numtype.F32T)) n
@@ -94,13 +95,13 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
       · exact SpecTecExecution.Eval.pure SpecTec.numtype.F32T
   | F64 a =>
       apply SpecTecExecution.Eval.call
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
           (SpecTec.«$type_num_clauses»
-            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a)) ())
+            SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a)))
         n (.success (.of SpecTec.numtype.F64T)) n
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:0»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a))
           n .unmatch n
@@ -108,8 +109,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:I32»]))
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:1»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a))
           n .unmatch n
@@ -117,8 +118,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:I64»]))
-      apply SpecTecExecution.firstSuccess_cons_unmatch
-      · change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_unmatch
+      · change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«$type_num:clause:2»
             SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a))
           n .unmatch n
@@ -126,8 +127,8 @@ theorem numeric_type_call (v : SpecTec.num_) (n : Nat) :
         exact SpecTecExecution.Eval.bind_unmatch
           (SpecTecExecution.Eval.guard_false
             (by simp [SpecTec.«exec:match:op:F32»]))
-      apply SpecTecExecution.firstSuccess_cons_success
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      apply SpecTecExecution.tryClauses_cons_success
+      change SpecTecExecution.Eval SpecTec.Body
         (SpecTec.«$type_num:clause:3»
           SpecTec.i32 SpecTec.i64 SpecTec.f32 SpecTec.f64 (.F64 a))
         n (.success (.of SpecTec.numtype.F64T)) n
@@ -140,7 +141,7 @@ theorem const_clause_effect
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.num_) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:78» c irt (.CONST v))
       n (.success (.of iit)) fin) :
     iit.1.INS = (.NoEllipses, []) ∧
@@ -158,7 +159,7 @@ theorem const_clause_effect
 theorem const_clause_total
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.num_) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:78» c irt (.CONST v))
       n (.success (.of
         (⟨{ INS := (.NoEllipses, []),
@@ -174,7 +175,7 @@ theorem const_clause_exact
     (c : SpecTec.context) (irt : SpecTec.inferresulttype)
     (v : SpecTec.num_) (iit : SpecTec.inferinstrtype)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Instr_ok:clause:78» c irt (.CONST v))
       n (.success (.of iit)) fin) :
     iit =
@@ -182,11 +183,8 @@ theorem const_clause_exact
            OUTS := (.NoEllipses, [.NumT (numericType v)]) },
         ([] : List SpecTec.localidx)⟩ : SpecTec.inferinstrtype) ∧
     fin = n := by
-  have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-    intro request a b hp
-    cases hp
   obtain ⟨hout, hsupply⟩ :=
-    SpecTecExecution.eval_deterministic hdet h
+    properties.wasm_module_ok.Execution.eval_deterministic h
       (const_clause_total c irt v n)
   cases hout
   exact ⟨rfl, hsupply⟩

@@ -7,7 +7,7 @@ open SpecTec properties.wasm_module_ok ConstructiveBodyEnvironment ConstructiveB
 
 theorem load (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : loadop_)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«LOAD» x op)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«LOAD» x op)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«LOAD» x op) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop⟩ := ConstructiveBodyMemoryOriginal.load c stack x op effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩
@@ -28,7 +28,7 @@ theorem load (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op
 
 theorem store (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : storeop_)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«STORE» x op)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«STORE» x op)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«STORE» x op) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop⟩ := ConstructiveBodyMemoryOriginal.store c stack x op effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩
@@ -49,7 +49,7 @@ theorem store (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (o
 
 theorem vload (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : vloadop_)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.LOAD» x op)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.LOAD» x op)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«VEC.LOAD» x op) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop⟩ := ConstructiveBodyMemoryOriginal.vload c stack x op effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩
@@ -71,7 +71,7 @@ theorem vload (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (o
 
 theorem vstore (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : vstoreop_)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.STORE» x op)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.STORE» x op)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«VEC.STORE» x op) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop⟩ := ConstructiveBodyMemoryOriginal.vstore c stack x op effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩
@@ -85,7 +85,7 @@ theorem vstore (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (
 
 theorem laneLoad (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : vlaneop_) (index : Int)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.LOAD_LANE» x op index)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.LOAD_LANE» x op index)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«VEC.LOAD_LANE» x op index) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop,hl⟩ := ConstructiveBodyMemoryOriginal.laneLoad c stack x op index effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩
@@ -98,7 +98,7 @@ theorem laneLoad (c : context) (stack : inferresulttype) (env : Env c) (x : Nat)
 
 theorem laneStore (c : context) (stack : inferresulttype) (env : Env c) (x : Nat) (op : vlaneop_) (index : Int)
     (effect : inferinstrtype) (n finish : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨inferinstrtype,SpecTecCall.Instr_ok c stack (.«VEC.STORE_LANE» x op index)⟩) n (.success (.of effect)) finish) :
+    (h : SpecTecExecution.Eval SpecTec.Body (.call ⟨inferinstrtype,Call.Instr_ok c stack (.«VEC.STORE_LANE» x op index)⟩) n (.success (.of effect)) finish) :
     Covers (all c stack env) (.«VEC.STORE_LANE» x op index) effect ∧ finish=n := by
   obtain ⟨mem,got,middle,hx,hop,hl⟩ := ConstructiveBodyMemoryOriginal.laneStore c stack x op index effect n finish h
   rcases op with ⟨ty,align,offset,pack⟩

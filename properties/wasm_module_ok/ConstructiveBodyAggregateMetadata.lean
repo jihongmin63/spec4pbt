@@ -11,11 +11,11 @@ theorem arrayResult {c : context} (a : ArrayIndex c) : ArrayTypeDecision.arrayTy
   simp [ArrayTypeDecision.arrayTypeResult,a.lookup,a.expansion]
 
 theorem structCall {c : context} (s : StructIndex c) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨structtype,SpecTecCall.«$struct_type» c s.index⟩)
+    SpecTecExecution.Eval SpecTec.Body (.call ⟨structtype,Call.«$struct_type» c s.index⟩)
       n (.success (.of (structtype.StructT s.fields))) n :=
   (StructTypeDecision.struct_type_success_iff_result c s.index _ n n).2 ⟨structResult s,rfl⟩
 theorem arrayCall {c : context} (a : ArrayIndex c) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram (.call ⟨arraytype,SpecTecCall.«$array_type» c a.index⟩)
+    SpecTecExecution.Eval SpecTec.Body (.call ⟨arraytype,Call.«$array_type» c a.index⟩)
       n (.success (.of (arraytype.ArrayT a.field))) n :=
   (ArrayTypeDecision.array_type_success_iff_result c a.index _ n n).2 ⟨arrayResult a,rfl⟩
 

@@ -16,15 +16,15 @@ def funcDeclResult (c : SpecTec.context)
 theorem func_ok_success_iff_result
     (c : SpecTec.context) (f : SpecTec.func)
     (result : SpecTec.context) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Func_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Func_ok c f⟩)
       n (.success (.of result)) finalSupply ↔
     funcDeclResult c f = some result ∧ finalSupply = n := by
   constructor
   · intro h
     cases h with
     | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
+      change SpecTecExecution.Eval SpecTec.Body
         (.orElse (SpecTec.«Func_ok:clause:0» c f)
           (fun _ => .unmatch))
         n (.success (.of result)) finalSupply at hbody
@@ -71,12 +71,12 @@ theorem func_ok_success_iff_result
             ⟨by simp [FunctionTypeValidation.funcTypeResult, hget, hft],
               rfl⟩
         apply SpecTecExecution.Eval.call
-        change SpecTecExecution.Eval SpecTec.specTecProgram
-          (SpecTecExecution.firstSuccess (SpecTec.Func_ok_clauses c f) ())
+        change SpecTecExecution.Eval SpecTec.Body
+          (SpecTecExecution.tryClauses (SpecTec.Func_ok_clauses c f))
           finalSupply (.success (.of
             { c with FUNCS := c.FUNCS ++ [dt] })) finalSupply
-        apply SpecTecExecution.firstSuccess_cons_success
-        change SpecTecExecution.Eval SpecTec.specTecProgram
+        apply SpecTecExecution.tryClauses_cons_success
+        change SpecTecExecution.Eval SpecTec.Body
           (SpecTec.«Func_ok:clause:0» c f)
           finalSupply (.success (.of
             { c with FUNCS := c.FUNCS ++ [dt] })) finalSupply
@@ -91,8 +91,8 @@ theorem func_ok_success_iff_result
 theorem func_ok_none (c : SpecTec.context)
     (f : SpecTec.func) (n : Nat)
     (hresult : funcDeclResult c f = none) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Func_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Func_ok c f⟩)
       n .unmatch n := by
   have hft : FunctionTypeValidation.funcTypeResult c f.FTYPE = none := by
     cases hget : c.TYPES[f.FTYPE]? with
@@ -104,16 +104,16 @@ theorem func_ok_none (c : SpecTec.context)
       | some ft =>
         simp [funcDeclResult, hget, hdt] at hresult
   apply SpecTecExecution.Eval.call
-  change SpecTecExecution.Eval SpecTec.specTecProgram
-    (SpecTecExecution.firstSuccess (SpecTec.Func_ok_clauses c f) ())
+  change SpecTecExecution.Eval SpecTec.Body
+    (SpecTecExecution.tryClauses (SpecTec.Func_ok_clauses c f))
     n .unmatch n
-  apply SpecTecExecution.firstSuccess_cons_unmatch
-  · change SpecTecExecution.Eval SpecTec.specTecProgram
+  apply SpecTecExecution.tryClauses_cons_unmatch
+  · change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Func_ok:clause:0» c f) n .unmatch n
     unfold SpecTec.«Func_ok:clause:0»
     apply SpecTecExecution.Eval.bind_unmatch
     exact FunctionTypeValidation.func_type_none c f.FTYPE n hft
-  · exact SpecTecExecution.firstSuccess_nil () n
+  · exact SpecTecExecution.tryClauses_nil n
 
 def funcDeclOutcome (c : SpecTec.context) (f : SpecTec.func) :
     SpecTecExecution.Outcome SpecTecExecution.Value :=
@@ -123,8 +123,8 @@ def funcDeclOutcome (c : SpecTec.context) (f : SpecTec.func) :
 
 theorem func_ok_total (c : SpecTec.context)
     (f : SpecTec.func) (n : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.context, SpecTec.SpecTecCall.Func_ok c f⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.context, SpecTec.Call.Func_ok c f⟩)
       n (funcDeclOutcome c f) n := by
   cases hresult : funcDeclResult c f with
   | none =>

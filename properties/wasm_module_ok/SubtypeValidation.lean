@@ -15,26 +15,26 @@ theorem subtype_success_iff_calls
     (c : SpecTec.context) (fin : SpecTec.final)
     (hts : List SpecTec.heaptype) (st : SpecTec.strtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Unit,
-        SpecTec.SpecTecCall.Subtype_ok c (.SubT fin hts st)⟩)
+        SpecTec.Call.Subtype_ok c (.SubT fin hts st)⟩)
       n (.success (.of ())) finish ↔
     hts.length ≤ 1 ∧
       ∃ middle : Nat,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Unit,
-            SpecTec.SpecTecCall.«Subtype_ok:rule:iter:0» c hts⟩)
+            SpecTec.Call.«Subtype_ok:rule:iter:0» c hts⟩)
           n (.success (.of ())) middle ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
-          (.call ⟨Unit, SpecTec.SpecTecCall.Strtype_ok c st⟩)
+        SpecTecExecution.Eval SpecTec.Body
+          (.call ⟨Unit, SpecTec.Call.Strtype_ok c st⟩)
           middle (.success (.of ())) finish := by
   constructor
   · intro h
     cases h with
     | call hbody =>
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.Subtype_ok_clauses c (.SubT fin hts st)) ()
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.Subtype_ok_clauses c (.SubT fin hts st))
           n (.of ()) finish).1 hbody
       unfold SpecTec.Subtype_ok_clauses at hselected
       cases hselected with
@@ -54,12 +54,12 @@ theorem subtype_success_iff_calls
       | next _ hnone => cases hnone
   · rintro ⟨hbound, middle, hlist, hstr⟩
     apply SpecTecExecution.Eval.call
-    change SpecTecExecution.Eval SpecTec.specTecProgram
-      (SpecTecExecution.firstSuccess
-        (SpecTec.Subtype_ok_clauses c (.SubT fin hts st)) ())
+    change SpecTecExecution.Eval SpecTec.Body
+      (SpecTecExecution.tryClauses
+        (SpecTec.Subtype_ok_clauses c (.SubT fin hts st)))
       n (.success (.of ())) finish
-    apply SpecTecExecution.firstSuccess_cons_success
-    change SpecTecExecution.Eval SpecTec.specTecProgram
+    apply SpecTecExecution.tryClauses_cons_success
+    change SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«Subtype_ok:clause:0» c (.SubT fin hts st))
       n (.success (.of ())) finish
     unfold SpecTec.«Subtype_ok:clause:0»
@@ -72,8 +72,8 @@ theorem subtype_success_iff_calls
 theorem subtype_success_iff_valid
     (c : SpecTec.context) (sub : SpecTec.subtype)
     (n finish : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Subtype_ok c sub⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Subtype_ok c sub⟩)
       n (.success (.of ())) finish ↔
     subtypeValid c sub = true ∧ finish = n := by
   cases sub with

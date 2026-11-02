@@ -58,9 +58,9 @@ theorem global_get_seed_iff_instr_effect
         c.GLOBALS[x]? = some (.GlobalT .Cons t) ∧
         u = t ∧
         ConstSyntaxDecision.syntaxAllowed c (.«GLOBAL.GET» x) = true ∧
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨SpecTec.inferinstrtype,
-            SpecTec.SpecTecCall.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
+            SpecTec.Call.Instr_ok c irt (.«GLOBAL.GET» x)⟩)
           n (.success (.of
             (⟨{ INS := (.NoEllipses, []),
                  OUTS := (.NoEllipses, [u]) },

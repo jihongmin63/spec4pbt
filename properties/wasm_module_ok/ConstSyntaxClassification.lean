@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ConstAdditionalSyntaxValidation
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -7,7 +8,7 @@ namespace properties.wasm_module_ok.ConstSyntaxClassification
 theorem clause_zero_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:0» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -21,7 +22,7 @@ theorem clause_zero_syntax
 theorem clause_1_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:1» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -36,7 +37,7 @@ theorem clause_1_syntax
 theorem clause_2_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:2» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -51,7 +52,7 @@ theorem clause_2_syntax
 theorem clause_3_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:3» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -66,7 +67,7 @@ theorem clause_3_syntax
 theorem clause_4_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:4» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -81,7 +82,7 @@ theorem clause_4_syntax
 theorem clause_5_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:5» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -96,7 +97,7 @@ theorem clause_5_syntax
 theorem clause_6_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:6» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -111,7 +112,7 @@ theorem clause_6_syntax
 theorem clause_7_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:7» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -126,7 +127,7 @@ theorem clause_7_syntax
 theorem clause_8_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:8» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -141,7 +142,7 @@ theorem clause_8_syntax
 theorem clause_9_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:9» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -156,7 +157,7 @@ theorem clause_9_syntax
 theorem clause_10_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (h : SpecTecExecution.Eval SpecTec.specTecProgram
+    (h : SpecTecExecution.Eval SpecTec.Body
       (SpecTec.«$is_const:clause:10» c i)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
@@ -188,19 +189,19 @@ theorem clause_10_syntax
 theorem ordered_call_syntax
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat)
-    (hcall : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    (hcall : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       n (.success (.of true)) fin) :
     ConstAdditionalSyntaxValidation.Syntax c i := by
   cases hcall with
   | call hbody =>
-      change SpecTecExecution.Eval SpecTec.specTecProgram
-        (SpecTecExecution.firstSuccess
-          (SpecTec.«$is_const_clauses» c i) ())
+      change SpecTecExecution.Eval SpecTec.Body
+        (SpecTecExecution.tryClauses
+          (SpecTec.«$is_const_clauses» c i))
         n (.success (.of true)) fin at hbody
       obtain ⟨idx, hselected⟩ :=
-        (SpecTecExecution.firstSuccess_success_iff
-          (SpecTec.«$is_const_clauses» c i) () n
+        (SpecTecExecution.tryClauses_success_iff
+          (SpecTec.«$is_const_clauses» c i) n
           (.of true) fin).1 hbody
       unfold SpecTec.«$is_const_clauses» at hselected
       cases hselected with
@@ -243,19 +244,15 @@ theorem ordered_call_syntax
 theorem is_const_success_iff
     (c : SpecTec.context) (i : SpecTec.instr)
     (n fin : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$is_const» c i⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$is_const» c i⟩)
       n (.success (.of true)) fin ↔
     ConstAdditionalSyntaxValidation.Syntax c i ∧ fin = n := by
   constructor
   · intro hcall
     have hsyntax := ordered_call_syntax c i n fin hcall
-    have hdet : SpecTecExecution.PrimitiveDeterministic
-        SpecTec.specTecProgram := by
-      intro request a b hp
-      cases hp
     obtain ⟨_, hsupply⟩ :=
-      SpecTecExecution.eval_deterministic hdet hcall
+      properties.wasm_module_ok.Execution.eval_deterministic hcall
         (ConstAdditionalSyntaxValidation.syntax_is_const c i n hsyntax)
     exact ⟨hsyntax, hsupply⟩
   · rintro ⟨hsyntax, rfl⟩

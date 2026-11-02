@@ -5,8 +5,8 @@ open SpecTec properties.wasm_module_ok SpecTecExecution ConstructivePreludeRefs
 
 theorem elems_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.elem) (n finish : Nat)
     (ha : ∀item∈xs,ElementAvailable refs item)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Elems_ok c xs⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Elems_ok (replace refs c) xs⟩)
+    (h : Eval Body (.call ⟨context,Call.Elems_ok c xs⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Elems_ok (replace refs c) xs⟩)
       n (.success (.of (replace refs out))) finish := by
   induction xs generalizing c n with
   | nil =>
@@ -20,7 +20,7 @@ theorem elems_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec
       (ih next middle (fun item hm => ha item (by simp [hm])) ht)
 
 theorem elems_bounded (c out : context) (xs : List SpecTec.elem) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Elems_ok c xs⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Elems_ok c xs⟩) n (.success (.of out)) finish) :
     ∀item∈xs,ElementAvailable (ConstructiveModuleRefsBounds.allFunctions c) item := by
   induction xs generalizing c n with
   | nil => simp
@@ -37,8 +37,8 @@ theorem elems_bounded (c out : context) (xs : List SpecTec.elem) (n finish : Nat
 
 theorem datas_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec.data) (n finish : Nat)
     (ha : ∀item∈xs,DataAvailable refs item)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok c xs⟩) n (.success (.of out)) finish) :
-    Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok (replace refs c) xs⟩)
+    (h : Eval Body (.call ⟨context,Call.Datas_ok c xs⟩) n (.success (.of out)) finish) :
+    Eval Body (.call ⟨context,Call.Datas_ok (replace refs c) xs⟩)
       n (.success (.of (replace refs out))) finish := by
   induction xs generalizing c n with
   | nil =>
@@ -52,7 +52,7 @@ theorem datas_replace (refs : SpecTec.free) (c out : context) (xs : List SpecTec
       (ih next middle (fun item hm => ha item (by simp [hm])) ht)
 
 theorem datas_bounded (c out : context) (xs : List SpecTec.data) (n finish : Nat)
-    (h : Eval specTecProgram (.call ⟨context,SpecTecCall.Datas_ok c xs⟩) n (.success (.of out)) finish) :
+    (h : Eval Body (.call ⟨context,Call.Datas_ok c xs⟩) n (.success (.of out)) finish) :
     ∀item∈xs,DataAvailable (ConstructiveModuleRefsBounds.allFunctions c) item := by
   induction xs generalizing c n with
   | nil => simp

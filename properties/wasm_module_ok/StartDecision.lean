@@ -1,5 +1,6 @@
 import properties.wasm_module_ok.StartValidation
 import properties.wasm_module_ok.UnrollInterface
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -16,8 +17,8 @@ def startValid (c : SpecTec.context) : Option SpecTec.start → Bool
 theorem start_some_success_iff_result
     (c : SpecTec.context) (s : SpecTec.start)
     (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c (some s)⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c (some s)⟩)
       n (.success (.of ())) finalSupply ↔
     (∃ dt : SpecTec.deftype,
       c.FUNCS[s.SFUNC]? = some dt ∧
@@ -58,19 +59,16 @@ theorem start_some_valid_iff (c : SpecTec.context)
 
 theorem start_success_iff_valid (c : SpecTec.context)
     (start : Option SpecTec.start) (n finalSupply : Nat) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Unit, SpecTec.SpecTecCall.Start_ok c start⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Unit, SpecTec.Call.Start_ok c start⟩)
       n (.success (.of ())) finalSupply ↔
     startValid c start = true ∧ finalSupply = n := by
   cases start with
   | none =>
     constructor
     · intro h
-      have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-        intro request x y hp
-        cases hp
       obtain ⟨_, hsupply⟩ :=
-        SpecTecExecution.eval_deterministic hdet h
+        properties.wasm_module_ok.Execution.eval_deterministic h
           (StartValidation.start_none_success c n)
       exact ⟨rfl, hsupply⟩
     · rintro ⟨_, rfl⟩

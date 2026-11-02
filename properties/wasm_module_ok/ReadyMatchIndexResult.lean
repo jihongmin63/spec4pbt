@@ -1,4 +1,5 @@
 import properties.wasm_module_ok.ReadyMatchExistsSearch
+import properties.wasm_module_ok.Execution
 
 set_option autoImplicit false
 
@@ -10,21 +11,18 @@ open properties.wasm_module_not_ok.Rejection
 private theorem deftype_result_iff_of_eval
     (c : SpecTec.context) (dtP dtQ : SpecTec.deftype)
     (start : Nat) (expected result : Bool)
-    (hgood : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hgood : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+        SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
       start (.success (.of expected)) start) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+        SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
       start (.success (.of result)) start ↔
     result = expected := by
   constructor
   · intro h
-    have hdet : SpecTecExecution.PrimitiveDeterministic SpecTec.specTecProgram := by
-      intro request x y hp
-      cases hp
-    obtain ⟨hout, _⟩ := SpecTecExecution.eval_deterministic hdet h hgood
+    obtain ⟨hout, _⟩ := properties.wasm_module_ok.Execution.eval_deterministic h hgood
     cases hout
     rfl
   · intro heq
@@ -41,15 +39,15 @@ private theorem ready_match_deftype_neq_of_exists
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ)
     (hne : dtP ≠ dtQ)
-    (hunroll : SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨SpecTec.subtype, SpecTec.SpecTecCall.«$unrolldt» dtP⟩)
+    (hunroll : SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨SpecTec.subtype, SpecTec.Call.«$unrolldt» dtP⟩)
       start (.success (.of (SpecTec.subtype.SubT fin hts strt))) start)
-    (hexists : SpecTecExecution.Eval SpecTec.specTecProgram
+    (hexists : SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_heaptype_exists» c.TYPES hts dtQ⟩)
+        SpecTec.Call.«$match_heaptype_exists» c.TYPES hts dtQ⟩)
       start (.success (.of r)) start) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
-      (.call ⟨Bool, SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+    SpecTecExecution.Eval SpecTec.Body
+      (.call ⟨Bool, SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
       start (.success (.of r)) start := by
   have hsubstP :=
     ReadyTypeInterfaces.ready_substitution_fixed
@@ -69,9 +67,9 @@ private theorem ready_match_index_result_iff_fixed_target
     (hQ : c.TYPES[q]? = some dtQ) :
     ∀ p dtP, p < c.TYPES.length → c.TYPES[p]? = some dtP →
       ∀ result : Bool,
-        SpecTecExecution.Eval SpecTec.specTecProgram
+        SpecTecExecution.Eval SpecTec.Body
           (.call ⟨Bool,
-            SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+            SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
           start (.success (.of result)) start ↔
         result = matchIndex c p q := by
   intro p
@@ -80,9 +78,9 @@ private theorem ready_match_index_result_iff_fixed_target
       intro dtP hp hP result
       have hIH : ∀ k dt, k < p → c.TYPES[k]? = some dt →
           ∀ r : Bool,
-            SpecTecExecution.Eval SpecTec.specTecProgram
+            SpecTecExecution.Eval SpecTec.Body
               (.call ⟨Bool,
-                SpecTec.SpecTecCall.«$match_deftype» c.TYPES dt dtQ⟩)
+                SpecTec.Call.«$match_deftype» c.TYPES dt dtQ⟩)
               start (.success (.of r)) start ↔
             r = matchIndex c k q := by
         intro k dt hk hlookup r
@@ -127,9 +125,9 @@ theorem ready_match_index_result_iff
     (hp : p < c.TYPES.length) (hq : q < c.TYPES.length)
     (hP : c.TYPES[p]? = some dtP)
     (hQ : c.TYPES[q]? = some dtQ) :
-    SpecTecExecution.Eval SpecTec.specTecProgram
+    SpecTecExecution.Eval SpecTec.Body
       (.call ⟨Bool,
-        SpecTec.SpecTecCall.«$match_deftype» c.TYPES dtP dtQ⟩)
+        SpecTec.Call.«$match_deftype» c.TYPES dtP dtQ⟩)
       start (.success (.of result)) start ↔
     result = matchIndex c p q :=
   ready_match_index_result_iff_fixed_target
