@@ -1,194 +1,4 @@
 {
-  "schema_version": 1,
-  "contract_module": "properties.wasm_module_ok.PlanReference.Contract",
-  "imports": [
-    "properties.wasm_module_ok.Validity"
-  ],
-  "values": [
-    {
-      "id": "headers",
-      "type": "List SpecTec.func"
-    },
-    {
-      "id": "prelude",
-      "type": "SpecTec.module"
-    },
-    {
-      "id": "free",
-      "type": "SpecTec.free"
-    },
-    {
-      "id": "ctx",
-      "type": "SpecTec.context"
-    },
-    {
-      "id": "functions",
-      "type": "List SpecTec.func"
-    },
-    {
-      "id": "start",
-      "type": "Option SpecTec.start"
-    },
-    {
-      "id": "module",
-      "type": "properties.wasm_module_ok.PlanReference.Contract.Input"
-    }
-  ],
-  "components": [
-    {
-      "id": "prefix",
-      "input": [],
-      "output": [
-        "headers"
-      ],
-      "require": "True",
-      "ensure": "v_headers = v_headers",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
-        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
-        "symbol": "prefixGen"
-      }
-    },
-    {
-      "id": "sections",
-      "input": [
-        "headers"
-      ],
-      "output": [
-        "prelude"
-      ],
-      "require": "True",
-      "ensure": "v_prelude.FUNCS = v_headers",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
-        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
-        "symbol": "generate"
-      }
-    },
-    {
-      "id": "free_context",
-      "input": [
-        "headers",
-        "prelude"
-      ],
-      "output": [
-        "free",
-        "ctx"
-      ],
-      "require": "v_prelude.FUNCS = v_headers",
-      "ensure": "v_ctx.REFS = v_free",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
-        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
-        "symbol": "finalContext"
-      }
-    },
-    {
-      "id": "bodies",
-      "input": [
-        "headers",
-        "prelude",
-        "free",
-        "ctx"
-      ],
-      "output": [
-        "functions"
-      ],
-      "require": "v_prelude.FUNCS = v_headers ∧ v_ctx.REFS = v_free",
-      "ensure": "v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE)",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
-        "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
-        "symbol": "generate"
-      }
-    },
-    {
-      "id": "start",
-      "input": [
-        "free",
-        "ctx"
-      ],
-      "output": [
-        "start"
-      ],
-      "require": "v_ctx.REFS = v_free",
-      "ensure": "SpecTec.Start_ok v_ctx v_start",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleStart.lean",
-        "sha256": "6464b1e6daadceb1a7cf4a52387a1898bf8822a7b901293b4596e6088cb7eda2",
-        "symbol": "generate"
-      }
-    },
-    {
-      "id": "assembly",
-      "input": [
-        "prelude",
-        "free",
-        "ctx",
-        "headers",
-        "functions",
-        "start"
-      ],
-      "output": [
-        "module"
-      ],
-      "require": "v_prelude.FUNCS = v_headers ∧ v_ctx.REFS = v_free ∧ v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE) ∧ SpecTec.Start_ok v_ctx v_start",
-      "ensure": "Nonempty (properties.wasm_module_ok.Validity.ModuleOkTrace v_module.m)",
-      "implementation": {
-        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
-        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
-        "symbol": "generate"
-      }
-    }
-  ],
-  "connections": [
-    {
-      "target": "prefix",
-      "sources": [],
-      "proof": "by intros; trivial"
-    },
-    {
-      "target": "sections",
-      "sources": [],
-      "proof": "by intros; trivial"
-    },
-    {
-      "target": "free_context",
-      "sources": [
-        "sections"
-      ],
-      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; simpa [require_free_context, ensure_sections] using h"
-    },
-    {
-      "target": "bodies",
-      "sources": [
-        "sections",
-        "free_context"
-      ],
-      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; rcases h with ⟨hs, hf⟩; exact ⟨hs, hf⟩"
-    },
-    {
-      "target": "start",
-      "sources": [
-        "free_context"
-      ],
-      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; simpa [require_start, ensure_free_context] using h"
-    },
-    {
-      "target": "assembly",
-      "sources": [
-        "sections",
-        "free_context",
-        "bodies",
-        "start"
-      ],
-      "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; rcases h with ⟨hs, hf, hb, hstart⟩; exact ⟨hs, hf, hb, hstart⟩"
-    }
-  ],
-  "final": {
-    "output": "module",
-    "proof": "by intro v_headers v_prelude v_free v_ctx v_functions v_start v_module h; exact properties.wasm_module_ok.Validity.module_ok_of_full_trace _ h.2.2.2.2.2"
-  },
   "target": {
     "spec": "specifications/wasm/spec",
     "property": "properties/wasm_module_ok/property.watsup",
@@ -226,6 +36,10 @@
       "properties/wasm_module_ok/Validity.lean": "741fe66309fa4ad6f62876165f788149c5387c6b7dc515bcc6999906dce50b73"
     }
   },
+  "contract_module": "properties.wasm_module_ok.PlanReference.Contract",
+  "imports": [
+    "properties.wasm_module_ok.Validity"
+  ],
   "implementation_refs": [
     {
       "path": "scripts/tests/fixtures/wasm_plan_reference/Generator.lean",
@@ -236,6 +50,1537 @@
       "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
       "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
       "symbol": "modules"
+    }
+  ],
+  "schema_version": 2,
+  "values": [
+    {
+      "id": "types",
+      "type": "List SpecTec.type"
+    },
+    {
+      "id": "ctx_types",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "imports",
+      "type": "List SpecTec.import"
+    },
+    {
+      "id": "ctx_imports",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "headers",
+      "type": "List SpecTec.func"
+    },
+    {
+      "id": "ctx_headers",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "ctx_bounded",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "tables",
+      "type": "List SpecTec.table"
+    },
+    {
+      "id": "ctx_tables",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "memories",
+      "type": "List SpecTec.memory"
+    },
+    {
+      "id": "ctx_memories",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "globals",
+      "type": "List SpecTec.global"
+    },
+    {
+      "id": "ctx_globals",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "tags",
+      "type": "List SpecTec.tag"
+    },
+    {
+      "id": "ctx_tags",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "elements",
+      "type": "List SpecTec.elem"
+    },
+    {
+      "id": "ctx_elements",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "data",
+      "type": "List SpecTec.data"
+    },
+    {
+      "id": "ctx_data",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "exports",
+      "type": "List SpecTec.export"
+    },
+    {
+      "id": "raw",
+      "type": "SpecTec.module"
+    },
+    {
+      "id": "free",
+      "type": "SpecTec.free"
+    },
+    {
+      "id": "ctx_final",
+      "type": "SpecTec.context"
+    },
+    {
+      "id": "functions",
+      "type": "List SpecTec.func"
+    },
+    {
+      "id": "start",
+      "type": "Option SpecTec.start"
+    },
+    {
+      "id": "module",
+      "type": "SpecTec.module"
+    },
+    {
+      "id": "result",
+      "type": "properties.wasm_module_ok.PlanReference.Contract.Input"
+    }
+  ],
+  "components": [
+    {
+      "id": "types",
+      "input": [],
+      "output": [
+        "types",
+        "ctx_types"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "prefixGen",
+        "site": {
+          "owner": "prefixGen",
+          "kind": "call",
+          "fragment": "ConstructiveTypes.fromEmpty initial rfl",
+          "uses": {},
+          "projections": {
+            "types": "ts.types",
+            "ctx_types": "ts.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveTypes.lean",
+            "sha256": "5a7d976e1f6390ddb16f42196ad9961c3f202d59c2e86c50ac2638b4dbf0f7c2",
+            "structure": "Result"
+          },
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "imports",
+      "input": [
+        "ctx_types"
+      ],
+      "output": [
+        "imports",
+        "ctx_imports"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "prefixGen",
+        "site": {
+          "owner": "prefixGen",
+          "kind": "call",
+          "fragment": "ConstructiveImports.generate ts.after",
+          "uses": {
+            "ctx_types": "ts.after"
+          },
+          "projections": {
+            "imports": "is.items",
+            "ctx_imports": "is.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveImports.lean",
+            "sha256": "86a37144b8642dad0c8dd43ee699277c5b5cd8d5a626b6a394e980cb84c49b8a",
+            "structure": "Result"
+          },
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "headers",
+      "input": [
+        "ctx_types",
+        "ctx_imports"
+      ],
+      "output": [
+        "headers",
+        "ctx_headers"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "prefixGen",
+        "site": {
+          "owner": "prefixGen",
+          "kind": "call",
+          "fragment": "ConstructiveModuleHeaders.generate is.after (ConstructiveModuleImportEnvironment.generated ts.after (ConstructiveModuleTypesEnvironment.generated _ ts) is)",
+          "uses": {
+            "ctx_types": "ts.after",
+            "ctx_imports": "is.after"
+          },
+          "projections": {
+            "headers": "fs.items",
+            "ctx_headers": "fs.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleHeaders.lean",
+            "sha256": "17adee045eae80f4e05eb5193f3dadb4b06d24faf067177840d21d307b2ab1d0",
+            "structure": "Result"
+          },
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "bounded_context",
+      "input": [
+        "ctx_headers"
+      ],
+      "output": [
+        "ctx_bounded"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "boundedContext",
+        "site": {
+          "owner": "boundedContext",
+          "kind": "definition",
+          "fragment": "{p.headers.after with REFS:=ConstructiveModuleRefsBounds.allFunctions p.headers.after}",
+          "uses": {
+            "ctx_headers": "p.headers.after"
+          },
+          "projections": {
+            "ctx_bounded": "{p.headers.after with REFS:=ConstructiveModuleRefsBounds.allFunctions p.headers.after}"
+          },
+          "result": null,
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "tables",
+      "input": [
+        "ctx_bounded"
+      ],
+      "output": [
+        "tables",
+        "ctx_tables"
+      ],
+      "require": "True",
+      "ensure": "v_ctx_tables.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleTables.generate (boundedContext p) (boundedEnv p)",
+          "uses": {
+            "ctx_bounded": "boundedContext p"
+          },
+          "projections": {
+            "tables": "ts.items",
+            "ctx_tables": "ts.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTables.lean",
+            "sha256": "3b3134ad40730801ac634733821d4b8c9055107c83a3955161088a5927cd58e3",
+            "structure": "Result"
+          },
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "memories",
+      "input": [
+        "ctx_tables",
+        "ctx_bounded"
+      ],
+      "output": [
+        "memories",
+        "ctx_memories"
+      ],
+      "require": "v_ctx_tables.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_memories.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleMemories.generate ts.after ts.env",
+          "uses": {
+            "ctx_tables": "ts.after"
+          },
+          "projections": {
+            "memories": "ms.items",
+            "ctx_memories": "ms.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleMemories.lean",
+            "sha256": "e80450166e460980cab698a42d61c8ae6fb795564cc2fcd5f2c366412a9f7441",
+            "structure": "Result"
+          },
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "globals",
+      "input": [
+        "ctx_memories",
+        "ctx_bounded"
+      ],
+      "output": [
+        "globals",
+        "ctx_globals"
+      ],
+      "require": "v_ctx_memories.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_globals.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleGlobals.generate ms.after ms.env",
+          "uses": {
+            "ctx_memories": "ms.after"
+          },
+          "projections": {
+            "globals": "gs.items",
+            "ctx_globals": "gs.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGlobals.lean",
+            "sha256": "8749a4655b5d2fd5b6238a2686d0d9a54f407e454bec61af9ee53fc48c1a9bce",
+            "structure": "Result"
+          },
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "tags",
+      "input": [
+        "ctx_globals",
+        "ctx_bounded"
+      ],
+      "output": [
+        "tags",
+        "ctx_tags"
+      ],
+      "require": "v_ctx_globals.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_tags.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleTags.generate gs.after gs.env",
+          "uses": {
+            "ctx_globals": "gs.after"
+          },
+          "projections": {
+            "tags": "tags.items",
+            "ctx_tags": "tags.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTags.lean",
+            "sha256": "0d5546140aef5d5e8c971f65d937611eb1fe3e8b7eb6e73da25912c78e035472",
+            "structure": "Result"
+          },
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "elements",
+      "input": [
+        "ctx_tags",
+        "ctx_bounded"
+      ],
+      "output": [
+        "elements",
+        "ctx_elements"
+      ],
+      "require": "v_ctx_tags.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_elements.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleElems.generate tags.after tags.env",
+          "uses": {
+            "ctx_tags": "tags.after"
+          },
+          "projections": {
+            "elements": "es.items",
+            "ctx_elements": "es.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleElems.lean",
+            "sha256": "f630277493d3ebd38149924b635c5b0f69d265b4fef97529fc2c06a7021b4137",
+            "structure": "Result"
+          },
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "data",
+      "input": [
+        "ctx_elements",
+        "ctx_bounded"
+      ],
+      "output": [
+        "data",
+        "ctx_data"
+      ],
+      "require": "v_ctx_elements.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_data.REFS = v_ctx_bounded.REFS",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleDatas.generate es.after es.env",
+          "uses": {
+            "ctx_elements": "es.after"
+          },
+          "projections": {
+            "data": "ds.items",
+            "ctx_data": "ds.after"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleDatas.lean",
+            "sha256": "1c18fbd29baafeb73ded092bbcab9c1cbe233dffadf9abe1421c4b714f4a6630",
+            "structure": "Result"
+          },
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "exports",
+      "input": [
+        "ctx_data"
+      ],
+      "output": [
+        "exports"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "(exports ds.after).generator",
+          "uses": {
+            "ctx_data": "ds.after"
+          },
+          "projections": {
+            "exports": "ex.val"
+          },
+          "result": null,
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "raw",
+      "input": [
+        "types",
+        "imports",
+        "headers",
+        "tables",
+        "memories",
+        "globals",
+        "tags",
+        "elements",
+        "data",
+        "exports"
+      ],
+      "output": [
+        "raw"
+      ],
+      "require": "True",
+      "ensure": "v_raw.TYPES = v_types ∧ v_raw.IMPORTS = v_imports ∧ v_raw.FUNCS = v_headers ∧ v_raw.TABLES = v_tables ∧ v_raw.MEMS = v_memories ∧ v_raw.GLOBALS = v_globals ∧ v_raw.TAGS = v_tags ∧ v_raw.ELEMS = v_elements ∧ v_raw.DATAS = v_data ∧ v_raw.EXPORTS = v_exports",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "raw",
+        "site": {
+          "owner": "raw",
+          "kind": "definition",
+          "fragment": "TYPES := p.before.types.types IMPORTS := p.before.imports.items FUNCS := p.before.headers.items TABLES := p.tables.items MEMS := p.memories.items GLOBALS := p.globals.items TAGS := p.tags.items ELEMS := p.elements.items DATAS := p.data.items START := none EXPORTS := p.exports.val",
+          "uses": {
+            "types": "p.before.types.types",
+            "imports": "p.before.imports.items",
+            "headers": "p.before.headers.items",
+            "tables": "p.tables.items",
+            "memories": "p.memories.items",
+            "globals": "p.globals.items",
+            "tags": "p.tags.items",
+            "elements": "p.elements.items",
+            "data": "p.data.items",
+            "exports": "p.exports.val"
+          },
+          "projections": {
+            "raw": "TYPES := p.before.types.types"
+          },
+          "result": null,
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "free",
+      "input": [
+        "raw"
+      ],
+      "output": [
+        "free"
+      ],
+      "require": "True",
+      "ensure": "True",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "finalContext",
+        "site": {
+          "owner": "finalContext",
+          "kind": "expression",
+          "fragment": "ConstructiveFreeModule.moduleFree (raw p)",
+          "uses": {
+            "raw": "raw p"
+          },
+          "projections": {
+            "free": "ConstructiveFreeModule.moduleFree (raw p)"
+          },
+          "result": null,
+          "conditions": []
+        }
+      }
+    },
+    {
+      "id": "final_context",
+      "input": [
+        "ctx_data",
+        "free",
+        "ctx_bounded"
+      ],
+      "output": [
+        "ctx_final"
+      ],
+      "require": "v_ctx_data.REFS = v_ctx_bounded.REFS",
+      "ensure": "v_ctx_final.REFS = v_free",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "symbol": "finalContext",
+        "site": {
+          "owner": "finalContext",
+          "kind": "definition",
+          "fragment": "{p.data.after with REFS:=ConstructiveFreeModule.moduleFree (raw p)}",
+          "uses": {
+            "ctx_data": "p.data.after",
+            "free": "ConstructiveFreeModule.moduleFree (raw p)"
+          },
+          "projections": {
+            "ctx_final": "{p.data.after with REFS:=ConstructiveFreeModule.moduleFree (raw p)}"
+          },
+          "result": null,
+          "conditions": [
+            "ctx_bounded"
+          ]
+        }
+      }
+    },
+    {
+      "id": "function_list",
+      "input": [
+        "ctx_final",
+        "headers",
+        "free",
+        "raw"
+      ],
+      "output": [
+        "functions"
+      ],
+      "require": "v_ctx_final.REFS = v_free ∧ v_raw.FUNCS = v_headers",
+      "ensure": "v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE)",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "(ConstructiveModuleFunctionList.generate (ConstructiveModulePrelude.finalContext p) (ConstructiveModulePrelude.finalEnv p) (p.before.headers.items.map (·.FTYPE)) (ConstructiveModulePrelude.headers_ready p)).generator",
+          "uses": {
+            "ctx_final": "ConstructiveModulePrelude.finalContext p",
+            "headers": "p.before.headers.items"
+          },
+          "projections": {
+            "functions": "fs.items"
+          },
+          "result": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+            "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+            "structure": "Result"
+          },
+          "conditions": [
+            "free",
+            "raw"
+          ]
+        }
+      }
+    },
+    {
+      "id": "start",
+      "input": [
+        "ctx_final",
+        "free"
+      ],
+      "output": [
+        "start"
+      ],
+      "require": "v_ctx_final.REFS = v_free",
+      "ensure": "SpecTec.Start_ok v_ctx_final v_start",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+        "symbol": "generate",
+        "site": {
+          "owner": "generate",
+          "kind": "call",
+          "fragment": "ConstructiveModuleStart.generate (ConstructiveModulePrelude.finalContext p)",
+          "uses": {
+            "ctx_final": "ConstructiveModulePrelude.finalContext p"
+          },
+          "projections": {
+            "start": "s.val"
+          },
+          "result": null,
+          "conditions": [
+            "free"
+          ]
+        }
+      }
+    },
+    {
+      "id": "assembly",
+      "input": [
+        "raw",
+        "functions",
+        "start",
+        "headers",
+        "ctx_final",
+        "free",
+        "types",
+        "imports",
+        "tables",
+        "memories",
+        "globals",
+        "tags",
+        "elements",
+        "data",
+        "exports"
+      ],
+      "output": [
+        "module"
+      ],
+      "require": "v_raw.TYPES = v_types ∧ v_raw.IMPORTS = v_imports ∧ v_raw.FUNCS = v_headers ∧ v_raw.TABLES = v_tables ∧ v_raw.MEMS = v_memories ∧ v_raw.GLOBALS = v_globals ∧ v_raw.TAGS = v_tags ∧ v_raw.ELEMS = v_elements ∧ v_raw.DATAS = v_data ∧ v_raw.EXPORTS = v_exports ∧ v_ctx_final.REFS = v_free ∧ v_functions.map (·.FTYPE) = v_headers.map (·.FTYPE) ∧ SpecTec.Start_ok v_ctx_final v_start",
+      "ensure": "Nonempty (properties.wasm_module_ok.Validity.ModuleOkTrace v_module)",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+        "symbol": "module",
+        "site": {
+          "owner": "module",
+          "kind": "definition",
+          "fragment": "{ConstructiveModulePrelude.raw out.prelude with FUNCS:=out.functions.items,START:=out.start.val}",
+          "uses": {
+            "raw": "ConstructiveModulePrelude.raw out.prelude",
+            "functions": "out.functions.items",
+            "start": "out.start.val"
+          },
+          "projections": {
+            "module": "{ConstructiveModulePrelude.raw out.prelude with FUNCS:=out.functions.items,START:=out.start.val}"
+          },
+          "result": null,
+          "conditions": [
+            "headers",
+            "ctx_final",
+            "free",
+            "types",
+            "imports",
+            "tables",
+            "memories",
+            "globals",
+            "tags",
+            "elements",
+            "data",
+            "exports"
+          ]
+        }
+      }
+    },
+    {
+      "id": "input_projection",
+      "input": [
+        "module"
+      ],
+      "output": [
+        "result"
+      ],
+      "require": "True",
+      "ensure": "v_result.m = v_module",
+      "implementation": {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/Generator.lean",
+        "sha256": "ad750de138fe49fa651c56c88eeb1c44e3fa3fb2e96c493baeb747db57febcbf",
+        "symbol": "generator",
+        "site": {
+          "owner": "generator",
+          "kind": "expression",
+          "fragment": "(fun m => (⟨m⟩ : Contract.Input)) <$> ConstructiveModuleGeneration.modules",
+          "uses": {
+            "module": "⟨m⟩"
+          },
+          "projections": {
+            "result": "(⟨m⟩ : Contract.Input)"
+          },
+          "result": null,
+          "conditions": []
+        }
+      }
+    }
+  ],
+  "connections": [
+    {
+      "target": "types",
+      "sources": [],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "imports",
+      "sources": [
+        "types"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "headers",
+      "sources": [
+        "types",
+        "imports"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "bounded_context",
+      "sources": [
+        "headers"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "tables",
+      "sources": [
+        "bounded_context"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "memories",
+      "sources": [
+        "tables",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_memories, ensure_tables]"
+    },
+    {
+      "target": "globals",
+      "sources": [
+        "memories",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_globals, ensure_memories]"
+    },
+    {
+      "target": "tags",
+      "sources": [
+        "globals",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_tags, ensure_globals]"
+    },
+    {
+      "target": "elements",
+      "sources": [
+        "tags",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_elements, ensure_tags]"
+    },
+    {
+      "target": "data",
+      "sources": [
+        "elements",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_data, ensure_elements]"
+    },
+    {
+      "target": "exports",
+      "sources": [
+        "data"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "raw",
+      "sources": [
+        "types",
+        "imports",
+        "headers",
+        "tables",
+        "memories",
+        "globals",
+        "tags",
+        "elements",
+        "data",
+        "exports"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "free",
+      "sources": [
+        "raw"
+      ],
+      "proof": "by intros; trivial"
+    },
+    {
+      "target": "final_context",
+      "sources": [
+        "data",
+        "free",
+        "bounded_context"
+      ],
+      "proof": "by intros; simp_all [require_final_context, ensure_data]"
+    },
+    {
+      "target": "function_list",
+      "sources": [
+        "final_context",
+        "headers",
+        "free",
+        "raw"
+      ],
+      "proof": "by intros; simp_all [require_function_list, ensure_final_context, ensure_raw]"
+    },
+    {
+      "target": "start",
+      "sources": [
+        "final_context",
+        "free"
+      ],
+      "proof": "by intros; simp_all [require_start, ensure_final_context]"
+    },
+    {
+      "target": "assembly",
+      "sources": [
+        "raw",
+        "function_list",
+        "start",
+        "headers",
+        "final_context",
+        "free",
+        "types",
+        "imports",
+        "tables",
+        "memories",
+        "globals",
+        "tags",
+        "elements",
+        "data",
+        "exports"
+      ],
+      "proof": "by intros; simp_all [require_assembly, ensure_raw, ensure_final_context, ensure_function_list, ensure_start]"
+    },
+    {
+      "target": "input_projection",
+      "sources": [
+        "assembly"
+      ],
+      "proof": "by intros; trivial"
+    }
+  ],
+  "final": {
+    "output": "result",
+    "proof": "by intro v_types v_ctx_types v_imports v_ctx_imports v_headers v_ctx_headers v_ctx_bounded v_tables v_ctx_tables v_memories v_ctx_memories v_globals v_ctx_globals v_tags v_ctx_tags v_elements v_ctx_elements v_data v_ctx_data v_exports v_raw v_free v_ctx_final v_functions v_start v_module v_result h; have ht : Nonempty (properties.wasm_module_ok.Validity.ModuleOkTrace v_module) := h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1; have he : v_result.m = v_module := h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2; simpa only [properties.wasm_module_ok.PlanReference.Contract.Premise, he] using properties.wasm_module_ok.Validity.module_ok_of_full_trace v_module ht"
+  },
+  "execution": {
+    "root": "root",
+    "frames": [
+      {
+        "id": "root",
+        "members": [
+          "generation",
+          "input_projection"
+        ],
+        "invocation": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/Generator.lean",
+          "sha256": "ad750de138fe49fa651c56c88eeb1c44e3fa3fb2e96c493baeb747db57febcbf",
+          "owner": "generator",
+          "fragment": "ConstructiveModuleGeneration.modules"
+        }
+      },
+      {
+        "id": "generation",
+        "members": [
+          "prelude_generate",
+          "prelude_projection",
+          "function_list",
+          "start",
+          "assembly"
+        ],
+        "invocation": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+          "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+          "owner": "modules",
+          "fragment": "module <$> generate"
+        }
+      },
+      {
+        "id": "prelude_generate",
+        "members": [
+          "prefix",
+          "bounded_context",
+          "tables",
+          "memories",
+          "globals",
+          "tags",
+          "elements",
+          "data",
+          "exports"
+        ],
+        "invocation": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+          "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+          "owner": "generate",
+          "fragment": "let p ← ConstructiveModulePrelude.generate"
+        }
+      },
+      {
+        "id": "prefix",
+        "members": [
+          "types",
+          "imports",
+          "headers"
+        ],
+        "invocation": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+          "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+          "owner": "generate",
+          "fragment": "let p ← prefixGen"
+        }
+      },
+      {
+        "id": "prelude_projection",
+        "members": [
+          "raw",
+          "free",
+          "final_context"
+        ],
+        "invocation": null
+      }
+    ],
+    "loops": [
+      {
+        "id": "type_groups",
+        "component": "types",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveTypes.lean",
+          "sha256": "5a7d976e1f6390ddb16f42196ad9961c3f202d59c2e86c50ac2638b4dbf0f7c2",
+          "owner": "fromEmpty",
+          "fragment": "generate c (empty c hc)"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveTypes.lean",
+          "sha256": "5a7d976e1f6390ddb16f42196ad9961c3f202d59c2e86c50ac2638b4dbf0f7c2",
+          "owner": "sized",
+          "fragment": "sized n (output c state x) (advance c state x)"
+        },
+        "base": "| 0,c,state => pure (done c state)",
+        "step": "| n+1,c,state => do",
+        "smaller": "sized n (output c state x) (advance c state x)",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "import_entries",
+        "component": "imports",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveImports.lean",
+          "sha256": "86a37144b8642dad0c8dd43ee699277c5b5cd8d5a626b6a394e980cb84c49b8a",
+          "owner": "generate",
+          "fragment": "Gen.arbNat >>= fun n => sized n c"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveImports.lean",
+          "sha256": "86a37144b8642dad0c8dd43ee699277c5b5cd8d5a626b6a394e980cb84c49b8a",
+          "owner": "sized",
+          "fragment": "sized n head.after"
+        },
+        "base": "| 0,c => pure (done c)",
+        "step": "| n+1,c => do",
+        "smaller": "sized n head.after",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "function_headers",
+        "component": "headers",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleHeaders.lean",
+          "sha256": "17adee045eae80f4e05eb5193f3dadb4b06d24faf067177840d21d307b2ab1d0",
+          "owner": "generate",
+          "fragment": "Gen.arbNat >>= fun n => (sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleHeaders.lean",
+          "sha256": "17adee045eae80f4e05eb5193f3dadb4b06d24faf067177840d21d307b2ab1d0",
+          "owner": "sized",
+          "fragment": "sized n head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| n+1,c,env =>",
+        "smaller": "sized n head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "tables",
+        "component": "tables",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTables.lean",
+          "sha256": "3b3134ad40730801ac634733821d4b8c9055107c83a3955161088a5927cd58e3",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTables.lean",
+          "sha256": "3b3134ad40730801ac634733821d4b8c9055107c83a3955161088a5927cd58e3",
+          "owner": "sized",
+          "fragment": "sized depth head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| depth+1,c,env =>",
+        "smaller": "sized depth head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "memories",
+        "component": "memories",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleMemories.lean",
+          "sha256": "e80450166e460980cab698a42d61c8ae6fb795564cc2fcd5f2c366412a9f7441",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleMemories.lean",
+          "sha256": "e80450166e460980cab698a42d61c8ae6fb795564cc2fcd5f2c366412a9f7441",
+          "owner": "sized",
+          "fragment": "sized n (next c mt) (nextEnv c env mt)"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| n+1,c,env =>",
+        "smaller": "sized n (next c mt) (nextEnv c env mt)",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "globals",
+        "component": "globals",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGlobals.lean",
+          "sha256": "8749a4655b5d2fd5b6238a2686d0d9a54f407e454bec61af9ee53fc48c1a9bce",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGlobals.lean",
+          "sha256": "8749a4655b5d2fd5b6238a2686d0d9a54f407e454bec61af9ee53fc48c1a9bce",
+          "owner": "sized",
+          "fragment": "sized depth head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| depth+1,c,env =>",
+        "smaller": "sized depth head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "tags",
+        "component": "tags",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTags.lean",
+          "sha256": "0d5546140aef5d5e8c971f65d937611eb1fe3e8b7eb6e73da25912c78e035472",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleTags.lean",
+          "sha256": "0d5546140aef5d5e8c971f65d937611eb1fe3e8b7eb6e73da25912c78e035472",
+          "owner": "sized",
+          "fragment": "sized n head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| n+1,c,env =>",
+        "smaller": "sized n head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "elements",
+        "component": "elements",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleElems.lean",
+          "sha256": "f630277493d3ebd38149924b635c5b0f69d265b4fef97529fc2c06a7021b4137",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleElems.lean",
+          "sha256": "f630277493d3ebd38149924b635c5b0f69d265b4fef97529fc2c06a7021b4137",
+          "owner": "sized",
+          "fragment": "sized n head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| n+1,c,env =>",
+        "smaller": "sized n head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "data",
+        "component": "data",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleDatas.lean",
+          "sha256": "1c18fbd29baafeb73ded092bbcab9c1cbe233dffadf9abe1421c4b714f4a6630",
+          "owner": "generate",
+          "fragment": "(sized n c env).generator"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleDatas.lean",
+          "sha256": "1c18fbd29baafeb73ded092bbcab9c1cbe233dffadf9abe1421c4b714f4a6630",
+          "owner": "sized",
+          "fragment": "sized n head.after head.env"
+        },
+        "base": "| 0,c,env => Audited.pure (done c env)",
+        "step": "| n+1,c,env =>",
+        "smaller": "sized n head.after head.env",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      },
+      {
+        "id": "export_entries",
+        "component": "exports",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveExports.lean",
+          "sha256": "85f13de0bc4d0a2d1ad22bb06ee68924204dbda8e27fab07ea4d3611d4b85c93",
+          "owner": "exports",
+          "fragment": "exactCount d ds n used"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveExports.lean",
+          "sha256": "85f13de0bc4d0a2d1ad22bb06ee68924204dbda8e27fab07ea4d3611d4b85c93",
+          "owner": "exactCount",
+          "fragment": "exactCount head tail n (ExportValidation.namesetAdd used name)"
+        },
+        "base": "| 0, _ => pure []",
+        "step": "| n + 1, used => do",
+        "smaller": "exactCount head tail n (ExportValidation.namesetAdd used name)",
+        "measure": "nat",
+        "call": "exactCount",
+        "via": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+          "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+          "owner": "exports",
+          "fragment": "ConstructiveExports.exports c"
+        }
+      },
+      {
+        "id": "function_bodies",
+        "component": "function_list",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+          "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+          "owner": "generate",
+          "fragment": "| x::xs,hr =>"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+          "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+          "owner": "generate",
+          "fragment": "generate c env xs (fun y hy => hr y (by simp [hy]))"
+        },
+        "base": "| [],_ => Audited.pure (done c)",
+        "step": "| x::xs,hr =>",
+        "smaller": "generate c env xs (fun y hy => hr y (by simp [hy]))",
+        "measure": "list",
+        "call": "generate",
+        "via": null
+      },
+      {
+        "id": "instruction_depth",
+        "component": "function_list",
+        "entry": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveBodyGeneration.lean",
+          "sha256": "e7a33d5008f7e508f66ccf1522c85c487e6412bd53ebb5126a62d725e530bedd",
+          "owner": "generate",
+          "fragment": "sized depth c c"
+        },
+        "recursive": {
+          "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveBodyGeneration.lean",
+          "sha256": "e7a33d5008f7e508f66ccf1522c85c487e6412bd53ebb5126a62d725e530bedd",
+          "owner": "sized",
+          "fragment": "sized depth root step.nextContext step.nextStack outputs er step.nextEnv step.nextBacked ho"
+        },
+        "base": "| 0,root,c,stack,outputs,er,ec,hs,ho,he =>",
+        "step": "| depth+1,root,c,stack,outputs,er,ec,hs,ho,he =>",
+        "smaller": "sized depth root step.nextContext step.nextStack outputs er step.nextEnv step.nextBacked ho",
+        "measure": "nat",
+        "call": "sized",
+        "via": null
+      }
+    ],
+    "bindings": [
+      {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "owner": "prefixGen",
+        "fragment": "pure ⟨ts,is,fs⟩"
+      },
+      {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModulePrelude.lean",
+        "sha256": "d2b9aec7af34f4dc425db65ab7824d8781e3e86091af40295054df82bc02c1ee",
+        "owner": "generate",
+        "fragment": "pure ⟨p,ts,ms,gs,tags,es,ds,ex⟩"
+      },
+      {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleGeneration.lean",
+        "sha256": "fe4d0b6ca4fb94f43e9bfeadd50375e75e63eb12a262dc95670dd171a5e09cde",
+        "owner": "generate",
+        "fragment": "pure ⟨p,fs,s⟩"
+      },
+      {
+        "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+        "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+        "owner": "cons",
+        "fragment": "⟨f.val::tail.items,by simp [f.property.1,tail.headers]"
+      }
+    ]
+  },
+  "templates": [
+    {
+      "id": "per_header",
+      "parameters": [
+        {
+          "id": "ctx",
+          "type": "SpecTec.context"
+        },
+        {
+          "id": "head",
+          "type": "Nat"
+        },
+        {
+          "id": "rest_headers",
+          "type": "List Nat"
+        }
+      ],
+      "values": [
+        {
+          "id": "args",
+          "type": "List SpecTec.valtype"
+        },
+        {
+          "id": "results",
+          "type": "List SpecTec.valtype"
+        },
+        {
+          "id": "locals",
+          "type": "List SpecTec.local"
+        },
+        {
+          "id": "body",
+          "type": "SpecTec.const"
+        },
+        {
+          "id": "head_func",
+          "type": "SpecTec.func"
+        },
+        {
+          "id": "tail_funcs",
+          "type": "List SpecTec.func"
+        },
+        {
+          "id": "joined",
+          "type": "List SpecTec.func"
+        }
+      ],
+      "components": [
+        {
+          "id": "signature",
+          "input": [
+            "ctx",
+            "head"
+          ],
+          "output": [
+            "args",
+            "results"
+          ],
+          "require": "True",
+          "ensure": "True",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctions.lean",
+            "sha256": "0f93d58719b93ae472ac29e14bac432a6a4d61222a8b958c54dd5f0c0aae7d99",
+            "owner": "generate",
+            "fragment": "signature c x hf"
+          }
+        },
+        {
+          "id": "locals",
+          "input": [
+            "ctx",
+            "head",
+            "args",
+            "results"
+          ],
+          "output": [
+            "locals"
+          ],
+          "require": "True",
+          "ensure": "True",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctions.lean",
+            "sha256": "0f93d58719b93ae472ac29e14bac432a6a4d61222a8b958c54dd5f0c0aae7d99",
+            "owner": "fromSignature",
+            "fragment": "(locals c).bind (withLocals c env x args results hf)"
+          }
+        },
+        {
+          "id": "body",
+          "input": [
+            "ctx",
+            "args",
+            "results",
+            "locals"
+          ],
+          "output": [
+            "body"
+          ],
+          "require": "True",
+          "ensure": "True",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctions.lean",
+            "sha256": "0f93d58719b93ae472ac29e14bac432a6a4d61222a8b958c54dd5f0c0aae7d99",
+            "owner": "withLocals",
+            "fragment": "ConstructiveBodyGeneration.generate d ed [] results hi ho"
+          }
+        },
+        {
+          "id": "finish",
+          "input": [
+            "head",
+            "args",
+            "results",
+            "locals",
+            "body"
+          ],
+          "output": [
+            "head_func"
+          ],
+          "require": "True",
+          "ensure": "v_head_func.FTYPE = v_head",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctions.lean",
+            "sha256": "0f93d58719b93ae472ac29e14bac432a6a4d61222a8b958c54dd5f0c0aae7d99",
+            "owner": "withLocals",
+            "fragment": "finish c env x args results hf ls"
+          }
+        },
+        {
+          "id": "recursive_tail",
+          "input": [
+            "ctx",
+            "rest_headers"
+          ],
+          "output": [
+            "tail_funcs"
+          ],
+          "require": "True",
+          "ensure": "v_tail_funcs.map (·.FTYPE) = v_rest_headers",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+            "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+            "owner": "generate",
+            "fragment": "generate c env xs (fun y hy => hr y (by simp [hy]))"
+          }
+        },
+        {
+          "id": "cons",
+          "input": [
+            "head",
+            "rest_headers",
+            "head_func",
+            "tail_funcs"
+          ],
+          "output": [
+            "joined"
+          ],
+          "require": "v_head_func.FTYPE = v_head ∧ v_tail_funcs.map (·.FTYPE) = v_rest_headers",
+          "ensure": "v_joined = v_head_func :: v_tail_funcs",
+          "source": {
+            "path": "scripts/tests/fixtures/wasm_plan_reference/ConstructiveModuleFunctionList.lean",
+            "sha256": "a51d4d9a5779b13da9d75aa315087ebe43a5b3fb6d05d8b56c65a53a8f3bdaf8",
+            "owner": "generate",
+            "fragment": "cons c x xs f"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "target": "signature",
+          "sources": [],
+          "proof": "by intros; trivial"
+        },
+        {
+          "target": "locals",
+          "sources": [
+            "signature"
+          ],
+          "proof": "by intros; trivial"
+        },
+        {
+          "target": "body",
+          "sources": [
+            "signature",
+            "locals"
+          ],
+          "proof": "by intros; trivial"
+        },
+        {
+          "target": "finish",
+          "sources": [
+            "signature",
+            "locals",
+            "body"
+          ],
+          "proof": "by intros; trivial"
+        },
+        {
+          "target": "recursive_tail",
+          "sources": [],
+          "proof": "by intros; trivial"
+        },
+        {
+          "target": "cons",
+          "sources": [
+            "finish",
+            "recursive_tail"
+          ],
+          "proof": "by intros; simp_all [require_per_header_cons, ensure_per_header_finish, ensure_per_header_recursive_tail]"
+        }
+      ],
+      "recursive": "recursive_tail",
+      "base": {
+        "claim": "([] : List SpecTec.func).map (·.FTYPE) = ([] : List Nat)",
+        "proof": "by rfl"
+      },
+      "summary": {
+        "claim": "v_joined.map (·.FTYPE) = v_head :: v_rest_headers",
+        "proof": "by intro v_ctx v_head v_rest_headers v_args v_results v_locals v_body v_head_func v_tail_funcs v_joined h; simp_all [ensure_per_header_finish, ensure_per_header_recursive_tail, ensure_per_header_cons]"
+      },
+      "applies_to": "function_list",
+      "loop": "function_bodies"
     }
   ]
 }

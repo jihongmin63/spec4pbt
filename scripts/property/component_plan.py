@@ -16,6 +16,9 @@ from scripts.lean_tools import elaborate, rebuild_modules, require_name, require
 from scripts.property.clause import strict_json, load_clause
 from scripts.property.plan import compile_clause, select_external
 from scripts.property.emit import render_contract
+from scripts.property.source_graph import check_site
+from scripts.property.execution_graph import validate as validate_execution
+from scripts.property.recursive_template import validate as validate_templates, render as render_templates
 
 
 ID = re.compile(r"[A-Za-z][A-Za-z0-9_]*\Z")
@@ -46,9 +49,9 @@ def _term(value, label):
     return value
 
 
-def _source(project, item):
-    if not isinstance(item, dict) or set(item) != {'path', 'sha256', 'symbol'}:
-        raise ValueError('implementation reference needs path, sha256, symbol')
+def _source(project, item, inputs=None, outputs=None):
+    if not isinstance(item, dict) or set(item) not in ({'path', 'sha256', 'symbol'}, {'path', 'sha256', 'symbol', 'site'}):
+        raise ValueError('implementation reference needs path, sha256, symbol, optionally site')
     if not isinstance(item['path'], str) or not isinstance(item['sha256'], str):
         raise ValueError('invalid implementation reference path or hash')
     path = project / item['path']
@@ -59,10 +62,15 @@ def _source(project, item):
     symbol = _id(item['symbol'], 'implementation symbol')
     if not re.search(r'(?m)^\s*(?:def|abbrev|theorem|structure)\s+' + re.escape(symbol) + r'\b', path.read_text()):
         raise ValueError(f"implementation symbol {symbol} not found in {path}")
+    if 'site' in item:
+        if inputs is None or outputs is None or not isinstance(item['site'], dict) or item['site'].get('owner') != symbol:
+            raise ValueError(f'{path.name}:{symbol} has an unbound source site')
+        return check_site(path, item['site'], inputs, outputs, project)
 
 
 def _validate(plan, project):
-    if not isinstance(plan, dict) or set(plan) != {'schema_version', 'target', 'contract_module', 'imports', 'implementation_refs', 'values', 'components', 'connections', 'final'} or plan['schema_version'] != 1:
+    old_keys = {'schema_version', 'target', 'contract_module', 'imports', 'implementation_refs', 'values', 'components', 'connections', 'final'}
+    if not isinstance(plan, dict) or plan.get('schema_version') not in (1, 2) or set(plan) != (old_keys if plan['schema_version'] == 1 else old_keys | {'execution', 'templates'}):
         raise ValueError('unsupported component plan schema')
     contract = require_name(plan['contract_module'])
     contract_path = project.joinpath(*contract.split('.')).with_suffix('.lean')
@@ -138,6 +146,7 @@ def _validate(plan, project):
         values[name] = _term(item['type'], f'type of {name}')
     components = {}
     producer = {}
+    source_sites = set()
     for item in _records(plan['components'], 'components'):
         if set(item) != {'id', 'input', 'output', 'require', 'ensure', 'implementation'}:
             raise ValueError('component needs id, input, output, require, ensure, implementation')
@@ -160,7 +169,18 @@ def _validate(plan, project):
         _term(item['require'], f'{name}.require')
         _term(item['ensure'], f'{name}.ensure')
         if item['implementation'] is not None:
-            _source(project, item['implementation'])
+            if plan['schema_version'] == 1:
+                raise ValueError(f'{name}: schema 1 cannot claim implementation correspondence; use source-site schema 2')
+            site = _source(project, item['implementation'], inputs, outputs)
+            if plan['schema_version'] == 2:
+                if site is None:
+                    raise ValueError(f'{name} is missing a source call/definition mapping')
+                key = (item['implementation']['path'], site['owner'], site['fragment'])
+                if key in source_sites:
+                    raise ValueError(f'{name} duplicates a source sampler or computation: {key}')
+                source_sites.add(key)
+        elif plan['schema_version'] == 2:
+            raise ValueError(f'{name} is missing a source mapping')
         components[name] = item
     if set(producer) != set(values):
         raise ValueError(f'unproduced values: {sorted(set(values)-set(producer))}')
@@ -173,6 +193,10 @@ def _validate(plan, project):
         if target not in components or target in links:
             raise ValueError(f'unknown or duplicate connection target {target}')
         sources = _list(item['sources'], f'{target}.sources')
+        if plan['schema_version'] == 2:
+            missing = {producer[value] for value in components[target]['input']} - set(sources)
+            if missing:
+                raise ValueError(f'{target} missing value-dependency edges from {sorted(missing)}')
         for source in sources:
             if source not in components or source == target:
                 raise ValueError(f'invalid source {source} for {target}')
@@ -202,7 +226,21 @@ def _validate(plan, project):
     _term(final['proof'], 'final.proof')
     if values[final['output']] != contract + '.Input':
         raise ValueError('final output must have the exact Contract.Input type')
-    return contract, imports, values, components, links, order
+    execution = validate_execution(plan['execution'], components, project) if plan['schema_version'] == 2 else None
+    templates = validate_templates(plan['templates'], project, components, execution) if plan['schema_version'] == 2 else None
+    if plan['schema_version'] == 2:
+        for loop in plan['execution']['loops']:
+            callee = Path(loop['entry']['path']).stem + '.' + loop['entry']['owner']
+            call_fragments = [components[loop['component']]['implementation']['site']['fragment']]
+            call_fragments.extend(c['source']['fragment'] for template in plan['templates']
+                                  if template['applies_to'] == loop['component'] for c in template['components'])
+            if loop['via'] is not None:
+                via = loop['via']
+                if callee not in via['fragment'] or not any(re.search(r'\b' + re.escape(via['owner']) + r'\b', fragment) for fragment in call_fragments):
+                    raise ValueError(f'{loop["id"]} recursive entry is not called through its source wrapper')
+            elif not any(callee in fragment for fragment in call_fragments):
+                raise ValueError(f'{loop["id"]} recursive entry is not called by its component/template')
+    return contract, imports, values, components, links, order, execution, templates
 
 
 def _forall(values, body):
@@ -215,28 +253,32 @@ def _and(parts):
 
 
 def render(plan, validated, module):
-    contract, imports, values, components, links, order = validated
+    contract, imports, values, components, links, order, _, _ = validated
     lines = ['import Spec4Pbt.GoalTools', f'import {contract}', *(f'import {x}' for x in imports),
              'set_option autoImplicit false', f'namespace {module}', '']
+    template_expected = {}
+    if plan['schema_version'] == 2:
+        template_lines, template_expected = render_templates(plan['templates'])
+        lines.extend(template_lines)
     for name in order:
         item = components[name]
         ins = ' '.join(f'(v_{v} : {values[v]})' for v in item['input'])
         allvars = ' '.join(f'(v_{v} : {values[v]})' for v in item['input'] + item['output'])
-        lines += [f'def require_{name} {ins} : Prop := {item["require"]}',
+        lines += [f'-- component {name}', f'def require_{name} {ins} : Prop := {item["require"]}',
                   f'def ensure_{name} {allvars} : Prop := {item["ensure"]}', '']
     def call(prefix, name):
         item = components[name]
         args = item['input'] if prefix == 'require' else item['input'] + item['output']
         return f'({prefix}_{name} ' + ' '.join(f'v_{v}' for v in args) + ')'
-    expected = {}
+    expected = dict(template_expected)
     for name in order:
         item = links[name]
         typ = _forall(values, f'{_and([call("ensure", s) for s in item["sources"]])} → {call("require", name)}')
-        lines += [f'theorem discharge_{name} : {typ} := {item["proof"]}', '']
+        lines += [f'-- connection {name}', f'theorem discharge_{name} : {typ} := {item["proof"]}', '']
         expected[f'discharge_{name}'] = typ
     goal = f'{contract}.Premise v_{plan["final"]["output"]}'
     typ = _forall(values, f'{_and([call("ensure", name) for name in order])} → {goal}')
-    lines += [f'theorem premise : {typ} := {plan["final"]["proof"]}', '', f'end {module}', '']
+    lines += ['-- final premise', f'theorem premise : {typ} := {plan["final"]["proof"]}', '', f'end {module}', '']
     expected['premise'] = typ
     return '\n'.join(lines), expected
 
@@ -255,12 +297,75 @@ def check(path, *, project=PROJECT, timeout_seconds=120):
     destination.mkdir(parents=True, exist_ok=True)
     source, expected = render(plan, validated, module)
     (destination / 'PlanContract.lean').write_text(source)
-    contract, imports, _, _, _, order = validated
-    rebuild_modules(project, [contract, *imports, module], timeout)
+    contract, imports, _, components, _, order, execution, templates = validated
+    try:
+        rebuild_modules(project, [contract, *imports, module], timeout)
+    except ChildProcessError as exc:
+        if plan['schema_version'] != 2:
+            raise
+        match = re.search(r'(?m)^error: .*PlanContract\.lean:(\d+):\d+', str(exc))
+        location = 'generated plan module'
+        if match:
+            lineno = int(match.group(1))
+            for line in reversed(source.splitlines()[:lineno]):
+                if line.startswith('-- component ') or line.startswith('-- connection ') or line.startswith('-- template ') or line == '-- final premise':
+                    location = line.removeprefix('-- ')
+                    break
+        errors = re.findall(r'(?m)^error:.*$', str(exc))
+        raise ValueError(f'plan semantic failure at {location}: ' + '\n'.join(errors[:3])) from exc
     audit = [f'import {module}', f'open {module}']
     for name, typ in expected.items():
         audit.append(f'#spec4pbt_verify {module}.{name} in_module {module} : {typ}')
     elaborate(project, '\n'.join(audit) + '\n', timeout)
+    edges = [{'source': source, 'target': item['target']} for item in plan['connections'] for source in item['sources']]
+    nodes = [{'id': name, 'input': components[name]['input'], 'output': components[name]['output'],
+              'require': components[name]['require'], 'ensure': components[name]['ensure'],
+              'source': {'path': components[name]['implementation']['path'],
+                         'owner': components[name]['implementation']['site']['owner'],
+                         'fragment': components[name]['implementation']['site']['fragment'],
+                         'uses': components[name]['implementation']['site']['uses'],
+                         'conditions': components[name]['implementation']['site']['conditions'],
+                         'projections': components[name]['implementation']['site']['projections']}
+              if plan['schema_version'] == 2 else None}
+             for name in order]
     return {'status': 'checked', 'plan': str(path), 'components': order,
+            'nodes': nodes, 'edges': edges,
+            'execution': execution,
+            'templates': templates,
             'remaining_require': [], 'premise': f'{contract}.Premise',
             'scope': 'conditional contracts; generator implementations not certified'}
+
+
+def format_text(result):
+    lines = [f"{result['status']}: {len(result['nodes'])} nodes, {len(result['edges'])} edges; "
+             f"premise {result['premise']}; remaining require {len(result['remaining_require'])}"]
+    if result['execution']:
+        lines.append('execution frames:')
+        for frame in result['execution']['frames']:
+            lines.append(f"  {frame['id']}: {', '.join(frame['members'])}")
+    lines.append('nodes:')
+    for node in result['nodes']:
+        source = node['source'] or {}
+        lines.append(f"  {node['id']}: ({', '.join(node['input'])}) -> ({', '.join(node['output'])}) "
+                     f"at {source.get('path', '?')}:{source.get('owner', '?')}")
+        if source.get('conditions'):
+            lines.append(f"    semantic conditions: {', '.join(source['conditions'])}")
+        lines.append(f"    require: {node['require']}")
+        lines.append(f"    ensure: {node['ensure']}")
+    lines.append('edges:')
+    for edge in result['edges']:
+        lines.append(f"  {edge['source']} -> {edge['target']}")
+    if result['execution']:
+        lines.append('recursive source shapes:')
+        for loop in result['execution']['loops']:
+            lines.append(f"  {loop['id']} ({loop['measure']}): {loop['component']} / {loop['smaller']}")
+        lines.append('source result bindings:')
+        for binding in result['execution']['bindings']:
+            lines.append(f"  {binding['path']}:{binding['owner']} / {binding['fragment']}")
+    if result['templates']:
+        lines.append('typed recursive templates:')
+        for template in result['templates']:
+            lines.append(f"  {template['id']} -> {template['applies_to']}: "
+                         f"{', '.join(template['components'])}; base and step checked")
+    lines.append(result['scope'])
+    return '\n'.join(lines)

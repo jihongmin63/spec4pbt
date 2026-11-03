@@ -5,9 +5,9 @@ The default branch is `P4-spectec-based`.
 
 ## Generator component plans
 
-`python3 -m scripts.property plan-check --plan properties/wasm_module_ok/component-plan.json --timeout 900`
-checks a static four-field (`input`, `output`, `require`, `ensure`) component
-plan. It reconstructs the target `Contract.Premise` from the original typed
+`python3 -m scripts.property plan-check --plan properties/wasm_module_ok/component-plan.json --timeout 900 --format text`
+checks a source-anchored fine graph with four-field (`input`, `output`,
+`require`, `ensure`) component contracts. It reconstructs the target `Contract.Premise` from the original typed
 property, checks fan-in requirement discharges and the final premise implication
 in Lean, and reports remaining requirements. This planning check is separate
 from generator certification and execution. The Wasm example uses a frozen

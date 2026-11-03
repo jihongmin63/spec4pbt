@@ -10,7 +10,7 @@ from scripts.property.clause import load_bundle,load_clause,strict_json
 from scripts.property.workflow import emit_property,check_property
 from scripts.property.plan import compile_clause,select_external
 from scripts.property.runner import collect_case,generate_inputs,recheck_trace,rerun_case,run_property
-from scripts.property.component_plan import check as check_component_plan
+from scripts.property.component_plan import check as check_component_plan, format_text as format_component_plan
 
 
 def main():
@@ -38,6 +38,7 @@ def main():
     p=commands.add_parser('plan-check',help='check component connections against the original typed premise')
     p.add_argument('--plan',type=Path,required=True)
     p.add_argument('--timeout',type=float,default=120)
+    p.add_argument('--format',choices=['json','text'],default='json')
     for action in ['run','generate','collect','recheck','rerun']:
         p=commands.add_parser(action)
         p.add_argument('--bundle',type=Path,required=True)
@@ -56,7 +57,8 @@ def main():
     args=parser.parse_args()
     try:
         if args.action=='plan-check':
-            print(json.dumps(check_component_plan(args.plan,timeout_seconds=args.timeout),ensure_ascii=False));return 0
+            result=check_component_plan(args.plan,timeout_seconds=args.timeout)
+            print(format_component_plan(result) if args.format=='text' else json.dumps(result,ensure_ascii=False));return 0
         if args.action in ['inspect','plan']:
             clause=load_clause(args.spec,args.property,args.name,timeout_seconds=args.timeout)
             if args.action=='plan':
