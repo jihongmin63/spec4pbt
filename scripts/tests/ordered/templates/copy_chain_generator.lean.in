@@ -26,4 +26,8 @@ theorem completeness : generatorComplete generator := by
   intro input h
   exact (Iff.of_eq (congrFun certified.property input)).mpr h
 
+theorem lawfulness : generatorLawful generator := by
+  change Gen.IndexLawful (Gen.arbNat >>= fun n => pure ({ «n» := n } : Input))
+  simp
+
 end ClauseChainGenerator

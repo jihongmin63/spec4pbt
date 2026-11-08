@@ -160,6 +160,8 @@ def render_contract(plan, namespace, spec_module):
         '  ∀ input, Gen.support g input → Premise input',
         'def generatorComplete (g : generatorValue) : Prop :=',
         '  ∀ input, Premise input → Gen.support g input',
+        'def generatorLawful (g : generatorValue) : Prop :=',
+        '  Gen.IndexLawful g',
         '',
         'def property : Prop :=\n'
         '  ∀ (input : Input),\n'

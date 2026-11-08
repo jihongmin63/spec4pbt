@@ -68,11 +68,13 @@ Run Python module commands from the repository root.
    removed after confirming its resolved generated path; preserve source/results.
 5. Complete the exact `Contract.property` proof, the executable
    `Contract.generatorValue` (`Gen Contract.Input`), and separate
-   `Contract.generatorSound generator` and `Contract.generatorComplete generator`
-   proofs. Use no extra assumptions, `sorry`, unsupported axioms, or compiler
-   substitutions. Classical choice is allowed in proofs, while the generator
-   must compile as safe, total executable code. Exact support must cover the
-   intended input domain. The generator may import the proof; the proof must not
+   `Contract.generatorSound generator`, `Contract.generatorComplete generator`,
+   and `Contract.generatorLawful generator` proofs. The last proof establishes
+   monotonicity for every indexed family. Use no extra assumptions, `sorry`,
+   unsupported axioms, or compiler substitutions. Classical choice is allowed
+   in proofs, while the generator must compile as safe, total executable code.
+   Exact support must cover the intended input domain. The generator may import
+   the proof; the proof must not
    import the generator. Keep their source files separate.
 6. Run `python3 -m scripts.property check --bundle properties/<name>/bundle` to perform the
    native AL execution audit, reconstruct and compare generated artifacts,

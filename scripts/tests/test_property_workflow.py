@@ -40,18 +40,20 @@ class PropertyWorkflowTests(unittest.TestCase):
         (self.root / 'Generator.lean').write_text(generator.replace('@CONTRACT@', self.contract)
             .replace('@PROOF@', self.base + '.Proof'))
 
-    def test_emit_exposes_both_obligations_without_certifying(self):
+    def test_emit_exposes_generator_obligations_without_certifying(self):
         self.assertEqual(self.emit(), self.output)
         contract = (self.output / 'Contract.lean').read_text()
         self.assertIn('abbrev generator := CorrectGen Premise', contract)
         self.assertIn('abbrev generatorValue := Gen Input', contract)
         self.assertIn('def generatorSound', contract)
         self.assertIn('def generatorComplete', contract)
+        self.assertIn('def generatorLawful', contract)
         self.assertIn('Contract.property := by', (self.root / 'Proof.lean').read_text())
         obligations = (self.root / 'Generator.lean').read_text()
         self.assertIn('Contract.generatorValue := by', obligations)
         self.assertIn('Contract.generatorSound generator := by', obligations)
         self.assertIn('Contract.generatorComplete generator := by', obligations)
+        self.assertIn('Contract.generatorLawful generator := by', obligations)
         self.assertNotIn('sorry', (self.root / 'Proof.lean').read_text())
         self.assertTrue((self.output / 'ContractAudit.lean').exists())
         self.assertTrue((self.output / 'CertifiedGenerator.lean').exists())
@@ -148,6 +150,7 @@ class PropertyWorkflowTests(unittest.TestCase):
         self.assertEqual(cert['generator'], 'ClauseCopyGenerator.generator')
         self.assertEqual(cert['soundness'], 'ClauseCopyGenerator.soundness')
         self.assertEqual(cert['completeness'], 'ClauseCopyGenerator.completeness')
+        self.assertEqual(cert['lawfulness'], 'ClauseCopyGenerator.lawfulness')
         self.assertIn(str(self.root / 'Generator.lean'), cert['fingerprints'])
         changed_selection = {**cert, 'property_name': 'different_property'}
         (self.output / 'certificate.json').write_text(json.dumps(changed_selection))
@@ -185,6 +188,38 @@ class PropertyWorkflowTests(unittest.TestCase):
             'def ClauseCopyGenerator.generator : CorrectGen (fun n : Nat => n = 0) :=\n'
             '  Gen.CorrectGen.s_pure 0\n')
         with self.assertRaisesRegex(ChildProcessError, 'type mismatch|expected exactly'):
+            workflow.check_property(self.output)
+        self.assertFalse((self.output / 'certificate.json').exists())
+
+    def test_nonmonotone_indexed_branch_cannot_certify(self):
+        self.emit()
+        self.complete()
+        path = self.root / 'Generator.lean'
+        source = path.read_text()
+        source = source.replace('def generator : generatorValue := certified.val', '''private def bad : Gen Input :=
+  Gen.indexed (fun n => pure (some ({ «n» := n } : Input)))
+
+private theorem bad_empty (input : Input) : ¬ Gen.support bad input := by
+  intro h
+  have hm := h.1 ({ «n» := 0 } : Input) 0 1 (by rfl)
+  have he : ({ «n» := 0 } : Input) = { «n» := 1 } := Option.some.inj hm
+  exact Nat.zero_ne_one (congrArg (fun x : Input => x.«n») he)
+
+def generator : generatorValue := Gen.pick certified.val bad
+
+private theorem bad_not_lawful : ¬ Gen.IndexLawful bad := by
+  intro h
+  exact bad_empty ({ «n» := 0 } : Input) ⟨h.2, ⟨0, by rfl⟩⟩''')
+        source = source.replace(
+            'exact (Iff.of_eq (congrFun certified.property input)).mp h',
+            'rcases h with h | h\n'
+            '  · exact (Iff.of_eq (congrFun certified.property input)).mp h\n'
+            '  · exact False.elim (bad_empty input h)')
+        source = source.replace(
+            'exact (Iff.of_eq (congrFun certified.property input)).mpr h',
+            'exact Or.inl ((Iff.of_eq (congrFun certified.property input)).mpr h)')
+        path.write_text(source)
+        with self.assertRaisesRegex(ChildProcessError, 'lawful|Lawful'):
             workflow.check_property(self.output)
         self.assertFalse((self.output / 'certificate.json').exists())
 

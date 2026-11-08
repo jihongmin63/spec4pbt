@@ -48,4 +48,19 @@ example : Gen.support Gen.arbNat 137 := by
   rw [Gen.support_arbNat]
   trivial
 
+private def nonmonotone : Gen Nat :=
+  Gen.indexed (fun n => pure (some n))
+
+example : ¬ Gen.IndexLawful nonmonotone := by
+  intro h
+  have hm := h.2 0 0 1 (by rfl)
+  exact Nat.zero_ne_one (Option.some.inj hm)
+
+example : ¬ Gen.support nonmonotone 0 := by
+  intro h
+  have hm := h.1 0 0 1 (by rfl)
+  exact Nat.zero_ne_one (Option.some.inj hm)
+
+example : Gen.IndexLawful Gen.arbNat := Gen.IndexLawful.arbNat
+
 end Spec4Pbt.CorrectGenTests

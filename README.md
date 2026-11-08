@@ -199,12 +199,13 @@ selection, then uses three commands:
    the property source if those files do not exist.
 2. Fill the proof of `Contract.property`, the executable
    `Contract.generatorValue` (`Gen Input`), and separate
-   `Contract.generatorSound generator` and `Contract.generatorComplete generator`
-   proofs. Together the proofs establish exact support for `Premise`.
+   `Contract.generatorSound generator`, `Contract.generatorComplete generator`,
+   and `Contract.generatorLawful generator` proofs. Together they establish exact
+   support for `Premise` and monotonicity of every indexed family.
    Palamedes `CorrectGen` values remain usable through `.val` and `.property`.
 3. `check` runs the native AL execution audit, reconstructs generated artifacts
    from the original inputs and compares their contents, then compiles and audits
-   all four authored declarations and their generated `CorrectGen` combination. Exact type,
+   all five authored declarations and their generated `CorrectGen` combination. Exact type,
    module ownership, permitted axioms, executable code, and transport audits all
    precede certificate creation. Classical choice is permitted in proofs; a
    generator that needs noncomputable choice to produce data cannot compile.
@@ -257,7 +258,8 @@ before authoring begins. Default declaration names are
 `properties.instantiation_progress.Proof.property_correct` and
 `properties.instantiation_progress.Generator.generator`,
 `properties.instantiation_progress.Generator.soundness`, and
-`properties.instantiation_progress.Generator.completeness`. The latter two names
+`properties.instantiation_progress.Generator.completeness`, and
+`properties.instantiation_progress.Generator.lawfulness`. The latter three names
 follow the selected generator's namespace. Existing generator and property declarations can
 be selected with emit's `--proof-module`, `--property-proof`, `--generator-module`,
 and `--generator` options. Keep the proof and generator in separate files; the
@@ -271,8 +273,9 @@ repair certificate hashes manually. Use a fresh results directory for every run.
 
 `ContractAudit.lean` and `GeneratorAudit.lean` expose the actual verification
 commands. `CertifiedGenerator.lean` builds the compatibility value
-`Contract.certifiedGenerator : CorrectGen Premise` from the three authored
-declarations; `run` samples its `.val`. `emission.json` records inputs and declaration
+`Contract.certifiedGenerator : CorrectGen Premise` from the generator value,
+soundness, and completeness declarations; `GeneratorAudit.lean` separately verifies
+lawfulness. `run` samples its `.val`. `emission.json` records inputs and declaration
 names; `certificate.json` (schema 5) records the checked declarations and dependency
 fingerprints. An emitted
 bundle without a certificate cannot run. The old CLI `build` command is replaced
@@ -283,7 +286,7 @@ directory first, preserving authored source and results. The legacy Python
 certify a generator for run.
 
 Re-emitting preserves an existing `Generator.lean`. If it still declares a
-`CorrectGen Premise` as the selected generator, migrate it to the three obligations
+`CorrectGen Premise` as the selected generator, migrate it to the four obligations
 before `check`. Existing certificates must be re-emitted and checked under the
 new schema; saved runs are preserved.
 

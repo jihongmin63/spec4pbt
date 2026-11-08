@@ -45,6 +45,7 @@ import {certified_module}
 #spec4pbt_verify {generator} in_module {generator_module} : {contract_module}.generatorValue
 #spec4pbt_verify {declarations['soundness']} in_module {generator_module} : {contract_module}.generatorSound {generator}
 #spec4pbt_verify {declarations['completeness']} in_module {generator_module} : {contract_module}.generatorComplete {generator}
+#spec4pbt_verify {declarations['lawfulness']} in_module {generator_module} : {contract_module}.generatorLawful {generator}
 #spec4pbt_verify {contract_module}.certifiedGenerator in_module {certified_module} : {contract_module}.generator
 #spec4pbt_observable_executable {generator}
 #spec4pbt_observable_executable {contract_module}.certifiedGenerator
@@ -93,7 +94,8 @@ def _declarations(project, property_path, proof_module, property_proof, generato
     generator_namespace = generator.rpartition('.')[0]
     values = dict(proof_module=proof_module, property_proof=property_proof or proof_module+'.property_correct',
                   generator_module=generator_module, generator=generator,
-                  soundness=generator_namespace+'.soundness', completeness=generator_namespace+'.completeness')
+                  soundness=generator_namespace+'.soundness', completeness=generator_namespace+'.completeness',
+                  lawfulness=generator_namespace+'.lawfulness')
     for value in values.values():
         require_name(value)
     if proof_module == generator_module:
@@ -116,7 +118,7 @@ def _template(contract, declaration, kind):
 
 def _generator_template(contract, declarations):
     namespace, _, name = declarations['generator'].rpartition('.')
-    lines = [f'import {contract}', '', '-- Generated unfinished obligations: complete all three declarations.']
+    lines = [f'import {contract}', '', '-- Generated unfinished obligations: complete all four declarations.']
     if namespace:
         lines += [f'namespace {namespace}', '']
     lines += [
@@ -126,6 +128,8 @@ def _generator_template(contract, declarations):
         '  fail "Fill in the soundness obligation before running check"', '',
         f'theorem completeness : {contract}.generatorComplete {name} := by',
         '  fail "Fill in the completeness obligation before running check"', '',
+        f'theorem lawfulness : {contract}.generatorLawful {name} := by',
+        '  fail "Fill in the lawfulness obligation before running check"', '',
     ]
     if namespace:
         lines += [f'end {namespace}', '']
@@ -264,7 +268,7 @@ def _validate_generated(directory, record, project, timeout):
 
 
 def check_property(directory, *, timeout_seconds=120):
-    """Reconstruct generated source and certify the property and three generator obligations."""
+    """Reconstruct generated source and certify the property and four generator obligations."""
     directory = Path(directory).resolve()
     record, project = _read_emission(directory)
     (directory/'certificate.json').unlink(missing_ok=True)
