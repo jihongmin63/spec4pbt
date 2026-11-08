@@ -26,6 +26,9 @@ theorem completeness : Contract.generatorComplete generator := by
 theorem structural : ConstructiveGenAudit.Structural generator :=
   (ConstructiveGenAudit.map_audit _ _).2 ConstructiveModuleGeneration.modules_audit
 
+theorem lawfulness : Contract.generatorLawful generator :=
+  ConstructiveGenAudit.structural_indexLawful generator structural
+
 theorem total : Gen.total generator := ConstructiveGenAudit.audit_total _ structural
 
 end properties.wasm_module_ok.Generator

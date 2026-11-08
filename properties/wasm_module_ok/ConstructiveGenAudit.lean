@@ -14,6 +14,15 @@ def Structural {α : Type} : Gen α → Prop
   | .indexed f => (∀ n, Structural (f n)) ∧
       ∀ v n k, Gen.support (f n) (some v) → Gen.support (f (n + k)) (some v)
 
+theorem structural_indexLawful {α : Type} (g : Gen α) (h : Structural g) :
+    Gen.IndexLawful g := by
+  induction g with
+  | ret _ => trivial
+  | pick a b ia ib => exact ⟨ia h.1, ib h.2⟩
+  | bind a k ia ik => exact ⟨ia h.1, fun x => ik x (h.2 x)⟩
+  | assume _ _ _ => exact h.elim
+  | indexed f ih => exact ⟨fun n => ih n (h.1 n), h.2⟩
+
 @[simp] theorem pure_audit {α : Type} (a : α) : Structural (pure a : Gen α) := trivial
 @[simp] theorem pick_audit {α : Type} (a b : Gen α) :
     Structural (Gen.pick a b) ↔ Structural a ∧ Structural b := Iff.rfl
