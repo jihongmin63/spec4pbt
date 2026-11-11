@@ -1,3 +1,17 @@
-# Generator-only experiment: no external implementation observations.
 schema_version = 1
-observations = []
+
+# External observations backed by real Wasm engines (implementations/wasmtime.toml,
+# implementations/node.toml). The adapter encodes the module AST to the binary
+# format; the encoder and engine are the trusted boundary.
+# Module_init_ok's output is a module instance made of store addresses, which no
+# engine exposes, so both entries observe success or failure only.
+
+[[observations]]
+id = "module_validation"
+relation = "Module_ok"
+observe = []
+
+[[observations]]
+id = "module_instantiation"
+relation = "Module_init_ok"
+observe = []

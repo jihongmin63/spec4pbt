@@ -16,7 +16,14 @@ The `wasm-spec-experiments` branch removes the authored P4 properties.
 The pinned P4-SpecTec submodule remains the frontend/toolchain dependency.
 Existing ignored bundles and saved execution evidence are retained.
 
-No Wasm property, observation catalog, implementation adapter, proof, generator,
-or certificate has been added. Implementation selection and relation analysis
-are the next experiment steps. Importing this specification does not establish
-translation support or certified Wasm execution.
+`observations.toml` permits two external relations, `Module_ok` (validation)
+and `Module_init_ok` (instantiation with no imports, including the start
+function), both with `observe = []`. They are bound to Wasmtime 50.0.1
+(`implementations/wasmtime.toml`) and Node.js 26.13.0 / V8 14.6
+(`implementations/node.toml`) through `implementations/wasm_adapter.py`,
+which encodes the module AST with `implementations/wasm_encoder.py`. The
+encoder, engine-specific implementation limits, and resource exhaustion form
+the trusted boundary: unencodable modules, modules beyond a limit, stack or
+allocation exhaustion, and timeouts are adapter aborts, not verdicts. Importing
+this specification does not establish certified Wasm execution; a property
+still needs its own proof, generator, and check before `run`.
