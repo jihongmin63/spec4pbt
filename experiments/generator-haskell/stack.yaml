@@ -1,0 +1,6 @@
+resolver: lts-24.32
+packages:
+  - ../../build/generator-haskell/hs-to-rocq-5e6a7bddfa02b818a9e8490ed107b11bd52a84e4
+extra-deps:
+  # Same archive and revised Cabal file as the upstream Hackage dependency.
+  - ../../build/generator-haskell/indents-0.5.0.1

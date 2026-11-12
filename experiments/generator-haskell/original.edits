@@ -1,0 +1,5 @@
+# Preserve the unadapted core's real translation failure for inspection.
+skip Generator.renderType
+skip Generator.renderUnary
+skip Generator.renderBinary
+skip Generator.renderExpr

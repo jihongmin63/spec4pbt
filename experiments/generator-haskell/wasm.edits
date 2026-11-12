@@ -1,0 +1,11 @@
+skip module Word64Ops
+skip module GHC.Internal.Word
+rename type GHC.Internal.Word.Word64 = Word64Bridge.Word64
+rename value Word64Ops.add = Word64Bridge.add
+skip module SequenceOps
+rename value SequenceOps.replicate = SequenceBridge.replicate
+inline mutual WasmGenerator.continueCode
+termination WasmGenerator.generateCode {struct 1}
+rename value WasmGenerator.Signature = WasmGenerator.FunctionSignature
+rename value WasmGenerator.Config = WasmGenerator.GeneratorConfig
+rename type GHC.Num.Integer.Integer = GHC.Num.Integer

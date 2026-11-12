@@ -1,0 +1,30 @@
+# Only the pure AST generator, RNG, and digest traversal cross this boundary.
+skip Generator.renderType
+skip Generator.renderUnary
+skip Generator.renderBinary
+skip Generator.renderExpr
+# Avoid Rocq command keywords in constructor names.
+rename value Generator.IntLiteral = Generator.EIntLiteral
+rename value Generator.BoolLiteral = Generator.EBoolLiteral
+rename value Generator.Variable = Generator.EVariable
+rename value Generator.Negate = Generator.ENegate
+rename value Generator.Not = Generator.ENot
+rename value Generator.Add = Generator.EAdd
+rename value Generator.Equal = Generator.EEqual
+rename value Generator.If = Generator.EIf
+rename value Generator.Let = Generator.ELet
+skip module Word64Ops
+skip module GHC.Internal.Word
+rename type GHC.Internal.Word.Word64 = Word64Bridge.Word64
+rename value Word64Ops.add = Word64Bridge.add
+rename value Word64Ops.multiply = Word64Bridge.multiply
+skip module SequenceOps
+rename value SequenceOps.replicate = SequenceBridge.replicate
+inline mutual Generator.generateUnary
+inline mutual Generator.generateBinary
+inline mutual Generator.generateLet
+inline mutual Generator.generateIf
+termination Generator.generate {struct 1}
+inline mutual Generator.inspectUnary
+inline mutual Generator.inspectBinary
+termination Generator.inspectExpr {struct 1}
