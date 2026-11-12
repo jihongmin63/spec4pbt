@@ -1,0 +1,4 @@
+property instantiation_progress:
+  (p : p4program)
+  Program_inst: |- p : l s
+  -- Program_ok: |- p : ir

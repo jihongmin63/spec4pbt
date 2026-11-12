@@ -1,0 +1,5 @@
+schema_version = 1
+
+[[external]]
+id = "program_typecheck"
+observe = []

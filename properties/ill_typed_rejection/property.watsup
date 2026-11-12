@@ -1,0 +1,20 @@
+relation TypeChecks:
+  |- p4program
+  hint(input %0)
+
+rule TypeChecks/program:
+  |- p4program
+  -- Program_ok: |- p4program : _
+
+relation Rejected:
+  |- p4program
+  hint(input %0)
+
+rule Rejected/program:
+  |- p4program
+  -- TypeChecks:/ |- p4program
+
+property ill_typed_rejection:
+  (p : p4program)
+  Rejected: |- p
+  -- TypeChecks:/ |- p

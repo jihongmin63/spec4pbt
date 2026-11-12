@@ -3,9 +3,27 @@
 Propose properties from SpecTec specifications, verify them in Lean, and test external implementations with certified input generators.
 The default branch is `P4-spectec-based`.
 
-This `wasm-spec-experiments` branch imports the [Wasm specification](specifications/wasm/README.md)
-and removes the authored P4 properties. The P4 commands below document the baseline
-workflow; their property sources are available on `P4-spectec-based`.
+## Branch responsibilities
+
+`P4-spectec-based` contains the shared toolchain, P4 and [Wasm](specifications/wasm/README.md)
+specifications, observation catalogs, and tool regressions. It has no authored research
+properties or target implementation adapters. Small properties and adapters under
+`scripts/tests/` are fixtures for checking the shared tools.
+
+`pbt-experiments` inherits that foundation and contains the P4/Wasm properties, proofs,
+generators, implementation manifests and adapters, their tests, and research notes.
+Property commands below use examples from that branch; run them in its worktree.
+Specification catalogs describe permitted observations; implementation manifests select
+the engines that execute them. Engine installations are not required by the foundation.
+
+Merge foundation updates into experiment branches. Bring reusable tool improvements back
+as separate changes with regression checks, not by merging the entire experiment branch.
+Keep existing worktrees and ignored build/run data while experiments are active.
+
+`generator-in-haskell`, `generator-in-rust`, and
+`experiment/program-ok-generator-plan` build on `pbt-experiments`.
+Keep the component-planning branch local; publish the language experiment
+branches independently.
 
 ## Repository layout and responsibilities
 
@@ -14,14 +32,14 @@ p4-spectec/                         Pinned official specification submodule
 specifications/<spec-id>/
   observations.toml                 User-provided external observation catalog
   translated/<identity>/            Shared Lean translation and identity.json (ignored)
-properties/<name>/
+properties/<name>/                  Authored experiments on pbt-experiments
   property.watsup                   Authored property and optional helper relations
   external.toml                     Selection from the shared observation catalog
   Proof.lean                        Authored proof; emit creates an obligation if absent
   Generator.lean                    Executable generator and separate support proofs
   bundle/                           Generated helpers, transport, contract, audits, certificate (ignored)
   runs/<run>/                       Inputs, implementation observations, verdicts, traces (ignored)
-implementations/                    Shared manifests, adapters, optional JSON declarations
+implementations/                    Experiment manifests, adapters, optional JSON declarations
   local/                            Local implementation sources and builds (ignored)
 scripts/                            Python planning, certification, execution, and replay
   toolchain.py                      Repository/build paths and native tool lifecycle
@@ -89,7 +107,8 @@ changed executable fingerprints require recertification.
 
 Users do not need to write property syntax, Lean proofs, or generators. An agent proposes properties
 from the specification and testing goal, and writes an adapter and manifest when implementation details
-are available. The current property is **successful instantiation of a type-checked P4 program**.
+are available. The `instantiation_progress` example on `pbt-experiments` states
+**successful instantiation of a type-checked P4 program**.
 It assumes `Program_ok` and requires `Program_inst` to succeed. Because `observe = []`, it does not
 compare output values. Checking success alone still requires a call to the actual implementation.
 
