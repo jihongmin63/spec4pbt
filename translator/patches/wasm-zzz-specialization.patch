@@ -1,0 +1,270 @@
+--- a/p4spec/lib/lean-skeleton/dune
++++ b/p4spec/lib/lean-skeleton/dune
+@@ -11,6 +11,7 @@
+   identifier
+   translator
+   order
++  specialize
+   printer
+   module_writer
+   execution_support
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -255,8 +255,10 @@ let declarations source ~keep_going =
+     with
+     | Translator.Unsupported_il d ->
+         if keep_going then decls, ds @ [d] else raise (Translator.Unsupported_il d)) ([], []) (List.combine source analyzed) in
+-  env, Translator.equality_parameters
+-    (declarations @ Translator.generated_declarations env source declarations), diagnostics
++  let declarations = Translator.equality_parameters
++    (declarations @ Translator.generated_declarations env source declarations)
++    |> Specialize.program env in
++  env, declarations, diagnostics
+ 
+ let emit source env ordered compiled =
+   let declarations = List.concat_map Printer.declarations_in_group ordered in
+--- a/p4spec/lib/lean-skeleton/pipeline.ml
++++ b/p4spec/lib/lean-skeleton/pipeline.ml
+@@ -6,6 +6,7 @@ let transpile ?(ordered = true) (input : S.spec) :
+     (string, Diagnostic.t) result =
+   if ordered then Execution_translate.transpile input else
+   let* lean_ast = Translator.translate input in
++  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
+   let* ordered = Order.order lean_ast in
+   Ok (Printer.print ordered)
+ 
+@@ -15,6 +16,7 @@ let transpile_all ?(ordered = true) (input : S.spec) : string * Diagnostic.t lis
+       Ast.Lean.located_declaration list * Diagnostic.t list =
+     Translator.translate_all input
+   in
++  let lean_ast = Specialize.program (Translator.build_env input) lean_ast in
+   let (ordered, ordering_diagnostics) :
+       Ast.Lean.program * Diagnostic.t list = Order.order_all lean_ast
+   in
+--- /dev/null
++++ b/p4spec/lib/lean-skeleton/specialize.ml
+@@ -0,0 +1,224 @@
++(** Eliminate only named callback values that participate in a recursive SCC.
++    The input clauses have already been normalized by the native AL analysis.
++    Specialization substitutes fixed function inputs; it does not reorder,
++    remove, or simplify any clause, premise, guard, or result. Generic source
++    declarations remain available with their original domains. *)
++module L = Ast.Lean
++module M = Translator.StringMap
++module S = Order.StringSet
++
++let recursive_callbacks declarations =
++  let graph = Order.make_graph declarations in
++  Order.topological_components graph |> List.fold_left (fun found names ->
++    List.fold_left (fun found name ->
++      let source = (M.find name graph).Order.source in
++      let rec visit found = function
++        | L.FunctionReference (L.Global callback) when List.mem callback names ->
++            S.add callback found
++        | term -> List.fold_left visit found (Traversal.term_children term) in
++      match source.declaration with
++      | L.Relation r -> List.fold_left (fun found (rule : L.rule) ->
++          List.fold_left visit found (rule.conclusion.arguments
++            @ List.concat_map Traversal.premise_terms rule.premises)) found r.rules
++      | _ -> found) found names) S.empty
++
++let rec named_callback = function
++  | L.FunctionReference (L.Global name) -> Some name
++  | L.Typed (term, _) -> named_callback term
++  | _ -> None
++
++let rec callback_variable = function
++  | L.Variable (name, (L.RelationType _ as typ)) -> Some (name, typ)
++  | L.Typed (term, _) -> callback_variable term
++  | _ -> None
++
++let remove_positions fixed values =
++  List.filteri (fun i _ -> not (List.mem_assoc i fixed)) values
++
++let program (env : Translator.env) (declarations : L.located_declaration list) =
++  let recursive = recursive_callbacks declarations in
++  if S.is_empty recursive then declarations else
++  let originals = List.fold_left (fun m (d : L.located_declaration) ->
++    M.add (Order.defined_name d.declaration) d m) M.empty declarations in
++  let created = Hashtbl.create 32 in
++  let names = Hashtbl.create 32 in
++  let generated = ref [] in
++  let input_mode name argument_types =
++    match Hashtbl.find_opt env.input_modes name with
++    | Some inputs -> inputs
++    | None -> List.init (max 0 (List.length argument_types - 1)) Fun.id in
++  let callback_types at callback expected =
++    match M.find_opt callback originals, expected with
++    | Some {declaration = L.Relation r; _}, L.RelationType (arguments, result) ->
++        let substitutions = ref [] in
++        let expand = Translator.expand_expression_type env at in
++        let rec unify pattern actual =
++          let pattern, actual = expand pattern, expand actual in
++          match pattern, actual with
++          | L.TypeParameter parameter, _ when List.mem parameter r.type_parameters ->
++              (match List.assoc_opt parameter !substitutions with
++               | None -> substitutions := (parameter, actual) :: !substitutions
++               | Some previous when previous = actual -> ()
++               | Some _ -> Translator.unsupported at ("inconsistent callback instantiation " ^ callback))
++          | L.BuiltinType (a, xs), L.BuiltinType (b, ys)
++          | L.Applied (a, xs), L.Applied (b, ys) when a = b -> unify_many xs ys
++          | L.TupleType xs, L.TupleType ys -> unify_many xs ys
++          | L.RelationType (xs, x), L.RelationType (ys, y) -> unify_many (xs @ [x]) (ys @ [y])
++          | _ when pattern = actual -> ()
++          | _ -> Translator.unsupported at ("callback type mismatch while specializing " ^ callback)
++        and unify_many patterns actuals =
++          if List.length patterns <> List.length actuals then
++            Translator.unsupported at ("callback arity while specializing " ^ callback);
++          List.iter2 unify patterns actuals in
++        unify_many r.argument_types (arguments @ [result]);
++        List.map (fun parameter -> match List.assoc_opt parameter !substitutions with
++          | Some typ -> typ
++          | None -> Translator.unsupported at ("undetermined callback type parameter in " ^ callback)) r.type_parameters
++    | _ -> Translator.unsupported at ("callback without a translated relation " ^ callback) in
++  let canonical arguments =
++    let free = List.concat_map Translator.type_parameters_in arguments
++      |> List.fold_left (fun seen name -> if List.mem name seen then seen else seen @ [name]) [] in
++    let parameters = List.mapi (fun i _ -> "specializationType" ^ string_of_int i) free in
++    let rename = List.map2 (fun name parameter -> name, L.TypeParameter parameter) free parameters in
++    List.map (Translator.substitute_type_parameters rename) arguments,
++    parameters, List.map (fun name -> L.TypeParameter name) free in
++  let rec transform_term stack bindings at term =
++    let recurse = transform_term stack bindings at in
++    match term with
++    | L.Variable (name, _) when List.mem_assoc name bindings ->
++        let callback, _ = List.assoc name bindings in L.FunctionReference (L.Global callback)
++    | L.FunctionReference (L.Local name) when List.mem_assoc name bindings ->
++        let callback, _ = List.assoc name bindings in L.FunctionReference (L.Global callback)
++    | L.Variable _ | L.Boolean _ | L.Number _ | L.Text _ | L.FunctionReference _ -> term
++    | L.Constructor (reference, terms) -> L.Constructor (reference, List.map recurse terms)
++    | L.Apply app -> L.Apply (transform_application stack bindings at app)
++    | L.Coerce (name, source, target, term) -> L.Coerce (name, source, target, recurse term)
++    | L.MembershipTest (name, source, target, cases, exhaustive, term) ->
++        L.MembershipTest (name, source, target, cases, exhaustive, recurse term)
++    | L.Lambda (name, typ, body) -> L.Lambda (name, typ,
++        transform_term stack (List.remove_assoc name bindings) at body)
++    | L.Native (name, terms) -> L.Native (name, List.map recurse terms)
++    | L.Unary (op, term) -> L.Unary (op, recurse term)
++    | L.Binary (op, a, b) -> L.Binary (op, recurse a, recurse b)
++    | L.Typed (term, typ) -> L.Typed (recurse term, typ)
++    | L.Tuple (a, b) -> L.Tuple (recurse a, recurse b)
++    | L.ListLiteral terms -> L.ListLiteral (List.map recurse terms)
++    | L.StructureLiteral (typ, fields) -> L.StructureLiteral (typ, List.map (fun (n,v) -> n, recurse v) fields)
++    | L.StructureUpdate (typ, base, field, value) -> L.StructureUpdate (typ, recurse base, field, recurse value)
++    | L.Projection (name, field, term) -> L.Projection (name, field, recurse term)
++    | L.Index (base, index) -> L.Index (recurse base, recurse index)
++    | L.Decide (types, prop) -> L.Decide (types, transform_prop stack bindings at prop)
++  and transform_prop stack bindings at prop =
++    let recurse = transform_prop stack bindings at in
++    let term = transform_term stack bindings at in
++    match prop with
++    | L.Comparison (op, a, b) -> L.Comparison (op, term a, term b)
++    | L.Membership (a, b) -> L.Membership (term a, term b)
++    | L.IsTrue value -> L.IsTrue (term value)
++    | L.Predicate value -> L.Predicate (term value)
++    | L.Not p -> L.Not (recurse p)
++    | L.And (p,q) -> L.And (recurse p,recurse q)
++    | L.Or (p,q) -> L.Or (recurse p,recurse q)
++    | L.Implies (p,q) -> L.Implies (recurse p,recurse q)
++    | L.Iff (p,q) -> L.Iff (recurse p,recurse q)
++    | L.Forall (name, typ, p) -> L.Forall (name, typ,
++        transform_prop stack (List.remove_assoc name bindings) at p)
++  and transform_premise stack bindings at = function
++    | L.Holds app -> L.Holds (transform_application stack bindings at app)
++    | L.NotHolds (app, origin) -> L.NotHolds (transform_application stack bindings at app, origin)
++    | L.Prop p -> L.Prop (transform_prop stack bindings at p)
++    | L.RuntimeCheck (p, message) -> L.RuntimeCheck (transform_prop stack bindings at p, message)
++  and transform_application stack bindings at (app : L.application) =
++    let app = {app with arguments = List.map (transform_term stack bindings at) app.arguments} in
++    let app = match app.target with
++      | L.Local name -> (match List.assoc_opt name bindings with
++          | None -> app
++          | Some (callback, types) ->
++              if app.type_arguments <> [] then Translator.unsupported at "polymorphic local callback specialization";
++              {app with target = L.Global callback; type_arguments = types})
++      | L.Global _ -> app in
++    match app.target with
++    | L.Local _ -> app
++    | L.Global name -> (match M.find_opt name originals with
++        | Some {declaration = L.Relation r; _} when r.rules <> [] ->
++            let inputs = input_mode name r.argument_types in
++            let fixed = List.mapi (fun i term ->
++              if List.mem i inputs then Option.map (fun callback -> i,callback) (named_callback term)
++              else None) app.arguments |> List.filter_map Fun.id in
++            (* Unrelated higher-order calls keep their original representation. *)
++            if not (List.exists (fun (_,callback) -> S.mem callback recursive) fixed) then app else
++            let types, parameters, caller_types = canonical app.type_arguments in
++            let specialized = ensure stack at name types parameters fixed in
++            {L.target = L.Global specialized; type_arguments = caller_types;
++              instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = [];
++              arguments = remove_positions fixed app.arguments}
++        | _ -> app)
++  and ensure stack at original types parameters fixed =
++    let identity = original, types, fixed in
++    match Hashtbl.find_opt created identity with
++    | Some name -> name
++    | None ->
++        if List.exists (fun (ancestor, previous_types, callbacks) ->
++            ancestor = original && callbacks = fixed && previous_types <> types) stack then
++          Translator.unsupported at ("non-uniform recursive callback specialization of " ^ original);
++        let name = original ^ ":specialized:" ^ Digest.to_hex
++          (Digest.string (Marshal.to_string identity [Marshal.No_sharing])) in
++        if M.mem name originals || Hashtbl.mem names name then
++          Translator.unsupported at ("callback specialization name collision " ^ name);
++        Hashtbl.add created identity name;
++        Hashtbl.add names name ();
++        let source = M.find original originals in
++        (match source.declaration with
++        | L.Relation r ->
++            if List.length r.type_parameters <> List.length types then
++              Translator.unsupported at ("callback specialization type arity in " ^ original);
++            let substitutions = List.combine r.type_parameters types in
++            let substitute = Translator.substitute_type_parameters substitutions in
++            let required original_parameters =
++              List.map (fun p -> substitute (L.TypeParameter p)) original_parameters
++              |> Translator.required_type_parameters parameters in
++            let stack = identity :: stack in
++            let rules = List.map (fun (rule : L.rule) ->
++              let conclusion = Traversal.map_application_types substitute rule.conclusion in
++              let bindings = List.fold_left (fun bindings (position,callback) ->
++                match List.nth_opt conclusion.arguments position with
++                | Some term -> (match callback_variable term with
++                    | Some (variable, typ) ->
++                        let instance = callback, callback_types source.at callback typ in
++                        (match List.assoc_opt variable bindings with
++                        | None -> (variable,instance) :: bindings
++                        | Some previous when previous = instance -> bindings
++                        | Some _ -> Translator.unsupported source.at ("aliased callback parameters in " ^ original))
++                    | None -> Translator.unsupported source.at ("non-variable fixed callback in " ^ original))
++                | None -> Translator.unsupported source.at ("callback specialization argument arity in " ^ original)) [] fixed in
++              {rule with binders = List.filter_map (fun (n,t) ->
++                   if List.mem_assoc n bindings then None else Some (n,substitute t)) rule.binders;
++                premises = List.map (fun premise -> Traversal.map_premise_types substitute premise
++                  |> transform_premise stack bindings source.at) rule.premises;
++                conclusion = {L.target = L.Global name;
++                  type_arguments = List.map (fun p -> L.TypeParameter p) parameters;
++                  instance_arguments = []; print_instance_arguments = []; compare_instance_arguments = [];
++                  arguments = remove_positions fixed conclusion.arguments
++                    |> List.map (transform_term stack bindings source.at)}}) r.rules in
++            let inputs = input_mode original r.argument_types in
++            let inputs = List.filter_map (fun position ->
++              if List.mem_assoc position fixed then None else
++              Some (position - List.length (List.filter (fun (i,_) -> i < position) fixed))) inputs in
++            Hashtbl.replace env.input_modes name inputs;
++            generated := {source with declaration = L.Relation {name;
++              type_parameters = parameters; equality_parameters = required r.equality_parameters;
++              print_parameters = required r.print_parameters; compare_parameters = required r.compare_parameters;
++              argument_types = remove_positions fixed r.argument_types |> List.map substitute;
++              rules; notation = None}} :: !generated
++        | _ -> assert false);
++        name in
++  let rewritten = List.map (fun (source : L.located_declaration) ->
++    match source.declaration with
++    | L.Relation r ->
++        let rules = List.map (fun (rule : L.rule) -> {rule with
++          premises = List.map (transform_premise [] [] source.at) rule.premises;
++          conclusion = {rule.conclusion with arguments =
++            List.map (transform_term [] [] source.at) rule.conclusion.arguments}}) r.rules in
++        {source with declaration = L.Relation {r with rules}}
++    | _ -> source) declarations in
++  Translator.equality_parameters (rewritten @ List.rev !generated)
