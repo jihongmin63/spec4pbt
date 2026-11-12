@@ -465,6 +465,7 @@ let check_property plan blocks goal calls ctx statuses =
       eval_goal ctx 0 (fst goal)
 
 let main () =
+  Wasm_builtin_hooks.Builtin_hooks.init ();
   let specs = ref [] and property = ref "" and name = ref "" and plan_path = ref "" in
   Arg.parse ["--spec",Arg.String(fun x -> specs := !specs @ [x]),"SpecTec source";
     "--property",Arg.Set_string property,"Property source";

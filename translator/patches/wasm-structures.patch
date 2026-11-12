@@ -1,0 +1,474 @@
+--- a/p4spec/lib/lean-skeleton/ast.ml
++++ b/p4spec/lib/lean-skeleton/ast.ml
+@@ -134,11 +134,17 @@
+     body : type_ref;
+   }
+ 
++  type structure = {
++    name : string;
++    type_parameters : string list;
++    fields : (string * type_ref) list;
++  }
++
+   type declaration =
+     | Datatype of datatype
+     | ExternType of string
+     | TypeAlias of type_alias
+-    | Structure of { name : string; fields : (string * type_ref) list }
++    | Structure of structure
+     | Relation of {
+         name : string;
+         type_parameters : string list;
+--- a/p4spec/lib/lean-skeleton/case_value.ml
++++ b/p4spec/lib/lean-skeleton/case_value.ml
+@@ -45,14 +45,21 @@
+       let values = Domain.Mixfix.args notation in
+       if List.length fields <> List.length values then unsupported value "constructor argument arity";
+       L.Constructor (constructor, List.map2 recurse fields values)
+-  | StructV values, L.Name name ->
+-      let fields = match T.StringMap.find_opt name env.T.structures with
+-        | Some fields -> fields | None -> unsupported value "structure without a declaration" in
++  | StructV values, (L.Name name | L.Applied (name, _)) ->
++      let structure = match T.StringMap.find_opt name env.T.structures with
++        | Some structure -> structure | None -> unsupported value "structure without a declaration" in
++      let arguments = match shape with L.Applied (_, arguments) -> arguments | _ -> [] in
++      if List.length structure.type_parameters <> List.length arguments then
++        unsupported value "structure type argument arity";
++      let substitution = List.combine structure.type_parameters arguments in
++      let fields = structure.fields in
+       let values = List.map (fun (atom, value) ->
+           let name = field_name atom in
+           let field = match List.find_opt (fun (field : T.structure_field) -> field.name = name) fields with
+             | Some field -> field | None -> unsupported value ("unknown structure field " ^ name) in
+-          name, recurse (T.translate_type field.typ) value) values in
++          let typ = T.translate_type_with_parameters structure.type_parameters field.typ
++            |> T.substitute_type_parameters substitution in
++          name, recurse typ value) values in
+       L.StructureLiteral (typ, values)
+   | FuncV _, _ -> unsupported value "function reference"
+   | ExternV _, _ -> unsupported value "external value"
+--- a/p4spec/lib/lean-skeleton/execution_translate.ml
++++ b/p4spec/lib/lean-skeleton/execution_translate.ml
+@@ -280,7 +280,7 @@
+     | _ -> m) !(Printer.call_type_parameters) relations;
+   let type_dependencies = List.filter_map (function
+     | L.Datatype d -> Some (d.name, List.concat_map (fun (c : L.constructor) -> c.arguments) d.constructors)
+-    | L.Structure {name; fields} -> Some (name, List.map snd fields)
++    | L.Structure {name; fields; _} -> Some (name, List.map snd fields)
+     | L.TypeAlias d -> Some (d.name, [d.body])
+     | _ -> None) declarations in
+   let extern_names = List.fold_left (fun names -> function
+--- a/p4spec/lib/lean-skeleton/order.ml
++++ b/p4spec/lib/lean-skeleton/order.ml
+@@ -477,15 +477,15 @@
+ 
+ let data_type_parameters (declaration : L.declaration) : string list =
+   match declaration with
+-  | L.Datatype { type_parameters; _ } -> type_parameters
+-  | L.Structure _ -> []
++  | L.Datatype { type_parameters; _ } | L.Structure { type_parameters; _ } ->
++      type_parameters
+   | _ -> assert false
+ 
+ let data_type (declaration : L.declaration) : L.type_ref =
+   match declaration with
+-  | L.Datatype { name; type_parameters = []; _ } | L.Structure { name; _ } ->
+-      L.Name name
+-  | L.Datatype { name; type_parameters; _ } ->
++  | L.Datatype { name; type_parameters = []; _ }
++  | L.Structure { name; type_parameters = []; _ } -> L.Name name
++  | L.Datatype { name; type_parameters; _ } | L.Structure { name; type_parameters; _ } ->
+       L.Applied (name, List.map (fun name -> L.TypeParameter name) type_parameters)
+   | _ -> assert false
+ 
+@@ -549,6 +549,16 @@
+             constructor.arguments;
+         result = Translator.substitute_type_parameters bindings constructor.result })
+     datatype.constructors
++
++let instantiate_structure (at : Util.Source.region) (typ : L.type_ref)
++    (structure : L.structure) : (string * L.type_ref) list =
++  let arguments = match typ with
++    | L.Name _ -> [] | L.Applied (_, arguments) -> arguments | _ -> assert false in
++  if List.length structure.type_parameters <> List.length arguments then
++    Translator.unsupported at ("structure type arity in " ^ structure.name);
++  let bindings = List.combine structure.type_parameters arguments in
++  List.map (fun (name, typ) -> name, Translator.substitute_type_parameters bindings typ)
++    structure.fields
+ 
+ let manual_equality ?(comparison = false) (graph : graph) (at : Util.Source.region)
+     (declarations : L.declaration list) : L.manual_equality =
+@@ -607,8 +617,9 @@
+             | Some (Datatype datatype) ->
+                 L.EqualityDatatype (instantiate_datatype at typ datatype
+                   |> List.map (fun (c : L.constructor) -> {c with arguments = List.map expand c.arguments}))
+-            | Some (Structure { fields; _ }) when typ = L.Name name ->
+-                L.EqualityStructure (List.map (fun (n,t) -> n, expand t) fields)
++            | Some (Structure structure) ->
++                L.EqualityStructure (instantiate_structure at typ structure
++                  |> List.map (fun (name, typ) -> name, expand typ))
+             | _ ->
+                 Translator.unsupported at
+                   ("DecidableEq nested recursive type " ^ Translator.type_code typ))
+@@ -732,7 +743,7 @@
+                            arguments = List.map expand constructor.arguments })
+                 in
+                 L.PrintDatatype constructors
+-            | Some (Structure _) when typ = L.Name name -> L.PrintStructure
++            | Some (Structure _) -> L.PrintStructure
+             | _ ->
+                 Translator.unsupported at
+                   ("SpecTecPrint nested recursive type "
+@@ -870,7 +881,7 @@
+           (fun (source : L.located_declaration) ->
+             match source.declaration with
+             | Datatype { type_parameters; _ } -> type_parameters, Data
+-            | Structure _ -> [], Data
++            | Structure { type_parameters; _ } -> type_parameters, Data
+             | Relation { type_parameters; _ } -> type_parameters, Proposition
+             | ExternType _ -> Translator.unsupported at "mutual external type definitions"
+             | Builtin _ -> Translator.unsupported at "mutual builtin definitions"
+--- a/p4spec/lib/lean-skeleton/printer.ml
++++ b/p4spec/lib/lean-skeleton/printer.ml
+@@ -562,11 +562,12 @@
+   | TypeAlias { name; type_parameters; body } ->
+       Printf.sprintf "abbrev %s%s : Type := %s" (print_identifier name)
+         (print_type_parameters type_parameters) (print_type type_parameters body)
+-  | Structure { name; fields } ->
+-      let bound : string list = List.map fst fields in
++  | Structure { name; type_parameters; fields } ->
++      let bound : string list = type_parameters @ List.map fst fields in
+       deriving
+         (String.concat "\n"
+-          (Printf.sprintf "structure %s : Type where" (print_identifier name)
++          (Printf.sprintf "structure %s%s : Type where" (print_identifier name)
++            (print_type_parameters type_parameters)
+           :: List.map
+                (fun (field_name, typ) ->
+                  let printed : string = print_identifier field_name in
+--- a/p4spec/lib/lean-skeleton/translator.ml
++++ b/p4spec/lib/lean-skeleton/translator.ml
+@@ -79,6 +79,8 @@
+ 
+ type structure_field = { atom : S.atom; name : string; typ : S.typ }
+ 
++type structure = { type_parameters : string list; fields : structure_field list }
++
+ type function_kind = RelationFunction | BuiltinFunction of string list
+   | BuiltinRelation of string list
+ 
+@@ -89,7 +91,7 @@
+   functions : function_kind StringMap.t;
+   constructors : variant StringMap.t;
+   aliases : alias StringMap.t;
+-  structures : structure_field list StringMap.t;
++  structures : structure StringMap.t;
+ }
+ 
+ let structure_fields (fields : S.typfield list) : structure_field list =
+@@ -176,11 +178,14 @@
+                 }
+                 env.aliases;
+           }
+-      | TypD (id, _, { it = StructT fields; _ }, _) ->
++      | TypD (id, tparams, { it = StructT fields; _ }, _) ->
+           {
+             env with
+             structures =
+-              StringMap.add id.it (structure_fields fields) env.structures;
++              StringMap.add id.it
++                { type_parameters = List.map (fun (param : S.tparam) -> param.it) tparams;
++                  fields = structure_fields fields }
++                env.structures;
+           }
+       | FuncDecD (id, _, _, _, _, _, _) ->
+           { env with functions = StringMap.add id.it RelationFunction env.functions }
+@@ -1363,111 +1368,90 @@
+         translate_type_with_parameters type_parameters (path.note $ path.at)
+         |> expand_expression_type env path.at
+       in
+-      let rec access_path (path : S.path) : L.term =
++      (* Keep the original containers while descending, then rebuild each
++         enclosing record/list around the updated child. Index expressions are
++         evaluated once, in path order, and retain their bounds checks. *)
++      let rec steps (path : S.path) : S.path list =
+         match path.it with
+-        | RootP -> base_term
+-        | DotP (parent, atom) ->
+-            let (name, field) : string * structure_field =
+-              structure_field env parent.at (expanded_path parent) atom
+-            in
+-            L.Projection (name, field.name, access_path parent)
+-        | IdxP _ -> unsupported path.at "UpdE path with a non-final index"
++        | RootP -> []
++        | DotP (parent, _) | IdxP (parent, _) -> steps parent @ [ path ]
+         | SliceP _ -> unsupported path.at "SliceP in UpdE path"
+       in
+-      let rec update_fields (path : S.path) (replacement : L.term) : L.term =
+-        match path.it with
+-        | RootP -> replacement
+-        | DotP (parent, atom) ->
+-            let (name, field) : string * structure_field =
+-              structure_field env parent.at (expanded_path parent) atom
+-            in
+-            let updated : L.term =
+-              L.StructureUpdate
+-                (L.Name name, access_path parent, field.name, replacement)
+-            in
+-            update_fields parent updated
+-        | IdxP _ -> unsupported path.at "UpdE path with a non-final index"
+-        | SliceP _ -> unsupported path.at "SliceP in UpdE path"
+-      in
+-      (match path.it with
+-      | RootP | DotP _ ->
+-          combine_term evaluated (update_fields path value_term)
+-      | SliceP _ -> unsupported path.at "SliceP in UpdE path"
+-      | IdxP (parent, index) ->
+-          (match parent.it with
+-          | RootP -> ()
+-          | _ -> unsupported parent.at "UpdE path with a non-final index");
+-          if numeric_type index <> L.BuiltinType ("Nat", []) then
+-            unsupported index.at "UpdE index other than a natural";
+-          let index_result : term_result = recurse evaluated.next index in
+-          let premises : L.premise list =
+-            evaluated.premises @ index_result.premises
+-          in
+-          let binders : (string * L.type_ref) list =
+-            evaluated.binders @ index_result.binders
+-          in
+-          let helpers : L.declaration list =
+-            evaluated.helpers @ index_result.helpers
+-          in
+-          (match expanded_path parent with
+-          | BuiltinType ("List", [ _ ]) ->
+-              let bound : L.prop =
+-                L.Comparison
+-                  (L.Lt, index_result.term,
+-                   L.Native ("List.length", [ base_term ]))
++      let rec update (current : L.term) (remaining : S.path list)
++          (state : terms_result) : term_result =
++        match remaining with
++        | [] -> combine_term state value_term
++        | path :: rest ->
++          match path.it with
++          | DotP (parent, atom) ->
++              let parent_type = expanded_path parent in
++              let name, field = structure_field env parent.at parent_type atom in
++              let updated = update (L.Projection (name, field.name, current)) rest state in
++              { updated with term =
++                  L.StructureUpdate (parent_type, current, field.name, updated.term) }
++          | IdxP (parent, index) ->
++              if numeric_type index <> L.BuiltinType ("Nat", []) then
++                unsupported index.at "UpdE index other than a natural";
++              let index_result : term_result = recurse state.next index in
++              let state : terms_result =
++                { state with
++                  premises = state.premises @ index_result.premises;
++                  binders = state.binders @ index_result.binders;
++                  next = index_result.next;
++                  helpers = state.helpers @ index_result.helpers }
+               in
+-              { term =
+-                  L.Native
+-                    ("List.set", [ base_term; index_result.term; value_term ]);
+-                premises = premises @ [ operation_check env.ordered bound "update index out of bounds" ]; binders;
+-                next = index_result.next; helpers }
+-          | BuiltinType ("String", []) when env.ordered ->
+-              { term = L.Native ("specTecTextUpdate", [base_term; index_result.term; value_term]);
+-                premises = premises @ [
+-                  operation_check true (L.Comparison (L.Lt, index_result.term, utf8_byte_size base_term))
+-                    "update index out of bounds";
+-                  operation_check true (L.Comparison (L.Eq, utf8_byte_size value_term,
+-                    L.Number ("1", L.BuiltinType ("Nat", [])))) "text update requires one byte";
+-                  operation_check true (L.Predicate (L.Native
+-                    ("specTecTextUpdateValid", [base_term; index_result.term; value_term])))
+-                    "text result is not valid UTF-8"];
+-                binders; next = index_result.next; helpers }
+-          | BuiltinType ("String", []) ->
+-              let prefix : term_result =
+-                fresh_term (L.BuiltinType ("String", [])) index_result.next
+-              in
+-              let old : term_result =
+-                fresh_term (L.BuiltinType ("String", [])) prefix.next
+-              in
+-              let suffix : term_result =
+-                fresh_term (L.BuiltinType ("String", [])) old.next
+-              in
+-              let one : L.term =
+-                L.Number ("1", L.BuiltinType ("Nat", []))
+-              in
+-              { term =
+-                  append_text (append_text prefix.term value_term) suffix.term;
+-                premises =
+-                  premises
+-                  @ [ L.Prop
+-                        (L.Comparison
+-                           (L.Eq, base_term,
+-                            append_text
+-                              (append_text prefix.term old.term) suffix.term));
+-                      L.Prop
+-                        (L.Comparison
+-                           (L.Eq, utf8_byte_size prefix.term,
+-                            index_result.term));
+-                      L.Prop
+-                        (L.Comparison
+-                           (L.Eq, utf8_byte_size old.term, one));
+-                      L.Prop
+-                        (L.Comparison
+-                           (L.Eq, utf8_byte_size value_term, one)) ];
+-                binders =
+-                  binders @ prefix.binders @ old.binders @ suffix.binders;
+-                next = suffix.next; helpers }
+-          | _ -> unsupported path.at "UpdE index on a non-list or non-text"))
++              (match expanded_path parent with
++              | BuiltinType ("List", [ element ]) ->
++                  let bound = L.Comparison
++                    (L.Lt, index_result.term, L.Native ("List.length", [ current ])) in
++                  let state = { state with premises = state.premises @
++                    [ operation_check env.ordered bound "update index out of bounds" ] } in
++                  let updated : term_result =
++                    if rest = [] then combine_term state value_term
++                    else
++                      let child = fresh_term element state.next in
++                      let state = { state with
++                        premises = state.premises @ [ L.Prop (L.Comparison
++                          (L.Eq, L.Index (current, index_result.term),
++                           L.Native ("Option.some", [ child.term ]))) ];
++                        binders = state.binders @ child.binders;
++                        next = child.next } in
++                      update child.term rest state
++                  in
++                  { updated with term =
++                      L.Native ("List.set", [ current; index_result.term; updated.term ]) }
++              | BuiltinType ("String", []) when rest <> [] ->
++                  unsupported path.at "UpdE path through a text index"
++              | BuiltinType ("String", []) when env.ordered ->
++                  { (combine_term state
++                       (L.Native ("specTecTextUpdate", [current; index_result.term; value_term]))) with
++                    premises = state.premises @ [
++                      operation_check true (L.Comparison (L.Lt, index_result.term, utf8_byte_size current))
++                        "update index out of bounds";
++                      operation_check true (L.Comparison (L.Eq, utf8_byte_size value_term,
++                        L.Number ("1", L.BuiltinType ("Nat", [])))) "text update requires one byte";
++                      operation_check true (L.Predicate (L.Native
++                        ("specTecTextUpdateValid", [current; index_result.term; value_term])))
++                        "text result is not valid UTF-8"] }
++              | BuiltinType ("String", []) ->
++                  let prefix = fresh_term (L.BuiltinType ("String", [])) state.next in
++                  let old = fresh_term (L.BuiltinType ("String", [])) prefix.next in
++                  let suffix = fresh_term (L.BuiltinType ("String", [])) old.next in
++                  let one = L.Number ("1", L.BuiltinType ("Nat", [])) in
++                  { term = append_text (append_text prefix.term value_term) suffix.term;
++                    premises = state.premises @
++                      [ L.Prop (L.Comparison (L.Eq, current,
++                          append_text (append_text prefix.term old.term) suffix.term));
++                        L.Prop (L.Comparison (L.Eq, utf8_byte_size prefix.term, index_result.term));
++                        L.Prop (L.Comparison (L.Eq, utf8_byte_size old.term, one));
++                        L.Prop (L.Comparison (L.Eq, utf8_byte_size value_term, one)) ];
++                    binders = state.binders @ prefix.binders @ old.binders @ suffix.binders;
++                    next = suffix.next; helpers = state.helpers }
++              | _ -> unsupported path.at "UpdE index on a non-list or non-text")
++          | RootP -> assert false
++          | SliceP _ -> unsupported path.at "SliceP in UpdE path"
++      in
++      update base_term (steps path) evaluated
+   | MatchE (base, pattern) when env.ordered ->
+       let result = recurse next base in
+       let test = match pattern with
+@@ -1509,11 +1493,15 @@
+ 
+ and structure_field (env : env) (at : region) (typ : L.type_ref) (atom : S.atom) :
+     string * structure_field =
++  let typ = expand_expression_type env at typ in
+   match typ with
+-  | Name name -> (
++  | Name name | Applied (name, _) -> (
+       match StringMap.find_opt name env.structures with
+-      | Some fields -> (
+-          match List.find_opt (fun (field : structure_field) -> field.atom.it = atom.it) fields with
++      | Some structure -> (
++          let arguments = match typ with Applied (_, arguments) -> arguments | _ -> [] in
++          if List.length structure.type_parameters <> List.length arguments then
++            unsupported at ("structure type arity in " ^ name);
++          match List.find_opt (fun (field : structure_field) -> field.atom.it = atom.it) structure.fields with
+           | Some field -> name, field
+           | None -> unsupported atom.at ("unknown structure field in " ^ name))
+       | None -> unsupported at ("field access on non-structure " ^ name))
+@@ -2197,7 +2185,8 @@
+       "noConfusionType"; "below"; "brecOn"; "ctorIdx"; "_sizeOf_inst" ]
+   || List.exists numbered [ "rec_"; "below_"; "brecOn_"; "_sizeOf_" ]
+ 
+-let translate_structure_fields (env : env) (fields : structure_field list) :
++let translate_structure_fields (env : env) (type_parameters : string list)
++    (fields : structure_field list) :
+     (string * L.type_ref) list =
+   List.map
+     (fun (field : structure_field) ->
+@@ -2210,7 +2199,8 @@
+         unsupported field.atom.at
+           ("structure field name reserved by Lean " ^ field.name);
+       ( field.name,
+-        translate_type field.typ |> expand_generic_aliases env field.typ.at [] ))
++        translate_type_with_parameters type_parameters field.typ
++        |> expand_generic_aliases env field.typ.at [] ))
+     fields
+ 
+ let translate_declaration (env : env) (decl : S.def) : L.declaration list =
+@@ -2235,14 +2225,14 @@
+                body = translate_type_with_parameters type_parameters typ;
+              } ]
+     | TypD (id, tparams, { it = StructT _; _ }, _) ->
+-        if tparams <> [] then
+-          unsupported decl.at ("type parameters of structure " ^ id.it);
++        let type_parameters = List.map (fun (parameter : S.tparam) -> parameter.it) tparams in
+         [ L.Structure
+              {
+                name = id.it;
++               type_parameters;
+                fields =
+-                 translate_structure_fields env
+-                   (StringMap.find id.it env.structures);
++                 translate_structure_fields env type_parameters
++                   (StringMap.find id.it env.structures).fields;
+              } ]
+     | ExternTypD (id, _) when env.ordered ->
+         let constructor : L.constructor =
+--- a/p4spec/lib/pass/elaborate/elab.ml
++++ b/p4spec/lib/pass/elaborate/elab.ml
+@@ -2092,7 +2092,8 @@
+ 
+ (* Populate type definitions *)
+ 
+-let populate_typs (ctx : Ctx.t) : unit =
++let populate_typs (ctx : Ctx.t) (spec_il : Il.spec) : Il.spec =
++  let empty_types = ref [] in
+   Envs.TDEnv.iter
+     (fun tid td ->
+       match td with
+@@ -2100,9 +2101,16 @@
+           warn ~code:Typ_missing_definition tid.at
+             (F.asprintf "type `%s%s` was declared but not defined"
+                (Il.Print.string_of_typid tid)
+-               (Il.Print.string_of_tparams tparams))
++               (Il.Print.string_of_tparams tparams));
++          (* A syntax declaration left without alternatives after elaborating
++             the complete specification is an empty type. Preserve the exact
++             declared name and parameters in IL, rather than leaving dangling
++             references or inventing inhabitants in a downstream backend. *)
++          let deftyp = Il.VariantT [] $ tid.at in
++          empty_types := (Il.TypD (tid, tparams, deftyp, []) $ tid.at) :: !empty_types
+       | _ -> ())
+-    ctx.tdenv
++    ctx.tdenv;
++  List.rev !empty_types @ spec_il
+ 
+ (* Populate rules to their respective relations *)
+ 
+@@ -2177,6 +2185,5 @@
+ let elab_spec (spec : spec) : Il.spec =
+   let ctx = Ctx.init () in
+   let ctx, spec_il = elab_defs ctx spec in
+-  populate_typs ctx;
+-  spec_il |> populate_rules ctx |> populate_clauses ctx
++  spec_il |> populate_typs ctx |> populate_rules ctx |> populate_clauses ctx
+   |> Dimension.analyze_spec
