@@ -1,0 +1,35 @@
+schema_version = 2
+id = "wasmtime-50.0.1"
+cwd = ".."
+
+# Wasmtime 50.0.1 through its Python embedding (PyPI wasmtime 50.0.1, default
+# Config: GC, exceptions, memory64, multi-memory, tail calls, SIMD and relaxed
+# SIMD enabled). Install locally:
+#   python3 -m venv implementations/local/wasmtime-venv
+#   implementations/local/wasmtime-venv/bin/pip install wasmtime==50.0.1
+
+[[executions]]
+relation = "Module_ok"
+adapter = ["implementations/local/wasmtime-venv/bin/python", "implementations/wasm_adapter.py", "wasmtime"]
+artifacts = [
+  "implementations/wasm_encoder.py",
+  "implementations/local/wasmtime-venv/lib/python3.12/site-packages/wasmtime/linux-x86_64/_libwasmtime.so",
+]
+
+[executions.outcomes]
+match = "wasmtime.Module.validate accepts the encoded binary"
+unmatch = "wasmtime.Module.validate reports a validation error"
+abort = "the module is unencodable or exceeds a Wasmtime implementation limit, or the binary fails to decode"
+
+[[executions]]
+relation = "Module_init_ok"
+adapter = ["implementations/local/wasmtime-venv/bin/python", "implementations/wasm_adapter.py", "wasmtime"]
+artifacts = [
+  "implementations/wasm_encoder.py",
+  "implementations/local/wasmtime-venv/lib/python3.12/site-packages/wasmtime/linux-x86_64/_libwasmtime.so",
+]
+
+[executions.outcomes]
+match = "the binary validates and wasmtime.Instance with no imports returns, including the start function"
+unmatch = "validation error, missing-import link error, a trap other than stack overflow or allocation failure, or an uncaught Wasm exception"
+abort = "unencodable module, implementation limit, stack overflow, allocation failure, timeout, decoding failure, or an unclassified error"

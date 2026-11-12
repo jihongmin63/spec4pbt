@@ -1,0 +1,36 @@
+schema_version = 2
+id = "node-26.13.0-v8-14.6"
+cwd = ".."
+
+# Node.js 26.13.0 (V8 14.6.202.34) WebAssembly JS API with default flags.
+# Install locally from https://nodejs.org/dist/v26.13.0/ after checking
+# SHASUMS256.txt:
+#   tar -xJf node-v26.13.0-linux-x64.tar.xz -C implementations/local/node
+
+[[executions]]
+relation = "Module_ok"
+adapter = ["python3", "implementations/wasm_adapter.py", "node"]
+artifacts = [
+  "implementations/wasm_encoder.py",
+  "implementations/wasm_node_driver.mjs",
+  "implementations/local/node/node-v26.13.0-linux-x64/bin/node",
+]
+
+[executions.outcomes]
+match = "WebAssembly.validate returns true for the encoded binary"
+unmatch = "WebAssembly.validate returns false and new WebAssembly.Module reports a CompileError"
+abort = "the module is unencodable or exceeds a V8 implementation limit, or the binary fails to decode"
+
+[[executions]]
+relation = "Module_init_ok"
+adapter = ["python3", "implementations/wasm_adapter.py", "node"]
+artifacts = [
+  "implementations/wasm_encoder.py",
+  "implementations/wasm_node_driver.mjs",
+  "implementations/local/node/node-v26.13.0-linux-x64/bin/node",
+]
+
+[executions.outcomes]
+match = "new WebAssembly.Module and new WebAssembly.Instance(module, {}) both return"
+unmatch = "CompileError, LinkError or TypeError for missing imports, RuntimeError trap, or an uncaught WebAssembly.Exception"
+abort = "unencodable module, implementation limit, RangeError or allocation failure, timeout, decoding failure, or an unclassified error"

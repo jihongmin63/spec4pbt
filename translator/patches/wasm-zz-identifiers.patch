@@ -1,0 +1,14 @@
+--- a/p4spec/lib/lean-skeleton/identifier.ml
++++ b/p4spec/lib/lean-skeleton/identifier.ml
+@@ -1,8 +1,8 @@
+ let lean_keywords : string list =
+-  [ "Type"; "Prop"; "Sort"; "abbrev"; "at"; "axiom"; "by"; "calc"; "class"; "def"; "deriving"; "do"; "else";
++  [ "Type"; "Prop"; "Sort"; "abbrev"; "at"; "axiom"; "by"; "calc"; "catch"; "class"; "def"; "deriving"; "do"; "else";
+     "end"; "example"; "export"; "extends"; "false"; "for"; "fun";
+-    "from"; "have"; "if"; "import"; "in"; "inductive"; "instance"; "let"; "macro";
++    "from"; "have"; "if"; "import"; "in"; "inductive"; "instance"; "let"; "local"; "macro";
+-    "match"; "mutual"; "namespace"; "noncomputable"; "notation";
++    "match"; "mut"; "mutual"; "namespace"; "noncomputable"; "notation";
+     "prefix"; "infix"; "infixl"; "infixr"; "postfix"; "scoped";
+     "opaque"; "open"; "partial"; "private"; "protected"; "public";
+     "repeat"; "return"; "set_option"; "show"; "structure"; "syntax"; "then"; "theorem";

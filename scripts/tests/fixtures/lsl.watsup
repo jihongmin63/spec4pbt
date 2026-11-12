@@ -1,0 +1,11 @@
+builtin dec $lsl_(int, int) : int
+
+var a : int
+var b : int
+
+relation Shift:
+  int int ~> int
+  hint(input %0 %1)
+
+rule Shift/value:
+  a b ~> $lsl_(a, b)
