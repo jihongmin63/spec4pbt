@@ -1,0 +1,85 @@
+{
+  "candidate": "rust",
+  "authoring_started_utc": "2026-11-11T11:12:32Z",
+  "authoring_completed_utc": "2026-11-11T11:17:58.300618+00:00",
+  "algorithm": {
+    "representation": "Recursive Expr enum with boxed children; immutable borrowed context slices, copying the context only when extending it for a let body.",
+    "construction": "Top-down construction from target type, exact positive node budget and context; no generation filtering, repair, retries, cached complete outputs, or proof-directed representation.",
+    "root_type": "int for even indices and bool for odd indices",
+    "families": "At one node choose literal or matching variable family equally if variables exist. At two nodes use unary; at three nodes choose equally among unary, binary and let; at four or more choose equally among unary, binary, let and if. Unary and binary constructors are determined by requested type.",
+    "payloads": "Byte literals choose among 0..255, booleans choose false/true, let binder type chooses int/bool equally, and variables choose a rank across every context index of the requested type.",
+    "budgets": "Binary and let choose the first child size from 1..N-2. If chooses condition size from 1..N-3, then true-branch size from 1..N-2-condition_size; final child gets the positive remainder. Children generate left to right with explicit returned RNG state."
+  },
+  "rng": {
+    "algorithm": "SplitMix64",
+    "initialization": "Sample i starts directly from unsigned 64-bit state seed+i.",
+    "state_threading": "Pure functions return (value, next_state); no mutable input or global RNG.",
+    "bounded_choice": "unsigned 64-bit word modulo positive bound",
+    "bias": "Modulo reduction has a tiny bias for non-power-of-two bounds. Feasible constructor families are approximately equiprobable. Literal versus variable is family-balanced, so individual leaves are not equally probable. Sequential positive budget splitting is not uniform over ternary compositions and favors larger early child budgets. Complete ASTs are not uniform."
+  },
+  "benchmark": {
+    "timer": "std::time::Instant monotonic elapsed nanoseconds",
+    "included": [
+      "fresh AST generation for every sample",
+      "recursive traversal of every node computing actual count and required wrapping-u64 digest",
+      "aggregate count/checksum updates",
+      "per-iteration AST disposal"
+    ],
+    "excluded": [
+      "argument parsing",
+      "JSON output"
+    ],
+    "entrypoints": "Separate native sample and bench binaries use the same library generator; wrappers exec the optimized native binaries without invoking a compiler or interpreter.",
+    "traversal": "AST generation produces no cached count or digest. inspect recursively visits the actual freshly generated tree."
+  },
+  "limitations": {
+    "nodes": "1..1024 inclusive",
+    "count": "1..2^64-1, subject to total-node and per-sample-seed overflow checks",
+    "seed": "0..2^64-1, requiring seed+count-1 <= 2^64-1",
+    "total_nodes": "count*nodes <= 2^64-1",
+    "cli": "Exactly three nonempty ASCII unsigned decimal arguments; malformed/unsupported requests produce stderr and nonzero exit.",
+    "formal_claims": "No formal proof or generator certification was attempted."
+  },
+  "build": {
+    "rustc": "rustc 1.99.1 (58cf8f9c3 2026-10-13)\nbinary: rustc\ncommit-hash: 58cf8f9c35b355199727627d07ae34a4e2846d67\ncommit-date: 2026-10-13\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.1\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.1 (5f94df478 2026-08-27)",
+    "edition": "2024",
+    "dependencies": "Rust standard library only",
+    "pinning": "rust-toolchain.toml pins 1.99.1; build.sh checks exact rustc and cargo version strings and invokes installed direct toolchain binaries. Cargo.lock is provided.",
+    "profile": "cargo build --release --locked --offline --bins; opt-level=3; remaining release profile settings are Cargo defaults.",
+    "command_from_candidate_directory": "./build.sh",
+    "sample_command": "./sample COUNT NODES SEED",
+    "bench_command": "./bench COUNT NODES SEED",
+    "smoke_command_from_repository_root": "python3 -m build.scratch.GeneratorComparison20261111.rust.smoke"
+  },
+  "validation": {
+    "smoke": "smoke-evidence.json",
+    "validated_samples": 896,
+    "cases": 28,
+    "nodes_per_sample": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      7,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256,
+      512,
+      1024
+    ],
+    "seeds": [
+      0,
+      4294967295
+    ],
+    "all_sample_bench_checksums_match": true,
+    "all_nine_constructors_observed": true,
+    "invalid_requests_rejected": 22,
+    "inspector": "Shared contract.inspect_record checked syntax, scoping, typing, alternating root types, exact node counts, and independent digest values.",
+    "native_artifacts": "Both target/release/sample and target/release/bench were identified as x86-64 ELF native executables."
+  }
+}

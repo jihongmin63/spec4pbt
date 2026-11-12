@@ -1,0 +1,14 @@
+name = "rust_generator_translation"
+version = "0.1.0"
+defaultTargets = ["GeneratorRust", "Main"]
+packagesDir = "../tools/aeneas/backends/lean/.lake/packages"
+
+[[require]]
+name = "aeneas"
+path = "../tools/aeneas/backends/lean"
+
+[[lean_lib]]
+name = "GeneratorRust"
+
+[[lean_lib]]
+name = "Main"

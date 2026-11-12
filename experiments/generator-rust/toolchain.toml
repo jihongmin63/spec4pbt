@@ -1,0 +1,32 @@
+schema_version = 1
+
+[aeneas]
+release = "nightly-2026.10.12-d119a47"
+url = "https://github.com/AeneasVerif/aeneas/releases/download/nightly-2026.10.12-d119a47/aeneas-linux-x86_64.tar.gz"
+sha256 = "eb91c3053e31dfe822f8481fc9c22f965ae254e025d879ee06c5d8c050647d75"
+source_url = "https://codeload.github.com/AeneasVerif/aeneas/tar.gz/refs/tags/nightly-2026.10.12-d119a47"
+source_sha256 = "dd4c93c0c23f3552ea6a8d16584acb5d6e82c1b8173329c1d2e835968de8b9cd"
+charon_revision = "798016509139eb51f0d764645f76d068d34ba5f6"
+
+[rust]
+toolchain = "nightly-2026-09-17"
+version = "rustc 1.100.0-nightly (923c95cdf 2026-09-16)"
+
+[lean]
+version = "4.31.0"
+mathlib_revision = "fabf563a7c95a166b8d7b6efca11c8b4dc9d911f"
+cache_modules = [
+  "Batteries.Data.BitVec.Lemmas",
+  "Mathlib.Algebra.Algebra.ZMod", "Mathlib.Algebra.Group.Basic",
+  "Mathlib.Algebra.Order.Ring.Canonical", "Mathlib.Algebra.Order.Sub.Basic",
+  "Mathlib.Algebra.Order.Sub.Defs", "Mathlib.Control.Monad.Cont",
+  "Mathlib.Data.BitVec", "Mathlib.Data.Fin.Basic", "Mathlib.Data.Int.Cast.Basic",
+  "Mathlib.Data.Int.GCD", "Mathlib.Data.Int.Init", "Mathlib.Data.List.GetD",
+  "Mathlib.Data.List.Monad", "Mathlib.Data.Nat.Basic", "Mathlib.Data.Nat.Bitwise",
+  "Mathlib.Data.Nat.Cast.Basic", "Mathlib.Data.Nat.Log", "Mathlib.Data.ZMod.Basic",
+  "Mathlib.Order.Basic", "Mathlib.Order.FixedPoints", "Mathlib.RingTheory.Int.Basic",
+  "Mathlib.Tactic.Attr.Register", "Mathlib.Tactic.Basic", "Mathlib.Tactic.Core",
+  "Mathlib.Tactic.DefEqTransformations", "Mathlib.Tactic.Linarith",
+  "Mathlib.Tactic.OfNat", "Mathlib.Tactic.Ring", "Mathlib.Tactic.Ring.RingNF",
+  "Mathlib.Tactic.Simproc.ExistsAndEq", "Mathlib.Tactic.Tauto",
+]

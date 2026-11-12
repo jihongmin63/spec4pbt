@@ -1,0 +1,173 @@
+{
+  "description": "Original independently authored Rust and Haskell generators agree; every reference AST passed independent typing/scope/exact-node inspection. Checksums use generator_contract.py wrapping64 digest. This finite regression set is not a proof.",
+  "cases": [
+    {
+      "nodes": 1,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 8,
+      "checksum": 17296662576503208408
+    },
+    {
+      "nodes": 1,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 8,
+      "checksum": 4533691233006101988
+    },
+    {
+      "nodes": 1,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 8,
+      "checksum": 16361016755602590911
+    },
+    {
+      "nodes": 2,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 16,
+      "checksum": 16835413994919514765
+    },
+    {
+      "nodes": 2,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 16,
+      "checksum": 17396653653795370390
+    },
+    {
+      "nodes": 2,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 16,
+      "checksum": 8349191529629168707
+    },
+    {
+      "nodes": 3,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 24,
+      "checksum": 14257318914672126924
+    },
+    {
+      "nodes": 3,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 24,
+      "checksum": 18036213507440089228
+    },
+    {
+      "nodes": 3,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 24,
+      "checksum": 6073437941445411637
+    },
+    {
+      "nodes": 4,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 32,
+      "checksum": 15729838925374301250
+    },
+    {
+      "nodes": 4,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 32,
+      "checksum": 4166094423129948027
+    },
+    {
+      "nodes": 4,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 32,
+      "checksum": 1061912743713855006
+    },
+    {
+      "nodes": 16,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 128,
+      "checksum": 17410241645619063749
+    },
+    {
+      "nodes": 16,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 128,
+      "checksum": 11437113445905510904
+    },
+    {
+      "nodes": 16,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 128,
+      "checksum": 2066018626339907340
+    },
+    {
+      "nodes": 64,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 512,
+      "checksum": 3675714489331343808
+    },
+    {
+      "nodes": 64,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 512,
+      "checksum": 3010496918491535342
+    },
+    {
+      "nodes": 64,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 512,
+      "checksum": 14021007098128724469
+    },
+    {
+      "nodes": 256,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 2048,
+      "checksum": 1508575779937507600
+    },
+    {
+      "nodes": 256,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 2048,
+      "checksum": 15845668397863979337
+    },
+    {
+      "nodes": 256,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 2048,
+      "checksum": 6342703469656453789
+    },
+    {
+      "nodes": 1024,
+      "seed": 17,
+      "count": 8,
+      "total_nodes": 8192,
+      "checksum": 10896377458881682059
+    },
+    {
+      "nodes": 1024,
+      "seed": 2026,
+      "count": 8,
+      "total_nodes": 8192,
+      "checksum": 5211841268420428036
+    },
+    {
+      "nodes": 1024,
+      "seed": 9001,
+      "count": 8,
+      "total_nodes": 8192,
+      "checksum": 11192431576979484684
+    }
+  ]
+}
