@@ -12,6 +12,7 @@ let fail message = raise (Failure message)
 let field key = function
   | `Assoc fields -> (try List.assoc key fields with Not_found -> fail ("missing field " ^ key))
   | _ -> fail "expected JSON object"
+let optional key value = List.assoc_opt key (match value with `Assoc fields -> fields | _ -> [])
 let text = function `String s -> s | _ -> fail "expected JSON string"
 let array = function `List xs -> xs | _ -> fail "expected JSON array"
 let object_fields = function `Assoc xs -> xs | _ -> fail "expected JSON object"
@@ -48,7 +49,7 @@ let checked = function
   | B.Err _ -> fail "AL premise evaluation error"
 
 let parse_property specs path name =
-  let spec_el, properties, _ = Property_document.load specs path in
+  let spec_el, properties, helper_names = Property_document.load specs path in
   let spec_il = match Pass.elab_spec spec_el with Ok x -> x | Error d -> fail (report d) in
   let selected = List.filter (fun ((id:El.id),_,_,_) -> id.it = name) properties in
   let clause = match selected with [p] -> p | _ -> fail "property occurrence mismatch" in
@@ -57,7 +58,7 @@ let parse_property specs path name =
   let blocks, goal = match Pass.algo_property spec_il clause_il with
     | Ok x -> x | Error d -> fail (report d) in
   let spec_al = match Pass.algo_spec spec_il with Ok x -> x | Error d -> fail (report d) in
-  (inputs, blocks, goal, spec_il, spec_al)
+  (inputs, blocks, goal, spec_il, spec_al, helper_names)
 
 let types spec =
   let table = Hashtbl.create 64 in
@@ -170,6 +171,59 @@ let parse_occurrence blocks goal call =
   if native_relation <> source_relation then fail "AL occurrence relation mismatch";
   (block,index,prem)
 
+type composition = { metadata : J.t; tree : Property_document.execution }
+
+let composition_id group = text (field "id" group.metadata)
+let leaf_id group index = composition_id group ^ ".call." ^ string_of_int index
+
+let prepare_compositions spec names blocks goal plan =
+  let metadata = match optional "compositions" plan with Some value -> array value | None -> [] in
+  let calls = array (field "calls" plan) in
+  let seen = Hashtbl.create 8 in
+  let groups = List.map (fun metadata ->
+    let id = text (field "id" metadata) in
+    let node = text (field "node_id" metadata) in
+    if Hashtbl.mem seen id || Hashtbl.mem seen node then fail "duplicate helper composition";
+    Hashtbl.add seen id (); Hashtbl.replace seen node ();
+    let _,_,root = parse_occurrence blocks goal metadata in
+    if not (List.mem (text (field "relation" metadata)) names) then
+      fail "composition must name an authored helper";
+    let tree = try Property_document.helper_execution spec names root
+      with Property_document.Unsupported_helper reason -> fail reason in
+    let group = {metadata;tree} in
+    let leaves = Property_document.execution_leaves tree in
+    let actual = List.filter (fun call -> optional "composition" call = Some (`String id)) calls in
+    if List.length actual <> List.length leaves then fail "helper composition leaf coverage mismatch";
+    List.iter2 (fun call (index,(prem:S.prem)) ->
+      let rid = match prem.it with S.RulePr (rid,_,_) | S.IfHoldPr (rid,_) -> rid.it
+        | _ -> fail "invalid helper leaf" in
+      if text (field "id" call) <> leaf_id group index ||
+         field "leaf_index" call <> `Int index ||
+         text (field "node_id" call) <> node ||
+         field "source_relation" call <> field "relation" metadata ||
+         text (field "relation" call) <> rid ||
+         field "dependencies" call <> field "dependencies" metadata ||
+         field "invert" call <> `Bool false ||
+         array (field "profile_selectors" call) <> [] ||
+         array (field "bindings" call) <> [] || array (field "matches" call) <> [] then
+        fail "helper composition leaf does not match source") actual leaves;
+    group) metadata in
+  List.iter (fun call -> match optional "composition" call with
+    | Some id when not (List.exists (fun group -> `String (composition_id group) = id) groups) ->
+        fail "unknown helper composition"
+    | _ -> ()) calls;
+  groups
+
+let call_composition groups call = match optional "composition" call with
+  | None -> None
+  | Some id -> Some (List.find (fun group -> `String (composition_id group) = id) groups)
+
+let call_premise groups blocks goal call = match call_composition groups call with
+  | None -> let _,_,prem = parse_occurrence blocks goal call in prem
+  | Some group ->
+      let index = match field "leaf_index" call with `Int i -> i | _ -> fail "invalid leaf index" in
+      List.assoc index (Property_document.execution_leaves group.tree)
+
 let selector_type typedefs (prem:S.prem) selector =
   let arguments = match prem.it with
     | S.RulePr (_,notation,_) | S.IfHoldPr (_,notation) | S.IfNotHoldPr (_,notation) -> Domain.Mixfix.args notation
@@ -241,28 +295,90 @@ let evaluate_lets ctx nodes =
     | S.LetPr _ -> (match Eval.eval_prem ctx prem with B.Ok next -> next | _ -> ctx)
     | _ -> ctx) ctx nodes
 
-let prefix_lets ctx blocks goal call =
+let prefix_lets ?(include_current=true) ctx blocks goal call =
   let id = text (field "node_id" call) in
   let origin = text (field "id" call) in
   let block_index = if String.length origin >= 10 && String.sub origin 0 10 = "condition."
-    then origin_index origin else List.length blocks in
+    then origin_index (String.concat "." (List.filteri (fun i _ -> i < 2)
+      (String.split_on_char '.' origin))) else List.length blocks in
   let ctx = List.fold_left (fun ctx index ->
     if index < block_index then evaluate_lets ctx (fst (blocks_at blocks index)) else ctx)
     ctx (List.init (List.length blocks) Fun.id) in
   let block = if block_index = List.length blocks then goal else blocks_at blocks block_index in
   let limit = node_index id in
   let nodes = List.filteri (fun i _ -> i < limit) (fst block) in
-  evaluate_lets ctx nodes
+  if include_current then evaluate_lets ctx nodes else ctx
 
-let validate_entry typedefs blocks goal statuses ctx call entry =
+type progress = Done of string | Pending of int * S.prem * Eval.Ctx.t
+
+let invert_status = function
+  | "success" -> "relation_failure" | "relation_failure" -> "success" | other -> other
+
+let composition_progress group ctx statuses =
+  let open Property_document in
+  let rec evaluate ctx = function
+    | Call (index,prem) ->
+        (match Hashtbl.find_opt statuses (leaf_id group index) with
+        | Some status -> Done status | None -> Pending (index,prem,ctx))
+    | Step (prem,tree) ->
+        (match Eval.eval_prem ctx prem with
+        | B.Ok local -> evaluate local tree | B.Unmatch _ -> Done "relation_failure"
+        | B.Err _ -> Done "execution_error")
+    | Bind (bindings,tree) ->
+        let values = List.map (fun (id,expression) -> id,Eval.eval_exp ctx expression) bindings in
+        if List.exists (fun (_,value) -> match value with B.Err _ -> true | _ -> false) values then
+          Done "execution_error"
+        else if List.exists (fun (_,value) -> match value with B.Unmatch _ -> true | _ -> false) values then
+          Done "relation_failure"
+        else
+          let local = List.fold_left (fun local (id,value) ->
+            Eval.Ctx.add_value local (id,[]) (checked value)) Eval.Ctx.empty values in
+          evaluate local tree
+    | Not tree -> (match evaluate ctx tree with
+        | Done status -> Done (invert_status status) | pending -> pending)
+    | All trees -> sequence ctx "success" "success" trees
+    | Any trees -> sequence ctx "relation_failure" "relation_failure" trees
+  and sequence ctx continue empty = function
+    | [] -> Done empty
+    | tree :: rest -> (match evaluate ctx tree with
+        | Done status when status = continue -> sequence ctx continue empty rest
+        | result -> result) in
+  evaluate ctx group.tree
+
+let composition_result group blocks goal ctx statuses =
+  (* AL-generated guards belong to this invocation, outside its negation.
+     Earlier property conditions retain their independent-call semantics. *)
+  let ctx = prefix_lets ~include_current:false ctx blocks goal group.metadata in
+  let block,index,_ = parse_occurrence blocks goal group.metadata in
+  let prefix = List.filteri (fun i _ -> i < index) (fst block) in
+  let rec evaluate ctx = function
+    | [] -> composition_progress group ctx statuses
+    | (prem:S.prem) :: rest -> (match prem.it with
+        | S.IfPr _ | S.LetPr _ -> (match Eval.eval_prem ctx prem with
+            | B.Ok next -> evaluate next rest
+            | B.Unmatch _ -> Done "relation_failure"
+            | B.Err _ -> Done "execution_error")
+        | _ -> evaluate ctx rest) in
+  evaluate ctx prefix
+
+let call_request groups blocks goal statuses ctx call =
+  if not (dependencies_ready statuses call) then None else
+  match call_composition groups call with
+  | None -> Some (request_inputs (prefix_lets ctx blocks goal call)
+                   (call_premise groups blocks goal call))
+  | Some group ->
+      (match composition_result group blocks goal ctx statuses with
+      | Pending (index,prem,local) when field "leaf_index" call = `Int index ->
+          Some (request_inputs local prem)
+      | _ -> None)
+
+let validate_entry groups typedefs blocks goal statuses ctx call entry =
   let id = text (field "id" call) in
   if text (field "occurrence_id" entry) <> id ||
      text (field "relation_id" entry) <> text (field "relation" call) then
     fail "trace occurrence identity mismatch";
-  let _,_,prem = parse_occurrence blocks goal call in
-  let ready = dependencies_ready statuses call in
-  let expected = if ready then Some (request_inputs (prefix_lets ctx blocks goal call) prem)
-    else None in
+  let prem = call_premise groups blocks goal call in
+  let expected = call_request groups blocks goal statuses ctx call in
   let status = text (field "status" entry) in
   (match expected with
    | Some request ->
@@ -289,9 +405,9 @@ let validate_entry typedefs blocks goal statuses ctx call entry =
   Hashtbl.replace statuses id effective;
   next
 
-let replay typedefs blocks goal ctx calls trace =
+let replay groups typedefs blocks goal ctx calls trace =
   let statuses = Hashtbl.create (List.length calls) in
-  let ctx = List.fold_left2 (validate_entry typedefs blocks goal statuses)
+  let ctx = List.fold_left2 (validate_entry groups typedefs blocks goal statuses)
     ctx (List.filteri (fun i _ -> i < List.length trace) calls) trace in
   (ctx,statuses)
 
@@ -335,17 +451,17 @@ let rec prem_effect (prem:S.prem) =
         | _ -> prem_effect prem in
       inner_effect inner
 
-let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
+let audit_effects groups (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
   let calls = array (field "calls" plan) in
   let external_names = Hashtbl.create 32 in
   let external_nodes = Hashtbl.create 32 in
   List.iter (fun call ->
     Hashtbl.replace external_names (text (field "relation" call)) ();
     Hashtbl.replace external_nodes (text (field "node_id" call)) ();
-    let _,_,source_prem = parse_occurrence blocks goal call in
+    let source_prem = call_premise groups blocks goal call in
     let source_negative = match source_prem.it with
       | S.IfNotHoldPr _ -> true | _ -> false in
-    (match call with
+    (if Option.is_some (call_composition groups call) then () else match call with
     | `Assoc fields ->
         let inverted = List.assoc_opt "invert" fields = Some (`Bool true) in
         (match List.assoc_opt "source_relation" fields with
@@ -397,6 +513,24 @@ let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
     match relation with
     | Some name when not (Hashtbl.mem external_nodes node_id) -> visit name
     | _ -> () in
+  List.iter (fun group ->
+    let node_id = text (field "node_id" group.metadata) in
+    Hashtbl.replace external_nodes node_id ();
+    let rec check_tree = function
+      | Property_document.Call (_,prem) ->
+          if snd (prem_effect prem) then fail "dynamic function call in helper execution"
+      | Property_document.Step (prem,tree) ->
+          if snd (prem_effect prem) then fail "dynamic function call in helper execution";
+          check_tree tree
+      | Property_document.Bind (bindings,tree) ->
+          if List.exists (fun (_,expression) -> expression_has_call expression) bindings then
+            fail "dynamic function call in helper input";
+          check_tree tree
+      | Property_document.All trees | Property_document.Any trees -> List.iter check_tree trees
+      | Property_document.Not tree -> check_tree tree in
+    check_tree group.tree;
+    let _,_,native = parse_occurrence blocks goal group.metadata in
+    check_prem node_id native) groups;
   let check_node block node =
     let node_id = text (field "id" node) in
     check_prem node_id (prem_at block (node_index node_id)) in
@@ -404,7 +538,7 @@ let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
      condition relations are omitted by check_property and justified by the
      certified generator; their witnesses are not runtime inputs. *)
   List.iter (fun call ->
-    let _,_,native = parse_occurrence blocks goal call in
+    let native = call_premise groups blocks goal call in
     check_prem (text (field "node_id" call)) native) calls;
   (* evaluate_lets runs native condition lets, including proof-classified lets.
      Read these from AL so JSON node-list omissions cannot bypass the audit. *)
@@ -420,10 +554,17 @@ let audit_effects (spec_il:Lang.Il.spec) (spec:Lang.Al.spec) blocks goal plan =
   (* eval_goal executes every native goal premise, regardless of plan labels. *)
   List.iteri (fun index prem -> check_prem ("goal." ^ string_of_int index) prem) (fst goal)
 
-let check_property plan blocks goal calls ctx statuses =
+let check_property groups plan blocks goal calls ctx statuses =
   let call_status id =
     try Hashtbl.find statuses id with Not_found -> fail "missing occurrence status" in
-  let statuses_all = List.map (fun call -> call_status (text (field "id" call))) calls in
+  let group_status group =
+    if not (dependencies_ready statuses group.metadata) then "blocked" else
+    match composition_result group blocks goal ctx statuses with
+    | Done status -> status | Pending _ -> fail "incomplete helper composition trace" in
+  let statuses_all = List.filter_map (fun call ->
+    if Option.is_some (call_composition groups call) then None
+    else Some (call_status (text (field "id" call)))) calls
+    @ List.map group_status groups in
   if List.exists ((=) "execution_error") statuses_all then
     verdict "error" "external_execution_error"
   else if List.exists ((=) "abort") statuses_all then
@@ -451,6 +592,9 @@ let check_property plan blocks goal calls ctx statuses =
       let external_nodes = Hashtbl.create (List.length calls) in
       List.iter (fun call -> Hashtbl.replace external_nodes
         (text (field "node_id" call)) (text (field "id" call))) calls;
+      List.iter (fun group ->
+        Hashtbl.replace external_nodes (text (field "node_id" group.metadata)) (composition_id group);
+        Hashtbl.replace statuses (composition_id group) (group_status group)) groups;
       let rec eval_goal ctx index = function
         | [] -> verdict "pass" "goal_true"
         | prem :: rest ->
@@ -480,16 +624,17 @@ let main () =
   if field "schema_version" plan <> `Int 2 || text (field "engine" plan) <> "spectec-al" then
     fail "property plan schema 2 required";
   if field "plan_id" request <> field "plan_id" plan then fail "plan identity mismatch";
-  let inputs, blocks, goal, spec_il, spec_al = parse_property !specs !property !name in
+  let inputs, blocks, goal, spec_il, spec_al, helper_names = parse_property !specs !property !name in
   let typedefs = types spec_il in
   (match Eval.init ~cache:false ~det:false ~guard:true spec_al with
    | Ok () -> () | Error d -> fail (report d));
   let mode = text (field "mode" request) in
   let trace = array (field "trace" request) in
   let calls = array (field "calls" plan) in
+  let groups = prepare_compositions spec_il helper_names blocks goal plan in
   if List.length trace > List.length calls then fail "too many trace entries";
   let result = if mode = "audit" then begin
-      audit_effects spec_il spec_al blocks goal plan;
+      audit_effects groups spec_il spec_al blocks goal plan;
       json_obj ["valid",json_bool true]
     end else
   let ctx = input_context typedefs inputs (field "input" request) in
@@ -498,20 +643,18 @@ let main () =
         let index = match field "index" request with `Int i -> i | _ -> fail "request index must be integer" in
         if index < 0 || index >= List.length calls || List.length trace <> index then
           fail "request prefix length mismatch";
-        let ctx,statuses = replay typedefs blocks goal ctx calls trace in
+        let ctx,statuses = replay groups typedefs blocks goal ctx calls trace in
         let call = List.nth calls index in
-        if dependencies_ready statuses call then
-          let _,_,prem = parse_occurrence blocks goal call in
-          json_obj ["ready",json_bool true;
-            "input",request_inputs (prefix_lets ctx blocks goal call) prem]
-        else json_obj ["ready",json_bool false]
+        (match call_request groups blocks goal statuses ctx call with
+        | Some input -> json_obj ["ready",json_bool true; "input",input]
+        | None -> json_obj ["ready",json_bool false])
     | "validate" ->
-        let _ = replay typedefs blocks goal ctx calls trace in
+        let _ = replay groups typedefs blocks goal ctx calls trace in
         json_obj ["valid",json_bool true]
     | "check" ->
         if List.length trace <> List.length calls then fail "incomplete trace";
-        let ctx,statuses = replay typedefs blocks goal ctx calls trace in
-        check_property plan blocks goal calls ctx statuses
+        let ctx,statuses = replay groups typedefs blocks goal ctx calls trace in
+        check_property groups plan blocks goal calls ctx statuses
     | _ -> fail "unsupported native executor mode" in
   print_endline (J.to_string result)
 
