@@ -28,9 +28,9 @@ def check_modules(path: Path) -> list[bool]:
         if manifest.get(field) != actual:
             raise ValueError(f'Stale oracle {field}; rerun experiments.wasm.build_oracle')
     source: str = path.read_text()
-    count: int = len(source.splitlines())
-    if count == 0:
+    if not source:
         raise ValueError(f'No modules in {path}')
+    count: int = len(source.removesuffix('\n').split('\n'))
     result: subprocess.CompletedProcess[str] = subprocess.run(
         [str(build / 'oracle.exe'), str(PROJECT / 'specifications/wasm/spec')],
         input=source, capture_output=True, text=True, check=False, timeout=120,
@@ -40,7 +40,7 @@ def check_modules(path: Path) -> list[bool]:
             f'Module_ok oracle failed for {path}, exit={result.returncode}: '
             f'stdout={result.stdout!r}, stderr={result.stderr!r}'
         )
-    lines: list[str] = result.stdout.splitlines()
+    lines: list[str] = result.stdout.removesuffix('\n').split('\n')
     if len(lines) != count:
         raise ValueError(f'Oracle returned {len(lines)} verdicts for {count} modules: {result.stdout!r}')
     verdicts: list[bool] = []

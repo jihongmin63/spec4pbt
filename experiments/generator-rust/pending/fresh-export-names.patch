@@ -1,0 +1,522 @@
+diff --git a/experiments/generator-rust/lean/WasmMain.lean b/experiments/generator-rust/lean/WasmMain.lean
+--- a/experiments/generator-rust/lean/WasmMain.lean
++++ b/experiments/generator-rust/lean/WasmMain.lean
+@@ -87,7 +87,7 @@
+
+ def wasmExportJson (item : Export) : Json :=
+   Json.mkObj [
+-    ("NAME", wasmArray ((wasmSequenceList item.name).map (fun byte => toJson byte.val))),
++    ("NAME", wasmArray ((wasmSequenceList item.name).map (fun value => toJson (wasmNaturalValue value)))),
+     ("EDESC", wasmTag "FuncExport" (toJson (wasmNaturalValue item.function_index)))]
+
+ def wasmGlobalJson (item : Global) : Json :=
+diff --git a/experiments/generator-rust/native/src/wasm_serialization.rs b/experiments/generator-rust/native/src/wasm_serialization.rs
+--- a/experiments/generator-rust/native/src/wasm_serialization.rs
++++ b/experiments/generator-rust/native/src/wasm_serialization.rs
+@@ -160,7 +160,7 @@
+             natural_decimal(&function.type_index), locals.join(","), instructions_json(&function.body))
+     }).collect();
+     let exports: Vec<String> = sequence_items(&module.exports).into_iter().map(|export| {
+-        let name: Vec<String> = sequence_items(&export.name).into_iter().map(|byte| byte.to_string()).collect();
++        let name: Vec<String> = sequence_items(&export.name).into_iter().map(natural_decimal).collect();
+         format!("{{\"NAME\":[{}],\"EDESC\":{{\"FuncExport\":{}}}}}",
+             name.join(","), natural_decimal(&export.function_index))
+     }).collect();
+diff --git a/experiments/generator-rust/native/tests/wasm_export_names.rs b/experiments/generator-rust/native/tests/wasm_export_names.rs
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/native/tests/wasm_export_names.rs
+@@ -0,0 +1,95 @@
++use generator_rust::wasm::{replay, sized_config};
++use generator_rust::wasm::choices::{Source, Tape};
++use generator_rust::wasm::natural;
++
++#[path = "../src/wasm_choice_serialization.rs"]
++mod wasm_choice_serialization;
++#[path = "../src/wasm_serialization.rs"]
++mod wasm_serialization;
++
++fn natural_cells(number: u128) -> Vec<u64> {
++    if number == 0 {
++        return vec![0];
++    }
++    let mut result: Vec<u64> = vec![1u64 << 32];
++    let mut rest: u128 = number;
++    while rest > 1 {
++        result.push(if rest % 2 == 0 { 1 } else { 2 });
++        rest /= 2;
++    }
++    result.push(0);
++    result
++}
++
++fn name_cells(used: &[Vec<u128>], name: &[u128]) -> Vec<u64> {
++    let empty_used: bool = used.iter().any(Vec::is_empty);
++    let Some((head, tail)) = name.split_first() else {
++        assert!(!empty_used, "test targets must have distinct names");
++        return vec![0];
++    };
++    let mut cells: Vec<u64> = if empty_used { vec![] } else { vec![1] };
++    cells.extend(natural_cells(*head));
++    let suffixes: Vec<Vec<u128>> = used.iter()
++        .filter_map(|candidate| candidate.split_first()
++            .filter(|(first, _)| *first == head)
++            .map(|(_, rest)| rest.to_vec()))
++        .collect();
++    cells.extend(name_cells(&suffixes, tail));
++    cells
++}
++
++fn check_names(names: Vec<Vec<u128>>) {
++    let count: u64 = u64::try_from(names.len()).expect("test export count fits u64");
++    let mut cells: Vec<u64> = vec![1, 1, 0, 0, 0, 0, 1, 0, count];
++    for (index, name) in names.iter().enumerate() {
++        cells.push(0);
++        cells.extend(name_cells(&names[..index], name));
++    }
++    cells.extend([0, 0]);
++    let offset: u64 = u64::try_from(cells.len()).expect("test tape length fits u64");
++    let expected_trace: String = format!("[{}]",
++        cells.iter().map(u64::to_string).collect::<Vec<String>>().join(","));
++    let tape: Tape = cells.into_iter().rev().fold(Tape::Empty,
++        |tail, head| Tape::Cons(head, Box::new(tail)));
++    let mut config = sized_config(0, offset + 1);
++    config.max_types = natural::from_u64(1);
++    config.max_functions = natural::from_u64(1);
++    config.max_exports = natural::from_u64(count);
++    let (module, final_state) = match replay(config, tape) {
++        Ok(output) => output,
++        Err(error) => panic!("full replay must preserve arbitrary export names: {}",
++            wasm_serialization::error_message(error)),
++    };
++    assert!(matches!(final_state.remaining, natural::Natural::Zero));
++    match final_state.source {
++        Source::Replay(Tape::Empty, actual) =>
++            assert_eq!(wasm_choice_serialization::natural_decimal(&actual), offset.to_string()),
++        _ => panic!("full replay must consume the exact export-name tape"),
++    }
++    assert_eq!(wasm_choice_serialization::trace_json(&final_state.trace), expected_trace);
++    let exports: String = names.iter().map(|name| {
++        let values: String = name.iter().map(u128::to_string).collect::<Vec<String>>().join(",");
++        format!("{{\"NAME\":[{values}],\"EDESC\":{{\"FuncExport\":0}}}}")
++    }).collect::<Vec<String>>().join(",");
++    let expected: String = format!(concat!(
++        "{{\"TYPES\":[{{\"RecT\":[{{\"SubT\":[\"Final\",[],{{\"DefFuncT\":{{\"FuncT\":[[],[]]}}}}]}}]}}],",
++        "\"GLOBALS\":[],\"TABLES\":[],\"MEMS\":[],\"TAGS\":[],",
++        "\"FUNCS\":[{{\"FTYPE\":0,\"LOCALS\":[],\"BODY\":[]}}],",
++        "\"START\":null,\"ELEMS\":[],\"DATAS\":[],\"IMPORTS\":[],\"EXPORTS\":[{}]}}"), exports);
++    assert_eq!(wasm_serialization::module_json(&module), expected);
++}
++
++#[test]
++fn full_replay_preserves_unbounded_distinct_export_names() {
++    check_names(vec![vec![]]);
++    check_names(vec![vec![0, 1 << 32, 1 << 64, (1 << 80) + 5]]);
++    check_names(vec![vec![], vec![0], vec![0, 0], vec![0, 1], vec![1],
++        vec![1, 0], vec![(1 << 80) + 5], vec![0, 0, 0], vec![2]]);
++    check_names(vec![vec![7, 8], vec![7], vec![], vec![7, 8, 9], vec![7, 9], vec![8]]);
++}
++
++#[test]
++fn full_replay_preserves_long_names_and_export_lists() {
++    check_names(vec![vec![0; 129], vec![0; 128], vec![]]);
++    check_names((0u128..129).map(|value| vec![value]).collect());
++}
+diff --git a/experiments/generator-rust/proofs/WasmEmbedding.lean b/experiments/generator-rust/proofs/WasmEmbedding.lean
+--- a/experiments/generator-rust/proofs/WasmEmbedding.lean
++++ b/experiments/generator-rust/proofs/WasmEmbedding.lean
+@@ -73,7 +73,7 @@
+     instructionSequence item.body⟩
+
+ def exportEntry (item : Export) : SpecTec.export :=
+-  ⟨(sequenceValues item.name).map (fun byte => byte.val), .FuncExport (naturalValue item.function_index)⟩
++  ⟨(sequenceValues item.name).map naturalValue, .FuncExport (naturalValue item.function_index)⟩
+
+ def memory (item : Memory) : SpecTec.memory :=
+   ⟨.MemoryT (match item.address with | .I32 => .I32AT | .I64 => .I64AT)
+diff --git a/experiments/generator-rust/proofs/WasmFreshNameChoice.lean b/experiments/generator-rust/proofs/WasmFreshNameChoice.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmFreshNameChoice.lean
+@@ -0,0 +1,77 @@
++import WasmFreshNamePrimitives
++import Lean.Util.CollectAxioms
++
++set_option autoImplicit false
++set_option maxHeartbeats 1600000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust wasm.natural
++
++/-- Every original unused finite name has an exact finite execution prefix. -/
++theorem fresh_name_replay (name : List Nat) (used : List (List Nat))
++    (fresh : name ∉ used) (rest trace : List U64) (offset work : Nat) :
++    wasm.names.fresh (sequenceLiteral (used.map nameLiteral))
++      (replayState (freshNameCells used name ++ rest) trace offset
++        (work + (freshNameCells used name).length)) =
++      Result.ok (.Ok (nameLiteral name,
++        replayState rest ((freshNameCells used name).reverse ++ trace)
++          (offset + (freshNameCells used name).length) work)) := by
++  induction name generalizing used trace offset work with
++  | nil =>
++      have stop := pick_word_state 2#u64 0#u64 rest trace offset work (by decide)
++      rw [wasm.names.fresh]
++      simp [contains_empty_names, fresh, freshNameCells, nameLiteral, sequenceLiteral,
++        stop, core.result.Result.Insts.CoreOpsTry.branch]
++  | cons head tail ih =>
++      have tailFresh : tail ∉ nameTails used head := by
++        intro present
++        exact fresh ((mem_name_tails used head tail).mp present)
++      by_cases blocked : [] ∈ used
++      · have headRun := natural_literal_choice head (freshNameCells (nameTails used head) tail ++ rest)
++          trace offset (work + (freshNameCells (nameTails used head) tail).length)
++        have tailRun := ih (nameTails used head) tailFresh
++          ((naturalCells (naturalLiteral head)).reverse ++ trace)
++          (offset + (naturalCells (naturalLiteral head)).length) work
++        rw [wasm.names.fresh]
++        simp [freshNameCells, blocked, List.append_assoc, List.reverse_append,
++          Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at headRun tailRun ⊢
++        simp only [contains_empty_names, blocked, decide_true, bind_ok, ↓reduceIte]
++        rw [headRun]
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          ↓uncurry_apply_pair, matching_name_tails]
++        rw [tailRun]
++        simp [wasm.sequence.cons, nameLiteral, sequenceLiteral]
++      · have more := pick_word_state 2#u64 1#u64
++          (naturalCells (naturalLiteral head) ++ (freshNameCells (nameTails used head) tail ++ rest))
++          trace offset (work + (freshNameCells (nameTails used head) tail).length +
++            (naturalCells (naturalLiteral head)).length) (by decide)
++        have headRun := natural_literal_choice head (freshNameCells (nameTails used head) tail ++ rest)
++          (1#u64 :: trace) (offset + 1) (work + (freshNameCells (nameTails used head) tail).length)
++        have tailRun := ih (nameTails used head) tailFresh
++          ((naturalCells (naturalLiteral head)).reverse ++ 1#u64 :: trace)
++          (offset + 1 + (naturalCells (naturalLiteral head)).length) work
++        rw [wasm.names.fresh]
++        simp [freshNameCells, blocked, List.append_assoc, List.reverse_append,
++          Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at more headRun tailRun ⊢
++        simp only [contains_empty_names, blocked, decide_false, bind_ok, ↓reduceIte]
++        rw [more]
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          ↓uncurry_apply_pair, ↓reduceIte]
++        rw [headRun]
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          ↓uncurry_apply_pair, matching_name_tails]
++        rw [tailRun]
++        simp [wasm.sequence.cons, nameLiteral, sequenceLiteral]
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``name_literal_roundtrip, ``name_literal_inverse, ``mem_name_tails,
++      ``copy_name_literal, ``contains_empty_names, ``matching_name_tails,
++      ``fresh_name_cells_empty, ``fresh_name_replay] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmFreshNamePrimitives.lean b/experiments/generator-rust/proofs/WasmFreshNamePrimitives.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmFreshNamePrimitives.lean
+@@ -0,0 +1,93 @@
++import WasmTypeMatchingPrimitives
++import WasmNaturalChoice
++
++set_option autoImplicit false
++set_option maxHeartbeats 1600000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust wasm.natural wasm.sequence
++
++def nameCells : List Natural → List U64
++  | [] => [0#u64]
++  | head :: tail => 1#u64 :: (naturalCells head ++ nameCells tail)
++
++def nameLiteral (values : List Nat) : Sequence Natural :=
++  sequenceLiteral (values.map naturalLiteral)
++
++theorem name_literal_roundtrip (values : List Nat) :
++    (sequenceValues (nameLiteral values)).map naturalValue = values := by
++  simp [nameLiteral, List.map_map, Function.comp_def]
++
++@[simp] theorem natural_literal_inverse (value : Natural) :
++    naturalLiteral (naturalValue value) = value := by
++  apply naturalValue_injective
++  simp
++
++@[simp] theorem name_literal_inverse (name : Sequence Natural) :
++    nameLiteral ((sequenceValues name).map naturalValue) = name := by
++  simp [nameLiteral, List.map_map, Function.comp_def]
++
++/-- Forbidden suffixes retain source order and duplicates. -/
++def nameTails : List (List Nat) → Nat → List (List Nat)
++  | [], _ => []
++  | [] :: rest, head => nameTails rest head
++  | (first :: tail) :: rest, head =>
++      if first = head then tail :: nameTails rest head else nameTails rest head
++
++theorem mem_name_tails (used : List (List Nat)) (head : Nat) (tail : List Nat) :
++    tail ∈ nameTails used head ↔ head :: tail ∈ used := by
++  induction used with
++  | nil => simp [nameTails]
++  | cons candidate rest ih =>
++      cases candidate with
++      | nil => simpa [nameTails] using ih
++      | cons first suffix =>
++          by_cases same : first = head
++          · subst first
++            simp [nameTails, ih]
++          · simp [nameTails, same, ih, Ne.symm same]
++
++theorem copy_name_literal (name : List Nat) :
++    wasm.names.copy (nameLiteral name) = Result.ok (nameLiteral name) := by
++  induction name with
++  | nil => rfl
++  | cons head tail ih =>
++      simp [nameLiteral, sequenceLiteral, wasm.names.copy, wasm.sequence.cons, ih]
++
++theorem contains_empty_names (used : List (List Nat)) :
++    wasm.names.contains_empty (sequenceLiteral (used.map nameLiteral)) =
++      Result.ok (decide ([] ∈ used)) := by
++  induction used with
++  | nil => rfl
++  | cons name rest ih =>
++      cases name <;> simp [wasm.names.contains_empty, sequenceLiteral, nameLiteral, ih]
++
++theorem matching_name_tails (used : List (List Nat)) (head : Nat) :
++    wasm.names.matching_tails (sequenceLiteral (used.map nameLiteral)) (naturalLiteral head) =
++      Result.ok (sequenceLiteral ((nameTails used head).map nameLiteral)) := by
++  induction used with
++  | nil => rfl
++  | cons name rest ih =>
++      cases name with
++      | nil =>
++          simp [wasm.names.matching_tails, sequenceLiteral, nameLiteral, nameTails, ih]
++      | cons first tail =>
++          by_cases same : first = head
++          all_goals
++            simp [wasm.names.matching_tails, sequenceLiteral, nameLiteral, nameTails,
++              ih, same_natural_total, same, wasm.sequence.cons]
++
++/-- Stop is omitted only at a prefix that is itself already forbidden. -/
++def freshNameCells (used : List (List Nat)) : List Nat → List U64
++  | [] => [0#u64]
++  | head :: tail =>
++      (if [] ∈ used then [] else [1#u64]) ++ naturalCells (naturalLiteral head) ++
++        freshNameCells (nameTails used head) tail
++
++theorem fresh_name_cells_empty (name : List Nat) :
++    freshNameCells [] name = nameCells (name.map naturalLiteral) := by
++  induction name with
++  | nil => rfl
++  | cons head tail ih => simp [freshNameCells, nameTails, nameCells, ih]
++
++end RustWasm
+diff --git a/experiments/generator-rust/src/wasm/ast.rs b/experiments/generator-rust/src/wasm/ast.rs
+--- a/experiments/generator-rust/src/wasm/ast.rs
++++ b/experiments/generator-rust/src/wasm/ast.rs
+@@ -92,7 +92,7 @@
+ }
+
+ pub struct Export {
+-    pub name: Sequence<u8>,
++    pub name: Sequence<Natural>,
+     pub function_index: Natural,
+ }
+
+@@ -166,13 +166,6 @@
+     sequence::append(copy_types(prefix), copy_types(suffix))
+ }
+
+-pub fn copy_bytes(values: &Sequence<u8>) -> Sequence<u8> {
+-    match values {
+-        Sequence::Empty => Sequence::Empty,
+-        Sequence::Cons(cell) => sequence::cons(cell.0, copy_bytes(&cell.1)),
+-    }
+-}
+-
+ pub fn copy_block_type(block: &BlockType) -> BlockType {
+     match block {
+         BlockType::Empty => BlockType::Empty,
+diff --git a/experiments/generator-rust/src/wasm/memory_import.rs b/experiments/generator-rust/src/wasm/memory_import.rs
+--- a/experiments/generator-rust/src/wasm/memory_import.rs
++++ b/experiments/generator-rust/src/wasm/memory_import.rs
+@@ -1,18 +1,12 @@
+ use super::ast::{Memory, MemoryImport};
+-use super::choices::{self, pick_word, Choices, GenerationError};
++use super::choices::{pick_word, Choices, GenerationError};
+ use super::memory;
+ use super::natural::{self, Natural};
+ use super::sequence::{self, Sequence};
+
+ /// Original names are finite sequences of arbitrary naturals, not Unicode strings.
+ fn name(choices: Choices) -> Result<(Sequence<Natural>, Choices), GenerationError> {
+-    let (more, choices): (u64, Choices) = pick_word(2, choices)?;
+-    if more == 0 {
+-        return Ok((Sequence::Empty, choices));
+-    }
+-    let (head, choices): (Natural, Choices) = choices::natural(choices)?;
+-    let (tail, choices): (Sequence<Natural>, Choices) = name(choices)?;
+-    Ok((sequence::cons(head, tail), choices))
++    super::names::fresh(Sequence::Empty, choices)
+ }
+
+ fn entry(choices: Choices) -> Result<(MemoryImport, Choices), GenerationError> {
+diff --git a/experiments/generator-rust/src/wasm/names.rs b/experiments/generator-rust/src/wasm/names.rs
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/src/wasm/names.rs
+@@ -0,0 +1,61 @@
++use super::choices::{self, pick_word, Choices, GenerationError};
++use super::natural::{self, Natural};
++use super::sequence::{self, Sequence};
++use super::type_matching::same_natural;
++
++pub(super) fn copy(name: &Sequence<Natural>) -> Sequence<Natural> {
++    match name {
++        Sequence::Empty => Sequence::Empty,
++        Sequence::Cons(cell) => sequence::cons(natural::copy(&cell.0), copy(&cell.1)),
++    }
++}
++
++fn contains_empty(used: &Sequence<Sequence<Natural>>) -> bool {
++    match used {
++        Sequence::Empty => false,
++        Sequence::Cons(cell) => match &cell.0 {
++            Sequence::Empty => true,
++            Sequence::Cons(_) => contains_empty(&cell.1),
++        },
++    }
++}
++
++/// Retain exactly the forbidden suffixes after the chosen prefix component.
++fn matching_tails(used: Sequence<Sequence<Natural>>, head: &Natural)
++    -> Sequence<Sequence<Natural>>
++{
++    match used {
++        Sequence::Empty => Sequence::Empty,
++        Sequence::Cons(cell) => {
++            let (name, rest): (Sequence<Natural>, Sequence<Sequence<Natural>>) = *cell;
++            let tail: Sequence<Sequence<Natural>> = matching_tails(rest, head);
++            match name {
++                Sequence::Empty => tail,
++                Sequence::Cons(name) => {
++                    if same_natural(&name.0, head) {
++                        sequence::cons(name.1, tail)
++                    } else {
++                        tail
++                    }
++                }
++            }
++        }
++    }
++}
++
++/// A forbidden complete prefix removes only the stop alternative at that prefix.
++pub(super) fn fresh(used: Sequence<Sequence<Natural>>, choices: Choices)
++    -> Result<(Sequence<Natural>, Choices), GenerationError>
++{
++    let (more, choices): (u64, Choices) = if contains_empty(&used) {
++        (1, choices)
++    } else {
++        pick_word(2, choices)?
++    };
++    if more == 0 {
++        return Ok((Sequence::Empty, choices));
++    }
++    let (head, choices): (Natural, Choices) = choices::natural(choices)?;
++    let (tail, choices): (Sequence<Natural>, Choices) = fresh(matching_tails(used, &head), choices)?;
++    Ok((sequence::cons(head, tail), choices))
++}
+diff --git a/experiments/generator-rust/src/wasm/type_matching.rs b/experiments/generator-rust/src/wasm/type_matching.rs
+--- a/experiments/generator-rust/src/wasm/type_matching.rs
++++ b/experiments/generator-rust/src/wasm/type_matching.rs
+@@ -9,7 +9,7 @@
+     equal: bool,
+ }
+
+-fn same_natural(left: &Natural, right: &Natural) -> bool {
++pub(super) fn same_natural(left: &Natural, right: &Natural) -> bool {
+     matches!(natural::difference(left, right), Some(Natural::Zero))
+ }
+
+diff --git a/experiments/generator-rust/src/wasm.rs b/experiments/generator-rust/src/wasm.rs
+--- a/experiments/generator-rust/src/wasm.rs
++++ b/experiments/generator-rust/src/wasm.rs
+@@ -4,6 +4,7 @@
+ mod global;
+ mod memory;
+ mod memory_import;
++mod names;
+ mod types;
+ mod type_matching;
+ pub mod choices;
+@@ -11,7 +12,7 @@
+ pub mod sequence;
+
+ pub use ast::{AddressType, BinaryOp, BlockType, Datas, Export, Finality, FuncType, Function, Global, Instruction, IntegerType, Memories, Memory, MemoryImport, Module, Mutability, Nullability, RecGroup, Subtype, Text, ValueType};
+-use ast::{copy_bytes, copy_types, join_types};
++use ast::{copy_types, join_types};
+ use choices::{pick_natural, pick_word, Choices, GenerationError, Source, Tape};
+ use natural::Natural;
+ use sequence::Sequence;
+@@ -86,21 +87,6 @@
+     value_types_loop(count, Sequence::Empty, choices)
+ }
+
+-/// Decimal digits are least-significant first and remain in the ASCII digit range.
+-fn next_export_digits(digits: Sequence<u8>) -> Sequence<u8> {
+-    match digits {
+-        Sequence::Empty => sequence::cons(49, Sequence::Empty),
+-        Sequence::Cons(cell) => {
+-            let (digit, tail): (u8, Sequence<u8>) = *cell;
+-            if digit == 57 {
+-                sequence::cons(48, next_export_digits(tail))
+-            } else {
+-                sequence::cons(digit + 1, tail)
+-            }
+-        }
+-    }
+-}
+-
+ fn indices_loop(count: Natural, type_count: &Natural, indices: Sequence<Natural>, choices: Choices)
+     -> Result<(Sequence<Natural>, Choices), GenerationError>
+ {
+@@ -146,16 +132,23 @@
+     }
+ }
+
+-fn exports_loop(count: Natural, function_count: &Natural, digits: Sequence<u8>,
++fn export_names(exports: &Sequence<Export>) -> Sequence<Sequence<Natural>> {
++    match exports {
++        Sequence::Empty => Sequence::Empty,
++        Sequence::Cons(cell) => sequence::cons(names::copy(&cell.0.name), export_names(&cell.1)),
++    }
++}
++
++fn exports_loop(count: Natural, function_count: &Natural,
+     exports: Sequence<Export>, choices: Choices) -> Result<(Sequence<Export>, Choices), GenerationError>
+ {
+     match natural::decrement(count) {
+         None => Ok((exports, choices)),
+         Some(previous) => {
+             let (function_index, choices): (Natural, Choices) = pick_natural(function_count, choices)?;
+-            let name: Sequence<u8> = sequence::cons(101, sequence::reverse(copy_bytes(&digits)));
++            let (name, choices): (Sequence<Natural>, Choices) = names::fresh(export_names(&exports), choices)?;
+             let output: Sequence<Export> = sequence::snoc(exports, Export { name, function_index });
+-            exports_loop(previous, function_count, next_export_digits(digits), output, choices)
++            exports_loop(previous, function_count, output, choices)
+         }
+     }
+ }
+@@ -168,7 +161,7 @@
+         Natural::Positive(_) => {
+             let bound: Natural = natural::increment(natural::copy(maximum));
+             let (count, choices): (Natural, Choices) = pick_natural(&bound, choices)?;
+-            exports_loop(count, function_count, sequence::cons(48, Sequence::Empty), Sequence::Empty, choices)
++            exports_loop(count, function_count, Sequence::Empty, choices)
+         }
+     }
+ }

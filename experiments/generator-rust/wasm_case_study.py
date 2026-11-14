@@ -10,6 +10,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 from typing import Callable, cast
 
@@ -44,17 +45,39 @@ def parse_modules(lines: list[str], source: str) -> list[dict[str, object]]:
     return modules
 
 
-def native(arguments: list[str], environment: dict[str, str]) -> list[dict[str, object]]:
+def native_result(arguments: list[str], environment: dict[str, str]) -> subprocess.CompletedProcess[str]:
     command: list[str] = [str(NATIVE), *arguments]
-    result: subprocess.CompletedProcess[str] = subprocess.run(
+    return subprocess.run(
         command, cwd=PROJECT, env=environment, capture_output=True,
         text=True, check=False, timeout=30,
     )
+
+
+def native(arguments: list[str], environment: dict[str, str]) -> list[dict[str, object]]:
+    result: subprocess.CompletedProcess[str] = native_result(arguments, environment)
     if result.returncode != 0:
         raise ChildProcessError(
-            f'{command!r} exited {result.returncode}; stdout={result.stdout[-1000:]!r}; stderr={result.stderr[-2000:]!r}'
+            f'{result.args!r} exited {result.returncode}; stdout={result.stdout[-1000:]!r}; stderr={result.stderr[-2000:]!r}'
         )
-    return parse_objects(result.stdout.splitlines(), str(command))
+    return parse_objects(result.stdout.removesuffix('\n').split('\n'), str(result.args))
+
+
+def native_sample(arguments: list[str], environment: dict[str, str]) -> tuple[list[dict[str, object]], str | None]:
+    """Preserve every seed and any emitted prefix when reference production fails."""
+    result: subprocess.CompletedProcess[str] = native_result(arguments, environment)
+    error: str | None = None
+    if result.returncode != 0:
+        matched: re.Match[str] | None = re.fullmatch(
+            r'Error: "(NoReferenceProducer: no initialized local or declared function produces non-null type [0-9]+)"\n?',
+            result.stderr,
+        )
+        if result.returncode != 1 or matched is None:
+            raise ChildProcessError(
+                f'{result.args!r} exited {result.returncode}; stdout={result.stdout!r}; stderr={result.stderr!r}'
+            )
+        error = matched.group(1)
+    lines: list[str] = result.stdout.removesuffix('\n').split('\n') if result.stdout else []
+    return parse_objects(lines, str(result.args)), error
 
 
 def native_report(arguments: list[str], environment: dict[str, str]) -> dict[str, object]:
@@ -75,6 +98,20 @@ def parse_objects(lines: list[str], source: str) -> list[dict[str, object]]:
     return values
 
 
+def execution_source(arguments: list[list[str]]) -> str:
+    """Expose every CLI output and error for comparison, without changing generation."""
+    calls: list[str] = ['#eval wasmOutcomeCase ' + json.dumps(args) for args in arguments]
+    return '''import WasmMain
+
+def wasmOutcomeCase (args : List String) : IO Unit := do
+  try
+    main args
+  catch error =>
+    (← IO.getStdout).putStrLn (Lean.Json.mkObj [("error", .str (toString error))]).compress
+
+''' + '\n'.join(calls) + '\n'
+
+
 def translated(arguments: list[list[str]], errors: list[tuple[list[str], str]], environment: dict[str, str]) -> list[dict[str, object]]:
     ready_value: object = json.loads((BUILD / 'bootstrap.json').read_text())
     if not isinstance(ready_value, dict) or not isinstance(ready_value.get('lean_bin'), str):
@@ -86,22 +123,10 @@ def translated(arguments: list[list[str]], errors: list[tuple[list[str], str]], 
         raise ValueError('lean-environment.json must contain Lake compiler paths')
     paths: dict[str, str] = cast(dict[str, str], paths_value)
     compiler_environment: dict[str, str] = environment | {name: paths[name] for name in names}
-    calls: list[str] = ['  main ' + json.dumps(args) for args in arguments]
-    calls.extend('  wasmErrorCase ' + json.dumps(args) for args, _ in errors)
     runner: Path = BUILD / 'lean/RunWasmCases.lean'
-    runner.write_text('''import WasmMain
-
-def wasmErrorCase (args : List String) : IO Unit := do
-  try
-    main args
-    throw <| IO.userError "Expected failure, but generation succeeded"
-  catch error =>
-    (← IO.getStdout).putStrLn (Lean.Json.mkObj [("error", .str (toString error))]).compress
-
-#eval do
-''' + '\n'.join(calls) + '\n')
+    runner.write_text(execution_source(arguments + [args for args, _ in errors]))
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        [str(lean_bin / 'lean'), runner.name],
+        [str(lean_bin / 'lean'), '-j', '1', '-M', '3100', runner.name],
         cwd=BUILD / 'lean', env=compiler_environment, capture_output=True,
         text=True, check=False, timeout=600,
     )
@@ -111,7 +136,7 @@ def wasmErrorCase (args : List String) : IO Unit := do
             f'Lean batch exited {result.returncode}; log={EVIDENCE / "lean-execution.log"}; '
             f'stderr={result.stderr[-2000:]!r}'
         )
-    return parse_objects(result.stdout.splitlines(), 'Lean batch')
+    return parse_objects(result.stdout.removesuffix('\n').split('\n'), 'Lean batch')
 
 
 def replace_first(value: object, tag: str, replacement: Callable[[object], object]) -> tuple[object, bool]:
@@ -163,6 +188,14 @@ def mutations(conditional: dict[str, object], call: dict[str, object], wide: dic
         altered.append(cast(dict[str, object], changed))
     altered.append(conditional | {'START': {'SFUNC': 0}})
     altered.append(wide | {'START': {'SFUNC': 999}})
+    for body in (
+        ['UNREACHABLE', {'CONST': {'I64': 7}}, {'BINOP': {'I32': 'IAdd'}}],
+        ['UNREACHABLE', {'BLOCK': [{'ValBlockType': {'NumT': 'I32T'}}, []]}],
+    ):
+        changed, found = replace_first(conditional, 'BODY', lambda _: body)
+        if not found:
+            raise AssertionError('No function body for polymorphic-stack negative case')
+        altered.append(cast(dict[str, object], changed))
     return altered
 
 
@@ -179,6 +212,47 @@ def report_module(report: dict[str, object]) -> dict[str, object]:
 
 def assert_targeted(modules: dict[str, dict[str, object]]) -> None:
     """Check observable shapes independently of instruction-selection implementation."""
+    expected_memories: dict[str, list[tuple[str, int, int | None]]] = {
+        'memory_only': [('I32AT', 0, None)],
+        'memory32_limit': [('I32AT', 65536, 65536)],
+        'memory64_limit': [('I64AT', 281474976710656, 281474976710656)],
+        'memory64_unbounded_max': [('I64AT', 281474976710656, None)],
+        'mixed_memories': [('I32AT', 1, 10), ('I64AT', 42, None), ('I32AT', 0, 65536)],
+        'memory_stop_empty': [],
+        'memory_early_stop': [('I32AT', 2, None)],
+        'imports_memories_datas': [('I32AT', 0, None)],
+    }
+    for name, memories in expected_memories.items():
+        expected: list[dict[str, object]] = [
+            {'MTYPE': {'MemoryT': [address, {'MIN': minimum, 'MAX': maximum}]}}
+            for address, minimum, maximum in memories
+        ]
+        if modules[name]['MEMS'] != expected:
+            raise AssertionError(f'Memory address width, order, or inclusive page limits changed: {name}')
+    for name, payloads in (
+        ('passive_empty_string', ['']),
+        ('passive_unicode', ['A\0🦀']),
+        ('passive_unicode_line_separators', ['\u0085\u2028\u2029']),
+        ('passive_two_segments', ['', 'a']),
+        ('passive_stop_empty', []),
+        ('imports_memories_datas', ['Hi']),
+    ):
+        if modules[name]['DATAS'] != [{'DINIT': payload, 'DMODE': 'Passive'} for payload in payloads]:
+            raise AssertionError(f'Passive data payload or ordering changed: {name}')
+    for name, module_name, item_name, address, minimum, maximum in (
+        ('memory_import_only', [], [], 'I32AT', 0, None),
+        ('memory_import_unbounded_names', [0, 1 << 80, 55296], [1114112, 1 << 64], 'I32AT', 65536, 65536),
+        ('imports_memories_datas', [], [], 'I64AT', 281474976710656, None),
+    ):
+        imported: list[dict[str, object]] = [{
+            'MODULENAME': module_name, 'ITEMNAME': item_name,
+            'IDESC': {'MemImport': {'MemoryT': [address, {'MIN': minimum, 'MAX': maximum}]}},
+        }]
+        if modules[name]['IMPORTS'] != imported:
+            raise AssertionError(f'Memory import names or descriptors changed: {name}')
+    i64 = modules['natural_i64_2pow80_plus5']
+    if i64['FUNCS'] != [{'FTYPE': 0, 'LOCALS': [], 'BODY': [{'CONST': {'I64': (1 << 80) + 5}}]}]:
+        raise AssertionError('Unbounded i64 payload or exact instruction body changed')
     empty = modules['empty']
     if empty['FUNCS'] != [] or empty['TYPES'] != [] or empty['START'] is not None:
         raise AssertionError('Empty-module witness changed')
@@ -205,6 +279,20 @@ def assert_targeted(modules: dict[str, dict[str, object]]) -> None:
         nested = [{'BLOCK': [{'ValBlockType': {'NumT': 'I32T'}}, nested]}]
     if modules['nested_blocks_depth_eight']['FUNCS'][0]['BODY'] != nested:
         raise AssertionError('Structured nesting beyond depth five not exercised')
+    i32_block: dict[str, object] = {'ValBlockType': {'NumT': 'I32T'}}
+    control_bodies: dict[str, list[object]] = {
+        'unreachable_add': ['UNREACHABLE', {'BINOP': {'I32': 'IAdd'}}],
+        'unreachable_one_concrete_operand': [
+            'UNREACHABLE', {'CONST': {'I32': 7}}, {'BINOP': {'I32': 'IAdd'}}],
+        'unreachable_nonempty_predecessor': [{'CONST': {'I64': 7}}, 'UNREACHABLE'],
+        'loop_parameter_label': [{'LOOP': [i32_block, [{'BR': 0}]]}],
+        'outer_block_label': [{'BLOCK': [i32_block, [
+            {'BLOCK': [i32_block, [{'CONST': {'I32': 7}}, {'BR': 1}]]}]]}],
+        'br_if_retains_argument': [{'CONST': {'I32': 7}}, {'CONST': {'I32': 0}}, {'BR_IF': 0}],
+    }
+    for name, body in control_bodies.items():
+        if modules[name]['FUNCS'][0]['BODY'] != body:
+            raise AssertionError(f'Exact polymorphic stack or label witness changed: {name}')
     mutual = modules['mutual_void_calls']['FUNCS']
     if mutual[0]['BODY'] != [{'CALL': 1}] or mutual[1]['BODY'] != [{'CALL': 0}]:
         raise AssertionError('Mutual void calls not exercised')
@@ -228,25 +316,39 @@ def main() -> None:
     commands.extend([['1', '0', '0'], ['1', '0', str((1 << 64) - 1)]])
     native_values: list[dict[str, object]] = []
     modules: list[dict[str, object]] = []
+    sampling_errors: int = 0
     for arguments in commands:
-        values = native(arguments, environment)
-        if len(values) != int(arguments[0]):
+        values, error = native_sample(arguments, environment)
+        count: int = int(arguments[0])
+        if (error is None and len(values) != count) or (error is not None and len(values) >= count):
             raise AssertionError(f'Wrong module count for {arguments}')
         native_values.extend(values)
         modules.extend(parse_modules([json.dumps(value) for value in values], 'legacy'))
+        if error is not None:
+            native_values.append({'error': error})
+            sampling_errors += 1
     legacy_count: int = len(modules)
     profiles: tuple[Config, ...] = (
-        Config(6, 8, 5, 3, 5, 10, 12, 100000),
-        Config(1, 3, 0, 0, 4, 4, 16, 10000),
-        Config(3, 5, 8, 4, 8, 3, 32, 100000),
+        Config(6, 8, 5, 3, 5, 10, 12, 0, 0, 0, 100000),
+        Config(1, 3, 0, 0, 4, 4, 16, 0, 0, 0, 10000),
+        Config(3, 5, 8, 4, 8, 3, 32, 0, 0, 0, 100000),
     )
     replay_pairs: int = 0
     for config in profiles:
         for seed in (0, 17, 2026, (1 << 64) - 1):
             args: list[str] = ['sample', *(str(value) for value in config), str(seed)]
-            report = native_report(args, environment)
-            module = report_module(report)
+            values, error = native_sample(args, environment)
             commands.append(args)
+            if error is not None:
+                if values:
+                    raise AssertionError(f'Failed single sample emitted a report for {args!r}: {values!r}')
+                native_values.append({'error': error})
+                sampling_errors += 1
+                continue
+            if len(values) != 1:
+                raise AssertionError(f'Expected one sample report for {args!r}; got {len(values)}')
+            report: dict[str, object] = values[0]
+            module = report_module(report)
             native_values.append(report)
             modules.append(module)
             tape = cast(list[int], report['choices'])
@@ -268,17 +370,37 @@ def main() -> None:
         native_values.append(report)
         modules.append(module)
     assert_targeted(targeted)
-    zero: list[str] = ['0'] * 7 + ['1000']
+    zero: list[str] = ['0'] * 10 + ['1000']
     errors: list[tuple[list[str], str]] = [
         (['replay', *zero, '-'], 'TapeExhausted: missing choice at offset 0'),
         (['replay', *zero, '1'], 'ChoiceOutOfRange: offset=0, value=1, required value < 1'),
         (['replay', *zero, '0,0'], 'UnusedChoices: consumed=1, supplied=2'),
-        (['sample', *(['0'] * 8), '0'], 'WorkLimit'),
+        (['sample', *(['0'] * 11), '0'], 'WorkLimit'),
         (['sample', '65', *zero[1:], '0'], 'CLI resource limit'),
         (['1', '33', '0'], 'CLI resource limit'),
         (['2', '1', str((1 << 64) - 1)], 'CLI resource limit'),
         (['replay', *zero, str(1 << 64)], 'exceeds u64'),
+        (['replay', *(['0'] * 7), '3', '0', '0', '10', '0,2'],
+         'ChoiceOutOfRange: offset=1, value=2, required value < 2'),
+        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,0,65537'],
+         'ChoiceOutOfRange: offset=3, value=65537, required value < 65537'),
+        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,1,281474976710657'],
+         'ChoiceOutOfRange: offset=3, value=281474976710657, required value < 281474976710657'),
+        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,0,65536,1,1'],
+         'ChoiceOutOfRange: offset=5, value=1, required value < 1'),
+        (['replay', *(['0'] * 8), '1', '0', '10', '0,1,1,1112064'],
+         'ChoiceOutOfRange: offset=3, value=1112064, required value < 1112064'),
+        (['replay', *(['0'] * 8), '1', '0', '10', '0,1,2'],
+         'ChoiceOutOfRange: offset=2, value=2, required value < 2'),
     ]
+    errors.extend([
+        (['replay', *(['0'] * 9), '1', '10', '0,2'],
+         'ChoiceOutOfRange: offset=1, value=2, required value < 2'),
+        (['replay', *(['0'] * 9), '1', '10', '0,1,0,0,0,2'],
+         'ChoiceOutOfRange: offset=5, value=2, required value < 2'),
+        (['replay', *(['0'] * 9), '1', '10', '0,1,0,0,0,1,4294967297'],
+         'ChoiceOutOfRange: offset=6, value=4294967297, required value < 4294967297'),
+    ])
     for args, expected in errors:
         result = subprocess.run([str(NATIVE), *args], env=environment, text=True,
                                 capture_output=True, check=False, timeout=30)
@@ -294,6 +416,12 @@ def main() -> None:
         if not isinstance(error.get('error'), str) or expected not in error['error']:
             raise AssertionError(f'Lean did not reject with {expected!r}: {error!r}')
     negative = mutations(targeted['inline_if'], targeted['self_call'], targeted['six_functions_wide_signatures_locals_aliases'])
+    for address, minimum, maximum in (
+        ('I32AT', 65537, None), ('I64AT', 281474976710657, None),
+        ('I32AT', 1, 0), ('I64AT', 0, 281474976710657),
+    ):
+        negative.append(targeted['memory_only'] | {
+            'MEMS': [{'MTYPE': {'MemoryT': [address, {'MIN': minimum, 'MAX': maximum}]}}]})
     for name, values in (('modules', modules), ('negative-modules', negative), ('reports', native_values)):
         (EVIDENCE / f'{name}.jsonl').write_text(''.join(json.dumps(value, separators=(',', ':')) + '\n' for value in values))
     outside_target = deepcopy(targeted['inline_if'])
@@ -308,11 +436,12 @@ def main() -> None:
         raise AssertionError(f'Module_ok mismatch: {[i for i,v in enumerate(verdicts) if v != (i <= len(modules))]}')
     result: dict[str, object] = {
         'generated_lean_sha256': generated_hash,
-        'legacy_modules': legacy_count, 'compared_complete_outputs': len(native_values),
+        'legacy_modules': legacy_count, 'compared_complete_outputs': len(modules),
+        'compared_sampling_errors': sampling_errors,
         'recorded_seed_replay_pairs': replay_pairs, 'targeted_cases': list(targeted),
         'distinct_modules': len({json.dumps(module, sort_keys=True) for module in modules}),
         'module_ok_pass': len(modules), 'module_ok_reject_mutations': len(negative),
-        'native_and_lean_error_cases': len(errors),
+        'native_and_lean_error_cases': len(errors) + sampling_errors,
         'module_ok_outside_support': ['export_named_x'],
     }
     if hashlib.sha256(generated.read_bytes()).hexdigest() != generated_hash:

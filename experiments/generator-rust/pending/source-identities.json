@@ -1,0 +1,198 @@
+{
+  "constant-globals.patch": {
+    "status": "unapplied, uncompiled draft",
+    "files": {
+      "experiments/generator-rust/lean/WasmMain.lean": {
+        "before_sha256": "ecea4fec05daae15942cf08d1ecf00d80687741473b08bef15f46d57b2fe5c8f",
+        "after_sha256": "e23d69d77c956953eb2e34c969396ee999ec7c359daa0c7e66073247a5d70dd7"
+      },
+      "experiments/generator-rust/native/src/bin/wasm.rs": {
+        "before_sha256": "2ced34bedd56d3f682a82a8125cc73832405761bd46535af3de337ab514ced8a",
+        "after_sha256": "ec1bc3070c9c5842da2eb2baf8eb9973a0d17516968d0a3fefbd73452f46fcae"
+      },
+      "experiments/generator-rust/native/src/wasm_serialization.rs": {
+        "before_sha256": "83d29f88485c274400a32b5771c06190b43f6e62555c60d9a5b6fbedf141105f",
+        "after_sha256": "1cde70b36ca4a20c4fa0ee04ee74a7425deb6d7ef7167721a4a893afb3df7965"
+      },
+      "experiments/generator-rust/native/tests/wasm_constant_globals.rs": {
+        "before_sha256": null,
+        "after_sha256": "89c11e0c54e4ca0b1c00f5271a863249493049ce3679e34c65d59f867690ab1d"
+      },
+      "experiments/generator-rust/native/tests/wasm_passive_data.rs": {
+        "before_sha256": "9614ce3e67528fc0c44942547038be241c9d253d9e251b12cc51d965fc23cd87",
+        "after_sha256": "80a84c75797d29160bdd8727a62f90f3d23bb483062246f347d288098cb83bb0"
+      },
+      "experiments/generator-rust/proofs/WasmConstantReplay.lean": {
+        "before_sha256": "e1bb17f5dd8c8c1047d6f16af5ee99bc31d89f254db7bc485a4f9b2cd845021a",
+        "after_sha256": "8aeb1759d871a38db2ef67610cbdcfe8e7746d17f145a2a1526b6e5640b712d7"
+      },
+      "experiments/generator-rust/proofs/WasmControlReplay.lean": {
+        "before_sha256": "78131985bb6e204120c1393ef756b01bd8317bc6f205eda920d00ad5ff79d355",
+        "after_sha256": "0a8f8f57b90b10ed1e30ac45950527903b97e89b3d22cce12ec67863be7efc7f"
+      },
+      "experiments/generator-rust/proofs/WasmDataSupport.lean": {
+        "before_sha256": "3532b9be843c6857c29e93ba0728ac0d4a77e845f60f41653e455c0852c3f757",
+        "after_sha256": "de0dbc0cdfda3d1466f1446fcfc68b354083eb16cc24790855bc6c46f58ff13a"
+      },
+      "experiments/generator-rust/proofs/WasmEmbedding.lean": {
+        "before_sha256": "d5e11de8603593a576e9302260d63e3682d1a82b631fce4609104cf3b2c07bbe",
+        "after_sha256": "f547c41ed9ed7b5ee9ad540b6950e553b8efbdcd8b1cd1249aacc5385c09ca7c"
+      },
+      "experiments/generator-rust/proofs/WasmFiniteChoice.lean": {
+        "before_sha256": null,
+        "after_sha256": "cff0a7fc5df99f1f11672c244069a5a78f5e10a0f154cc7173d23b51499d8c69"
+      },
+      "experiments/generator-rust/proofs/WasmGenerationResult.lean": {
+        "before_sha256": null,
+        "after_sha256": "52752317b4736a6bc1504efd1a6dec07d38492273fcc906fd484c367b28905ab"
+      },
+      "experiments/generator-rust/proofs/WasmGlobalChoice.lean": {
+        "before_sha256": null,
+        "after_sha256": "3283caaa29a04fb7a40c355b732535291a5868725f993df0a6d2b04201536ca4"
+      },
+      "experiments/generator-rust/proofs/WasmGlobalRepresentation.lean": {
+        "before_sha256": null,
+        "after_sha256": "e0246c1f3711952abf95fc167433e68570b15eaff22fdfc757f99f803037826b"
+      },
+      "experiments/generator-rust/proofs/WasmGlobalSoundness.lean": {
+        "before_sha256": null,
+        "after_sha256": "471f4ab69ccaa7bd677cbd1af5fb8953a789ba7bb0bbbabab78dc9b2647baa37"
+      },
+      "experiments/generator-rust/proofs/WasmGlobalSpecification.lean": {
+        "before_sha256": null,
+        "after_sha256": "7b7b0f92cf64e132a33371ab151b206ef77e6b04fc6b5d697afccf8a16b4e1d7"
+      },
+      "experiments/generator-rust/proofs/WasmGlobalSupport.lean": {
+        "before_sha256": null,
+        "after_sha256": "3e63b30c49cf4d4a2b83b8754744839e801df9aab264529094586461c72f8578"
+      },
+      "experiments/generator-rust/proofs/WasmMemoryImportSoundness.lean": {
+        "before_sha256": "75372a2f8894548ebf717a85aad8565bbac12c6f1a8ba52cf2c799bf1ec039a9",
+        "after_sha256": "405c89b38e89ca6c59005b9298e39d42507bf69170fa789a38812733e4639721"
+      },
+      "experiments/generator-rust/proofs/WasmMemoryImportSupport.lean": {
+        "before_sha256": "d427480597b7a72c63e41af8f8f1c87dca8e59670fe1f5c4922044c1e7d99a9b",
+        "after_sha256": "99a948762cc5561d9f8388da6e97e188481376a53ea7d3d0754a64558124ad83"
+      },
+      "experiments/generator-rust/proofs/WasmMemorySectionComposition.lean": {
+        "before_sha256": "9ee6dbb90eb328a7ff6e93280896962d6d8dab8d0523f91cec9efd9d59844322",
+        "after_sha256": "fcc7a29529a36cb7d9de8bac845e38f7803dcf9933c6ea06a3621835a0980041"
+      },
+      "experiments/generator-rust/proofs/WasmMemorySupport.lean": {
+        "before_sha256": "5f74c672ea588c73b3f9c8781dbebdc730546f7aa5a1fb12e41ca39bef292cb7",
+        "after_sha256": "517fdebaab78dd4b199997dc351e5810d293fff4f4dd95b563800770c2008ce2"
+      },
+      "experiments/generator-rust/proofs/WasmMemoryWitness.lean": {
+        "before_sha256": "03b2ff8572b3a7fd9b3ba01d655efd40cc4234c5c759ad4ee3383c5f3889d264",
+        "after_sha256": "90d74ab0320a3e8802937930ee19da2e7bbedd5ffa64e7fe301601b65f020c61"
+      },
+      "experiments/generator-rust/proofs/WasmModuleCoverage.lean": {
+        "before_sha256": "b23379331769a35401df7c748e4b4bd9b363e05d988c69af0e6c3fba4e03adc8",
+        "after_sha256": "bc067050e47a141c0668dccfed1eacc5087947540c252f4a34a5d6cf66363120"
+      },
+      "experiments/generator-rust/proofs/WasmModulePrimitives.lean": {
+        "before_sha256": "1adfe2e64ecf315dd4a7734a8b3359e5cfa113eb6302d9c0bf7266deeaa721ea",
+        "after_sha256": "a6455ab053bfe77f06eb8631e2093591f98a48fd7272c9b2da6b04bf72c52fb5"
+      },
+      "experiments/generator-rust/proofs/WasmProofAudit.lean": {
+        "before_sha256": "cc539862b132520f23a413415d8df801ca64d651889940a2950af45b2790a2dd",
+        "after_sha256": "61ba5c696316c29a9f489c57791d602208d752fe5aa35985224c363e99680dfc"
+      },
+      "experiments/generator-rust/proofs/WasmReplayEvaluation.lean": {
+        "before_sha256": "5c8619a7ae1837dc2b09101c2c668ee359dc3d06ebef58be4acf6d9cc817c768",
+        "after_sha256": "e0d11133d84325f91031232da9e1e52f34c0a4528b2f968f392b70baff75bf9b"
+      },
+      "experiments/generator-rust/proofs/WasmReplayPrefix.lean": {
+        "before_sha256": null,
+        "after_sha256": "e66d46831e270e3f51cc5edd97ba523d7f74e60a9a8257e8bc5a3230ea357734"
+      },
+      "experiments/generator-rust/proofs/WasmReplayWitness.lean": {
+        "before_sha256": "0d227ba08ac44e1d46281e80c25e71f8849fb137a95fbfc810c0f4f8fff33c60",
+        "after_sha256": "9fd04c3726ce8496f9f864819df377012988a91fc9e0a2981624286a15749da8"
+      },
+      "experiments/generator-rust/proofs/WasmSpecificationWitnesses.lean": {
+        "before_sha256": "4a1cbb0f5e1a502d7a6b66415acb50bba24e6774e466251a784c10fac88614c3",
+        "after_sha256": "2a0ef4e17bd350bf8e45a1666e403a64bd892eabfa4c75a8935f7472cafd9740"
+      },
+      "experiments/generator-rust/proofs/WasmTypeContextReplay.lean": {
+        "before_sha256": "ae3134e1deba422dddd3ff5523de30b7ba369b80c5e084f69ce98060862226db",
+        "after_sha256": "5108236aa26f0f779024111e8811adaed7a281a90dc349426244377a4f8f1435"
+      },
+      "experiments/generator-rust/prove.py": {
+        "before_sha256": "77d896c94c4713838445aa750ccbacac95ccea1f3526d58e9fe5d9899a34b00f",
+        "after_sha256": "438bfc34905ab75145881018d7832554f6964d4ef0f4aa08be5b412ff70e98b1"
+      },
+      "experiments/generator-rust/src/wasm/ast.rs": {
+        "before_sha256": "6a5c8b09ebcf6b1fdc89864f75adaa7196f569091c746d84521bc99b1db8f94b",
+        "after_sha256": "4c44162e5e29adcae8724dd90ffbe205ccf5072270524ce7d855a8b20dc79ac0"
+      },
+      "experiments/generator-rust/src/wasm/global.rs": {
+        "before_sha256": null,
+        "after_sha256": "4566f3ee895eaf62de4ffaf4b54c762723438e3e0a7a424fda7e5169c6d49d92"
+      },
+      "experiments/generator-rust/src/wasm.rs": {
+        "before_sha256": "4b0efefcb5f8143812f2b8bff084112f264eff6e856e38bc1d7c6ded04789a29",
+        "after_sha256": "9de7d6f595c0e6d6b4e1192b697529dd47e25be1a1adec8701ce00d170f208a9"
+      },
+      "experiments/generator-rust/wasm_case_study.py": {
+        "before_sha256": "64c6aa221a2c5518864068d47255e30f5ea3d0be9c168d3b8f4c17e0cd776680",
+        "after_sha256": "8e37979b8cda50609b6d514da4fb96502390c4be3e91e5bd0c2596da5a14ec67"
+      },
+      "scripts/tests/rust_wasm_cases.py": {
+        "before_sha256": "efbe3dff9ba931cd32b0f2e33281f65d5874c25abb8f45ae445bd25203af0c90",
+        "after_sha256": "843e26dac50b337cc9287e822a22b744de0b6f1db01a3214c2ed3dea424d165b"
+      }
+    },
+    "sha256": "6a14695f0e17d13ac0168b354f984c136f5e420125b3fef54e5cd97afbd3b5d1"
+  },
+  "fresh-export-names.patch": {
+    "status": "unapplied, uncompiled draft",
+    "files": {
+      "experiments/generator-rust/lean/WasmMain.lean": {
+        "before_sha256": "e23d69d77c956953eb2e34c969396ee999ec7c359daa0c7e66073247a5d70dd7",
+        "after_sha256": "d6816a61e44b22a73af786a393bbaf31423ede8790d06217fb540b19571239b7"
+      },
+      "experiments/generator-rust/native/src/wasm_serialization.rs": {
+        "before_sha256": "1cde70b36ca4a20c4fa0ee04ee74a7425deb6d7ef7167721a4a893afb3df7965",
+        "after_sha256": "04366a2a71061d66c7b2636dd56aa13f1abedd9e58f9c1ecee4d7fb02a97ffb8"
+      },
+      "experiments/generator-rust/native/tests/wasm_export_names.rs": {
+        "before_sha256": null,
+        "after_sha256": "e2f0d0f80c362e083a273d80d5a04f3293d896837c2f5d4730102ba6d64163d1"
+      },
+      "experiments/generator-rust/proofs/WasmEmbedding.lean": {
+        "before_sha256": "f547c41ed9ed7b5ee9ad540b6950e553b8efbdcd8b1cd1249aacc5385c09ca7c",
+        "after_sha256": "2a8233e752b91df0cf62b9b63dfcf0c16e1db7d85a95d208b078ac341cc4b8cb"
+      },
+      "experiments/generator-rust/proofs/WasmFreshNameChoice.lean": {
+        "before_sha256": null,
+        "after_sha256": "de33ef569ee06a6e4d299b2f5e06d0456bac42b6da627d1f63b777663de8d7ab"
+      },
+      "experiments/generator-rust/proofs/WasmFreshNamePrimitives.lean": {
+        "before_sha256": null,
+        "after_sha256": "5c04a32d107364e67b845c84fc1df232099f3666277eaa97486219c1567f4266"
+      },
+      "experiments/generator-rust/src/wasm/ast.rs": {
+        "before_sha256": "4c44162e5e29adcae8724dd90ffbe205ccf5072270524ce7d855a8b20dc79ac0",
+        "after_sha256": "8c43ac6574aec920be98f21ad1214344594f96541731118e3dd9791e9eebc80f"
+      },
+      "experiments/generator-rust/src/wasm/memory_import.rs": {
+        "before_sha256": "9609b3ae6cf1ada2386c5fc2b6203a014f5eb37d0acc2e75d55e3c0afe7019c6",
+        "after_sha256": "3d7a0e7973e89ac3d4c025a40040f3ccb11e4e9000bf2ed79d35f71f829f6da1"
+      },
+      "experiments/generator-rust/src/wasm/names.rs": {
+        "before_sha256": null,
+        "after_sha256": "2f98bd225d88ed03e093b88ed4d92e353734601dfbee59b691f86e3c6f9bf9c4"
+      },
+      "experiments/generator-rust/src/wasm/type_matching.rs": {
+        "before_sha256": "ee26abad9c312d40993e50c03042b069117d3ab194613ade86e733b897557132",
+        "after_sha256": "77427e47c55cf1773881ebac110c9bc8252c77ddab86911e5dbd8aff1d8e15be"
+      },
+      "experiments/generator-rust/src/wasm.rs": {
+        "before_sha256": "9de7d6f595c0e6d6b4e1192b697529dd47e25be1a1adec8701ce00d170f208a9",
+        "after_sha256": "b51c4b0257df8b2d02a88be9807c0b33bd2b20ab094c1729a385656efd8766c0"
+      }
+    },
+    "sha256": "d90f783a52c57f3fc3683ffb5ba6aec7d6e93dbee9d97e6fb0b1b6ddae9d6cc9"
+  }
+}

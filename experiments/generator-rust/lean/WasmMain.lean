@@ -8,14 +8,32 @@ def wasmTag (tagName : String) (payload : Json) : Json := Json.mkObj [(tagName, 
 
 def wasmArray (values : List Json) : Json := .arr values.toArray
 
+def wasmPositiveValue : wasm.natural.Positive → Nat
+  | .One => 1
+  | .Bit0 tail => 2 * wasmPositiveValue tail
+  | .Bit1 tail => 2 * wasmPositiveValue tail + 1
+
+def wasmNaturalValue : wasm.natural.Natural → Nat
+  | .Zero => 0
+  | .Positive value => wasmPositiveValue value
+
 def wasmValueTypeJson (value : ValueType) : Json :=
-  wasmTag "NumT" (.str (match value with | .I32 => "I32T" | .I64 => "I64T"))
+  match value with
+  | .I32 => wasmTag "NumT" (.str "I32T")
+  | .I64 => wasmTag "NumT" (.str "I64T")
+  | .Ref nullability index => wasmTag "RefT" (wasmTag "% %" (wasmArray [
+      .str (match nullability with | .Nullable => "Null" | .NonNull => "NoNull"),
+      wasmTag "VarHT" (wasmTag "StatX" (toJson (wasmNaturalValue index)))]))
 
 def wasmBlockTypeJson (value : BlockType) : Json :=
   match value with
   | .Empty => wasmTag "ValBlockType" .null
   | .Value value => wasmTag "ValBlockType" (wasmValueTypeJson value)
-  | .Index index => wasmTag "VarBlockType" (toJson index.val)
+  | .Index index => wasmTag "VarBlockType" (toJson (wasmNaturalValue index))
+
+def wasmSequenceList {α : Type} : wasm.sequence.Sequence α → List α
+  | .Empty => []
+  | .Cons (head, tail) => head :: wasmSequenceList tail
 
 mutual
   partial def wasmInstructionsJson (instructions : List Instruction) : Json :=
@@ -23,70 +41,126 @@ mutual
 
   partial def wasmInstructionJson (instruction : Instruction) : Json :=
     match instruction with
-    | .Const32 value => wasmTag "CONST" (wasmTag "I32" (toJson value.val))
-    | .Const64 value => wasmTag "CONST" (wasmTag "I64" (toJson value.val))
-    | .LocalGet index => wasmTag "LOCAL.GET" (toJson index.val)
-    | .LocalSet index => wasmTag "LOCAL.SET" (toJson index.val)
-    | .LocalTee index => wasmTag "LOCAL.TEE" (toJson index.val)
+    | .Const32 value => wasmTag "CONST" (wasmTag "I32" (toJson (wasmNaturalValue value)))
+    | .Const64 value => wasmTag "CONST" (wasmTag "I64" (toJson (wasmNaturalValue value)))
+    | .LocalGet index => wasmTag "LOCAL.GET" (toJson (wasmNaturalValue index))
+    | .LocalSet index => wasmTag "LOCAL.SET" (toJson (wasmNaturalValue index))
+    | .LocalTee index => wasmTag "LOCAL.TEE" (toJson (wasmNaturalValue index))
+    | .RefNull index => wasmTag "REF.NULL" (wasmTag "VarHT" (wasmTag "StatX" (toJson (wasmNaturalValue index))))
+    | .RefFunc index => wasmTag "REF.FUNC" (toJson (wasmNaturalValue index))
     | .Nop => .str "NOP"
     | .Drop => .str "DROP"
     | .Binary value operation => wasmTag "BINOP" (wasmTag
         (match value with | .I32 => "I32" | .I64 => "I64")
         (.str (match operation with | .Add => "IAdd" | .Sub => "ISub" | .Mul => "IMul")))
     | .Block block body => wasmTag "BLOCK" (wasmArray [
-        wasmBlockTypeJson block, wasmInstructionsJson body.val])
+        wasmBlockTypeJson block, wasmInstructionsJson (wasmSequenceList body)])
     | .Loop block body => wasmTag "LOOP" (wasmArray [
-        wasmBlockTypeJson block, wasmInstructionsJson body.val])
+        wasmBlockTypeJson block, wasmInstructionsJson (wasmSequenceList body)])
     | .If block yes no => wasmTag "IF % % ELSE %" (wasmArray [
-        wasmBlockTypeJson block, wasmInstructionsJson yes.val, wasmInstructionsJson no.val])
-    | .Call index => wasmTag "CALL" (toJson index.val)
+        wasmBlockTypeJson block, wasmInstructionsJson (wasmSequenceList yes), wasmInstructionsJson (wasmSequenceList no)])
+    | .Call index => wasmTag "CALL" (toJson (wasmNaturalValue index))
+    | .Unreachable => .str "UNREACHABLE"
+    | .Branch index => wasmTag "BR" (toJson (wasmNaturalValue index))
+    | .BranchIf index => wasmTag "BR_IF" (toJson (wasmNaturalValue index))
 end
 
-def wasmTypeJson (signature : FuncType) : Json :=
-  wasmTag "RecT" (wasmArray [wasmTag "SubT" (wasmArray [
-    .str "Final", wasmArray [], wasmTag "DefFuncT" (wasmTag "FuncT" (wasmArray [
-      wasmArray (signature.parameters.val.map wasmValueTypeJson),
-      wasmArray (signature.results.val.map wasmValueTypeJson)]))])])
+def wasmSubtypeJson (subtype : Subtype) : Json :=
+  wasmTag "SubT" (wasmArray [
+    .str (match subtype.finality with | .Final => "Final" | .NoFinal => "NoFinal"),
+    wasmArray (match subtype.parent with
+      | none => []
+      | some index => [wasmTag "VarHT" (wasmTag "StatX" (toJson (wasmNaturalValue index)))]),
+    wasmTag "DefFuncT" (wasmTag "FuncT" (wasmArray [
+      wasmArray ((wasmSequenceList subtype.signature.parameters).map wasmValueTypeJson),
+      wasmArray ((wasmSequenceList subtype.signature.results).map wasmValueTypeJson)]))])
+
+def wasmTypeJson (group : RecGroup) : Json :=
+  wasmTag "RecT" (wasmArray ((wasmSequenceList group.members).map wasmSubtypeJson))
 
 def wasmFunctionJson (function : Function) : Json :=
   Json.mkObj [
-    ("FTYPE", toJson function.type_index.val),
-    ("LOCALS", wasmArray (function.locals.val.map (fun value =>
+    ("FTYPE", toJson (wasmNaturalValue function.type_index)),
+    ("LOCALS", wasmArray ((wasmSequenceList function.locals).map (fun value =>
       Json.mkObj [("LTYPE", wasmValueTypeJson value)]))),
-    ("BODY", wasmInstructionsJson function.body.val)]
+    ("BODY", wasmInstructionsJson (wasmSequenceList function.body))]
 
 def wasmExportJson (item : Export) : Json :=
   Json.mkObj [
-    ("NAME", wasmArray (item.name.val.map (fun byte => toJson byte.val))),
-    ("EDESC", wasmTag "FuncExport" (toJson item.function_index.val))]
+    ("NAME", wasmArray ((wasmSequenceList item.name).map (fun byte => toJson byte.val))),
+    ("EDESC", wasmTag "FuncExport" (toJson (wasmNaturalValue item.function_index)))]
+
+def wasmMemoryTypeJson (memory : Memory) : Json :=
+  wasmTag "MemoryT" (wasmArray [
+    .str (match memory.address with | .I32 => "I32AT" | .I64 => "I64AT"),
+    Json.mkObj [("MIN", toJson memory.minimum.val),
+      ("MAX", match memory.maximum with | none => .null | some value => toJson value.val)]])
+
+def wasmMemoriesJson : Memories → List Json
+  | .Empty => []
+  | .Cons memory tail =>
+      Json.mkObj [("MTYPE", wasmMemoryTypeJson memory)] :: wasmMemoriesJson tail
+
+def wasmMemoryImportJson (item : MemoryImport) : Json :=
+  Json.mkObj [
+    ("MODULENAME", wasmArray ((wasmSequenceList item.module_name).map (fun value => toJson (wasmNaturalValue value)))),
+    ("ITEMNAME", wasmArray ((wasmSequenceList item.item_name).map (fun value => toJson (wasmNaturalValue value)))),
+    ("IDESC", wasmTag "MemImport" (wasmMemoryTypeJson item.memory))]
+
+def wasmTextChars : Text → List Char
+  | .Empty => []
+  | .Cons scalar tail => Char.ofNat scalar.val :: wasmTextChars tail
+
+def wasmDatasJson : Datas → List Json
+  | .Empty => []
+  | .Cons payload tail =>
+      Json.mkObj [("DINIT", .str (String.ofList (wasmTextChars payload))), ("DMODE", .str "Passive")]
+      :: wasmDatasJson tail
 
 def wasmModuleJson (module : wasm.ast.Module) : Json :=
   Json.mkObj [
-    ("TYPES", wasmArray (module.types.val.map wasmTypeJson)),
+    ("TYPES", wasmArray ((wasmSequenceList module.types).map wasmTypeJson)),
     ("GLOBALS", wasmArray []), ("TABLES", wasmArray []),
-    ("MEMS", wasmArray []), ("TAGS", wasmArray []),
-    ("FUNCS", wasmArray (module.functions.val.map wasmFunctionJson)),
+    ("MEMS", wasmArray (wasmMemoriesJson module.memories)), ("TAGS", wasmArray []),
+    ("FUNCS", wasmArray ((wasmSequenceList module.functions).map wasmFunctionJson)),
     ("START", match module.start with
       | none => .null
-      | some index => Json.mkObj [("SFUNC", toJson index.val)]),
-    ("ELEMS", wasmArray []), ("DATAS", wasmArray []), ("IMPORTS", wasmArray []),
-    ("EXPORTS", wasmArray (module.exports.val.map wasmExportJson))]
+      | some index => Json.mkObj [("SFUNC", toJson (wasmNaturalValue index))]),
+    ("ELEMS", wasmArray []), ("DATAS", wasmArray (wasmDatasJson module.datas)), ("IMPORTS", wasmArray ((wasmSequenceList module.memory_imports).map wasmMemoryImportJson)),
+    ("EXPORTS", wasmArray ((wasmSequenceList module.exports).map wasmExportJson))]
+
+def wasmPositive (value : Nat) : wasm.natural.Positive :=
+  if value ≤ 1 then .One else
+    let tail := wasmPositive (value / 2)
+    if value % 2 = 0 then .Bit0 tail else .Bit1 tail
+termination_by value
+
+def wasmNatural (value : Nat) : wasm.natural.Natural :=
+  if value = 0 then .Zero else .Positive (wasmPositive value)
+
+def wasmTapeCells : wasm.choices.Tape → List U64
+  | .Empty => []
+  | .Cons head tail => head :: wasmTapeCells tail
+
+def wasmTapeFromCells (cells : List U64) : wasm.choices.Tape :=
+  cells.foldr wasm.choices.Tape.Cons .Empty
 
 def wasmReportJson (module : wasm.ast.Module) (choices : wasm.choices.Choices) : Json :=
   Json.mkObj [
     ("module", wasmModuleJson module),
-    ("choices", wasmArray (choices.trace.val.map (fun value => toJson value.val))),
+    ("choices", wasmArray ((wasmTapeCells choices.trace).reverse.map (fun value => toJson value.val))),
     ("state", match choices.source with | .Seeded state => toJson state.val | .Replay _ _ => .null),
-    ("remaining", toJson choices.remaining.val)]
+    ("remaining", toJson (wasmNaturalValue choices.remaining))]
 
 def wasmErrorMessage (error : wasm.choices.GenerationError) : String :=
   match error with
   | .InvalidConfig => "InvalidConfig: bounds or parameter+local count exceed u32"
-  | .TapeExhausted offset => s!"TapeExhausted: missing choice at offset {offset.val}"
+  | .TapeExhausted offset => s!"TapeExhausted: missing choice at offset {wasmNaturalValue offset}"
   | .ChoiceOutOfRange offset value bound =>
-      s!"ChoiceOutOfRange: offset={offset.val}, value={value.val}, required value < {bound.val}"
-  | .UnusedChoices consumed total => s!"UnusedChoices: consumed={consumed.val}, supplied={total.val}"
+      s!"ChoiceOutOfRange: offset={wasmNaturalValue offset}, value={value.val}, required value < {bound.val}"
+  | .UnusedChoices consumed total => s!"UnusedChoices: consumed={wasmNaturalValue consumed}, supplied={wasmNaturalValue total}"
   | .WorkLimit => "WorkLimit: generation exhausted the explicit work budget"
+  | .NoReferenceProducer index => s!"NoReferenceProducer: no initialized local or declared function produces non-null type {wasmNaturalValue index}"
   | .InternalInvariant => "InternalInvariant: typed builder task/choice invariant failed"
 
 def wasmDecimal (label value : String) : IO Nat := do
@@ -98,11 +172,6 @@ def wasmDecimal (label value : String) : IO Nat := do
       pure number
   | none => throw <| IO.userError s!"{label}={value} could not be parsed"
 
-def wasmUsize (value : Nat) : IO Usize :=
-  match UScalar.tryMkOpt .Usize value with
-  | some value => pure value
-  | none => throw <| IO.userError s!"value={value} exceeds usize"
-
 def wasmU64 (value : Nat) : IO U64 :=
   match UScalar.tryMkOpt .U64 value with
   | some value => pure value
@@ -111,19 +180,22 @@ def wasmU64 (value : Nat) : IO U64 :=
 def wasmConfig (arguments : List String) : IO wasm.Config := do
   let values ← arguments.mapM (wasmDecimal "CONFIG")
   match values with
-  | [types, functions, parameters, results, locals, exports, fuel, work] =>
-      if [types, functions, parameters, results, locals, exports].any (· > 64) || fuel > 128 || work > 1000000 then
+  | [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work] =>
+      if [types, functions, parameters, results, locals, exports, memories, datas, imports].any (· > 64) || fuel > 128 || work > 1000000 then
         throw <| IO.userError "CLI resource limit: maxima <= 64, FUEL <= 128, WORK <= 1000000 required"
       return {
-        max_types := (← wasmUsize types)
-        max_functions := (← wasmUsize functions)
-        max_parameters := (← wasmUsize parameters)
-        max_results := (← wasmUsize results)
-        max_locals := (← wasmUsize locals)
-        max_exports := (← wasmUsize exports)
-        fuel := (← wasmUsize fuel)
-        work_limit := (← wasmU64 work) }
-  | _ => throw <| IO.userError "Expected eight config fields"
+        max_types := wasmNatural types
+        max_functions := wasmNatural functions
+        max_parameters := wasmNatural parameters
+        max_results := wasmNatural results
+        max_locals := wasmNatural locals
+        max_exports := wasmNatural exports
+        fuel := wasmNatural fuel
+        max_memories := wasmNatural memories
+        max_datas := wasmNatural datas
+        max_memory_imports := wasmNatural imports
+        work_limit := wasmNatural work }
+  | _ => throw <| IO.userError "Expected eleven config fields"
 
 def wasmUnwrap (result : Result (core.result.Result (wasm.ast.Module × wasm.choices.Choices) wasm.choices.GenerationError))
     : IO (wasm.ast.Module × wasm.choices.Choices) := do
@@ -137,28 +209,27 @@ def wasmUnwrap (result : Result (core.result.Result (wasm.ast.Module × wasm.cho
 def wasmSample (count size seed : Nat) : IO Unit := do
   if count == 0 || count > 1024 || size > 32 || seed + count - 1 >= 2^64 then
     throw <| IO.userError "CLI resource limit: COUNT in 1..1024, SIZE in 0..32, SEED+COUNT-1 <= u64::MAX required"
-  let config ← wasmConfig (List.replicate 7 (toString size) ++ ["100000"])
+  let config ← wasmConfig (List.replicate 10 (toString size) ++ ["100000"])
   let output ← IO.getStdout
   for index in List.range count do
     let (module, _) ← wasmUnwrap (wasm.sample config (← wasmU64 (seed + index)))
     output.putStrLn (wasmModuleJson module).compress
 
-def wasmTape (text : String) : IO (alloc.vec.Vec U64) := do
+def wasmTape (text : String) : IO wasm.choices.Tape := do
   let cells ← if text == "-" then pure [] else (text.splitOn ",").mapM (fun cell => do
     wasmU64 (← wasmDecimal "TAPE_CELL" cell))
-  if h : cells.length ≤ Usize.max then
-    if cells.length > 1000000 then throw <| IO.userError "CLI resource limit: tape must have at most 1000000 cells"
-    return alloc.vec.Vec.from cells h
-  else throw <| IO.userError "Tape length exceeds usize"
+  if cells.length > 1000000 then
+    throw <| IO.userError "CLI resource limit: tape must have at most 1000000 cells"
+  return wasmTapeFromCells cells
 
 def main (arguments : List String) : IO Unit := do
   match arguments with
   | [count, size, seed] => wasmSample (← wasmDecimal "COUNT" count) (← wasmDecimal "SIZE" size) (← wasmDecimal "SEED" seed)
-  | [command, types, functions, parameters, results, locals, exports, fuel, work, input] =>
-      let config ← wasmConfig [types, functions, parameters, results, locals, exports, fuel, work]
+  | [command, types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work, input] =>
+      let config ← wasmConfig [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work]
       let (module, choices) ← match command with
         | "sample" => wasmUnwrap (wasm.sample config (← wasmU64 (← wasmDecimal "SEED" input)))
         | "replay" => wasmUnwrap (wasm.replay config (← wasmTape input))
         | _ => throw <| IO.userError s!"Unknown command {command}; expected sample or replay"
       (← IO.getStdout).putStrLn (wasmReportJson module choices).compress
-  | _ => throw <| IO.userError "Expected COUNT SIZE SEED, or sample/replay and eight config fields plus SEED/TAPE_CSV"
+  | _ => throw <| IO.userError "Expected COUNT SIZE SEED, or sample/replay and eleven config fields plus SEED/TAPE_CSV"

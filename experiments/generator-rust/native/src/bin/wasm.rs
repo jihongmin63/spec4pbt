@@ -1,3 +1,6 @@
+use generator_rust::wasm::natural;
+#[path = "../wasm_choice_serialization.rs"]
+mod wasm_choice_serialization;
 use generator_rust::wasm::{replay, sample, sized_config, Config};
 #[path = "../wasm_serialization.rs"]
 mod wasm_serialization;
@@ -10,20 +13,21 @@ fn decimal(label: &str, text: &str) -> Result<u64, String> {
 }
 
 fn config(arguments: &[String]) -> Result<Config, String> {
-    let labels: [&str; 8] = ["MAX_TYPES", "MAX_FUNCTIONS", "MAX_PARAMETERS", "MAX_RESULTS",
-        "MAX_LOCALS", "MAX_EXPORTS", "FUEL", "WORK"];
+    let labels: [&str; 11] = ["MAX_TYPES", "MAX_FUNCTIONS", "MAX_PARAMETERS", "MAX_RESULTS",
+        "MAX_LOCALS", "MAX_EXPORTS", "FUEL", "MAX_MEMORIES", "MAX_DATAS", "MAX_MEMORY_IMPORTS", "WORK"];
     let mut values: Vec<u64> = Vec::new();
     for (label, argument) in labels.iter().zip(arguments) {
         values.push(decimal(label, argument)?);
     }
     // These are CLI safety rejections, not silent core saturation.
-    if values[..6].iter().any(|value| *value > 64) || values[6] > 128 || values[7] > 1_000_000 {
+    if values[..6].iter().any(|value| *value > 64) || values[6] > 128 || values[7] > 64 || values[8] > 64 || values[9] > 64 || values[10] > 1_000_000 {
         return Err("CLI resource limit: maxima <= 64, FUEL <= 128, WORK <= 1000000 required".to_owned());
     }
-    Ok(Config { max_types: values[0] as usize, max_functions: values[1] as usize,
-        max_parameters: values[2] as usize, max_results: values[3] as usize,
-        max_locals: values[4] as usize, max_exports: values[5] as usize,
-        fuel: values[6] as usize, work_limit: values[7] })
+    Ok(Config { max_types: natural::from_u64(values[0]), max_functions: natural::from_u64(values[1]),
+        max_parameters: natural::from_u64(values[2]), max_results: natural::from_u64(values[3]),
+        max_locals: natural::from_u64(values[4]), max_exports: natural::from_u64(values[5]),
+        fuel: natural::from_u64(values[6]), max_memories: natural::from_u64(values[7]), max_datas: natural::from_u64(values[8]), max_memory_imports: natural::from_u64(values[9]),
+        work_limit: natural::from_u64(values[10]) })
 }
 
 fn run(arguments: &[String]) -> Result<(), String> {
@@ -41,23 +45,23 @@ fn run(arguments: &[String]) -> Result<(), String> {
         }
         return Ok(());
     }
-    if arguments.len() != 10 {
-        return Err("Expected COUNT SIZE SEED, or sample/replay MAX_TYPES MAX_FUNCTIONS MAX_PARAMETERS MAX_RESULTS MAX_LOCALS MAX_EXPORTS FUEL WORK SEED/TAPE_CSV ('-' for empty tape)".to_owned());
+    if arguments.len() != 13 {
+        return Err("Expected COUNT SIZE SEED, or sample/replay MAX_TYPES MAX_FUNCTIONS MAX_PARAMETERS MAX_RESULTS MAX_LOCALS MAX_EXPORTS FUEL MAX_MEMORIES MAX_DATAS MAX_MEMORY_IMPORTS WORK SEED/TAPE_CSV ('-' for empty tape)".to_owned());
     }
-    let config: Config = config(&arguments[1..9])?;
+    let config: Config = config(&arguments[1..12])?;
     let result = match arguments[0].as_str() {
-        "sample" => sample(config, decimal("SEED", &arguments[9])?),
+        "sample" => sample(config, decimal("SEED", &arguments[12])?),
         "replay" => {
             let mut tape: Vec<u64> = Vec::new();
-            if arguments[9] != "-" {
-                for cell in arguments[9].split(',') {
+            if arguments[12] != "-" {
+                for cell in arguments[12].split(',') {
                     tape.push(decimal("TAPE_CELL", cell)?);
                 }
             }
             if tape.len() > 1_000_000 {
                 return Err("CLI resource limit: tape must have at most 1000000 cells".to_owned());
             }
-            replay(config, tape)
+            replay(config, wasm_choice_serialization::tape_from_cells(tape))
         }
         command => return Err(format!("Unknown command {command:?}; expected sample or replay")),
     };

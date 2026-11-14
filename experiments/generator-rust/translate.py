@@ -46,7 +46,7 @@ def lean_environment(lean_bin: Path, directory: Path, environment: dict[str, str
     names: tuple[str, ...] = ('LEAN_PATH', 'LEAN_SRC_PATH', 'LD_LIBRARY_PATH', 'LEAN_SYSROOT')
     result: subprocess.CompletedProcess[str] = subprocess.run(
         [str(lean_bin / 'lake'), 'env', 'printenv', '-0', *names],
-        cwd=directory, env=environment, text=True, capture_output=True, check=True, timeout=60,
+        cwd=directory, env=environment, text=True, capture_output=True, check=True, timeout=180,
     )
     values: list[str] = result.stdout.split('\0')
     if len(values) != len(names) + 1 or values[-1] != '':
@@ -102,12 +102,14 @@ def main() -> None:
     for source in (EXPERIMENT / 'lean').iterdir():
         if source.is_file():
             shutil.copyfile(source, lean / source.name)
-    run([str(lean_bin / 'lake'), 'update'], lean, environment, logs / 'lake-update.log')
+    # Resolve the project manifest once; later translations reuse the installed dependencies.
+    if not (lean / 'lake-manifest.json').is_file():
+        run([str(lean_bin / 'lake'), 'update'], lean, environment, logs / 'lake-update.log')
     compiler_environment: dict[str, str] = lean_environment(lean_bin, lean, environment)
     compiled: Path = lean / '.lake/build/lib/lean'
     compiled.mkdir(parents=True, exist_ok=True)
     for module in ('GeneratorRust', 'Main', 'WasmMain'):
-        run([str(lean_bin / 'lean'),
+        run([str(lean_bin / 'lean'), '-j', '1', '-M', '3100',
              '-o', str(compiled / (module + '.olean')), module + '.lean'],
             lean, compiler_environment, logs / (module + '.log'))
     print(f'Translated and compiled: {lean}', flush=True)

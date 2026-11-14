@@ -1,0 +1,2018 @@
+diff --git a/experiments/generator-rust/lean/WasmMain.lean b/experiments/generator-rust/lean/WasmMain.lean
+--- a/experiments/generator-rust/lean/WasmMain.lean
++++ b/experiments/generator-rust/lean/WasmMain.lean
+@@ -90,6 +90,13 @@
+     ("NAME", wasmArray ((wasmSequenceList item.name).map (fun byte => toJson byte.val))),
+     ("EDESC", wasmTag "FuncExport" (toJson (wasmNaturalValue item.function_index)))]
+
++def wasmGlobalJson (item : Global) : Json :=
++  Json.mkObj [
++    ("GTYPE", wasmTag "GlobalT" (wasmArray [
++      .str (match item.mutability with | .Constant => "Cons" | .Variable => "Var"),
++      wasmValueTypeJson item.value_type])),
++    ("GINIT", wasmInstructionsJson (wasmSequenceList item.initializer))]
++
+ def wasmMemoryTypeJson (memory : Memory) : Json :=
+   wasmTag "MemoryT" (wasmArray [
+     .str (match memory.address with | .I32 => "I32AT" | .I64 => "I64AT"),
+@@ -120,7 +127,7 @@
+ def wasmModuleJson (module : wasm.ast.Module) : Json :=
+   Json.mkObj [
+     ("TYPES", wasmArray ((wasmSequenceList module.types).map wasmTypeJson)),
+-    ("GLOBALS", wasmArray []), ("TABLES", wasmArray []),
++    ("GLOBALS", wasmArray ((wasmSequenceList module.globals).map wasmGlobalJson)), ("TABLES", wasmArray []),
+     ("MEMS", wasmArray (wasmMemoriesJson module.memories)), ("TAGS", wasmArray []),
+     ("FUNCS", wasmArray ((wasmSequenceList module.functions).map wasmFunctionJson)),
+     ("START", match module.start with
+@@ -180,8 +187,8 @@
+ def wasmConfig (arguments : List String) : IO wasm.Config := do
+   let values ← arguments.mapM (wasmDecimal "CONFIG")
+   match values with
+-  | [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work] =>
+-      if [types, functions, parameters, results, locals, exports, memories, datas, imports].any (· > 64) || fuel > 128 || work > 1000000 then
++  | [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, globals, work] =>
++      if [types, functions, parameters, results, locals, exports, memories, datas, imports, globals].any (· > 64) || fuel > 128 || work > 1000000 then
+         throw <| IO.userError "CLI resource limit: maxima <= 64, FUEL <= 128, WORK <= 1000000 required"
+       return {
+         max_types := wasmNatural types
+@@ -194,8 +201,9 @@
+         max_memories := wasmNatural memories
+         max_datas := wasmNatural datas
+         max_memory_imports := wasmNatural imports
++        max_globals := wasmNatural globals
+         work_limit := wasmNatural work }
+-  | _ => throw <| IO.userError "Expected eleven config fields"
++  | _ => throw <| IO.userError "Expected twelve config fields"
+
+ def wasmUnwrap (result : Result (core.result.Result (wasm.ast.Module × wasm.choices.Choices) wasm.choices.GenerationError))
+     : IO (wasm.ast.Module × wasm.choices.Choices) := do
+@@ -209,7 +217,7 @@
+ def wasmSample (count size seed : Nat) : IO Unit := do
+   if count == 0 || count > 1024 || size > 32 || seed + count - 1 >= 2^64 then
+     throw <| IO.userError "CLI resource limit: COUNT in 1..1024, SIZE in 0..32, SEED+COUNT-1 <= u64::MAX required"
+-  let config ← wasmConfig (List.replicate 10 (toString size) ++ ["100000"])
++  let config ← wasmConfig (List.replicate 11 (toString size) ++ ["100000"])
+   let output ← IO.getStdout
+   for index in List.range count do
+     let (module, _) ← wasmUnwrap (wasm.sample config (← wasmU64 (seed + index)))
+@@ -225,11 +233,11 @@
+ def main (arguments : List String) : IO Unit := do
+   match arguments with
+   | [count, size, seed] => wasmSample (← wasmDecimal "COUNT" count) (← wasmDecimal "SIZE" size) (← wasmDecimal "SEED" seed)
+-  | [command, types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work, input] =>
+-      let config ← wasmConfig [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, work]
++  | [command, types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, globals, work, input] =>
++      let config ← wasmConfig [types, functions, parameters, results, locals, exports, fuel, memories, datas, imports, globals, work]
+       let (module, choices) ← match command with
+         | "sample" => wasmUnwrap (wasm.sample config (← wasmU64 (← wasmDecimal "SEED" input)))
+         | "replay" => wasmUnwrap (wasm.replay config (← wasmTape input))
+         | _ => throw <| IO.userError s!"Unknown command {command}; expected sample or replay"
+       (← IO.getStdout).putStrLn (wasmReportJson module choices).compress
+-  | _ => throw <| IO.userError "Expected COUNT SIZE SEED, or sample/replay and eleven config fields plus SEED/TAPE_CSV"
++  | _ => throw <| IO.userError "Expected COUNT SIZE SEED, or sample/replay and twelve config fields plus SEED/TAPE_CSV"
+diff --git a/experiments/generator-rust/native/src/bin/wasm.rs b/experiments/generator-rust/native/src/bin/wasm.rs
+--- a/experiments/generator-rust/native/src/bin/wasm.rs
++++ b/experiments/generator-rust/native/src/bin/wasm.rs
+@@ -13,21 +13,21 @@
+ }
+
+ fn config(arguments: &[String]) -> Result<Config, String> {
+-    let labels: [&str; 11] = ["MAX_TYPES", "MAX_FUNCTIONS", "MAX_PARAMETERS", "MAX_RESULTS",
+-        "MAX_LOCALS", "MAX_EXPORTS", "FUEL", "MAX_MEMORIES", "MAX_DATAS", "MAX_MEMORY_IMPORTS", "WORK"];
++    let labels: [&str; 12] = ["MAX_TYPES", "MAX_FUNCTIONS", "MAX_PARAMETERS", "MAX_RESULTS",
++        "MAX_LOCALS", "MAX_EXPORTS", "FUEL", "MAX_MEMORIES", "MAX_DATAS", "MAX_MEMORY_IMPORTS", "MAX_GLOBALS", "WORK"];
+     let mut values: Vec<u64> = Vec::new();
+     for (label, argument) in labels.iter().zip(arguments) {
+         values.push(decimal(label, argument)?);
+     }
+     // These are CLI safety rejections, not silent core saturation.
+-    if values[..6].iter().any(|value| *value > 64) || values[6] > 128 || values[7] > 64 || values[8] > 64 || values[9] > 64 || values[10] > 1_000_000 {
++    if values[..6].iter().any(|value| *value > 64) || values[6] > 128 || values[7] > 64 || values[8] > 64 || values[9] > 64 || values[10] > 64 || values[11] > 1_000_000 {
+         return Err("CLI resource limit: maxima <= 64, FUEL <= 128, WORK <= 1000000 required".to_owned());
+     }
+     Ok(Config { max_types: natural::from_u64(values[0]), max_functions: natural::from_u64(values[1]),
+         max_parameters: natural::from_u64(values[2]), max_results: natural::from_u64(values[3]),
+         max_locals: natural::from_u64(values[4]), max_exports: natural::from_u64(values[5]),
+         fuel: natural::from_u64(values[6]), max_memories: natural::from_u64(values[7]), max_datas: natural::from_u64(values[8]), max_memory_imports: natural::from_u64(values[9]),
+-        work_limit: natural::from_u64(values[10]) })
++        max_globals: natural::from_u64(values[10]), work_limit: natural::from_u64(values[11]) })
+ }
+
+ fn run(arguments: &[String]) -> Result<(), String> {
+@@ -45,16 +45,16 @@
+         }
+         return Ok(());
+     }
+-    if arguments.len() != 13 {
+-        return Err("Expected COUNT SIZE SEED, or sample/replay MAX_TYPES MAX_FUNCTIONS MAX_PARAMETERS MAX_RESULTS MAX_LOCALS MAX_EXPORTS FUEL MAX_MEMORIES MAX_DATAS MAX_MEMORY_IMPORTS WORK SEED/TAPE_CSV ('-' for empty tape)".to_owned());
++    if arguments.len() != 14 {
++        return Err("Expected COUNT SIZE SEED, or sample/replay MAX_TYPES MAX_FUNCTIONS MAX_PARAMETERS MAX_RESULTS MAX_LOCALS MAX_EXPORTS FUEL MAX_MEMORIES MAX_DATAS MAX_MEMORY_IMPORTS MAX_GLOBALS WORK SEED/TAPE_CSV ('-' for empty tape)".to_owned());
+     }
+-    let config: Config = config(&arguments[1..12])?;
++    let config: Config = config(&arguments[1..13])?;
+     let result = match arguments[0].as_str() {
+-        "sample" => sample(config, decimal("SEED", &arguments[12])?),
++        "sample" => sample(config, decimal("SEED", &arguments[13])?),
+         "replay" => {
+             let mut tape: Vec<u64> = Vec::new();
+-            if arguments[12] != "-" {
+-                for cell in arguments[12].split(',') {
++            if arguments[13] != "-" {
++                for cell in arguments[13].split(',') {
+                     tape.push(decimal("TAPE_CELL", cell)?);
+                 }
+             }
+diff --git a/experiments/generator-rust/native/src/wasm_serialization.rs b/experiments/generator-rust/native/src/wasm_serialization.rs
+--- a/experiments/generator-rust/native/src/wasm_serialization.rs
++++ b/experiments/generator-rust/native/src/wasm_serialization.rs
+@@ -1,5 +1,5 @@
+ use crate::wasm_choice_serialization::{natural_decimal, trace_json};
+-use generator_rust::wasm::{AddressType, BinaryOp, BlockType, Datas, Finality, Instruction, IntegerType, Memories, Memory, MemoryImport, Module, Nullability, RecGroup, Text, ValueType};
++use generator_rust::wasm::{AddressType, BinaryOp, BlockType, Datas, Finality, Global, Instruction, IntegerType, Memories, Memory, MemoryImport, Module, Mutability, Nullability, RecGroup, Text, ValueType};
+ use generator_rust::wasm::choices::{Choices, GenerationError, Source};
+ use generator_rust::wasm::sequence::Sequence;
+
+@@ -72,6 +72,15 @@
+     format!("[{}]", parts.join(","))
+ }
+
++fn global_json(item: &Global) -> String {
++    let mutability: &str = match item.mutability {
++        Mutability::Constant => "Cons",
++        Mutability::Variable => "Var",
++    };
++    format!("{{\"GTYPE\":{{\"GlobalT\":[\"{mutability}\",{}]}},\"GINIT\":{}}}",
++        value_type_json(&item.value_type), instructions_json(&item.initializer))
++}
++
+ fn memory_type_json(memory: &Memory) -> String {
+     let address: &str = match memory.address {
+         AddressType::I32 => "I32AT",
+@@ -155,14 +164,15 @@
+         format!("{{\"NAME\":[{}],\"EDESC\":{{\"FuncExport\":{}}}}}",
+             name.join(","), natural_decimal(&export.function_index))
+     }).collect();
++    let globals: Vec<String> = sequence_items(&module.globals).into_iter().map(global_json).collect();
+     let imports: Vec<String> = sequence_items(&module.memory_imports).into_iter().map(memory_import_json).collect();
+     let start: String = match &module.start {
+         None => "null".to_owned(),
+         Some(index) => format!("{{\"SFUNC\":{}}}", natural_decimal(index)),
+     };
+     format!(
+-        "{{\"TYPES\":[{}],\"GLOBALS\":[],\"TABLES\":[],\"MEMS\":{},\"TAGS\":[],\"FUNCS\":[{}],\"START\":{},\"ELEMS\":[],\"DATAS\":{},\"IMPORTS\":[{}],\"EXPORTS\":[{}]}}",
+-        types.join(","), memories_json(&module.memories), functions.join(","), start,
++        "{{\"TYPES\":[{}],\"GLOBALS\":[{}],\"TABLES\":[],\"MEMS\":{},\"TAGS\":[],\"FUNCS\":[{}],\"START\":{},\"ELEMS\":[],\"DATAS\":{},\"IMPORTS\":[{}],\"EXPORTS\":[{}]}}",
++        types.join(","), globals.join(","), memories_json(&module.memories), functions.join(","), start,
+         datas_json(&module.datas), imports.join(","), exports.join(","))
+ }
+
+diff --git a/experiments/generator-rust/native/tests/wasm_constant_globals.rs b/experiments/generator-rust/native/tests/wasm_constant_globals.rs
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/native/tests/wasm_constant_globals.rs
+@@ -0,0 +1,87 @@
++use generator_rust::wasm::{natural, replay, sized_config};
++use generator_rust::wasm::choices::{Source, Tape};
++
++#[path = "../src/wasm_choice_serialization.rs"]
++mod wasm_choice_serialization;
++#[path = "../src/wasm_serialization.rs"]
++mod wasm_serialization;
++
++fn natural_cells(number: u128) -> Vec<u64> {
++    if number < 1 << 32 {
++        return vec![u64::try_from(number).expect("small test number fits u64")];
++    }
++    let mut cells: Vec<u64> = vec![1 << 32];
++    let mut remaining: u128 = number;
++    while remaining > 1 {
++        cells.push(if remaining % 2 == 0 { 1 } else { 2 });
++        remaining /= 2;
++    }
++    cells.push(0);
++    cells
++}
++
++fn globals_report(maximum: usize, cells: Vec<u64>) -> String {
++    let offset: u64 = u64::try_from(cells.len()).expect("test tape length fits u64");
++    let expected_trace: String = format!("[{}]",
++        cells.iter().map(u64::to_string).collect::<Vec<String>>().join(","));
++    let mut config = sized_config(maximum, offset);
++    config.max_types = natural::Natural::Zero;
++    config.max_functions = natural::Natural::Zero;
++    config.max_parameters = natural::Natural::Zero;
++    config.max_results = natural::Natural::Zero;
++    config.max_locals = natural::Natural::Zero;
++    config.max_exports = natural::Natural::Zero;
++    config.fuel = natural::Natural::Zero;
++    config.max_memories = natural::Natural::Zero;
++    config.max_datas = natural::Natural::Zero;
++    config.max_memory_imports = natural::Natural::Zero;
++    let tape: Tape = wasm_choice_serialization::tape_from_cells(cells);
++    let (module, final_state) = match replay(config, tape) {
++        Ok(output) => output,
++        Err(error) => panic!("full replay must construct constant globals: {}",
++            wasm_serialization::error_message(error)),
++    };
++    assert!(matches!(final_state.remaining, natural::Natural::Zero));
++    match final_state.source {
++        Source::Replay(Tape::Empty, actual) =>
++            assert_eq!(wasm_choice_serialization::natural_decimal(&actual), offset.to_string()),
++        _ => panic!("full replay must consume the exact global tape"),
++    }
++    assert_eq!(wasm_choice_serialization::trace_json(&final_state.trace), expected_trace);
++    wasm_serialization::module_json(&module)
++}
++
++#[test]
++fn full_replay_preserves_constant_global_types_mutability_and_naturals() {
++    for (width_cell, width) in [(0u64, "I32"), (1, "I64")] {
++        for (mutable_cell, mutable) in [(0u64, "Cons"), (1, "Var")] {
++            for number in [0u128, 1, 1 << 32, 1 << 64, 1 << 80, (1 << 80) + 5] {
++                let mut cells: Vec<u64> = vec![0, 1, width_cell, mutable_cell];
++                cells.extend(natural_cells(number));
++                let output: String = globals_report(1, cells);
++                let global: String = format!(
++                    "{{\"GTYPE\":{{\"GlobalT\":[\"{mutable}\",{{\"NumT\":\"{width}T\"}}]}},\"GINIT\":[{{\"CONST\":{{\"{width}\":{number}}}}}]}}"
++                );
++                assert!(output.contains(&format!("\"GLOBALS\":[{global}]")),
++                    "global type, mutability or initializer changed: {output}");
++            }
++        }
++    }
++}
++
++#[test]
++fn constant_global_section_exceeds_frontend_sample_size() {
++    let mut cells: Vec<u64> = vec![0];
++    let mut expected: Vec<String> = Vec::new();
++    for index in 0u64..129 {
++        cells.extend([1, index % 2, (index / 2) % 2, index]);
++        let width: &str = if index % 2 == 0 { "I32" } else { "I64" };
++        let mutable: &str = if (index / 2) % 2 == 0 { "Cons" } else { "Var" };
++        expected.push(format!(
++            "{{\"GTYPE\":{{\"GlobalT\":[\"{mutable}\",{{\"NumT\":\"{width}T\"}}]}},\"GINIT\":[{{\"CONST\":{{\"{width}\":{index}}}}}]}}"
++        ));
++    }
++    let output: String = globals_report(129, cells);
++    assert!(output.contains(&format!("\"GLOBALS\":[{}]", expected.join(","))),
++        "global section must preserve every type, initializer and its original order: {output}");
++}
+diff --git a/experiments/generator-rust/native/tests/wasm_passive_data.rs b/experiments/generator-rust/native/tests/wasm_passive_data.rs
+--- a/experiments/generator-rust/native/tests/wasm_passive_data.rs
++++ b/experiments/generator-rust/native/tests/wasm_passive_data.rs
+@@ -8,7 +8,7 @@
+ fn passive_report(payloads: &[&str]) -> String {
+     let mut cells: Vec<u64> = vec![0];
+     if !payloads.is_empty() {
+-        cells.extend([0, 0]);
++        cells.extend([0, 0, 0]);
+     }
+     for payload in payloads {
+         cells.push(1);
+diff --git a/experiments/generator-rust/proofs/WasmConstantReplay.lean b/experiments/generator-rust/proofs/WasmConstantReplay.lean
+--- a/experiments/generator-rust/proofs/WasmConstantReplay.lean
++++ b/experiments/generator-rust/proofs/WasmConstantReplay.lean
+@@ -25,9 +25,9 @@
+ def integerConstantGroup (width : IntegerType) : RecGroup := ⟨oneSequence ⟨.Final, none, integerConstantSignature width⟩⟩
+ def integerConstantOutput (width : IntegerType) (value : wasm.natural.Natural) : wasm.ast.Module :=
+   ⟨oneSequence (integerConstantGroup width), oneSequence ⟨.Zero, .Empty, oneSequence (integerConstantInstruction width value)⟩,
+-    .Empty, none, .Empty, .Empty, .Empty⟩
++    .Empty, none, .Empty, .Empty, .Empty, .Empty⟩
+ def constantConfig (value : wasm.natural.Natural) : wasm.Config :=
+-  ⟨naturalLiteral 1, naturalLiteral 1, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero,
++  ⟨naturalLiteral 1, naturalLiteral 1, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero,
+     naturalLiteral ((naturalCells value).length + 14)⟩
+ def integerConstantCells (width : IntegerType) (value : wasm.natural.Natural) : List U64 :=
+   [1#u64, 1#u64, 0#u64, 0#u64, 0#u64, 1#u64, valueTypeCell width, 1#u64, 0#u64, 0#u64, 0#u64, 0#u64] ++
+@@ -286,6 +286,10 @@
+       wasm.memory_import.generate .Zero choices = Result.ok (.Ok (.Empty, choices)) := by
+     rw [wasm.memory_import.generate]
+     simp [wasm.natural.decrement]
++  have noGlobals (choices : wasm.choices.Choices) :
++      wasm.global.generate .Zero choices = Result.ok (.Ok (.Empty, choices)) := by
++    rw [wasm.global.generate]
++    simp [wasm.natural.decrement]
+   have noMemories (choices : wasm.choices.Choices) :
+       wasm.memory.generate .Zero choices = Result.ok (.Ok (.Empty, choices)) := by
+     rw [wasm.memory.generate]
+@@ -306,7 +310,7 @@
+     erw [indicesRun]
+     simp [core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair, one_sequence_length, constantConfig]
+     erw [exportsRun]
+-    simp [core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair, one_sequence_length, constantConfig, wasm.declared_refs]
++    simp [core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair, one_sequence_length, constantConfig, copy_natural_eq, noGlobals, wasm.declared_refs]
+     erw [functionsRun]
+     simp [core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair, one_sequence_length, constantConfig]
+     erw [startRun]
+diff --git a/experiments/generator-rust/proofs/WasmControlReplay.lean b/experiments/generator-rust/proofs/WasmControlReplay.lean
+--- a/experiments/generator-rust/proofs/WasmControlReplay.lean
++++ b/experiments/generator-rust/proofs/WasmControlReplay.lean
+@@ -9,12 +9,12 @@
+
+ def controlConfig (results fuel work : Nat) : wasm.Config :=
+   ⟨naturalLiteral 1, naturalLiteral 1, .Zero, naturalLiteral results, .Zero, .Zero,
+-    naturalLiteral fuel, .Zero, .Zero, .Zero, naturalLiteral work⟩
++    naturalLiteral fuel, .Zero, .Zero, .Zero, .Zero, naturalLiteral work⟩
+
+ def controlOutput (results : wasm.sequence.Sequence ValueType)
+     (body : wasm.sequence.Sequence Instruction) : wasm.ast.Module :=
+   ⟨sequenceLiteral [⟨sequenceLiteral [⟨.Final, none, ⟨.Empty, results⟩⟩]⟩],
+-    sequenceLiteral [⟨.Zero, .Empty, body⟩], .Empty, none, .Empty, .Empty, .Empty⟩
++    sequenceLiteral [⟨.Zero, .Empty, body⟩], .Empty, none, .Empty, .Empty, .Empty, .Empty⟩
+
+ def controlFinal (cells : List U64) : wasm.choices.Choices :=
+   ⟨.Replay .Empty (naturalLiteral cells.length), tapeFromCells cells.reverse, .Zero⟩
+diff --git a/experiments/generator-rust/proofs/WasmDataSupport.lean b/experiments/generator-rust/proofs/WasmDataSupport.lean
+--- a/experiments/generator-rust/proofs/WasmDataSupport.lean
++++ b/experiments/generator-rust/proofs/WasmDataSupport.lean
+@@ -41,10 +41,12 @@
+   apply replay_from_build (dataListConfig payloads) _ _ (dataListFinal payloads)
+     (naturalLiteral ((dataCells payloads).length + 1)) ?_ rfl
+   let afterTypes := replayState (dataCells payloads) [0#u64] 1 (dataCells payloads).length
+-  apply build_empty_types (dataListConfig payloads) _ afterTypes afterTypes afterTypes
+-    (dataListFinal payloads) .Empty .Empty (dataLiteral payloads)
++  apply build_empty_types (dataListConfig payloads) _ afterTypes afterTypes afterTypes afterTypes
++    (dataListFinal payloads) .Empty .Empty .Empty (dataLiteral payloads)
+   · exact data_list_types payloads
+   · rw [wasm.memory_import.generate]
++    simp [dataListConfig, emptyConfig, wasm.natural.decrement]
++  · rw [wasm.global.generate]
+     simp [dataListConfig, emptyConfig, wasm.natural.decrement]
+   · rw [wasm.memory.generate]
+     simp [dataListConfig, emptyConfig, wasm.natural.decrement]
+diff --git a/experiments/generator-rust/proofs/WasmEmbedding.lean b/experiments/generator-rust/proofs/WasmEmbedding.lean
+--- a/experiments/generator-rust/proofs/WasmEmbedding.lean
++++ b/experiments/generator-rust/proofs/WasmEmbedding.lean
+@@ -79,6 +79,14 @@
+   ⟨.MemoryT (match item.address with | .I32 => .I32AT | .I64 => .I64AT)
+     ⟨item.minimum.val, item.maximum.map (fun value => value.val)⟩⟩
+
++def mutability : Mutability → SpecTec.«mut»
++  | .Constant => .Cons
++  | .Variable => .Var
++
++def globalEntry (item : Global) : SpecTec.global :=
++  ⟨.GlobalT (mutability item.mutability) (valueType item.value_type),
++    instructionSequence item.initializer⟩
++
+ def memoryImport (item : MemoryImport) : SpecTec.«import» :=
+   ⟨(sequenceValues item.module_name).map naturalValue,
+     (sequenceValues item.item_name).map naturalValue, .MemImport (memory item.memory).MTYPE⟩
+@@ -94,7 +102,7 @@
+ /-- All represented sections are converted structurally; omitted sections stay empty. -/
+ def embed (item : wasm.ast.Module) : SpecTec.module where
+   TYPES := (sequenceValues item.types).map recursiveGroup
+-  GLOBALS := []
++  GLOBALS := (sequenceValues item.globals).map globalEntry
+   TABLES := []
+   MEMS := memories item.memories
+   TAGS := []
+diff --git a/experiments/generator-rust/proofs/WasmFiniteChoice.lean b/experiments/generator-rust/proofs/WasmFiniteChoice.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmFiniteChoice.lean
+@@ -0,0 +1,86 @@
++import WasmNaturalIndex
++import WasmSequence
++
++set_option autoImplicit false
++set_option maxHeartbeats 1200000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust
++
++/-- Every listed alternative has an exact actual-Rust replay prefix. -/
++theorem choose_replay {α : Type} (values : List α) (value : α) (present : value ∈ values) :
++    ∃ cells : List U64, ∀ (rest trace : List U64) (offset work : Nat),
++      wasm.choose (sequenceLiteral values)
++        (replayState (cells ++ rest) trace offset (work + cells.length)) =
++        Result.ok (.Ok (value,
++          replayState rest (cells.reverse ++ trace) (offset + cells.length) work)) := by
++  obtain ⟨index, inRange, selected⟩ := List.getElem_of_mem present
++  obtain ⟨cells, replay⟩ := natural_index_replay values.length index inRange
++  refine ⟨cells, ?_⟩
++  intro rest trace offset work
++  have found : values[index]? = some value := by simp [List.getElem?_eq_getElem, inRange, selected]
++  simp [wasm.choose, sequence_length, replay rest trace offset work,
++    sequence_select, found, core.result.Result.Insts.CoreOpsTry.branch,
++    ↓uncurry_apply_pair]
++
++theorem choose_spec {α : Type} (values : List α) (choices : wasm.choices.Choices) :
++    wasm.choose (sequenceLiteral values) choices ⦃ result =>
++      match result with
++      | .Err _ => True
++      | .Ok (value, _) => value ∈ values ⦄ := by
++  rw [wasm.choose, sequence_length]
++  simp only [bind_ok, bind_tc_ok]
++  apply WP.spec_bind (natural_index_spec values.length choices)
++  intro result _
++  cases result with
++  | Err error =>
++      simp [core.result.Result.Insts.CoreOpsTry.branch,
++        core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++        core.convert.FromSame, core.convert.FromSame.from]
++  | Ok pair =>
++      rcases pair with ⟨index, finalState⟩
++      have canonical : index = naturalLiteral (naturalValue index) := by
++        apply naturalValue_injective
++        simp
++      have selected : wasm.sequence.select (sequenceLiteral values) index =
++          Result.ok values[naturalValue index]? := by
++        conv_lhs => rw [canonical]
++        exact sequence_select values (naturalValue index)
++      simp only [core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair,
++        bind_ok, bind_tc_ok, selected]
++      cases found : values[naturalValue index]? with
++      | none => simp [found]
++      | some value => simpa [found] using List.mem_of_getElem? found
++
++/-- Soundness covers all successful choice sources, not just constructed tapes. -/
++theorem choose_sound {α : Type} (values : List α) (value : α)
++    (choices finalState : wasm.choices.Choices)
++    (success : wasm.choose (sequenceLiteral values) choices = Result.ok (.Ok (value, finalState))) :
++    value ∈ values := by
++  have correct := choose_spec values choices
++  rw [success] at correct
++  simpa using correct
++
++theorem choose_support_exact {α : Type} (values : List α) (value : α) :
++    (∃ choices finalState,
++      wasm.choose (sequenceLiteral values) choices = Result.ok (.Ok (value, finalState))) ↔
++      value ∈ values := by
++  constructor
++  · rintro ⟨choices, finalState, success⟩
++    exact choose_sound values value choices finalState success
++  · intro present
++    obtain ⟨cells, replay⟩ := choose_replay values value present
++    refine ⟨replayState cells [] 0 cells.length,
++      replayState [] cells.reverse cells.length 0, ?_⟩
++    simpa using replay [] [] 0 0
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``choose_replay, ``choose_spec, ``choose_sound, ``choose_support_exact] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGenerationResult.lean b/experiments/generator-rust/proofs/WasmGenerationResult.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGenerationResult.lean
+@@ -0,0 +1,41 @@
++import GeneratorRust
++import Lean.Util.CollectAxioms
++
++set_option autoImplicit false
++
++namespace RustWasm
++open Aeneas.Std generator_rust
++
++theorem result_bind_success {α β : Type} (first : Result α) (next : α → Result β)
++    (output : β) (success : Aeneas.Std.bind first next = Result.ok output) :
++    ∃ intermediate, first = Result.ok intermediate ∧ next intermediate = Result.ok output := by
++  cases first with
++  | ret intermediate => exact ⟨intermediate, rfl, by simpa using success⟩
++  | vis effect continuation => simp at success
++  | div => simp at success
++
++/-- Invert a successful Rust result bind whose error arm preserves the error. -/
++theorem generation_bind_success {α β : Type}
++    (first : Result (core.result.Result α wasm.choices.GenerationError))
++    (next : core.result.Result α wasm.choices.GenerationError →
++      Result (core.result.Result β wasm.choices.GenerationError)) (output : β)
++    (success : Aeneas.Std.bind first next = Result.ok (.Ok output))
++    (errorRun : ∀ error, next (.Err error) = Result.ok (.Err error)) :
++    ∃ value, first = Result.ok (.Ok value) ∧ next (.Ok value) = Result.ok (.Ok output) := by
++  obtain ⟨result, firstRun, tail⟩ := result_bind_success first next (.Ok output) success
++  cases result with
++  | Ok value => exact ⟨value, firstRun, tail⟩
++  | Err error =>
++      rw [errorRun error] at tail
++      simp at tail
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``result_bind_success, ``generation_bind_success] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGlobalChoice.lean b/experiments/generator-rust/proofs/WasmGlobalChoice.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGlobalChoice.lean
+@@ -0,0 +1,110 @@
++import WasmGlobalSpecification
++import WasmConstantReplay
++
++set_option autoImplicit false
++set_option maxHeartbeats 1600000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust wasm.ast
++
++def globalMutability : SpecTec.«mut» → Mutability
++  | .Cons => .Constant
++  | .Var => .Variable
++
++def globalMutabilityCell : SpecTec.«mut» → U64
++  | .Cons => 0#u64
++  | .Var => 1#u64
++
++def constantGlobalLiteral (item : ConstantGlobalInput) : Global :=
++  ⟨globalMutability item.mutability, integerValue item.width,
++    sequenceLiteral [integerConstantInstruction item.width (naturalLiteral item.value)]⟩
++
++def constantGlobalCells (item : ConstantGlobalInput) : List U64 :=
++  valueTypeCell item.width :: globalMutabilityCell item.mutability ::
++    naturalCells (naturalLiteral item.value)
++
++def constantGlobalSectionCells : List ConstantGlobalInput → List U64
++  | [] => []
++  | head :: tail => 1#u64 :: (constantGlobalCells head ++ constantGlobalSectionCells tail)
++
++/-- Exact source representation, with neither normalization nor a payload bound. -/
++theorem constant_global_embed (item : ConstantGlobalInput) :
++    globalEntry (constantGlobalLiteral item) = constantGlobalSpec item := by
++  rcases item with ⟨width, mutable, value⟩
++  cases width <;> cases mutable <;>
++    simp [globalEntry, constantGlobalLiteral, constantGlobalSpec, globalMutability,
++      mutability, integerValue, integerConstantInstruction, sequenceValues,
++      sequenceLiteral, instructionSequence, instruction, valueType]
++
++/-- Every width, mutability and natural payload has an exact actual entry execution. -/
++theorem constant_global_entry_replay (item : ConstantGlobalInput)
++    (rest trace : List U64) (offset work : Nat) :
++    wasm.global.entry
++      (replayState (constantGlobalCells item ++ rest) trace offset
++        (work + (constantGlobalCells item).length)) =
++      Result.ok (.Ok (constantGlobalLiteral item,
++        replayState rest ((constantGlobalCells item).reverse ++ trace)
++          (offset + (constantGlobalCells item).length) work)) := by
++  have widthBound : (valueTypeCell item.width).val < (2#u64).val := by
++    cases item.width <;> decide
++  have mutableBound : (globalMutabilityCell item.mutability).val < (2#u64).val := by
++    cases item.mutability <;> decide
++  have widthRun := pick_word_state 2#u64 (valueTypeCell item.width)
++    (globalMutabilityCell item.mutability :: naturalCells (naturalLiteral item.value) ++ rest)
++    trace offset (work + (naturalCells (naturalLiteral item.value)).length + 1) widthBound
++  have mutableRun := pick_word_state 2#u64 (globalMutabilityCell item.mutability)
++    (naturalCells (naturalLiteral item.value) ++ rest) (valueTypeCell item.width :: trace)
++    (offset + 1) (work + (naturalCells (naturalLiteral item.value)).length) mutableBound
++  have valueRun := natural_literal_choice item.value rest
++    (globalMutabilityCell item.mutability :: valueTypeCell item.width :: trace)
++    (offset + 2) work
++  rw [wasm.global.entry]
++  simp [constantGlobalCells, List.append_assoc, List.reverse_append,
++    Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at widthRun mutableRun valueRun ⊢
++  rw [widthRun]
++  simp [core.result.Result.Insts.CoreOpsTry.branch]
++  rw [mutableRun]
++  simp [core.result.Result.Insts.CoreOpsTry.branch]
++  rw [valueRun]
++  rcases item with ⟨width, mutable, value⟩
++  cases width <;> cases mutable <;>
++    simp [constantGlobalLiteral, constantGlobalCells, valueTypeCell, globalMutabilityCell,
++      globalMutability, integerValue, integerConstantInstruction, sequenceLiteral,
++      wasm.sequence.cons, core.result.Result.Insts.CoreOpsTry.branch,
++      List.append_assoc, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
++
++/-- Lists retain arbitrary length, order and duplicates through the actual section generator. -/
++theorem constant_global_section_replay (items : List ConstantGlobalInput)
++    (rest trace : List U64) (offset work : Nat) :
++    wasm.global.generate (naturalLiteral items.length)
++      (replayState (constantGlobalSectionCells items ++ rest) trace offset
++        (work + (constantGlobalSectionCells items).length)) =
++      Result.ok (.Ok (sequenceLiteral (items.map constantGlobalLiteral),
++        replayState rest ((constantGlobalSectionCells items).reverse ++ trace)
++          (offset + (constantGlobalSectionCells items).length) work)) := by
++  induction items generalizing rest trace offset work with
++  | nil =>
++      rw [wasm.global.generate]
++      simp [constantGlobalSectionCells, sequenceLiteral]
++  | cons head tail ih =>
++      have moreRun := pick_word_state 2#u64 1#u64
++        (constantGlobalCells head ++ (constantGlobalSectionCells tail ++ rest)) trace offset
++        (work + (constantGlobalSectionCells tail).length + (constantGlobalCells head).length)
++        (by decide)
++      have headRun := constant_global_entry_replay head
++        (constantGlobalSectionCells tail ++ rest) (1#u64 :: trace) (offset + 1)
++        (work + (constantGlobalSectionCells tail).length)
++      have tailRun := ih rest ((constantGlobalCells head).reverse ++ 1#u64 :: trace)
++        (offset + 1 + (constantGlobalCells head).length) work
++      rw [wasm.global.generate]
++      simp only [List.length_cons, decrement_literal]
++      simp [constantGlobalSectionCells, List.append_assoc, List.reverse_append,
++        Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at moreRun headRun tailRun ⊢
++      rw [moreRun]
++      simp [core.result.Result.Insts.CoreOpsTry.branch]
++      rw [headRun]
++      simp [core.result.Result.Insts.CoreOpsTry.branch]
++      rw [tailRun]
++      simp [wasm.sequence.cons, sequenceLiteral]
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGlobalRepresentation.lean b/experiments/generator-rust/proofs/WasmGlobalRepresentation.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGlobalRepresentation.lean
+@@ -0,0 +1,253 @@
++import WasmGlobalSupport
++import WasmImportInversion
++import Lean.Util.CollectAxioms
++
++set_option autoImplicit false
++set_option maxRecDepth 8000
++set_option maxHeartbeats 6000000
++
++namespace RustWasm
++open SpecTecExecution generator_rust.wasm.ast
++
++/-- Paired rule construction carries a kernel-checked functionality derivation. -/
++private def FunctionalExecution (plan : Action SpecTec.Request) (start : Nat)
++    (outcome : Outcome Value) (finish : Nat) : Prop :=
++  ∃ run : Eval SpecTec.Body plan start outcome finish, Functional SpecTec.Body run
++
++private theorem functional_pure {α : Type} (value : α) (supply : Nat) :
++    FunctionalExecution (.pure value) supply (.success (.of value)) supply :=
++  ⟨.pure value, .pure value⟩
++
++private theorem functional_unmatch (supply : Nat) :
++    FunctionalExecution .unmatch supply .unmatch supply :=
++  ⟨.unmatch, .unmatch⟩
++
++private theorem functional_guard_true {condition : Prop} (supply : Nat) (holds : condition) :
++    FunctionalExecution (.guard condition) supply (.success (.of ())) supply :=
++  ⟨.guard_true holds, .guard_true (h := holds)⟩
++
++private theorem functional_guard_false {condition : Prop} (supply : Nat) (fails : ¬ condition) :
++    FunctionalExecution (.guard condition) supply .unmatch supply :=
++  ⟨.guard_false fails, .guard_false (h := fails)⟩
++
++private theorem functional_call {request : SpecTec.Request} {start finish : Nat}
++    {outcome : Outcome Value}
++    (body : FunctionalExecution (SpecTec.Body request) start outcome finish) :
++    FunctionalExecution (.call request) start outcome finish := by
++  obtain ⟨run, functional⟩ := body
++  exact ⟨.call run, .call (h := run) functional⟩
++
++private theorem functional_bind_success {α : Type} {plan : Action SpecTec.Request}
++    {next : α → Action SpecTec.Request} {value : α} {outcome : Outcome Value}
++    {start middle finish : Nat}
++    (first : FunctionalExecution plan start (.success (.of value)) middle)
++    (second : FunctionalExecution (next value) middle outcome finish) :
++    FunctionalExecution (.bind plan next) start outcome finish := by
++  obtain ⟨head, headFunctional⟩ := first
++  obtain ⟨tail, tailFunctional⟩ := second
++  exact ⟨.bind_success head tail,
++    .bind_success (h := head) (k := tail) headFunctional tailFunctional⟩
++
++private theorem functional_bind_unmatch {α : Type} {plan : Action SpecTec.Request}
++    {next : α → Action SpecTec.Request} {start finish : Nat}
++    (first : FunctionalExecution plan start .unmatch finish) :
++    FunctionalExecution (.bind plan next) start .unmatch finish := by
++  obtain ⟨run, functional⟩ := first
++  exact ⟨.bind_unmatch run, .bind_unmatch (h := run) functional⟩
++
++private theorem functional_orElse_success {plan : Action SpecTec.Request}
++    {next : Unit → Action SpecTec.Request} {value : Value} {start finish : Nat}
++    (first : FunctionalExecution plan start (.success value) finish) :
++    FunctionalExecution (.orElse plan next) start (.success value) finish := by
++  obtain ⟨run, functional⟩ := first
++  exact ⟨.orElse_success run, .orElse_success (h := run) functional⟩
++
++private theorem functional_orElse_unmatch {plan : Action SpecTec.Request}
++    {next : Unit → Action SpecTec.Request} {outcome : Outcome Value}
++    {start failed finish : Nat}
++    (first : FunctionalExecution plan start .unmatch failed)
++    (second : FunctionalExecution (next ()) failed outcome finish) :
++    FunctionalExecution (.orElse plan next) start outcome finish := by
++  obtain ⟨head, headFunctional⟩ := first
++  obtain ⟨tail, tailFunctional⟩ := second
++  exact ⟨.orElse_unmatch head tail,
++    .orElse_unmatch (h := head) (k := tail) headFunctional tailFunctional⟩
++
++syntax "functional_constant_run" : tactic
++macro_rules
++| `(tactic| functional_constant_run) => `(tactic|
++  first
++  | exact functional_pure _ _
++  | exact functional_unmatch _
++  | (apply functional_guard_true; exact of_decide_eq_true rfl)
++  | (apply functional_guard_false; exact of_decide_eq_true rfl)
++  | (apply functional_call; functional_constant_run)
++  | (apply functional_bind_success; functional_constant_run; functional_constant_run)
++  | (apply functional_bind_unmatch; functional_constant_run)
++  | (apply functional_orElse_success; functional_constant_run)
++  | (apply functional_orElse_unmatch; functional_constant_run; functional_constant_run))
++
++def numericInitializer (width : IntegerType) (value : Nat) : SpecTec.const :=
++  [match width with | .I32 => .CONST (.I32 value) | .I64 => .CONST (.I64 value)]
++
++/-- These rejection proofs expose every actual rule step, including functionality. -/
++private theorem numeric_initializer_rejects_other_type
++    (context : SpecTec.context) (width : IntegerType) (value : Nat)
++    (target : SpecTec.valtype) (start : Nat)
++    (different : target ≠ valueType (integerValue width)) :
++    ∃ rejected : Eval SpecTec.Body
++      (.call ⟨Unit, SpecTec.Call.Const_ok context target (numericInitializer width value)⟩)
++      start .unmatch start, Functional SpecTec.Body rejected := by
++  change FunctionalExecution _ _ _ _
++  cases width <;> cases target with
++  | NumT numeric =>
++      cases numeric <;> first
++      | exact False.elim (different rfl)
++      | functional_constant_run
++  | VecT vector =>
++      functional_constant_run
++  | RefT reference =>
++      functional_constant_run
++  | BotT =>
++      functional_constant_run
++
++/-- Original validation must give a numeric initializer its exact numeric width. -/
++theorem numeric_const_target (context : SpecTec.context) (width : IntegerType)
++    (value : Nat) (target : SpecTec.valtype) (start finish : Nat)
++    (run : Eval SpecTec.Body
++      (.call ⟨Unit, SpecTec.Call.Const_ok context target (numericInitializer width value)⟩)
++      start (.success (.of ())) finish) :
++    target = valueType (integerValue width) := by
++  by_contra different
++  obtain ⟨_, functional⟩ :=
++    numeric_initializer_rejects_other_type context width value target start different
++  exact unmatch_excludes_success functional (.of ()) run
++
++/-- Retain the declared type while extracting the original initializer check. -/
++theorem global_numeric_representable (context output : SpecTec.context)
++    (entry : SpecTec.global) (width : IntegerType) (value : Nat)
++    (shape : entry.GINIT = numericInitializer width value) (start finish : Nat)
++    (run : Eval SpecTec.Body (.call ⟨SpecTec.context, SpecTec.Call.Global_ok context entry⟩)
++      start (.success (.of output)) finish) :
++    ∃ item : ConstantGlobalInput, constantGlobalSpec item = entry := by
++  rcases entry with ⟨⟨mutable, target⟩, initializer⟩
++  change initializer = numericInitializer width value at shape
++  subst initializer
++  cases run with
++  | call body =>
++      change Eval SpecTec.Body
++        (.orElse (SpecTec.«Global_ok:clause:0» context
++          ⟨.GlobalT mutable target, numericInitializer width value⟩) (fun _ => .unmatch))
++        start (.success (.of output)) finish at body
++      cases body with
++      | orElse_success checked =>
++          unfold SpecTec.«Global_ok:clause:0» at checked
++          cases checked with
++          | bind_success _ tail =>
++              cases tail with
++              | bind_success constant _ =>
++                  have same := numeric_const_target context width value target _ _ constant
++                  refine ⟨⟨width, mutable, value⟩, ?_⟩
++                  simp [constantGlobalSpec, numericInitializer, same]
++      | orElse_unmatch _ impossible => cases impossible
++
++/-- Recover exact canonical inputs from the successful original list validation. -/
++theorem globals_numeric_representable (context output : SpecTec.context)
++    (globals : List SpecTec.global) (start finish : Nat)
++    (run : Eval SpecTec.Body (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok context globals⟩)
++      start (.success (.of output)) finish)
++    (shape : ∀ entry ∈ globals, ∃ width value, entry.GINIT = numericInitializer width value) :
++    ∃ items : List ConstantGlobalInput, items.map constantGlobalSpec = globals := by
++  induction globals generalizing context output start finish with
++  | nil => exact ⟨[], rfl⟩
++  | cons head tail ih =>
++      cases run with
++      | call body =>
++          change Eval SpecTec.Body
++            (.orElse (SpecTec.«Globals_ok:clause:0» context (head :: tail))
++              (fun _ => .orElse (SpecTec.«Globals_ok:clause:1» context (head :: tail))
++                (fun _ => .unmatch)))
++            start (.success (.of output)) finish at body
++          cases body with
++          | orElse_success checked =>
++              unfold SpecTec.«Globals_ok:clause:0» at checked
++              cases checked with
++              | bind_success _ rest =>
++                  cases rest with
++                  | bind_success headRun rest =>
++                      cases rest with
++                      | bind_success tailRun _ =>
++                          obtain ⟨width, value, headShape⟩ := shape head (by simp)
++                          obtain ⟨item, headEqual⟩ :=
++                            global_numeric_representable context _ head width value headShape _ _ headRun
++                          obtain ⟨items, tailEqual⟩ := ih _ _ _ _ tailRun
++                            (fun entry present => shape entry (by simp [present]))
++                          exact ⟨item :: items, by simp [headEqual, tailEqual]⟩
++          | orElse_unmatch _ rest =>
++              cases rest with
++              | orElse_success checked =>
++                  unfold SpecTec.«Globals_ok:clause:1» at checked
++                  cases checked with
++                  | bind_success guard _ =>
++                      cases guard with
++                      | guard_true impossible => simp at impossible
++              | orElse_unmatch _ impossible => cases impossible
++
++theorem module_globals_execution (module : SpecTec.module) (valid : SpecTec.Module_ok module) :
++    ∃ (context output : SpecTec.context) (start finish : Nat),
++      Eval SpecTec.Body (.call ⟨SpecTec.context, SpecTec.Call.Globals_ok context module.GLOBALS⟩)
++        start (.success (.of output)) finish := by
++  obtain ⟨finish, run⟩ := valid
++  cases run with
++  | call body =>
++      change Eval SpecTec.Body
++        (.orElse (SpecTec.«Module_ok:clause:0» module) (fun _ => .unmatch))
++        0 (.success (.of ())) finish at body
++      cases body with
++      | orElse_success checked =>
++          cases checked with
++          | bind_success _ tail =>
++              cases tail with
++              | bind_success _ tail =>
++                  cases tail with
++                  | bind_success _ tail =>
++                      cases tail with
++                      | bind_success _ tail =>
++                          cases tail with
++                          | bind_success _ tail =>
++                              cases tail with
++                              | bind_success _ tail =>
++                                  cases tail with
++                                  | bind_success _ tail =>
++                                      cases tail with
++                                      | bind_success globalsRun _ => exact ⟨_, _, _, _, globalsRun⟩
++      | orElse_unmatch _ impossible => cases impossible
++
++/-- The premise describes original initializer syntax, without assuming a matching declared type. -/
++theorem original_constant_globals_representable (globals : List SpecTec.global)
++    (valid : SpecTec.Module_ok { emptyModule with GLOBALS := globals })
++    (shape : ∀ entry ∈ globals, ∃ width value, entry.GINIT = numericInitializer width value) :
++    ∃ items : List ConstantGlobalInput, items.map constantGlobalSpec = globals := by
++  obtain ⟨context, output, start, finish, run⟩ := module_globals_execution _ valid
++  exact globals_numeric_representable context output globals start finish run shape
++
++theorem original_constant_globals_complete (globals : List SpecTec.global)
++    (valid : SpecTec.Module_ok { emptyModule with GLOBALS := globals })
++    (shape : ∀ entry ∈ globals, ∃ width value, entry.GINIT = numericInitializer width value) :
++    ∃ config, ReplaySupport config { emptyModule with GLOBALS := globals } := by
++  obtain ⟨items, equal⟩ := original_constant_globals_representable globals valid shape
++  rw [←equal]
++  exact ⟨constantGlobalsConfig items, constant_globals_supported items⟩
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``numeric_const_target, ``global_numeric_representable,
++      ``globals_numeric_representable, ``module_globals_execution,
++      ``original_constant_globals_representable, ``original_constant_globals_complete] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGlobalSoundness.lean b/experiments/generator-rust/proofs/WasmGlobalSoundness.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGlobalSoundness.lean
+@@ -0,0 +1,166 @@
++import WasmGenerationResult
++import WasmGlobalChoice
++import Lean.Util.CollectAxioms
++
++set_option autoImplicit false
++set_option maxHeartbeats 1600000
++
++namespace RustWasm
++open Aeneas.Std generator_rust wasm.ast SpecTecExecution
++
++/-- Every successful actual entry preserves the correlation between type and initializer. -/
++theorem constant_global_constructor_sound (choices : wasm.choices.Choices)
++    (output : Global) (finalState : wasm.choices.Choices)
++    (success : wasm.global.entry choices = Result.ok (.Ok (output, finalState))) :
++    ∃ item : ConstantGlobalInput, globalEntry output = constantGlobalSpec item := by
++  rw [wasm.global.entry] at success
++  obtain ⟨⟨width, afterWidth⟩, _, tail⟩ :=
++    generation_bind_success (wasm.choices.pick_word 2#u64 choices) _ (output, finalState)
++      success (by
++        intro error
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++          core.convert.FromSame, core.convert.FromSame.from])
++  simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++    ↓uncurry_apply_pair] at tail
++  obtain ⟨⟨mutable, afterMutable⟩, _, tail⟩ :=
++    generation_bind_success (wasm.choices.pick_word 2#u64 afterWidth) _ (output, finalState)
++      tail (by
++        intro error
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++          core.convert.FromSame, core.convert.FromSame.from])
++  simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++    ↓uncurry_apply_pair] at tail
++  obtain ⟨⟨value, afterValue⟩, _, tail⟩ :=
++    generation_bind_success (wasm.choices.natural afterMutable) _ (output, finalState)
++      tail (by
++        intro error
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++          core.convert.FromSame, core.convert.FromSame.from])
++  simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++    ↓uncurry_apply_pair] at tail
++  refine ⟨⟨if width = 0#u64 then .I32 else .I64,
++    if mutable = 0#u64 then .Cons else .Var, naturalValue value⟩, ?_⟩
++  by_cases widthZero : width = 0#u64 <;> by_cases mutableZero : mutable = 0#u64
++  all_goals
++    simp [widthZero, mutableZero, wasm.sequence.cons] at tail
++    rcases tail with ⟨rfl, rfl⟩
++    simp [widthZero, mutableZero, globalEntry, constantGlobalSpec, mutability,
++      integerValue, valueType, instructionSequence, instruction, sequenceValues]
++
++private theorem constant_global_section_literal_sound (maximum : Nat)
++    (choices : wasm.choices.Choices) (output : wasm.sequence.Sequence Global)
++    (finalState : wasm.choices.Choices)
++    (success : wasm.global.generate (naturalLiteral maximum) choices =
++      Result.ok (.Ok (output, finalState))) :
++    ∃ items : List ConstantGlobalInput,
++      (sequenceValues output).map globalEntry = items.map constantGlobalSpec := by
++  induction maximum generalizing choices output finalState with
++  | zero =>
++      rw [wasm.global.generate] at success
++      simp only [decrement_zero, bind_ok, Result.ok.injEq,
++        core.result.Result.Ok.injEq, Prod.mk.injEq] at success
++      rcases success with ⟨rfl, rfl⟩
++      exact ⟨[], rfl⟩
++  | succ maximum ih =>
++      rw [wasm.global.generate] at success
++      simp only [decrement_literal, bind_ok] at success
++      obtain ⟨⟨more, afterMore⟩, _, tail⟩ :=
++        generation_bind_success (wasm.choices.pick_word 2#u64 choices) _ (output, finalState)
++          success (by
++            intro error
++            simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++              core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++              core.convert.FromSame, core.convert.FromSame.from])
++      simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++        ↓uncurry_apply_pair] at tail
++      by_cases stop : more = 0#u64
++      · simp [stop] at tail
++        rcases tail with ⟨rfl, rfl⟩
++        exact ⟨[], rfl⟩
++      · simp only [stop, ↓reduceIte] at tail
++        obtain ⟨⟨head, afterHead⟩, headRun, tail⟩ :=
++          generation_bind_success (wasm.global.entry afterMore) _ (output, finalState)
++            tail (by
++              intro error
++              simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++                core.convert.FromSame, core.convert.FromSame.from])
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          ↓uncurry_apply_pair] at tail
++        obtain ⟨⟨rest, afterRest⟩, restRun, tail⟩ :=
++          generation_bind_success (wasm.global.generate (naturalLiteral maximum) afterHead)
++            _ (output, finalState) tail (by
++              intro error
++              simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++                core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual,
++                core.convert.FromSame, core.convert.FromSame.from])
++        simp only [core.result.Result.Insts.CoreOpsTry.branch, bind_ok, bind_tc_ok,
++          ↓uncurry_apply_pair] at tail
++        obtain ⟨item, headEqual⟩ := constant_global_constructor_sound afterMore head afterHead headRun
++        obtain ⟨items, restEqual⟩ := ih afterHead rest afterRest restRun
++        simp [wasm.sequence.cons] at tail
++        rcases tail with ⟨rfl, rfl⟩
++        exact ⟨item :: items, by simp [sequenceValues, headEqual, restEqual]⟩
++
++/-- Shape preservation holds for any choice source and any natural section bound. -/
++theorem constant_global_section_sound (maximum : wasm.natural.Natural)
++    (choices : wasm.choices.Choices) (output : wasm.sequence.Sequence Global)
++    (finalState : wasm.choices.Choices)
++    (success : wasm.global.generate maximum choices = Result.ok (.Ok (output, finalState))) :
++    ∃ items : List ConstantGlobalInput,
++      (sequenceValues output).map globalEntry = items.map constantGlobalSpec := by
++  have canonical : maximum = naturalLiteral (naturalValue maximum) := by
++    apply naturalValue_injective
++    simp
++  rw [canonical] at success
++  exact constant_global_section_literal_sound (naturalValue maximum) choices output finalState success
++
++theorem constant_global_section_valid (maximum : wasm.natural.Natural)
++    (choices : wasm.choices.Choices) (output : wasm.sequence.Sequence Global)
++    (finalState : wasm.choices.Choices)
++    (success : wasm.global.generate maximum choices = Result.ok (.Ok (output, finalState))) :
++    SpecTec.Module_ok { emptyModule with GLOBALS := (sequenceValues output).map globalEntry } := by
++  obtain ⟨items, equal⟩ := constant_global_section_sound maximum choices output finalState success
++  rw [equal]
++  exact constant_globals_module_valid items
++
++/-- Successful global sections append exactly their declared types in every context. -/
++theorem constant_global_section_execute (context : SpecTec.context) (supply : Nat)
++    (maximum : wasm.natural.Natural) (choices : wasm.choices.Choices)
++    (output : wasm.sequence.Sequence Global) (finalState : wasm.choices.Choices)
++    (success : wasm.global.generate maximum choices = Result.ok (.Ok (output, finalState))) :
++    Eval SpecTec.Body (.call ⟨SpecTec.context,
++      SpecTec.Call.Globals_ok context ((sequenceValues output).map globalEntry)⟩)
++      supply (.success (.of { context with GLOBALS := context.GLOBALS ++
++        ((sequenceValues output).map globalEntry).map SpecTec.global.GTYPE })) supply := by
++  obtain ⟨items, equal⟩ := constant_global_section_sound maximum choices output finalState success
++  rw [equal]
++  simpa [List.map_map] using constant_globals_execute context items supply
++
++theorem constant_global_section_free_execute (supply : Nat)
++    (maximum : wasm.natural.Natural) (choices : wasm.choices.Choices)
++    (output : wasm.sequence.Sequence Global) (finalState : wasm.choices.Choices)
++    (success : wasm.global.generate maximum choices = Result.ok (.Ok (output, finalState))) :
++    Eval SpecTec.Body (.call ⟨SpecTec.free,
++      SpecTec.Call.«$free_list» SpecTec.global SpecTec.Call.«$free_global»
++        ((sequenceValues output).map globalEntry)⟩)
++      supply (.success (.of memoryFree)) supply := by
++  obtain ⟨items, equal⟩ := constant_global_section_sound maximum choices output finalState success
++  rw [equal]
++  exact constant_globals_free_execute items supply
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``constant_global_constructor_sound, ``constant_global_section_sound,
++      ``constant_global_section_valid, ``constant_global_section_execute,
++      ``constant_global_section_free_execute] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGlobalSpecification.lean b/experiments/generator-rust/proofs/WasmGlobalSpecification.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGlobalSpecification.lean
+@@ -0,0 +1,105 @@
++import WasmConstantSpecification
++import WasmMemorySpecification
++import WasmModulePrimitives
++
++set_option autoImplicit false
++set_option maxRecDepth 8000
++set_option maxHeartbeats 6000000
++
++namespace RustWasm
++open SpecTecExecution generator_rust.wasm.ast
++
++/-- Inputs to the numeric constant constructor, with original mutability and unbounded payload. -/
++structure ConstantGlobalInput where
++  width : IntegerType
++  mutability : SpecTec.«mut»
++  value : Nat
++
++def constantGlobalSpec (item : ConstantGlobalInput) : SpecTec.global :=
++  ⟨.GlobalT item.mutability (valueType (integerValue item.width)),
++    [match item.width with | .I32 => .CONST (.I32 item.value) | .I64 => .CONST (.I64 item.value)]⟩
++
++/-- Only the numeric constant constructor has this empty free-index set. -/
++theorem constant_global_free_execute (item : ConstantGlobalInput) (supply : Nat) :
++    Eval SpecTec.Body (.call ⟨SpecTec.free, SpecTec.Call.«$free_global» (constantGlobalSpec item)⟩)
++      supply (.success (.of memoryFree)) supply := by
++  rcases item with ⟨width, mutability, value⟩
++  cases width <;> constant_spec_run
++
++theorem constant_globals_free_execute (items : List ConstantGlobalInput) (supply : Nat) :
++    Eval SpecTec.Body (.call ⟨SpecTec.free,
++      SpecTec.Call.«$free_list» SpecTec.global SpecTec.Call.«$free_global»
++        (items.map constantGlobalSpec)⟩)
++      supply (.success (.of memoryFree)) supply := by
++  induction items with
++  | nil => constant_spec_run
++  | cons head tail ih =>
++      apply Eval.call
++      apply Eval.orElse_unmatch
++      · apply Eval.bind_unmatch
++        apply Eval.guard_false
++        exact of_decide_eq_true rfl
++      · apply Eval.orElse_success
++        apply Eval.bind_success
++        · apply Eval.guard_true
++          exact of_decide_eq_true rfl
++        · apply Eval.bind_success
++          · exact constant_global_free_execute head supply
++          · apply Eval.bind_success
++            · exact ih
++            · constant_spec_run
++
++/-- Both mutabilities use the exact original constant-expression and global-type rules. -/
++theorem constant_global_execute (context : SpecTec.context) (item : ConstantGlobalInput)
++    (supply : Nat) :
++    Eval SpecTec.Body (.call ⟨SpecTec.context, SpecTec.Call.Global_ok context (constantGlobalSpec item)⟩)
++      supply (.success (.of { context with
++        GLOBALS := context.GLOBALS ++ [(constantGlobalSpec item).GTYPE] })) supply := by
++  rcases item with ⟨width, mutability, value⟩
++  cases width <;> constant_spec_run
++
++theorem constant_globals_execute (context : SpecTec.context) (items : List ConstantGlobalInput)
++    (supply : Nat) :
++    Eval SpecTec.Body (.call ⟨SpecTec.context,
++      SpecTec.Call.Globals_ok context (items.map constantGlobalSpec)⟩)
++      supply (.success (.of { context with
++        GLOBALS := context.GLOBALS ++ items.map (fun item => (constantGlobalSpec item).GTYPE) })) supply := by
++  induction items generalizing context with
++  | nil =>
++      simp only [List.map_nil, List.append_nil]
++      constant_spec_run
++  | cons head tail ih =>
++      apply Eval.call
++      apply Eval.orElse_success
++      apply Eval.bind_success
++      · apply Eval.guard_true
++        exact of_decide_eq_true rfl
++      · apply Eval.bind_success
++        · exact constant_global_execute context head supply
++        · apply Eval.bind_success
++          · exact ih { context with GLOBALS := context.GLOBALS ++ [(constantGlobalSpec head).GTYPE] }
++          · simp only [List.map_cons, List.append_assoc, List.singleton_append]
++            exact Eval.pure _
++
++syntax "constant_globals_spec_run" : tactic
++macro_rules
++| `(tactic| constant_globals_spec_run) => `(tactic|
++  first
++  | exact constant_globals_free_execute _ _
++  | exact constant_globals_execute _ _ _
++  | exact Eval.pure _
++  | exact Eval.unmatch
++  | (apply Eval.guard_true; exact of_decide_eq_true rfl)
++  | (apply Eval.guard_false; exact of_decide_eq_true rfl)
++  | (apply Eval.call; constant_globals_spec_run)
++  | (apply Eval.bind_success; constant_globals_spec_run; constant_globals_spec_run)
++  | (apply Eval.bind_unmatch; constant_globals_spec_run)
++  | (apply Eval.orElse_success; constant_globals_spec_run)
++  | (apply Eval.orElse_unmatch; constant_globals_spec_run; constant_globals_spec_run))
++
++theorem constant_globals_module_valid (items : List ConstantGlobalInput) :
++    SpecTec.Module_ok { emptyModule with GLOBALS := items.map constantGlobalSpec } := by
++  refine ⟨0, ?_⟩
++  constant_globals_spec_run
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmGlobalSupport.lean b/experiments/generator-rust/proofs/WasmGlobalSupport.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmGlobalSupport.lean
+@@ -0,0 +1,80 @@
++import WasmGlobalChoice
++import Lean.Util.CollectAxioms
++
++set_option autoImplicit false
++set_option maxHeartbeats 1600000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust wasm.ast
++
++def constantGlobalsConfig (items : List ConstantGlobalInput) : wasm.Config :=
++  { emptyConfig with
++    max_globals := naturalLiteral items.length
++    work_limit := naturalLiteral ((constantGlobalSectionCells items).length + 1) }
++
++def constantGlobalsOutput (items : List ConstantGlobalInput) : wasm.ast.Module :=
++  { emptyOutput with globals := sequenceLiteral (items.map constantGlobalLiteral) }
++
++def constantGlobalsFinal (items : List ConstantGlobalInput) : wasm.choices.Choices :=
++  replayState [] ((constantGlobalSectionCells items).reverse ++ [0#u64])
++    ((constantGlobalSectionCells items).length + 1) 0
++
++/-- Exact full replay traverses every module stage and consumes the complete finite tape. -/
++theorem constant_globals_replay (items : List ConstantGlobalInput) :
++    wasm.replay (constantGlobalsConfig items)
++      (tapeFromCells (0#u64 :: constantGlobalSectionCells items)) =
++      Result.ok (.Ok (constantGlobalsOutput items, constantGlobalsFinal items)) := by
++  apply replay_from_build (constantGlobalsConfig items) _ _ (constantGlobalsFinal items)
++    (naturalLiteral ((constantGlobalSectionCells items).length + 1)) ?_ rfl
++  let afterTypes := replayState (constantGlobalSectionCells items) [0#u64] 1
++    (constantGlobalSectionCells items).length
++  apply build_empty_types (constantGlobalsConfig items) _ afterTypes afterTypes
++    (constantGlobalsFinal items) (constantGlobalsFinal items) (constantGlobalsFinal items)
++    .Empty (sequenceLiteral (items.map constantGlobalLiteral)) .Empty .Empty
++  · exact generate_types_zero (constantGlobalsConfig items) rfl
++      (constantGlobalSectionCells items) [] 0 (constantGlobalSectionCells items).length
++  · rw [wasm.memory_import.generate]
++    simp [constantGlobalsConfig, emptyConfig, wasm.natural.decrement]
++  · have generated := constant_global_section_replay items [] [0#u64] 1 0
++    simpa [constantGlobalsConfig, constantGlobalsFinal, afterTypes, Nat.add_comm] using generated
++  · rw [wasm.memory.generate]
++    simp [constantGlobalsConfig, emptyConfig, wasm.natural.decrement]
++  · rw [wasm.data.generate]
++    simp [constantGlobalsConfig, emptyConfig, wasm.natural.decrement]
++
++theorem constant_globals_supported (items : List ConstantGlobalInput) :
++    ReplaySupport (constantGlobalsConfig items)
++      { emptyModule with GLOBALS := items.map constantGlobalSpec } := by
++  refine ⟨tapeFromCells (0#u64 :: constantGlobalSectionCells items), constantGlobalsOutput items,
++    ⟨constantGlobalsFinal items, constant_globals_replay items⟩, ?_⟩
++  simp [embed, constantGlobalsOutput, emptyOutput, emptyModule, memoryOnly,
++    sequenceValues, sequenceLiteral, memories, datas, List.map_map, Function.comp_def,
++    constant_global_embed]
++
++theorem constant_globals_generated_valid (items : List ConstantGlobalInput) :
++    ReplaySupport (constantGlobalsConfig items)
++      { emptyModule with GLOBALS := items.map constantGlobalSpec } ∧
++      SpecTec.Module_ok { emptyModule with GLOBALS := items.map constantGlobalSpec } :=
++  ⟨constant_globals_supported items, constant_globals_module_valid items⟩
++
++/-- The former immutable-global counterexample now has exact actual replay support. -/
++theorem globalsOnly_supported :
++    ∃ config, ReplaySupport config globalsOnly := by
++  refine ⟨constantGlobalsConfig [⟨.I32, .Cons, 0⟩], ?_⟩
++  simpa [constantGlobalSpec, globalsOnly, integerValue, valueType] using
++    constant_globals_supported [⟨.I32, .Cons, 0⟩]
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``constant_global_free_execute, ``constant_globals_free_execute,
++      ``constant_global_execute, ``constant_globals_execute, ``constant_globals_module_valid,
++      ``constant_global_embed, ``constant_global_entry_replay, ``constant_global_section_replay,
++      ``constant_globals_replay, ``constant_globals_supported,
++      ``constant_globals_generated_valid, ``globalsOnly_supported] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmMemoryImportSoundness.lean b/experiments/generator-rust/proofs/WasmMemoryImportSoundness.lean
+--- a/experiments/generator-rust/proofs/WasmMemoryImportSoundness.lean
++++ b/experiments/generator-rust/proofs/WasmMemoryImportSoundness.lean
+@@ -1,3 +1,4 @@
++import WasmGenerationResult
+ import WasmMemorySoundness
+ import WasmMemoryImportSpecification
+ import Lean.Util.CollectAxioms
+@@ -7,29 +8,6 @@
+
+ namespace RustWasm
+ open Aeneas.Std generator_rust wasm.ast
+-
+-private theorem result_bind_success {α β : Type} (first : Result α) (next : α → Result β)
+-    (output : β) (success : Aeneas.Std.bind first next = Result.ok output) :
+-    ∃ intermediate, first = Result.ok intermediate ∧ next intermediate = Result.ok output := by
+-  cases first with
+-  | ret intermediate => exact ⟨intermediate, rfl, by simpa using success⟩
+-  | vis effect continuation => simp at success
+-  | div => simp at success
+-
+-/-- Invert a successful Rust result bind whose error arm preserves the error. -/
+-private theorem generation_bind_success {α β : Type}
+-    (first : Result (core.result.Result α wasm.choices.GenerationError))
+-    (next : core.result.Result α wasm.choices.GenerationError →
+-      Result (core.result.Result β wasm.choices.GenerationError)) (output : β)
+-    (success : Aeneas.Std.bind first next = Result.ok (.Ok output))
+-    (errorRun : ∀ error, next (.Err error) = Result.ok (.Err error)) :
+-    ∃ value, first = Result.ok (.Ok value) ∧ next (.Ok value) = Result.ok (.Ok output) := by
+-  obtain ⟨result, firstRun, tail⟩ := result_bind_success first next (.Ok output) success
+-  cases result with
+-  | Ok value => exact ⟨value, firstRun, tail⟩
+-  | Err error =>
+-      rw [errorRun error] at tail
+-      simp at tail
+
+ /-- Every successful entry, from any choice source, has an originally valid memory descriptor. -/
+ theorem memory_import_constructor_sound (choices : wasm.choices.Choices)
+diff --git a/experiments/generator-rust/proofs/WasmMemoryImportSupport.lean b/experiments/generator-rust/proofs/WasmMemoryImportSupport.lean
+--- a/experiments/generator-rust/proofs/WasmMemoryImportSupport.lean
++++ b/experiments/generator-rust/proofs/WasmMemoryImportSupport.lean
+@@ -30,12 +30,15 @@
+   let afterTypes := replayState (memoryImportSectionCells items) [0#u64] 1
+     (memoryImportSectionCells items).length
+   apply build_empty_types (memoryImportListConfig items) _ afterTypes
+-    (memoryImportListFinal items) (memoryImportListFinal items) (memoryImportListFinal items)
+-    (sequenceLiteral items) .Empty .Empty
++    (memoryImportListFinal items) (memoryImportListFinal items)
++    (memoryImportListFinal items) (memoryImportListFinal items)
++    (sequenceLiteral items) .Empty .Empty .Empty
+   · exact generate_types_zero (memoryImportListConfig items) rfl
+       (memoryImportSectionCells items) [] 0 (memoryImportSectionCells items).length
+   · have generated := memory_import_section_replay items bounded [] [0#u64] 1 0
+     simpa [memoryImportListConfig, memoryImportListFinal, afterTypes, Nat.add_comm] using generated
++  · rw [wasm.global.generate]
++    simp [memoryImportListConfig, emptyConfig, wasm.natural.decrement]
+   · rw [wasm.memory.generate]
+     simp [memoryImportListConfig, emptyConfig, wasm.natural.decrement]
+   · rw [wasm.data.generate]
+diff --git a/experiments/generator-rust/proofs/WasmMemorySectionComposition.lean b/experiments/generator-rust/proofs/WasmMemorySectionComposition.lean
+--- a/experiments/generator-rust/proofs/WasmMemorySectionComposition.lean
++++ b/experiments/generator-rust/proofs/WasmMemorySectionComposition.lean
+@@ -59,8 +59,8 @@
+     (1 + (memoryImportSectionCells imports).length + (memorySectionCells items).length)
+     (dataCells payloads).length
+   apply build_empty_types (memorySectionsConfig imports items payloads) _ afterTypes
+-    afterImports afterMemories (memorySectionsFinal imports items payloads)
+-    (sequenceLiteral imports) (memoryList items) (dataLiteral payloads)
++    afterImports afterImports afterMemories (memorySectionsFinal imports items payloads)
++    (sequenceLiteral imports) .Empty (memoryList items) (dataLiteral payloads)
+   · exact generate_types_zero (memorySectionsConfig imports items payloads) rfl
+       (memorySectionsCells imports items payloads) [] 0
+       (memorySectionsCells imports items payloads).length
+@@ -69,6 +69,8 @@
+       ((memorySectionCells items).length + (dataCells payloads).length)
+     simpa [memorySectionsConfig, memorySectionsCells, afterTypes, afterImports,
+       List.append_assoc, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using generated
++  · rw [wasm.global.generate]
++    simp [memorySectionsConfig, emptyConfig, wasm.natural.decrement]
+   · have generated := memory_section_replay items memoryBounds (dataCells payloads)
+       ((memoryImportSectionCells imports).reverse ++ [0#u64])
+       (1 + (memoryImportSectionCells imports).length) (dataCells payloads).length
+diff --git a/experiments/generator-rust/proofs/WasmMemorySupport.lean b/experiments/generator-rust/proofs/WasmMemorySupport.lean
+--- a/experiments/generator-rust/proofs/WasmMemorySupport.lean
++++ b/experiments/generator-rust/proofs/WasmMemorySupport.lean
+@@ -35,10 +35,12 @@
+   apply replay_from_build (memoryListConfig items) _ _ (memoryListFinal items)
+     (naturalLiteral ((memorySectionCells items).length + 1)) ?_ rfl
+   let afterTypes := replayState (memorySectionCells items) [0#u64] 1 (memorySectionCells items).length
+-  apply build_empty_types (memoryListConfig items) _ afterTypes afterTypes (memoryListFinal items)
+-    (memoryListFinal items) .Empty (memoryList items) .Empty
++  apply build_empty_types (memoryListConfig items) _ afterTypes afterTypes afterTypes (memoryListFinal items)
++    (memoryListFinal items) .Empty .Empty (memoryList items) .Empty
+   · exact memory_list_types items
+   · rw [wasm.memory_import.generate]
++    simp [memoryListConfig, emptyConfig, wasm.natural.decrement]
++  · rw [wasm.global.generate]
+     simp [memoryListConfig, emptyConfig, wasm.natural.decrement]
+   · have generated := memory_section_replay items bounded [] [0#u64] 1 0
+     simpa [memoryListConfig, memoryListFinal, afterTypes, Nat.add_comm] using generated
+diff --git a/experiments/generator-rust/proofs/WasmMemoryWitness.lean b/experiments/generator-rust/proofs/WasmMemoryWitness.lean
+--- a/experiments/generator-rust/proofs/WasmMemoryWitness.lean
++++ b/experiments/generator-rust/proofs/WasmMemoryWitness.lean
+@@ -76,10 +76,12 @@
+     Result.ok (.Ok (memoryOutput, memoryState 5 0)) := by
+   apply replay_from_build memoryConfig memoryTape memoryOutput (memoryState 5 0)
+     (naturalLiteral 5) ?_ rfl
+-  apply build_empty_types memoryConfig _ (memoryState 1 4) (memoryState 1 4) (memoryState 5 0)
+-    (memoryState 5 0) .Empty memoryOutput.memories .Empty
++  apply build_empty_types memoryConfig _ (memoryState 1 4) (memoryState 1 4) (memoryState 1 4) (memoryState 5 0)
++    (memoryState 5 0) .Empty .Empty memoryOutput.memories .Empty
+   · exact memory_types
+   · rw [wasm.memory_import.generate]
++    simp [memoryConfig, emptyConfig, wasm.natural.decrement]
++  · rw [wasm.global.generate]
+     simp [memoryConfig, emptyConfig, wasm.natural.decrement]
+   · exact memory_generate
+   · rw [wasm.data.generate]
+diff --git a/experiments/generator-rust/proofs/WasmModuleCoverage.lean b/experiments/generator-rust/proofs/WasmModuleCoverage.lean
+--- a/experiments/generator-rust/proofs/WasmModuleCoverage.lean
++++ b/experiments/generator-rust/proofs/WasmModuleCoverage.lean
+@@ -89,7 +89,7 @@
+ def unboundedEmptyConfig (types functions parameters results locals exports fuel work : Nat) : wasm.Config :=
+   ⟨naturalLiteral types, naturalLiteral functions, naturalLiteral parameters,
+     naturalLiteral results, naturalLiteral locals, naturalLiteral exports, naturalLiteral fuel,
+-    .Zero, .Zero, .Zero, naturalLiteral work⟩
++    .Zero, .Zero, .Zero, .Zero, naturalLiteral work⟩
+
+ theorem unbounded_empty_supported (types functions parameters results locals exports fuel : Nat) :
+     ∃ work : Nat, ReplaySupport
+@@ -108,8 +108,10 @@
+     exact types_zero config .Empty .Empty .Empty finalState
+   have built : wasm.build config (replayState cells [] 0 cells.length) =
+       Result.ok (.Ok (emptyOutput, finalState)) := by
+-    apply build_empty_types config _ finalState finalState finalState finalState .Empty .Empty .Empty typesRun
++    apply build_empty_types config _ finalState finalState finalState finalState finalState .Empty .Empty .Empty .Empty typesRun
+     · rw [wasm.memory_import.generate]
++      simp [config, unboundedEmptyConfig, wasm.natural.decrement]
++    · rw [wasm.global.generate]
+       simp [config, unboundedEmptyConfig, wasm.natural.decrement]
+     · rw [wasm.memory.generate]
+       simp [config, unboundedEmptyConfig, wasm.natural.decrement]
+diff --git a/experiments/generator-rust/proofs/WasmModulePrimitives.lean b/experiments/generator-rust/proofs/WasmModulePrimitives.lean
+--- a/experiments/generator-rust/proofs/WasmModulePrimitives.lean
++++ b/experiments/generator-rust/proofs/WasmModulePrimitives.lean
+@@ -78,18 +78,20 @@
+
+ /-- Empty type generation skips numeric declarations and composes the actual sections. -/
+ theorem build_empty_types (config : wasm.Config)
+-    (initial afterTypes afterImports afterMemories finalState : wasm.choices.Choices)
+-    (imports : Sequence MemoryImport) (memories : Memories) (datas : Datas)
++    (initial afterTypes afterImports afterGlobals afterMemories finalState : wasm.choices.Choices)
++    (imports : Sequence MemoryImport) (globals : Sequence Global) (memories : Memories) (datas : Datas)
+     (typesRun : wasm.types.generate config initial = Result.ok (.Ok (.Empty, .Empty, afterTypes)))
+     (importRun : wasm.memory_import.generate config.max_memory_imports afterTypes =
+       Result.ok (.Ok (imports, afterImports)))
+-    (memoryRun : wasm.memory.generate config.max_memories afterImports =
++    (globalRun : wasm.global.generate config.max_globals afterImports =
++      Result.ok (.Ok (globals, afterGlobals)))
++    (memoryRun : wasm.memory.generate config.max_memories afterGlobals =
+       Result.ok (.Ok (memories, afterMemories)))
+     (dataRun : wasm.data.generate config.max_datas afterMemories =
+       Result.ok (.Ok (datas, finalState))) :
+     wasm.build config initial =
+-      Result.ok (.Ok (⟨.Empty, .Empty, .Empty, none, memories, datas, imports⟩, finalState)) := by
+-  simp [wasm.build, typesRun, copy_natural_eq, importRun, sequence_empty_length, wasm.function_indices,
++      Result.ok (.Ok (⟨.Empty, .Empty, .Empty, none, memories, datas, imports, globals⟩, finalState)) := by
++  simp [wasm.build, typesRun, copy_natural_eq, importRun, globalRun, sequence_empty_length, wasm.function_indices,
+     functions_nil, wasm.declared_refs, wasm.generate_exports, wasm.generate_start, memoryRun, dataRun,
+     core.result.Result.Insts.CoreOpsTry.branch, ↓uncurry_apply_pair]
+
+diff --git a/experiments/generator-rust/proofs/WasmProofAudit.lean b/experiments/generator-rust/proofs/WasmProofAudit.lean
+--- a/experiments/generator-rust/proofs/WasmProofAudit.lean
++++ b/experiments/generator-rust/proofs/WasmProofAudit.lean
+@@ -14,7 +14,7 @@
+     ``RustWasm.Soundness, ``RustWasm.SamplingSoundness,
+     ``RustWasm.Completeness, ``RustWasm.SamplingCompleteness, ``RustWasm.CompleteFor,
+     ``RustWasm.memoryOnly_ok, ``RustWasm.dataOnly_ok, ``RustWasm.importsOnly_ok,
+-    ``RustWasm.globalsOnly_ok, ``RustWasm.globalsOnly_not_generated, ``RustWasm.not_complete,
++    ``RustWasm.globalsOnly_ok, ``RustWasm.tablesOnly_ok, ``RustWasm.tablesOnly_not_generated, ``RustWasm.not_complete,
+     ``RustWasm.memory_import_names_ok, ``RustWasm.passive_data_payload_ok,
+     ``RustWasm.emptyModule_ok, ``RustWasm.empty_replay,
+     ``RustWasm.empty_supported, ``RustWasm.empty_generated_valid,
+diff --git a/experiments/generator-rust/proofs/WasmReplayEvaluation.lean b/experiments/generator-rust/proofs/WasmReplayEvaluation.lean
+--- a/experiments/generator-rust/proofs/WasmReplayEvaluation.lean
++++ b/experiments/generator-rust/proofs/WasmReplayEvaluation.lean
+@@ -191,7 +191,7 @@
+      wasm.data.text,
+      wasm.data.generate,
+      wasm.memory.memory,
+-     wasm.memory_import.generate, wasm.memory.generate,
++     wasm.memory_import.generate, wasm.global.generate, wasm.memory.generate,
+      wasm.sequence.reverse_into,
+      wasm.sequence.reverse,
+      wasm.next_export_digits,
+diff --git a/experiments/generator-rust/proofs/WasmReplayPrefix.lean b/experiments/generator-rust/proofs/WasmReplayPrefix.lean
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/proofs/WasmReplayPrefix.lean
+@@ -0,0 +1,66 @@
++import WasmFiniteChoice
++
++set_option autoImplicit false
++set_option maxHeartbeats 1200000
++
++namespace RustWasm
++open Aeneas Aeneas.Std generator_rust
++
++/-- A stage preserves its continuation state, with work cost independent of tape length. -/
++def ReplayPrefix {α : Type}
++    (stage : wasm.choices.Choices → Result (core.result.Result (α × wasm.choices.Choices)
++      wasm.choices.GenerationError))
++    (output : α) (cells : List U64) (cost : Nat) : Prop :=
++  ∀ (rest trace : List U64) (offset work : Nat),
++    stage (replayState (cells ++ rest) trace offset (work + cost)) =
++      Result.ok (.Ok (output,
++        replayState rest (cells.reverse ++ trace) (offset + cells.length) work))
++
++theorem replay_prefix_pure {α : Type} (output : α) :
++    ReplayPrefix (fun choices => Result.ok (.Ok (output, choices))) output [] 0 := by
++  intro rest trace offset work
++  simp
++
++/-- The actual Rust question-mark operation composes successful construction stages. -/
++theorem replay_prefix_bind {α β : Type}
++    (first : wasm.choices.Choices → Result (core.result.Result (α × wasm.choices.Choices)
++      wasm.choices.GenerationError))
++    (next : α → wasm.choices.Choices → Result (core.result.Result (β × wasm.choices.Choices)
++      wasm.choices.GenerationError))
++    (intermediate : α) (output : β) (firstCells nextCells : List U64)
++    (firstCost nextCost : Nat)
++    (firstRun : ReplayPrefix first intermediate firstCells firstCost)
++    (nextRun : ReplayPrefix (next intermediate) output nextCells nextCost) :
++    ReplayPrefix (fun choices => do
++      let result ← first choices
++      let branch ← core.result.Result.Insts.CoreOpsTry.branch result
++      match branch with
++      | core.ops.control_flow.ControlFlow.Continue pair => next pair.1 pair.2
++      | core.ops.control_flow.ControlFlow.Break residual =>
++          core.result.Result.Insts.CoreOpsTry_traitFromResidualResult.from_residual
++            (β × wasm.choices.Choices) (core.convert.FromSame wasm.choices.GenerationError) residual)
++      output (firstCells ++ nextCells) (firstCost + nextCost) := by
++  intro rest trace offset work
++  have firstStep := firstRun (nextCells ++ rest) trace offset (work + nextCost)
++  have nextStep := nextRun rest (firstCells.reverse ++ trace) (offset + firstCells.length) work
++  simp only [List.append_assoc, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] at firstStep nextStep ⊢
++  rw [firstStep]
++  simp only [bind_ok, bind_tc_ok, core.result.Result.Insts.CoreOpsTry.branch]
++  rw [nextStep]
++  simp [List.reverse_append, List.append_assoc, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
++
++theorem choose_replay_prefix {α : Type} (values : List α) (value : α)
++    (present : value ∈ values) :
++    ∃ cells, ReplayPrefix (wasm.choose (sequenceLiteral values)) value cells cells.length :=
++  choose_replay values value present
++
++open Lean Elab Command in
++run_cmd do
++  for declaration in [``replay_prefix_pure, ``replay_prefix_bind, ``choose_replay_prefix] do
++    let axioms ← liftCoreM (collectAxioms declaration)
++    for dependency in axioms do
++      unless [``propext, ``Classical.choice, ``Quot.sound].contains dependency do
++        throwError "{declaration} depends on forbidden axiom {dependency}"
++    logInfo m!"{declaration}: checked; axioms = {axioms.toList}"
++
++end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmReplayWitness.lean b/experiments/generator-rust/proofs/WasmReplayWitness.lean
+--- a/experiments/generator-rust/proofs/WasmReplayWitness.lean
++++ b/experiments/generator-rust/proofs/WasmReplayWitness.lean
+@@ -9,10 +9,10 @@
+ open Aeneas Aeneas.Std generator_rust
+
+ def emptyConfig : wasm.Config :=
+-  ⟨.Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 1⟩
++  ⟨.Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 1⟩
+ def emptyTape : wasm.choices.Tape := .Cons 0#u64 .Empty
+ def emptyOutput : wasm.ast.Module :=
+-  ⟨.Empty, .Empty, .Empty, none, .Empty, .Empty, .Empty⟩
++  ⟨.Empty, .Empty, .Empty, none, .Empty, .Empty, .Empty, .Empty⟩
+ def emptyFinal : wasm.choices.Choices :=
+   ⟨.Replay .Empty (naturalLiteral 1), emptyTape, .Zero⟩
+
+@@ -25,9 +25,11 @@
+ theorem empty_replay : wasm.replay emptyConfig emptyTape =
+     Result.ok (.Ok (emptyOutput, emptyFinal)) := by
+   apply replay_from_build emptyConfig emptyTape emptyOutput emptyFinal (naturalLiteral 1) ?_ rfl
+-  apply build_empty_types emptyConfig _ emptyFinal emptyFinal emptyFinal emptyFinal .Empty .Empty .Empty
++  apply build_empty_types emptyConfig _ emptyFinal emptyFinal emptyFinal emptyFinal emptyFinal .Empty .Empty .Empty .Empty
+   · exact generate_types_empty
+   · rw [wasm.memory_import.generate]
++    simp [emptyConfig, wasm.natural.decrement]
++  · rw [wasm.global.generate]
+     simp [emptyConfig, wasm.natural.decrement]
+   · rw [wasm.memory.generate]
+     simp [emptyConfig, wasm.natural.decrement]
+diff --git a/experiments/generator-rust/proofs/WasmSpecificationWitnesses.lean b/experiments/generator-rust/proofs/WasmSpecificationWitnesses.lean
+--- a/experiments/generator-rust/proofs/WasmSpecificationWitnesses.lean
++++ b/experiments/generator-rust/proofs/WasmSpecificationWitnesses.lean
+@@ -62,7 +62,7 @@
+   refine ⟨0, ?_⟩
+   spec_run
+
+-/-- Globals remain outside the current Rust construction core. -/
++/-- The original constant-global witness, covered by the global extension. -/
+ def globalsOnly : SpecTec.module :=
+   { emptyModule with GLOBALS := [⟨.GlobalT .Cons (.NumT .I32T), [.CONST (.I32 0)]⟩] }
+
+@@ -70,15 +70,24 @@
+   refine ⟨0, ?_⟩
+   spec_run
+
+-theorem globalsOnly_not_generated (config : generator_rust.wasm.Config) :
+-    ¬ ReplaySupport config globalsOnly := by
++/-- Tables remain outside the current Rust construction core. -/
++def tablesOnly : SpecTec.module :=
++  { emptyModule with TABLES :=
++    [⟨.TableT .I32AT ⟨0, none⟩ (.«% %» .Null .FuncHT), [.«REF.NULL» .FuncHT]⟩] }
++
++theorem tablesOnly_ok : SpecTec.Module_ok tablesOnly := by
++  refine ⟨0, ?_⟩
++  spec_run
++
++theorem tablesOnly_not_generated (config : generator_rust.wasm.Config) :
++    ¬ ReplaySupport config tablesOnly := by
+   rintro ⟨_, output, _, equal⟩
+-  have impossible := congrArg SpecTec.module.GLOBALS equal
+-  simp [embed, globalsOnly] at impossible
++  have impossible := congrArg SpecTec.module.TABLES equal
++  simp [embed, tablesOnly] at impossible
+
+ theorem not_complete : ¬ Completeness := by
+   intro complete
+-  obtain ⟨config, generated⟩ := complete globalsOnly globalsOnly_ok
+-  exact globalsOnly_not_generated config generated
++  obtain ⟨config, generated⟩ := complete tablesOnly tablesOnly_ok
++  exact tablesOnly_not_generated config generated
+
+ end RustWasm
+diff --git a/experiments/generator-rust/proofs/WasmTypeContextReplay.lean b/experiments/generator-rust/proofs/WasmTypeContextReplay.lean
+--- a/experiments/generator-rust/proofs/WasmTypeContextReplay.lean
++++ b/experiments/generator-rust/proofs/WasmTypeContextReplay.lean
+@@ -12,13 +12,13 @@
+ def contextVoidGroup : RecGroup := ⟨sequenceLiteral [⟨.Final, none, contextVoid⟩]⟩
+
+ def contextOutput (types : List RecGroup) (functions : List Function) (exports : List Export) : wasm.ast.Module :=
+-  ⟨sequenceLiteral types, sequenceLiteral functions, sequenceLiteral exports, none, .Empty, .Empty, .Empty⟩
++  ⟨sequenceLiteral types, sequenceLiteral functions, sequenceLiteral exports, none, .Empty, .Empty, .Empty, .Empty⟩
+
+ def contextFinal (cells : List U64) : wasm.choices.Choices :=
+   ⟨.Replay .Empty (naturalLiteral cells.length), tapeFromCells cells.reverse, .Zero⟩
+
+ def recursiveParentConfig : wasm.Config :=
+-  ⟨naturalLiteral 2, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 12⟩
++  ⟨naturalLiteral 2, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 12⟩
+ def recursiveParentCells : List U64 :=
+   [1#u64, 2#u64, 1#u64, 0#u64, 0#u64, 1#u64, 1#u64, 2#u64, 0#u64, 0#u64, 0#u64, 0#u64]
+ def recursiveParentOutput : wasm.ast.Module := contextOutput
+@@ -33,7 +33,7 @@
+   wasm_replay_run
+
+ def mutualGroupConfig : wasm.Config :=
+-  ⟨naturalLiteral 2, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 17⟩
++  ⟨naturalLiteral 2, .Zero, naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 17⟩
+ def mutualGroupCells : List U64 :=
+   [1#u64, 2#u64, 0#u64, 0#u64, 0#u64, 0#u64, 1#u64, 2#u64, 0#u64, 1#u64, 0#u64,
+    1#u64, 2#u64, 0#u64, 0#u64, 0#u64, 0#u64]
+@@ -50,7 +50,7 @@
+
+ def rawAliasConfig : wasm.Config :=
+   ⟨naturalLiteral 3, naturalLiteral 1, naturalLiteral 1, naturalLiteral 1,
+-    .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 29⟩
++    .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, .Zero, naturalLiteral 29⟩
+ def rawAliasCells : List U64 :=
+   [3#u64, 1#u64, 0#u64, 0#u64, 0#u64, 0#u64, 1#u64, 0#u64, 0#u64, 0#u64, 0#u64,
+    1#u64, 0#u64, 0#u64, 1#u64, 2#u64, 0#u64, 0#u64, 1#u64, 2#u64, 0#u64, 1#u64,
+@@ -68,7 +68,7 @@
+
+ def exportedRefConfig : wasm.Config :=
+   ⟨naturalLiteral 1, naturalLiteral 1, .Zero, .Zero, .Zero, naturalLiteral 1,
+-    naturalLiteral 1, .Zero, .Zero, .Zero, naturalLiteral 17⟩
++    naturalLiteral 1, .Zero, .Zero, .Zero, .Zero, naturalLiteral 17⟩
+ def exportedRefCells : List U64 :=
+   [1#u64, 1#u64, 0#u64, 0#u64, 0#u64, 0#u64, 1#u64, 0#u64, 1#u64, 0#u64,
+    0#u64, 15#u64, 0#u64, 0#u64]
+diff --git a/experiments/generator-rust/prove.py b/experiments/generator-rust/prove.py
+--- a/experiments/generator-rust/prove.py
++++ b/experiments/generator-rust/prove.py
+@@ -35,7 +35,9 @@
+     'WasmNameChoice', 'WasmMemoryImportChoice', 'WasmMemoryImportSpecification',
+     'WasmMemoryImportSupport', 'WasmImportInversion', 'WasmMemoryImportRepresentation',
+     'WasmMemorySectionComposition',
+-    'WasmMemoryImportSoundness',
++    'WasmGenerationResult', 'WasmMemoryImportSoundness',
++    'WasmGlobalSpecification', 'WasmGlobalChoice', 'WasmGlobalSupport', 'WasmGlobalSoundness', 'WasmGlobalRepresentation',
++    'WasmFiniteChoice', 'WasmReplayPrefix',
+     'WasmProofAudit',
+ )
+
+diff --git a/experiments/generator-rust/src/wasm/ast.rs b/experiments/generator-rust/src/wasm/ast.rs
+--- a/experiments/generator-rust/src/wasm/ast.rs
++++ b/experiments/generator-rust/src/wasm/ast.rs
+@@ -73,6 +73,18 @@
+     BranchIf(Natural),
+ }
+
++#[derive(Clone, Copy)]
++pub enum Mutability {
++    Constant,
++    Variable,
++}
++
++pub struct Global {
++    pub mutability: Mutability,
++    pub value_type: ValueType,
++    pub initializer: Sequence<Instruction>,
++}
++
+ pub struct Function {
+     pub type_index: Natural,
+     pub locals: Sequence<ValueType>,
+@@ -128,6 +140,7 @@
+     pub memories: Memories,
+     pub datas: Datas,
+     pub memory_imports: Sequence<MemoryImport>,
++    pub globals: Sequence<Global>,
+ }
+
+ pub fn copy_types(values: &Sequence<ValueType>) -> Sequence<ValueType> {
+diff --git a/experiments/generator-rust/src/wasm/global.rs b/experiments/generator-rust/src/wasm/global.rs
+new file mode 100644
+--- /dev/null
++++ b/experiments/generator-rust/src/wasm/global.rs
+@@ -0,0 +1,35 @@
++use super::ast::{Global, Instruction, Mutability, ValueType};
++use super::choices::{self, pick_word, Choices, GenerationError};
++use super::natural::{self, Natural};
++use super::sequence::{self, Sequence};
++
++/// Construct original constant expressions directly, with arbitrary natural payloads.
++fn entry(choices: Choices) -> Result<(Global, Choices), GenerationError> {
++    let (width, choices): (u64, Choices) = pick_word(2, choices)?;
++    let (mutable, choices): (u64, Choices) = pick_word(2, choices)?;
++    let (value, choices): (Natural, Choices) = choices::natural(choices)?;
++    let mutability: Mutability = if mutable == 0 { Mutability::Constant } else { Mutability::Variable };
++    let (value_type, instruction): (ValueType, Instruction) = if width == 0 {
++        (ValueType::I32, Instruction::Const32(value))
++    } else {
++        (ValueType::I64, Instruction::Const64(value))
++    };
++    Ok((Global { mutability, value_type, initializer: sequence::cons(instruction, Sequence::Empty) }, choices))
++}
++
++/// The section bound and representation have no machine-sized length restriction.
++pub fn generate(maximum: Natural, choices: Choices)
++    -> Result<(Sequence<Global>, Choices), GenerationError>
++{
++    let remaining: Natural = match natural::decrement(maximum) {
++        None => return Ok((Sequence::Empty, choices)),
++        Some(remaining) => remaining,
++    };
++    let (more, choices): (u64, Choices) = pick_word(2, choices)?;
++    if more == 0 {
++        return Ok((Sequence::Empty, choices));
++    }
++    let (head, choices): (Global, Choices) = entry(choices)?;
++    let (tail, choices): (Sequence<Global>, Choices) = generate(remaining, choices)?;
++    Ok((sequence::cons(head, tail), choices))
++}
+diff --git a/experiments/generator-rust/src/wasm.rs b/experiments/generator-rust/src/wasm.rs
+--- a/experiments/generator-rust/src/wasm.rs
++++ b/experiments/generator-rust/src/wasm.rs
+@@ -1,6 +1,7 @@
+ mod ast;
+ mod body;
+ mod data;
++mod global;
+ mod memory;
+ mod memory_import;
+ mod types;
+@@ -9,7 +10,7 @@
+ pub mod natural;
+ pub mod sequence;
+
+-pub use ast::{AddressType, BinaryOp, BlockType, Datas, Export, Finality, FuncType, Function, Instruction, IntegerType, Memories, Memory, MemoryImport, Module, Nullability, RecGroup, Subtype, Text, ValueType};
++pub use ast::{AddressType, BinaryOp, BlockType, Datas, Export, Finality, FuncType, Function, Global, Instruction, IntegerType, Memories, Memory, MemoryImport, Module, Mutability, Nullability, RecGroup, Subtype, Text, ValueType};
+ use ast::{copy_bytes, copy_types, join_types};
+ use choices::{pick_natural, pick_word, Choices, GenerationError, Source, Tape};
+ use natural::Natural;
+@@ -27,6 +28,7 @@
+     pub max_memories: Natural,
+     pub max_datas: Natural,
+     pub max_memory_imports: Natural,
++    pub max_globals: Natural,
+     pub work_limit: Natural,
+ }
+
+@@ -39,6 +41,7 @@
+         max_exports: natural::from_u64(size as u64), fuel: natural::from_u64(size as u64),
+         max_memories: natural::from_u64(size as u64), max_datas: natural::from_u64(size as u64),
+         max_memory_imports: natural::from_u64(size as u64),
++        max_globals: natural::from_u64(size as u64),
+         work_limit: natural::from_u64(work_limit) }
+ }
+
+@@ -212,19 +215,21 @@
+     }
+ }
+
+-/// Exports determine REFS before bodies; bodies and START do not declare their own references.
++/// Numeric constant globals have no free references; exports determine REFS before bodies.
+ fn build(config: &Config, choices: Choices) -> Result<(Module, Choices), GenerationError> {
+     let (types, flat, choices): (Sequence<RecGroup>, Sequence<FuncType>, Choices) = types::generate(config, choices)?;
+     let (memory_imports, choices): (Sequence<MemoryImport>, Choices) =
+         memory_import::generate(natural::copy(&config.max_memory_imports), choices)?;
+     let (indices, choices): (Sequence<Natural>, Choices) = function_indices(&config.max_functions, &sequence::length(&flat), choices)?;
+     let (exports, choices): (Sequence<Export>, Choices) = generate_exports(&config.max_exports, &sequence::length(&indices), choices)?;
++    let (globals, choices): (Sequence<Global>, Choices) =
++        global::generate(natural::copy(&config.max_globals), choices)?;
+     let refs: Sequence<Natural> = declared_refs(&exports);
+     let (functions, choices): (Sequence<Function>, Choices) = functions_loop(&indices, config, &flat, &indices, &types, &refs, Sequence::Empty, choices)?;
+     let (start, choices): (Option<Natural>, Choices) = generate_start(&flat, &indices, choices)?;
+     let (memories, choices): (Memories, Choices) = memory::generate(natural::copy(&config.max_memories), choices)?;
+     let (datas, choices): (Datas, Choices) = data::generate(natural::copy(&config.max_datas), choices)?;
+-    Ok((Module { types, functions, exports, start, memories, datas, memory_imports }, choices))
++    Ok((Module { types, functions, exports, start, memories, datas, memory_imports, globals }, choices))
+ }
+
+ /// Practical sampling and replay execute exactly the same typed construction core.
+diff --git a/experiments/generator-rust/wasm_case_study.py b/experiments/generator-rust/wasm_case_study.py
+--- a/experiments/generator-rust/wasm_case_study.py
++++ b/experiments/generator-rust/wasm_case_study.py
+@@ -253,6 +253,17 @@
+     i64 = modules['natural_i64_2pow80_plus5']
+     if i64['FUNCS'] != [{'FTYPE': 0, 'LOCALS': [], 'BODY': [{'CONST': {'I64': (1 << 80) + 5}}]}]:
+         raise AssertionError('Unbounded i64 payload or exact instruction body changed')
++    for name, expected in (
++        ('constant_globals', [('Cons', 'I32', 0), ('Var', 'I64', 7)]),
++        ('global_i64_nat80', [('Var', 'I64', 1 << 80)]),
++    ):
++        expected_globals: list[dict[str, object]] = [
++            {'GTYPE': {'GlobalT': [mutable, {'NumT': width + 'T'}]},
++             'GINIT': [{'CONST': {width: value}}]}
++            for mutable, width, value in expected
++        ]
++        if modules[name]['GLOBALS'] != expected_globals:
++            raise AssertionError(f'Global type, mutability, order or initializer changed: {name}')
+     empty = modules['empty']
+     if empty['FUNCS'] != [] or empty['TYPES'] != [] or empty['START'] is not None:
+         raise AssertionError('Empty-module witness changed')
+@@ -329,9 +340,9 @@
+             sampling_errors += 1
+     legacy_count: int = len(modules)
+     profiles: tuple[Config, ...] = (
+-        Config(6, 8, 5, 3, 5, 10, 12, 0, 0, 0, 100000),
+-        Config(1, 3, 0, 0, 4, 4, 16, 0, 0, 0, 10000),
+-        Config(3, 5, 8, 4, 8, 3, 32, 0, 0, 0, 100000),
++        Config(6, 8, 5, 3, 5, 10, 12, 0, 0, 0, 0, 100000),
++        Config(1, 3, 0, 0, 4, 4, 16, 0, 0, 0, 0, 10000),
++        Config(3, 5, 8, 4, 8, 3, 32, 0, 0, 0, 0, 100000),
+     )
+     replay_pairs: int = 0
+     for config in profiles:
+@@ -370,36 +381,44 @@
+         native_values.append(report)
+         modules.append(module)
+     assert_targeted(targeted)
+-    zero: list[str] = ['0'] * 10 + ['1000']
++    zero: list[str] = ['0'] * 11 + ['1000']
+     errors: list[tuple[list[str], str]] = [
+         (['replay', *zero, '-'], 'TapeExhausted: missing choice at offset 0'),
+         (['replay', *zero, '1'], 'ChoiceOutOfRange: offset=0, value=1, required value < 1'),
+         (['replay', *zero, '0,0'], 'UnusedChoices: consumed=1, supplied=2'),
+-        (['sample', *(['0'] * 11), '0'], 'WorkLimit'),
++        (['sample', *(['0'] * 12), '0'], 'WorkLimit'),
+         (['sample', '65', *zero[1:], '0'], 'CLI resource limit'),
+         (['1', '33', '0'], 'CLI resource limit'),
+         (['2', '1', str((1 << 64) - 1)], 'CLI resource limit'),
+         (['replay', *zero, str(1 << 64)], 'exceeds u64'),
+-        (['replay', *(['0'] * 7), '3', '0', '0', '10', '0,2'],
++        (['replay', *(['0'] * 7), '3', '0', '0', '0', '10', '0,2'],
+          'ChoiceOutOfRange: offset=1, value=2, required value < 2'),
+-        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,0,65537'],
++        (['replay', *(['0'] * 7), '1', '0', '0', '0', '10', '0,1,0,65537'],
+          'ChoiceOutOfRange: offset=3, value=65537, required value < 65537'),
+-        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,1,281474976710657'],
++        (['replay', *(['0'] * 7), '1', '0', '0', '0', '10', '0,1,1,281474976710657'],
+          'ChoiceOutOfRange: offset=3, value=281474976710657, required value < 281474976710657'),
+-        (['replay', *(['0'] * 7), '1', '0', '0', '10', '0,1,0,65536,1,1'],
++        (['replay', *(['0'] * 7), '1', '0', '0', '0', '10', '0,1,0,65536,1,1'],
+          'ChoiceOutOfRange: offset=5, value=1, required value < 1'),
+-        (['replay', *(['0'] * 8), '1', '0', '10', '0,1,1,1112064'],
++        (['replay', *(['0'] * 8), '1', '0', '0', '10', '0,1,1,1112064'],
+          'ChoiceOutOfRange: offset=3, value=1112064, required value < 1112064'),
+-        (['replay', *(['0'] * 8), '1', '0', '10', '0,1,2'],
++        (['replay', *(['0'] * 8), '1', '0', '0', '10', '0,1,2'],
+          'ChoiceOutOfRange: offset=2, value=2, required value < 2'),
+     ]
+     errors.extend([
+-        (['replay', *(['0'] * 9), '1', '10', '0,2'],
++        (['replay', *(['0'] * 9), '1', '0', '10', '0,2'],
+          'ChoiceOutOfRange: offset=1, value=2, required value < 2'),
+-        (['replay', *(['0'] * 9), '1', '10', '0,1,0,0,0,2'],
++        (['replay', *(['0'] * 9), '1', '0', '10', '0,1,0,0,0,2'],
+          'ChoiceOutOfRange: offset=5, value=2, required value < 2'),
+-        (['replay', *(['0'] * 9), '1', '10', '0,1,0,0,0,1,4294967297'],
++        (['replay', *(['0'] * 9), '1', '0', '10', '0,1,0,0,0,1,4294967297'],
+          'ChoiceOutOfRange: offset=6, value=4294967297, required value < 4294967297'),
++    ])
++    errors.extend([
++        (['replay', *(['0'] * 10), '1', '10', '0,1,2'],
++         'ChoiceOutOfRange: offset=2, value=2, required value < 2'),
++        (['replay', *(['0'] * 10), '1', '10', '0,1,0,2'],
++         'ChoiceOutOfRange: offset=3, value=2, required value < 2'),
++        (['replay', *(['0'] * 10), '1', '10', '0,1,0,0,4294967297'],
++         'ChoiceOutOfRange: offset=4, value=4294967297, required value < 4294967297'),
+     ])
+     for args, expected in errors:
+         result = subprocess.run([str(NATIVE), *args], env=environment, text=True,
+diff --git a/scripts/tests/rust_wasm_cases.py b/scripts/tests/rust_wasm_cases.py
+--- a/scripts/tests/rust_wasm_cases.py
++++ b/scripts/tests/rust_wasm_cases.py
+@@ -15,6 +15,7 @@
+     memories: int
+     datas: int
+     memory_imports: int
++    globals: int
+     work: int
+
+
+@@ -32,94 +33,98 @@
+ def replay_cases() -> tuple[ReplayCase, ...]:
+     """The cells below select specific signatures, stack effects, and full-width values."""
+     return (
+-        ReplayCase('empty', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000),
++        ReplayCase('empty', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000),
+                    (0,)),
+-        ReplayCase('empty_exact_work', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
++        ReplayCase('empty_exact_work', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
+                    (0,)),
+-        ReplayCase('memory_import_only', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 7),
++        ReplayCase('constant_globals', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 9),
++                   (0, 1, 0, 0, 0, 1, 1, 1, 7)),
++        ReplayCase('global_i64_nat80', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 86),
++                   (0, 1, 1, 1, 4294967296) + (1,) * 80 + (0,)),
++        ReplayCase('memory_import_only', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 7),
+                    (0, 1, 0, 0, 0, 0, 0)),
+-        ReplayCase('memory_import_unbounded_names', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 164),
++        ReplayCase('memory_import_unbounded_names', Config(0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 164),
+                    (0, 1, 0, 65536, 1, 0, 1, 0, 1, 4294967296) + (1,) * 80 +
+                    (0, 1, 55296, 0, 1, 1114112, 1, 4294967296) + (1,) * 64 + (0, 0)),
+-        ReplayCase('imports_memories_datas', Config(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 17),
++        ReplayCase('imports_memories_datas', Config(0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 17),
+                    (0, 1, 1, 281474976710656, 0, 0, 0, 1, 0, 0, 0, 1, 1, 72, 1, 105, 0)),
+-        ReplayCase('memory_only', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 5),
++        ReplayCase('memory_only', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5),
+                    (0, 1, 0, 0, 0)),
+-        ReplayCase('memory32_limit', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 6),
++        ReplayCase('memory32_limit', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 6),
+                    (0, 1, 0, 65536, 1, 0)),
+-        ReplayCase('memory64_limit', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 6),
++        ReplayCase('memory64_limit', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 6),
+                    (0, 1, 1, 281474976710656, 1, 0)),
+-        ReplayCase('memory64_unbounded_max', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 5),
++        ReplayCase('memory64_unbounded_max', Config(0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 5),
+                    (0, 1, 1, 281474976710656, 0)),
+-        ReplayCase('mixed_memories', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 100),
++        ReplayCase('mixed_memories', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 100),
+                    (0, 1, 0, 1, 1, 9, 1, 1, 42, 0, 1, 0, 0, 1, 65536)),
+-        ReplayCase('memory_stop_empty', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 2),
++        ReplayCase('memory_stop_empty', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 2),
+                    (0, 0)),
+-        ReplayCase('memory_early_stop', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 6),
++        ReplayCase('memory_early_stop', Config(0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 6),
+                    (0, 1, 0, 2, 0, 0)),
+-        ReplayCase('passive_empty_string', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 3),
++        ReplayCase('passive_empty_string', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 3),
+                    (0, 1, 0)),
+-        ReplayCase('passive_unicode', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 9),
++        ReplayCase('passive_unicode', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 9),
+                    (0, 1, 1, 65, 1, 0, 1, 127360, 0)),
+-        ReplayCase('passive_unicode_line_separators', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 9),
++        ReplayCase('passive_unicode_line_separators', Config(0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 9),
+                    (0, 1, 1, 133, 1, 8232, 1, 8233, 0)),
+-        ReplayCase('passive_two_segments', Config(0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 7),
++        ReplayCase('passive_two_segments', Config(0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 7),
+                    (0, 1, 0, 1, 1, 97, 0)),
+-        ReplayCase('passive_stop_empty', Config(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 2),
++        ReplayCase('passive_stop_empty', Config(0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 2),
+                    (0, 0)),
+-        ReplayCase('natural_i64_2pow80_plus5', Config(1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 96),
++        ReplayCase('natural_i64_2pow80_plus5', Config(1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 96),
+                    (1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 4294967296, 2, 1, 2) +
+                    (1,) * 77 + (0, 0)),
+-        ReplayCase('type_only', Config(2, 0, 3, 2, 0, 0, 0, 0, 0, 0, 1006),
++        ReplayCase('type_only', Config(2, 0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 1006),
+                    (2, 1, 0, 0, 3, 0, 1, 0, 2, 1, 0, 1, 0, 0, 0, 0, 0)),
+-        ReplayCase('six_functions_wide_signatures_locals_aliases', Config(1, 6, 4, 2, 3, 12, 0, 0, 0, 0, 10387),
++        ReplayCase('six_functions_wide_signatures_locals_aliases', Config(1, 6, 4, 2, 3, 12, 0, 0, 0, 0, 0, 10387),
+                    (1, 1, 0, 0, 4, 0, 1, 0, 1, 2, 1, 0, 6, 0, 0, 0, 0, 0, 0, 12, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 3, 0, 1, 0, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 4294967295, 0)),
+-        ReplayCase('self_call', Config(1, 1, 0, 1, 0, 2, 1, 0, 0, 0, 1003),
++        ReplayCase('self_call', Config(1, 1, 0, 1, 0, 2, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 2, 0, 0, 0, 8, 0)),
+-        ReplayCase('inline_if', Config(1, 1, 0, 1, 0, 2, 1, 0, 0, 0, 1003),
++        ReplayCase('inline_if', Config(1, 1, 0, 1, 0, 2, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 2, 0, 0, 0, 14, 0, 0, 0, 1, 0, 7, 0, 9, 0)),
+-        ReplayCase('inline_block', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1003),
++        ReplayCase('inline_block', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 12, 0, 0, 7, 0)),
+-        ReplayCase('inline_loop', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1003),
++        ReplayCase('inline_loop', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 13, 0, 0, 9, 0)),
+-        ReplayCase('nested_blocks_depth_eight', Config(1, 1, 0, 1, 0, 0, 8, 0, 0, 0, 1003),
++        ReplayCase('nested_blocks_depth_eight', Config(1, 1, 0, 1, 0, 0, 8, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 12, 0, 12, 0, 12, 0, 12, 0, 12, 0, 12, 0, 12, 0, 12, 0, 0, 7, 0)),
+-        ReplayCase('unreachable_add', Config(1, 1, 0, 1, 0, 0, 2, 0, 0, 0, 20),
++        ReplayCase('unreachable_add', Config(1, 1, 0, 1, 0, 0, 2, 0, 0, 0, 0, 20),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 5, 18, 0, 0)),
+-        ReplayCase('unreachable_one_concrete_operand', Config(1, 1, 0, 1, 0, 0, 3, 0, 0, 0, 24),
++        ReplayCase('unreachable_one_concrete_operand', Config(1, 1, 0, 1, 0, 0, 3, 0, 0, 0, 0, 24),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 5, 4, 7, 18, 0, 0)),
+-        ReplayCase('unreachable_nonempty_predecessor', Config(1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 19),
++        ReplayCase('unreachable_nonempty_predecessor', Config(1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 19),
+                    (1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 11, 1, 1, 0, 7, 0)),
+-        ReplayCase('loop_parameter_label', Config(1, 1, 0, 1, 0, 0, 2, 0, 0, 0, 22),
++        ReplayCase('loop_parameter_label', Config(1, 1, 0, 1, 0, 0, 2, 0, 0, 0, 0, 22),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 13, 0, 19, 0, 0)),
+-        ReplayCase('outer_block_label', Config(1, 1, 0, 1, 0, 0, 3, 0, 0, 0, 29),
++        ReplayCase('outer_block_label', Config(1, 1, 0, 1, 0, 0, 3, 0, 0, 0, 0, 29),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 12, 0, 12, 0, 21, 0, 0, 7, 0)),
+-        ReplayCase('br_if_retains_argument', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 20),
++        ReplayCase('br_if_retains_argument', Config(1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 20),
+                    (1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 20, 0, 7, 0, 0, 0)),
+-        ReplayCase('mutual_void_calls', Config(1, 2, 0, 0, 0, 0, 1, 0, 0, 0, 1003),
++        ReplayCase('mutual_void_calls', Config(1, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 5, 0, 4, 0)),
+-        ReplayCase('long_sequence_start', Config(1, 1, 0, 0, 0, 0, 64, 0, 0, 0, 1003),
++        ReplayCase('long_sequence_start', Config(1, 1, 0, 0, 0, 0, 64, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)),
+-        ReplayCase('forward_wide_call', Config(2, 2, 4, 2, 0, 0, 1, 0, 0, 0, 1070),
++        ReplayCase('forward_wide_call', Config(2, 2, 4, 2, 0, 0, 1, 0, 0, 0, 0, 1070),
+                    (2, 1, 0, 0, 0, 2, 1, 0, 1, 0, 0, 4, 0, 1, 0, 1, 2, 1, 0, 2, 0, 1, 0, 0, 9, 0, 1, 0, 4294967296, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2, 0, 0, 0, 0, 0, 11, 0, 12, 0)),
+-        ReplayCase('indexed_block_parameters_multivalue', Config(1, 1, 4, 2, 0, 0, 1, 0, 0, 0, 1003),
++        ReplayCase('indexed_block_parameters_multivalue', Config(1, 1, 4, 2, 0, 0, 1, 0, 0, 0, 0, 1003),
+                    (1, 1, 0, 0, 4, 0, 1, 0, 1, 2, 1, 0, 1, 0, 0, 0, 23, 0, 1, 1, 2, 2, 1, 1, 0)),
+-        ReplayCase('recursive_parent', Config(2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 12),
++        ReplayCase('recursive_parent', Config(2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 12),
+                    (1, 2, 1, 0, 0, 1, 1, 2, 0, 0, 0, 0)),
+-        ReplayCase('mutual_recursive_group', Config(2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 17),
++        ReplayCase('mutual_recursive_group', Config(2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 17),
+                    (1, 2, 0, 0, 0, 0, 1, 2, 0, 1, 0, 1, 2, 0, 0, 0, 0)),
+-        ReplayCase('raw_type_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 29),
++        ReplayCase('raw_type_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 29),
+                    (3, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 2, 0, 0, 1, 2, 0, 1, 1, 2, 0, 0, 1, 0)),
+-        ReplayCase('exported_ref_func', Config(1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 17),
++        ReplayCase('exported_ref_func', Config(1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 17),
+                    (1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 15, 0, 0)),
+-        ReplayCase('empty_recursive_group', Config(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2),
++        ReplayCase('empty_recursive_group', Config(1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2),
+                    (1, 0)),
+-        ReplayCase('exported_function_index', Config(1, 2, 0, 0, 0, 1, 1, 0, 0, 0, 21),
++        ReplayCase('exported_function_index', Config(1, 2, 0, 0, 0, 1, 1, 0, 0, 0, 0, 21),
+                    (1, 1, 0, 0, 0, 0, 2, 0, 0, 1, 1, 0, 16, 0, 0, 0, 0)),
+-        ReplayCase('recursive_type_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 35),
++        ReplayCase('recursive_type_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 35),
+                    (3, 1, 0, 0, 1, 2, 0, 0, 0, 1, 0, 0, 1, 2, 0, 1, 0, 1, 0, 0, 1, 2, 0, 0, 1, 2, 0, 1, 1, 2, 0, 0, 1, 0)),
+-        ReplayCase('external_parent_alias', Config(5, 1, 1, 1, 0, 0, 0, 0, 0, 0, 35),
++        ReplayCase('external_parent_alias', Config(5, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 35),
+                    (5, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1, 1, 0, 2, 1, 0, 0, 1, 2, 0, 2, 1, 2, 0, 3, 1, 4, 0, 0, 1, 0)),
+-        ReplayCase('recursive_parent_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 33),
++        ReplayCase('recursive_parent_alias', Config(3, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 33),
+                    (3, 2, 1, 0, 0, 1, 0, 0, 2, 1, 0, 0, 2, 0, 0, 1, 0, 0, 1, 2, 0, 1, 1, 2, 0, 3, 1, 4, 0, 0, 1, 0)),
+     )

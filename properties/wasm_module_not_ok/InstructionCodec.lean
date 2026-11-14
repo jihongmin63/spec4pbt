@@ -382,46 +382,58 @@ theorem decode_fuel_roundtrip (fuel : Nat) :
       cases x with
       | BLOCK b xs =>
         have hxs : instructionsDepth xs < fuel := by
-          simp [instructionDepth] at h
+          rw [instructionDepth] at h
           omega
-        simp [encodeInstruction, decodeInstructionFuel, Nat.unpair_pair,
-          Encodable.encodek, ih.2 xs hxs]
+        simp only [encodeInstruction]
+        rw [decodeInstructionFuel]
+        simp only [Nat.unpair_pair,
+          Encodable.encodek, ih.2 xs hxs] <;> rfl
       | LOOP b xs =>
         have hxs : instructionsDepth xs < fuel := by
-          simp [instructionDepth] at h
+          rw [instructionDepth] at h
           omega
-        simp [encodeInstruction, decodeInstructionFuel, Nat.unpair_pair,
-          Encodable.encodek, ih.2 xs hxs]
+        simp only [encodeInstruction]
+        rw [decodeInstructionFuel]
+        simp only [Nat.unpair_pair,
+          Encodable.encodek, ih.2 xs hxs] <;> rfl
       | «IF % % ELSE %» b xs ys =>
         have hxs : instructionsDepth xs < fuel := by
-          simp [instructionDepth] at h
+          rw [instructionDepth] at h
           omega
         have hys : instructionsDepth ys < fuel := by
-          simp [instructionDepth] at h
+          rw [instructionDepth] at h
           omega
-        simp [encodeInstruction, decodeInstructionFuel, Nat.unpair_pair,
-          Encodable.encodek, ih.2 xs hxs, ih.2 ys hys]
+        simp only [encodeInstruction]
+        rw [decodeInstructionFuel]
+        simp only [Nat.unpair_pair,
+          Encodable.encodek, ih.2 xs hxs, ih.2 ys hys] <;> rfl
       | TRY_TABLE b cs xs =>
         have hxs : instructionsDepth xs < fuel := by
-          simp [instructionDepth] at h
+          rw [instructionDepth] at h
           omega
-        simp [encodeInstruction, decodeInstructionFuel, Nat.unpair_pair,
-          Encodable.encodek, ih.2 xs hxs]
+        simp only [encodeInstruction]
+        rw [decodeInstructionFuel]
+        simp only [Nat.unpair_pair,
+          Encodable.encodek, ih.2 xs hxs] <;> rfl
       | _ =>
-        simp [encodeInstruction, decodeInstructionFuel, Nat.unpair_pair,
-          Encodable.encodek] <;> exact Equiv.symm_apply_apply _ _
+        as_aux_lemma =>
+          simp only [encodeInstruction]
+          rw [decodeInstructionFuel]
+          simp only [Nat.unpair_pair,
+            Encodable.encodek] <;> rfl
     · intro xs h
       cases xs with
-      | nil => simp [encodeInstructions, decodeInstructionsFuel]
+      | nil => rfl
       | cons x xs =>
         have hx : instructionDepth x < fuel := by
-          simp [instructionsDepth] at h
+          rw [instructionsDepth] at h
           omega
         have hxs : instructionsDepth xs < fuel := by
-          simp [instructionsDepth] at h
+          rw [instructionsDepth] at h
           omega
-        simp [encodeInstructions, decodeInstructionsFuel, Nat.unpair_pair,
-          ih.1 x hx, ih.2 xs hxs]
+        rw [encodeInstructions, decodeInstructionsFuel]
+        simp only [Nat.unpair_pair,
+          ih.1 x hx, ih.2 xs hxs] <;> rfl
 
 
 def fullEncodeInstruction (i : SpecTec.instr) : Nat :=
