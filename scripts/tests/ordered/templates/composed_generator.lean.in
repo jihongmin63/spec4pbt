@@ -1,0 +1,35 @@
+import @PROOF@
+import Spec4Pbt.CorrectGen
+
+namespace ComposedGenerator
+open Gen.CorrectGen
+open @CONTRACT@
+
+private def certified : CorrectGen Premise :=
+  convert (by
+    funext input
+    apply propext
+    constructor
+    · rintro ⟨n, _, m, _, rfl⟩
+      trivial
+    · intro _
+      exact ⟨input.n, True.intro, input.m, True.intro, by cases input; rfl⟩)
+    (s_bind s_arbNat (fun n => s_bind s_arbNat (fun m =>
+      s_pure ({ n := n, m := m } : Input))))
+
+def generator : generatorValue := certified.val
+
+theorem soundness : generatorSound generator := by
+  intro input h
+  exact (Iff.of_eq (congrFun certified.property input)).mp h
+
+theorem completeness : generatorComplete generator := by
+  intro input h
+  exact (Iff.of_eq (congrFun certified.property input)).mpr h
+
+theorem lawfulness : generatorLawful generator := by
+  change Gen.IndexLawful (Gen.arbNat >>= fun n => Gen.arbNat >>= fun m =>
+    pure ({ n := n, m := m } : Input))
+  simp
+
+end ComposedGenerator
