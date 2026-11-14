@@ -148,18 +148,31 @@ once with the specification. A shared implementation manifest may bind other
 relations from the catalog, but execution calls only the relations selected by
 this property's plan.
 
-The executable subset currently covers zero-output helpers with one rule that
-passes its inputs unchanged to one primitive call. Such wrappers can be chained
-and can negate a zero-output helper with `:/`. A normal primitive relation failure
-is inverted through negation; an adapter error remains an error. Helpers with
-output constraints, guards, alternative rules, or recursion are reported as
-unsupported at the execution-planning boundary. `emit` rejects a plan with
-unsupported uses. A `:/` premise in a property clause becomes logical negation
-in its Lean contract. At execution time, only a normal `relation_failure` is
-inverted; `abort`, transport errors, and timeouts remain errors. The narrow
-helper delegation is checked against typed SpecTec IL by the native audit; a
-separate Lean theorem for general helper composition is not yet available.
-The authored `ill_typed_rejection` property now plans without unsupported
+External helpers can compose multiple status-only primitive calls, nested helpers,
+ordered alternative rules, input guards, and `:/` negation. Helpers must be
+acyclic and have no outputs; their rule inputs must be distinct variables.
+Each primitive leaf must be selected with `observe = []`. Calls and guards may
+read helper inputs, including values observed by earlier property calls, but
+cannot constrain, reuse, or pass along hidden primitive outputs. Recursive
+helpers, helper output values, else rules, and other unsupported premises are
+reported by `plan` and rejected by `emit`.
+
+Execution follows the rule order: a failed premise skips the rest of that rule,
+and ordinary rule failure tries the next alternative. Success skips later
+alternatives. `:/` inverts only success and normal `relation_failure`; abort,
+transport errors, and timeouts remain errors and stop the helper. Every primitive
+occurrence has a stable trace entry, with unexecuted occurrences marked `blocked`.
+Those skipped entries do not fail a successful helper. Calls are not deduplicated:
+an occurrence in a later alternative makes a fresh implementation request.
+
+The native executor reconstructs helper composition from typed source, applies
+the official AL binding and side-condition passes (including bounds checks),
+and verifies leaf coverage, inputs, statuses, and skipped calls during replay.
+It also audits function effects inside helpers. Existing single-call wrappers
+retain their occurrence IDs. A `:/` premise in a property clause remains logical
+negation in its Lean contract; the runtime helper checks ordered normal failure.
+A separate Lean theorem for general external helper composition is not yet
+available. The authored `ill_typed_rejection` property now plans without unsupported
 structures, but has no full-P4 proof, exact-support generator, or real
 implementation binding yet. In the ordered translation its `Rejected` helper
 requires a normal `unmatch`; logical `¬ TypeChecks` alone does not establish

@@ -88,7 +88,7 @@ let helper_graph spec names =
         Some (obj fields)
     | _ -> None) spec in
   helpers
-let property spec helpers ((id:S.id),inputs,goal,conditions as clause) =
+let property spec helper_names helpers ((id:S.id),inputs,goal,conditions as clause) =
   let blocks, goal_nodes = match Pass.algo_property spec clause with
     | Ok x -> x | Error d -> failwith (Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton d)) in
   let condition_blocks = List.mapi (fun index nodes ->
@@ -96,7 +96,22 @@ let property spec helpers ((id:S.id),inputs,goal,conditions as clause) =
     let kind = match source.it with RulePr _ | IfHoldPr _ | IfNotHoldPr _ -> "relation" | _ -> "guard" in
     Property_al.block prem binding ("condition." ^ string_of_int index) kind nodes) blocks in
   let goal_kind = match goal.it with RulePr _ | IfHoldPr _ | IfNotHoldPr _ -> "relation" | _ -> "guard" in
-  obj ["name",str id.it;"location",loc id.at;"helpers",`List helpers;"inputs",arr (fun ((id:S.id),t)->obj["name",str id.it;"type",typ t;"location",loc id.at]) inputs;"goal",prem goal;"conditions",arr prem conditions;
+  let executions origin (nodes,_) = List.mapi (fun index (node:S.prem) ->
+    let relation = match node.it with
+      | S.RulePr (rid,_,_) | S.IfHoldPr (rid,_) | S.IfNotHoldPr (rid,_) -> Some rid.it
+      | _ -> None in
+    match relation with
+    | Some name when List.mem name helper_names ->
+        let fields = ["node_id",str (origin ^ "." ^ string_of_int index)] in
+        let fields = try
+          let tree = Property_document.helper_execution spec helper_names node in
+          fields @ ["calls",arr (fun (_,p) -> prem p) (Property_document.execution_leaves tree)]
+        with Property_document.Unsupported_helper reason -> fields @ ["unsupported",str reason] in
+        Some (obj fields)
+    | _ -> None) nodes |> List.filter_map Fun.id in
+  let helper_executions = List.concat (List.mapi (fun index block ->
+    executions ("condition." ^ string_of_int index) block) blocks) @ executions "goal" goal_nodes in
+  obj ["name",str id.it;"location",loc id.at;"helpers",`List helpers;"helper_executions",`List helper_executions;"inputs",arr (fun ((id:S.id),t)->obj["name",str id.it;"type",typ t;"location",loc id.at]) inputs;"goal",prem goal;"conditions",arr prem conditions;
        "condition_blocks",`List condition_blocks;"goal_block",Property_al.block prem binding "goal" goal_kind goal_nodes]
 let report d = Diagnostic.Render.render_report ~ansi:Diagnostic.Ansi.plain (Diagnostic.Report.singleton d)
 let () = try
@@ -107,7 +122,7 @@ let () = try
   let names=Hashtbl.create 8 in
   let spec_il = match Pass.elab_spec spec with Ok x -> x | Error d -> failwith(report d) in
   let helpers = helper_graph spec_il helper_names in
-  let props=List.map (fun ((id:El.id),_,_,_ as p)->if Hashtbl.mem names id.it then fail id.at "duplicate property name";Hashtbl.add names id.it (); property spec_il helpers (match Pass.elab_property spec p with Ok p -> p | Error d -> failwith(report d))) props in
+  let props=List.map (fun ((id:El.id),_,_,_ as p)->if Hashtbl.mem names id.it then fail id.at "duplicate property name";Hashtbl.add names id.it (); property spec_il helper_names helpers (match Pass.elab_property spec p with Ok p -> p | Error d -> failwith(report d))) props in
   print_endline (Yojson.Basic.to_string(obj ["schema_version",`Int 2;"engine",str "spectec-al";"properties",`List props]))
 with
 | Failure s | Sys_error s -> prerr_endline s; exit 1

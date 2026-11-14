@@ -219,6 +219,8 @@ def compile_clause(clause, config):
     flows = {name: Flow(frozenset({'I'})) for name in known}
     input_names = set(known)
     calls, checks, proof, origins, unsupported = [], [], [], {}, []
+    compositions = []
+    helper_executions = {entry['node_id']: entry for entry in clause.get('helper_executions', [])}
 
     def diagnostic(node, message):
         loc = node.get('location', {})
@@ -356,8 +358,28 @@ def compile_clause(clause, config):
                               'profile_selectors': [], 'observations': [],
                               'bindings': [], 'matches': [], 'input_only': needed <= input_names})
             else:
-                unsupported.append({'relation': rid, 'location': node.get('location'),
-                                    'reason': 'composed external helper execution is not supported'})
+                execution = helper_executions.get(node['id'], {})
+                reason = execution.get('unsupported')
+                leaves = execution.get('calls', [])
+                if not execution:
+                    reason = 'native helper execution metadata is missing; rebuild the toolchain'
+                if any(leaf['relation'] not in profiles or profiles[leaf['relation']]['observe']
+                       for leaf in leaves):
+                    reason = 'composed helpers require status-only primitive selections (observe = [])'
+                if reason:
+                    unsupported.append({'relation': rid, 'location': node.get('location'), 'reason': reason})
+                else:
+                    occurrence = origin if not node['auxiliary'] else node['id']
+                    dependencies = sorted(input_flow.producers & frozenset(c['id'] for c in calls))
+                    compositions.append({'id': occurrence, 'node_id': node['id'],
+                                         'relation': rid, 'dependencies': dependencies})
+                    for index, leaf in enumerate(leaves):
+                        calls.append({**leaf, 'node_id': node['id'],
+                                      'id': f'{occurrence}.call.{index}', 'source_relation': rid,
+                                      'composition': occurrence, 'leaf_index': index, 'invert': False,
+                                      'dependencies': dependencies, 'profile_selectors': [],
+                                      'observations': [], 'bindings': [], 'matches': [],
+                                      'input_only': needed <= input_names})
             return 'call'
         if external:
             occurrence = origin if not node['auxiliary'] else node['id']
@@ -429,7 +451,7 @@ def compile_clause(clause, config):
               'all_conditions': all_conditions, 'proof_conditions': proof,
               'conditions': all_conditions, 'checks': checks, 'goal_block': clause['goal_block'],
               'goal': clause['goal'], 'condition_blocks': clause['condition_blocks'],
-              'calls': calls, 'variables': known,
+              'calls': calls, 'compositions': compositions, 'variables': known,
               'bindings': [known[n] for n in known if n not in input_names],
               'origins': origins}
     result['plan_id'] = identity(result)

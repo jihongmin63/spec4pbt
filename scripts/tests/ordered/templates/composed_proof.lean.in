@@ -1,0 +1,16 @@
+import @CONTRACT@
+
+namespace Composed
+
+theorem property_correct : @CONTRACT@.property := by
+  intro input _
+  refine ⟨0, ?_⟩
+  exact .orElse_success (.bind_success
+    (.orElse_success (.bind_success
+      (.call (.orElse_success (.pure input.n))) (.pure ())))
+    (.bind_success
+      (.orElse_success (.bind_success
+        (.call (.orElse_success (.pure input.m))) (.pure ())))
+      (.pure ())))
+
+end Composed
