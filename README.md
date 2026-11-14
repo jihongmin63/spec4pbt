@@ -3,9 +3,31 @@
 Propose properties from SpecTec specifications, verify them in Lean, and test external implementations with certified input generators.
 The default branch is `P4-spectec-based`.
 
-This `wasm-spec-experiments` branch imports the [Wasm specification](specifications/wasm/README.md)
-and removes the authored P4 properties. The P4 commands below document the baseline
-workflow; their property sources are available on `P4-spectec-based`.
+## Branch responsibilities
+
+`P4-spectec-based` contains the shared toolchain, P4 and [Wasm](specifications/wasm/README.md)
+specifications, observation catalogs, and tool regressions. It has no authored research
+properties or target implementation adapters. Small properties and adapters under
+`scripts/tests/` are fixtures for checking the shared tools.
+
+`pbt-experiments` inherits that foundation and contains the P4/Wasm properties, proofs,
+generators, implementation manifests and adapters, their tests, and research notes.
+Property commands below use examples from that branch; run them in its worktree.
+Specification catalogs describe permitted observations; implementation manifests select
+the engines that execute them. Engine installations are not required by the foundation.
+
+Merge foundation updates into experiment branches. Bring reusable tool improvements back
+as separate changes with regression checks, not by merging the entire experiment branch.
+Keep existing worktrees and ignored build/run data while experiments are active.
+
+`generator-in-haskell`, `generator-in-rust`, and
+`experiment/program-ok-generator-plan` build on `pbt-experiments`.
+Keep the component-planning branch local; publish the language experiment
+branches independently.
+
+This `wasm-spec-experiments` work branch retains its authored Wasm properties,
+proofs, generators, and historical research notes. Its shared specifications and
+toolchain follow `P4-spectec-based`; P4 property examples live on `pbt-experiments`.
 
 ## Repository layout and responsibilities
 
@@ -14,14 +36,14 @@ p4-spectec/                         Pinned official specification submodule
 specifications/<spec-id>/
   observations.toml                 User-provided external observation catalog
   translated/<identity>/            Shared Lean translation and identity.json (ignored)
-properties/<name>/
+properties/<name>/                  Authored experiments on pbt-experiments
   property.watsup                   Authored property and optional helper relations
   external.toml                     Selection from the shared observation catalog
   Proof.lean                        Authored proof; emit creates an obligation if absent
   Generator.lean                    Executable generator and separate support proofs
   bundle/                           Generated helpers, transport, contract, audits, certificate (ignored)
   runs/<run>/                       Inputs, implementation observations, verdicts, traces (ignored)
-implementations/                    Shared manifests, adapters, optional JSON declarations
+implementations/                    Experiment manifests, adapters, optional JSON declarations
   local/                            Local implementation sources and builds (ignored)
 scripts/                            Python planning, certification, execution, and replay
   toolchain.py                      Repository/build paths and native tool lifecycle
@@ -89,7 +111,8 @@ changed executable fingerprints require recertification.
 
 Users do not need to write property syntax, Lean proofs, or generators. An agent proposes properties
 from the specification and testing goal, and writes an adapter and manifest when implementation details
-are available. The current property is **successful instantiation of a type-checked P4 program**.
+are available. The `instantiation_progress` example on `pbt-experiments` states
+**successful instantiation of a type-checked P4 program**.
 It assumes `Program_ok` and requires `Program_inst` to succeed. Because `observe = []`, it does not
 compare output values. Checking success alone still requires a call to the actual implementation.
 
@@ -129,18 +152,31 @@ once with the specification. A shared implementation manifest may bind other
 relations from the catalog, but execution calls only the relations selected by
 this property's plan.
 
-The executable subset currently covers zero-output helpers with one rule that
-passes its inputs unchanged to one primitive call. Such wrappers can be chained
-and can negate a zero-output helper with `:/`. A normal primitive relation failure
-is inverted through negation; an adapter error remains an error. Helpers with
-output constraints, guards, alternative rules, or recursion are reported as
-unsupported at the execution-planning boundary. `emit` rejects a plan with
-unsupported uses. A `:/` premise in a property clause becomes logical negation
-in its Lean contract. At execution time, only a normal `relation_failure` is
-inverted; `abort`, transport errors, and timeouts remain errors. The narrow
-helper delegation is checked against typed SpecTec IL by the native audit; a
-separate Lean theorem for general helper composition is not yet available.
-The authored `ill_typed_rejection` property now plans without unsupported
+External helpers can compose multiple status-only primitive calls, nested helpers,
+ordered alternative rules, input guards, and `:/` negation. Helpers must be
+acyclic and have no outputs; their rule inputs must be distinct variables.
+Each primitive leaf must be selected with `observe = []`. Calls and guards may
+read helper inputs, including values observed by earlier property calls, but
+cannot constrain, reuse, or pass along hidden primitive outputs. Recursive
+helpers, helper output values, else rules, and other unsupported premises are
+reported by `plan` and rejected by `emit`.
+
+Execution follows the rule order: a failed premise skips the rest of that rule,
+and ordinary rule failure tries the next alternative. Success skips later
+alternatives. `:/` inverts only success and normal `relation_failure`; abort,
+transport errors, and timeouts remain errors and stop the helper. Every primitive
+occurrence has a stable trace entry, with unexecuted occurrences marked `blocked`.
+Those skipped entries do not fail a successful helper. Calls are not deduplicated:
+an occurrence in a later alternative makes a fresh implementation request.
+
+The native executor reconstructs helper composition from typed source, applies
+the official AL binding and side-condition passes (including bounds checks),
+and verifies leaf coverage, inputs, statuses, and skipped calls during replay.
+It also audits function effects inside helpers. Existing single-call wrappers
+retain their occurrence IDs. A `:/` premise in a property clause remains logical
+negation in its Lean contract; the runtime helper checks ordered normal failure.
+A separate Lean theorem for general external helper composition is not yet
+available. The authored `ill_typed_rejection` property now plans without unsupported
 structures, but has no full-P4 proof, exact-support generator, or real
 implementation binding yet. In the ordered translation its `Rejected` helper
 requires a normal `unmatch`; logical `¬ TypeChecks` alone does not establish

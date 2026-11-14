@@ -1,3 +1,16 @@
-# Generator-only experiment: no external implementation observations.
 schema_version = 1
-observations = []
+
+# Permitted external relations. Each property's external.toml selects its calls;
+# implementation bindings and execution conditions belong to experiment branches.
+# Module_init_ok returns a module instance containing store addresses. This
+# catalog permits observing only success or failure for both relations.
+
+[[observations]]
+id = "module_validation"
+relation = "Module_ok"
+observe = []
+
+[[observations]]
+id = "module_instantiation"
+relation = "Module_init_ok"
+observe = []

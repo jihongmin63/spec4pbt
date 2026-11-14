@@ -1,7 +1,18 @@
 # Repository working rules
 
-Use `P4-spectec-based` as the baseline. Read README.md for user inputs, commands,
-implementation protocol, and the current full-P4 limitations.
+Use `P4-spectec-based` for the shared toolchain, P4/Wasm specifications, observation
+catalogs, and tool regression fixtures. Keep authored properties, proofs, generators,
+target implementation bindings, and research notes on `pbt-experiments` or its work
+branches. Keep adapter-specific tests with their adapters; the foundation must not
+require target engines. Small properties and adapters in `scripts/tests/` remain
+shared tool fixtures.
+
+Merge foundation updates into experiment branches. Promote reusable tool changes
+separately with regression checks; do not merge an experiment branch wholesale into
+the foundation. Preserve active worktrees and ignored execution evidence.
+
+Read README.md for user inputs, commands, implementation protocol, and the current
+full-P4 limitations. The property workflow below applies to experiment branches.
 
 ## Responsibilities and boundaries
 
@@ -91,8 +102,8 @@ Run Python module commands from the repository root.
    does not certify the input premise. Use `generate` to save certified premise
    inputs to a fresh `properties/<name>/runs/<run>/` without implementation calls.
 8. Report exactly what is proven and executed. Planning and ordered fixture
-   success do not establish full-P4 certification. The checked-in
-   `instantiation_progress` property currently has no completed proof, generator,
+   success do not establish full-P4 certification. The `instantiation_progress`
+   property on `pbt-experiments` currently has no completed proof, generator,
    or real implementation adapter.
 
 ## Tool maintenance
