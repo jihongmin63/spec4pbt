@@ -18,3 +18,6 @@ You may use scratch/ for temporary compilation files. Return a short factual
 description of the change. If no suitable candidate can be proposed, write no
 Candidate.v and return no_candidate with a reason. Do not assert that a
 candidate is equivalent or derivable unless a separate check establishes it.
+
+Do not spawn other agents, resume sessions, or make nested model/API calls.
+Use deterministic tools for this role's compilation and checks.

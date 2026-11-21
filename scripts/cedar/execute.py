@@ -521,9 +521,15 @@ def execute_attempt(root: Path, chain: Path, chains_root: Path, evidence: Path,
         save_state(state_path, state)
         return
     if reform["status"] != "accepted" or (reform.get("answer") or {}).get("status") != "candidate":
-        _finish_failure(state, run_id, attempt_id, reform, None, "reformulator execution failed")
+        completed = reform.get("execution_status") == "completed"
+        _finish_failure(state, run_id, attempt_id, reform, None,
+                        "reformulator output rejected" if completed else "reformulator execution failed",
+                        feedback_category="reformulator_output_rejected" if completed else "role_execution_failed")
         save_state(state_path, state)
-        experiment.stop_run(state, run_id, "operational_failure: reformulator")
+        if completed:
+            return
+        if state["runs"][run_id]["stop_reason"] is None:
+            experiment.stop_run(state, run_id, "operational_failure: reformulator")
         save_state(state_path, state)
         raise ExecutionError("reformulator role failed; run stopped with evidence")
     candidate = Path(reform["manifest"]["workspace"]) / "Candidate.v"

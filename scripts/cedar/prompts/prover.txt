@@ -11,3 +11,6 @@ admit, additional axioms, unsafe checking changes, or extraction substitutions.
 Do not edit Candidate.v or any other supplied source. If the frozen candidate
 needs modification, report failure with the precise reason. You may use
 scratch/ for temporary compilation files, but it is not a submitted artifact.
+
+Do not spawn other agents, resume sessions, or make nested model/API calls.
+Use deterministic tools for this role's compilation and checks.

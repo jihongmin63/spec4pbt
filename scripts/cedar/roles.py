@@ -116,7 +116,14 @@ def runtime_read_paths(switch: Path | None = None) -> list[Path]:
                                 "/dev") if Path(p).exists()]
     codex = shutil.which("codex")
     if codex is not None:
-        paths.append(Path(codex))
+        executable = Path(codex).resolve(strict=True)
+        paths.append(executable)
+        # This CLI delegates tool execution to a separate installed binary.
+        # Allow the exact runtime files, never the enclosing extension/user tree.
+        for name in ("codex-code-mode-host", "rg", "codex-package.json"):
+            dependency = executable.with_name(name)
+            if dependency.is_file():
+                paths.append(dependency)
     if switch is not None:
         prefix = _real_existing(switch)
         if prefix.name != "_opam-testing-theorems":
@@ -501,10 +508,11 @@ def _clear_private_auth(workspace: Path) -> None:
 
 
 def smoke_cli(source_root: Path, run_dir: Path, *, timeout_seconds: int = 180) -> dict[str, Any]:
-    """One explicitly non-experimental, tool-free CLI/authentication smoke call.
+    """One non-experimental CLI smoke call that must execute a real command.
 
-    The exact model and high effort are fixed.  A failed restriction probe
-    prevents the model invocation.  Raw events and stderr stay private.
+    The exact model and high effort are fixed. A failed restriction probe
+    prevents invocation. A reply alone cannot pass: its command must create
+    the expected scratch marker. Raw events and stderr stay private.
     """
     source_root = _real_existing(Path(source_root))
     call = Path(run_dir).resolve() / "harness-smoke" / uuid.uuid4().hex
@@ -521,7 +529,10 @@ def smoke_cli(source_root: Path, run_dir: Path, *, timeout_seconds: int = 180) -
     schema = {"type": "object", "additionalProperties": False,
               "required": ["ok"], "properties": {"ok": {"type": "boolean", "const": True}}}
     _json(workspace / "smoke-schema.json", schema)
-    prompt = 'Return {"ok":true} as the final JSON response. Do not call tools or read files.'
+    marker = workspace / "scratch" / "cli-command-probe"
+    prompt = """Use your command execution tool to run this command in the current
+workspace: python3 -c "from pathlib import Path; Path('scratch/cli-command-probe').write_text('ok')"
+After that command succeeds, return {"ok":true}. Do not read other files."""
     (evidence / "prompt.txt").write_text(prompt + "\n")
     command = ["codex", "--no-daemon", "exec", "--ephemeral", "--json", "--ignore-user-config",
                "-m", MODEL, "-c", 'model_reasoning_effort="high"', "-C", str(workspace),
@@ -544,7 +555,10 @@ def smoke_cli(source_root: Path, run_dir: Path, *, timeout_seconds: int = 180) -
             answer = None
     else:
         answer = None
-    report = {"status": "passed" if execution_status == "completed" and answer == {"ok": True} else "failed",
+    command_executed = marker.is_file() and marker.read_text() == "ok"
+    report = {"status": "passed" if execution_status == "completed" and answer == {"ok": True}
+              and command_executed else "failed",
+              "command_executed": command_executed,
               "execution_status": execution_status, "returncode": returncode,
               "wall_seconds": time.monotonic() - started,
               "usage": parse_usage(_parse_events(evidence / "events.jsonl"),

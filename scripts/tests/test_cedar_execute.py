@@ -187,6 +187,21 @@ class OrchestrationTests(unittest.TestCase):
         self.assertFalse((self.chain / "candidates/v001").exists())
         self.assertTrue((self.evidence / "run-001/attempt-001/staged-property/candidates/v001/Candidate.v").exists())
 
+    def test_completed_reformulator_scope_rejection_counts_and_continues(self):
+        def rejected(role, *args):
+            self.assertEqual(role, "reformulator")
+            report = self._role(role, *args)
+            report.update(status="rejected", execution_status="completed")
+            return report
+        self._run(call_role=rejected,
+                  syntax_check=lambda *args: self.fail("rejected output must not enter syntax"))
+        run = self.state["runs"]["run-001"]
+        self.assertEqual(run["attempts"][0]["status"], "rejected")
+        self.assertEqual(run["attempts"][0]["reformulation_cost"]["wall_seconds"], 5)
+        self.assertEqual(run["attempts"][0]["proof_cost"]["status"], "not_run")
+        self.assertIsNone(run["stop_reason"])
+        self.assertEqual(experiment.begin_attempt(self.state, "run-001"), "attempt-002")
+
     def test_failed_prefix_cannot_adopt_even_after_prover_success(self):
         self._run(prefix_check=lambda *args: (False, "assumptions found"))
         self.assertEqual(self.state["runs"]["run-001"]["attempts"][0]["status"], "rejected")

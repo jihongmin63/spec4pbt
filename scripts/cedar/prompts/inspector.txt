@@ -17,3 +17,6 @@ _opam-testing-theorems runtime bridge and .opam metadata are available; preserve
 installed runtime symlinks when making scratch copies. Do not alter bundled
 source to accommodate test failures. For a candidate submission, the exact
 staged proof chain is under property/; check that chain and actual derivation.
+
+Do not spawn other agents, resume sessions, or make nested model/API calls.
+Use deterministic tools for this role's compilation and checks.
