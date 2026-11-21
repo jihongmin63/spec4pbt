@@ -152,8 +152,8 @@ def split_top(source, separator):
 def peel_foralls(term):
     binders = []
     term = term.strip()
-    while term.startswith("forall "):
-        rest = term[len("forall "):].strip()
+    while re.match(r"forall\s", term):
+        rest = term[len("forall"):].strip()
         pieces = split_top(rest, ",")
         if len(pieces) < 2:
             raise GateError(f"Cannot parse elaborated forall: {term[:160]}")

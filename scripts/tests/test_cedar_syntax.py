@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[2]
 PROPERTY = ROOT / "properties/cedar_no_type_error"
 ENV = ROOT / "environment/env.sh"
 GATE = ROOT / "scripts/cedar/syntax.py"
+sys.path.insert(0, str(ROOT))
+from scripts.cedar.syntax import peel_foralls
 
 
 class CedarSyntaxTests(unittest.TestCase):
@@ -39,6 +41,41 @@ class CedarSyntaxTests(unittest.TestCase):
             self.assertTrue(any(item["command"][-1] == "property/candidates/v001/Candidate.v"
                                 for item in report["commands"]))
         return command, report
+
+    def test_peel_foralls_accepts_whitespace_after_keyword(self):
+        for separator in (" ", "\n ", "\t", "\r\n  "):
+            with self.subTest(separator=repr(separator)):
+                binders, result = peel_foralls(
+                    f"forall{separator}(x : nat) (y : nat), R x y")
+                self.assertEqual(binders, [("x", "nat"), ("y", "nat")])
+                self.assertEqual(result, "R x y")
+        self.assertEqual(peel_foralls("forallx (x : nat), R x"),
+                         ([], "forallx (x : nat), R x"))
+
+    def test_multiple_constructors_with_wrapped_forall(self):
+        source = """Require Import Property.Original.
+Inductive predicate : Original.Input -> Prop :=
+| from_schema : forall
+    (entity_entries : list
+      (Specification.cedar.Spec.EntityName * Specification.cedar.Spec.EntitySchemaEntry))
+    (action_entries : list
+      (Specification.cedar.Spec.EntityUID * Specification.cedar.Spec.ActionSchemaEntry))
+    (i : Original.Input),
+    Specification.cedar.Spec.WfSchema Original.entity_names
+      (Specification.cedar.Spec.MkSchema entity_entries action_entries) ->
+    predicate i
+| from_type : forall (i : Original.Input)
+    (w : Specification.cedar.Spec.CedarType),
+    Specification.cedar.Spec.WfCedarType Original.entity_names w ->
+    predicate i.
+"""
+        _, report = self.gate("wrapped-forall", source, True)
+        self.assertEqual(report["new_relations"], ["predicate"])
+        self.assertEqual({item["constructor"] for item in report["binders"]
+                          if item["classification"] == "relation premise"},
+                         {"from_schema", "from_type"})
+        printed = (self.root / "wrapped-forall" / "elaborated-v001.log").read_text()
+        self.assertIn("from_schema : forall\n", printed)
 
     def test_relations_and_fixed_spec_function_premise(self):
         # Spec.WfSchema has dedupActsById acts = acts' in its own constructor.
