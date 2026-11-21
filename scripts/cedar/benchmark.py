@@ -27,6 +27,30 @@ FIXED_SIZE = 2
 FIXED_SEEDS = (101, 202, 303, 404, 505, 1101, 1202, 1303, 1404, 1505)
 
 
+def parse_quickchick_result(log):
+    """Read the pinned tactic's internal test outcome, independent of sampling."""
+    patterns = (
+        ('passed', re.compile(r'^\+\+\+ Passed (\d+) tests \((\d+) discards\)$', re.MULTILINE)),
+        ('gave_up', re.compile(r'^\*\*\* Gave up! Passed only (\d+) tests\r?\nDiscarded: (\d+)$', re.MULTILINE)),
+        ('failed', re.compile(r'^\*\*\* Failed (?:right )?after (\d+) tests and (\d+) shrinks\. \((\d+) discards\)$', re.MULTILINE)),
+    )
+    found = [(status, match) for status, pattern in patterns
+             for match in pattern.finditer(log)]
+    result_lines = re.findall(r'^(?:\+\+\+|\*\*\*) (?:Passed|Gave up|Failed).*$',
+                              log, flags=re.MULTILINE)
+    if len(found) != 1 or len(result_lines) != 1:
+        reason = 'ambiguous' if len(found) > 1 or len(result_lines) > 1 else 'unrecognized'
+        raise RuntimeError(f'{reason} internal QuickChick result; see scheduler.log')
+    status, match = found[0]
+    if status == 'failed':
+        tests, shrinks, discards = map(int, match.groups())
+        return {'status': status, 'tests': tests, 'discards': discards,
+                'shrinks': shrinks, 'summary': match.group(), 'log': 'scheduler.log'}
+    tests, discards = map(int, match.groups())
+    return {'status': status, 'tests': tests, 'discards': discards,
+            'summary': match.group(), 'log': 'scheduler.log'}
+
+
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -235,23 +259,35 @@ def main():
               'tool_hashes': {p.name: sha(p) for p in
                               (Path(__file__), SUPPORT, DRIVER,
                                Path(__file__).with_name('serialization.py'), ENV)},
-              'commands': []}
+              'commands': [], 'derivation': {'status': 'not_confirmed'}}
     try:
         sources, checked = snapshot(prop, args.candidate, output)
         result['prefix_check'] = checked
         result['commands'].extend(compile_source(sources, args.candidate, output))
+        result['derivation'] = {'status': 'succeeded', 'log': 'scheduler.log',
+                                'extracted_checker': 'sources/theorem.ml'}
+        result['quickchick'] = parse_quickchick_result(
+            (output / 'scheduler.log').read_text(errors='replace'))
+        if result['quickchick']['status'] == 'failed':
+            raise RuntimeError('internal QuickChick test failed; see scheduler.log')
         counts, generated = run_samples(sources, output, args.candidate,
                                         args.seed, args.attempts)
         result['commands'].extend(adapter_check(sources, output, args.candidate, generated))
         result['counts'] = counts
-        result['status'] = 'passed'
+        result['status'] = 'completed'
     except (CheckError, OSError, RuntimeError, ValueError, SerializationError,
             subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
         result['status'] = 'failed'
         result['error'] = str(error)
+        if (output / 'scheduler.log').is_file() and 'quickchick' not in result:
+            try:
+                result['quickchick'] = parse_quickchick_result(
+                    (output / 'scheduler.log').read_text(errors='replace'))
+            except RuntimeError:
+                result['quickchick'] = {'status': 'unrecognized', 'log': 'scheduler.log'}
     (output / 'result.json').write_text(json.dumps(result, indent=2) + '\n')
     print(output / 'result.json')
-    return 0 if result['status'] == 'passed' else 1
+    return 0 if result['status'] == 'completed' else 1
 
 
 if __name__ == '__main__':

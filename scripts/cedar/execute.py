@@ -23,7 +23,7 @@ from typing import Any, Mapping
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.cedar import experiment, roles, validator
+from scripts.cedar import benchmark, experiment, roles, validator
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -353,6 +353,27 @@ def _batch_rows(path: Path, candidate: str, seed: int) -> list[dict[str, Any]]:
     return rows
 
 
+def check_benchmark_completion(report: Mapping[str, Any], output: Path) -> None:
+    """Confirm derivation evidence and the tactic's actual internal result."""
+    if report.get("derivation") != {"status": "succeeded", "log": "scheduler.log",
+                                     "extracted_checker": "sources/theorem.ml"}:
+        raise ExecutionError("completed benchmark lacks derivation evidence")
+    if not (output / "sources/theorem.ml").is_file():
+        raise ExecutionError("completed benchmark lacks extracted checker")
+    scheduler = output / "scheduler.log"
+    if not scheduler.is_file():
+        raise ExecutionError("completed benchmark lacks scheduler.log")
+    contents = scheduler.read_text(errors="replace")
+    if "Theorem Schedule:" not in contents or "Pieces:" not in contents:
+        raise ExecutionError("completed benchmark lacks official scheduler trace")
+    try:
+        actual = benchmark.parse_quickchick_result(contents)
+    except RuntimeError as error:
+        raise ExecutionError(str(error)) from error
+    if actual["status"] == "failed" or report.get("quickchick") != actual:
+        raise ExecutionError("completed benchmark internal QuickChick outcome disagrees with scheduler.log")
+
+
 def benchmark_batch(root: Path, staged: Path, candidate: str, seed: int,
                     evidence: Path, frozen: Mapping[str, Any]) -> dict[str, Any]:
     assert_frozen(root, frozen)
@@ -365,7 +386,7 @@ def benchmark_batch(root: Path, staged: Path, candidate: str, seed: int,
     if not result_path.is_file():
         raise ExecutionError(f"missing benchmark result: {result_path}")
     report = json.loads(result_path.read_text())
-    if report.get("status") not in ("passed", "failed"):
+    if report.get("status") not in ("completed", "failed"):
         raise ExecutionError("benchmark supplied no conclusive status")
     if (report.get("candidate") != candidate
             or report.get("seed") != seed or report.get("attempts") != experiment.ATTEMPTS_PER_SEED
@@ -387,7 +408,8 @@ def benchmark_batch(root: Path, staged: Path, candidate: str, seed: int,
             raise ExecutionError("baseline failed or benchmark failure exit status disagrees")
         raise ProposalRejected(f"derivation_or_execution_failed: {report.get('error', '')}"[:300])
     if process.returncode:
-        raise ExecutionError("benchmark passed result has nonzero exit status")
+        raise ExecutionError("completed benchmark result has nonzero exit status")
+    check_benchmark_completion(report, output)
     rows = _batch_rows(output / "attempts.jsonl", candidate, seed)
     generated = sum(row["input_coq"] is not None for row in rows)
     if report.get("counts") != {"generated": generated,

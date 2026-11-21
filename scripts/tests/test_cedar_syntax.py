@@ -21,6 +21,7 @@ from scripts.cedar.syntax import peel_foralls
 class CedarSyntaxTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        (PROPERTY / ".runs").mkdir(parents=True, exist_ok=True)
         cls.root = Path(tempfile.mkdtemp(prefix="syntax-test-", dir=PROPERTY / ".runs"))
         cls.property = cls.root / "property"
         (cls.property / "candidates/v001").mkdir(parents=True)

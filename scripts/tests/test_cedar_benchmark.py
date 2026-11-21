@@ -1,11 +1,14 @@
 """Real Coq regressions for the pinned full-property scheduler adapter."""
 import json
+import io
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 PROPERTY = ROOT / 'properties/cedar_no_type_error'
@@ -13,10 +16,13 @@ RUNS = PROPERTY / '.runs'
 sys.path.insert(0, str(ROOT / 'scripts'))
 from cedar.serialization import (_coq_literal, _split_top, reconstruct_candidate,
                                  SerializationError)
+from cedar.benchmark import parse_quickchick_result
+from cedar import benchmark
 
 
 class CedarBenchmarkTests(unittest.TestCase):
     def setUp(self):
+        RUNS.mkdir(parents=True, exist_ok=True)
         self.temp = tempfile.TemporaryDirectory(dir=RUNS, prefix='test-benchmark-')
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
@@ -40,11 +46,14 @@ class CedarBenchmarkTests(unittest.TestCase):
         prop.mkdir()
         shutil.copy2(PROPERTY / 'Original.v', prop / 'Original.v')
         output, result = self.invoke(prop, 'P0')
-        self.assertEqual(result['status'], 'passed')
+        scheduler = (output / 'scheduler.log').read_text()
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['derivation']['status'], 'succeeded')
+        self.assertEqual(result['quickchick'], parse_quickchick_result(scheduler))
+        self.assertEqual(result['quickchick']['status'], 'gave_up')
         self.assertEqual(result['size'], 2)
         self.assertEqual(result['counts']['generated'] +
                          result['counts']['discard'], 10)
-        scheduler = (output / 'scheduler.log').read_text()
         self.assertIn('Theorem Schedule:', scheduler)
         self.assertIn('Pieces:', scheduler)
         self.assertIn('Closed under the global context', scheduler)
@@ -86,13 +95,68 @@ Proof.
 Qed.
 ''')
         output, result = self.invoke(prop, 'v001')
-        self.assertEqual(result['status'], 'passed')
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['derivation']['status'], 'succeeded')
+        self.assertEqual(result['quickchick'],
+                         parse_quickchick_result((output / 'scheduler.log').read_text()))
+        self.assertEqual(result['quickchick']['status'], 'gave_up')
         self.assertEqual(result['counts']['generated'] +
                          result['counts']['discard'], 10)
         self.assertTrue(result['prefix_check'])
         self.assertIn('Theorem Schedule:', (output / 'scheduler.log').read_text())
         self.assertTrue((output / 'sources/theorem.ml').is_file())
         self.assertEqual(len((output / 'attempts.jsonl').read_text().splitlines()), 10)
+
+    def test_quickchick_parser_records_reported_outcomes_and_rejects_ambiguity(self):
+        gave_up = parse_quickchick_result('Theorem Schedule:\nPieces:\n'
+                                           '*** Gave up! Passed only 3500 tests\n'
+                                           'Discarded: 20000\nTime Elapsed: 2s\n')
+        self.assertEqual(gave_up, {'status': 'gave_up', 'tests': 3500,
+                                   'discards': 20000,
+                                   'summary': '*** Gave up! Passed only 3500 tests\nDiscarded: 20000',
+                                   'log': 'scheduler.log'})
+        self.assertEqual(parse_quickchick_result('+++ Passed 10000 tests (2386 discards)\n'),
+                         {'status': 'passed', 'tests': 10000, 'discards': 2386,
+                          'summary': '+++ Passed 10000 tests (2386 discards)',
+                          'log': 'scheduler.log'})
+        failed = parse_quickchick_result('*** Failed after 6 tests and 0 shrinks. (0 discards)\n')
+        self.assertEqual(failed['status'], 'failed')
+        self.assertEqual(failed['tests'], 6)
+        self.assertEqual(failed['discards'], 0)
+        with self.assertRaisesRegex(RuntimeError, 'unrecognized'):
+            parse_quickchick_result('Theorem Schedule:\nPieces:\n')
+        with self.assertRaisesRegex(RuntimeError, 'ambiguous'):
+            parse_quickchick_result('+++ Passed 1 tests (0 discards)\n'
+                                     '*** Gave up! Passed only 0 tests\nDiscarded: 1\n')
+        with self.assertRaisesRegex(RuntimeError, 'ambiguous'):
+            parse_quickchick_result('+++ Passed 1 tests (0 discards)\n'
+                                     '*** Gave up! Malformed summary\n')
+
+    def test_later_compile_failure_keeps_actual_internal_outcome(self):
+        prop = self.base / 'late-failure-property'
+        prop.mkdir()
+        shutil.copy2(PROPERTY / 'Original.v', prop / 'Original.v')
+        output = prop / '.runs/benchmark'
+
+        def fail_after_scheduler(_sources, _candidate, destination):
+            (destination / 'scheduler.log').write_text(
+                'Theorem Schedule:\nPieces:\n'
+                '*** Gave up! Passed only 4 tests\nDiscarded: 20\n')
+            raise RuntimeError('later compile failed')
+
+        argv = ['benchmark.py', str(prop), '--candidate', 'P0', '--seed', '101',
+                '--attempts', '10', '--test-mode', '--output-dir', str(output)]
+        with mock.patch.object(sys, 'argv', argv), \
+             mock.patch.object(benchmark, 'snapshot', return_value=(prop, None)), \
+             mock.patch.object(benchmark, 'compile_source', side_effect=fail_after_scheduler), \
+             redirect_stdout(io.StringIO()):
+            self.assertEqual(benchmark.main(), 1)
+        result = json.loads((output / 'result.json').read_text())
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['quickchick']['status'], 'gave_up')
+        self.assertEqual(result['quickchick']['tests'], 4)
+        self.assertEqual(result['quickchick']['discards'], 20)
+        self.assertIn('later compile failed', result['error'])
 
     def test_full_candidate_payload_parses_and_coq_checks_nested_fields(self):
         # This callback shape is produced by ShowInput.  A nonempty request

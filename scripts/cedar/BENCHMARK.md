@@ -35,6 +35,13 @@ scheduler without changing Spec.v.
 The driver makes exactly one `run (theorem 2) 2 seed`-equivalent call per outer
 attempt, carries the same mutable OCaml seed state through the batch, records
 `ok=None` as a discard, and stops on a failed or incomplete checker result.
+The tactic's own QuickChick run is separate: its `scheduler.log` can say
+`*** Gave up! Passed only 3500 tests` and `Discarded: 20000` even after it
+successfully derives and extracts the checker. This internal result is stored
+verbatim in `result.json` with its reported test and discard counters. A
+`gave_up` internal result still permits the fixed external batch; it never
+means the internal test passed. An internal `failed` result or an absent,
+unrecognized, or ambiguous summary stops the benchmark with scheduler evidence.
 The P0 checker reports five callback payloads: generated entity names and type,
 schema, request types, environments, and expression. The callback bytes remain
 in `raw-attempts.jsonl`. `serialization.py` decodes QuickChick string escapes
@@ -70,7 +77,13 @@ seeds are 101, 202, 303, 404, 505 and held-out 1101, 1202, 1303, 1404,
 preparation. The append-only output directory contains `result.json`,
 `attempts.jsonl`, `raw-attempts.jsonl`, scheduler/kernel/adapter logs, and a
 source snapshot with the extracted checker and compiled sampler. `result.json`
-records source and tool hashes, commands, fixed parameters, and counts.
+uses `status: completed` only when derivation, extraction, and the exact outer
+attempt batch finish. It records derivation status and the separate internal
+QuickChick `passed` or `gave_up` outcome, its actual counters and summary, plus
+source and tool hashes, commands, fixed parameters, and external attempt counts.
+On failure it uses `status: failed` and preserves the error and available
+`scheduler.log`. The internal QuickChick counters are operational provenance,
+not an additional research metric or the denominator of the valid-input rate.
 
 The observation theorem's `Print Assumptions` is closed under the global
 context. The generated proof-local checker uses the artifact's existing random

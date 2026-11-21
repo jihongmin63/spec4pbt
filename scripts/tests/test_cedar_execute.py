@@ -406,6 +406,33 @@ class OrchestrationTests(unittest.TestCase):
             with self.assertRaisesRegex(execute.ProposalRejected, "scheduler could not derive"):
                 execute.benchmark_batch(self.root, staged, "v001", 101, evidence, frozen)
 
+    def test_completed_benchmark_requires_actual_scheduler_outcome(self):
+        output = self.evidence / "completed-benchmark"
+        output.mkdir()
+        (output / "sources").mkdir()
+        (output / "sources/theorem.ml").write_text("(* extracted checker *)\n")
+        scheduler = output / "scheduler.log"
+        scheduler.write_text("Theorem Schedule:\nPieces:\n"
+                             "*** Gave up! Passed only 3500 tests\n"
+                             "Discarded: 20000\n")
+        provenance = {"derivation": {"status": "succeeded", "log": "scheduler.log",
+                                     "extracted_checker": "sources/theorem.ml"},
+                      "quickchick": {"status": "gave_up", "tests": 3500,
+                                     "discards": 20000,
+                                     "summary": "*** Gave up! Passed only 3500 tests\nDiscarded: 20000",
+                                     "log": "scheduler.log"}}
+        execute.check_benchmark_completion(provenance, output)
+        with self.assertRaisesRegex(execute.ExecutionError, "internal QuickChick"):
+            execute.check_benchmark_completion({**provenance,
+                "quickchick": {**provenance["quickchick"], "status": "passed"}}, output)
+        scheduler.write_text("Theorem Schedule:\nPieces:\n")
+        with self.assertRaisesRegex(execute.ExecutionError, "unrecognized"):
+            execute.check_benchmark_completion(provenance, output)
+        scheduler.write_text("Theorem Schedule:\nPieces:\n"
+                             "*** Failed after 6 tests and 0 shrinks. (0 discards)\n")
+        with self.assertRaisesRegex(execute.ExecutionError, "internal QuickChick"):
+            execute.check_benchmark_completion(provenance, output)
+
     def test_command_timeout_reaps_descendant_process_group(self):
         marker = self.evidence / "descendant-survived"
         child = ("import time; from pathlib import Path; time.sleep(0.4); "
