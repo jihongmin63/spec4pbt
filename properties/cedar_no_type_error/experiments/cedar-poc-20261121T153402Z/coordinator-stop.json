@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-11-21T16:19:35.393807+00:00",
+  "reason": "Confirmed infrastructure false rejection: prior verified inductive helper is Coq-pretty-printed as Candidate.SeedSchema but syntax gate only recognizes longer predecessor-qualified names. Stop before generic name-resolution correction and fresh independent review; preserve completed baseline and adopted v001 without reuse in new experiment.",
+  "active_role_pid": 3712832,
+  "active_role_command": "codex --no-daemon exec --ephemeral --json --ignore-user-config -m gpt-6-sol -c model_reasoning_effort=\"xhigh\" -C /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261121T153402Z/run-001/attempt-003/roles/reformulator-deedcf3effea474e95fec923ed752e2d/workspace --output-schema /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261121T153402Z/run-001/attempt-003/roles/reformulator-deedcf3effea474e95fec923ed752e2d/workspace/result-schema.json --dangerously-bypass-approvals-and-sandbox -o /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261121T153402Z/run-001/attempt-003/roles/reformulator-deedcf3effea474e95fec923ed752e2d/workspace/scratch/last-message.json - ",
+  "reuse_measurements": false
+}

@@ -1,0 +1,382 @@
+{
+  "baseline": {
+    "confirmed_valid_ratio": 0.00386,
+    "per_seed": {
+      "101": {
+        "attempts": 10000,
+        "confirmed_invalid": 3199,
+        "confirmed_valid": 36,
+        "confirmed_valid_ratio": 0.0036,
+        "no_result": 6107,
+        "status": "completed",
+        "undetermined": 658
+      },
+      "202": {
+        "attempts": 10000,
+        "confirmed_invalid": 3122,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6190,
+        "status": "completed",
+        "undetermined": 648
+      },
+      "303": {
+        "attempts": 10000,
+        "confirmed_invalid": 3174,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6183,
+        "status": "completed",
+        "undetermined": 603
+      },
+      "404": {
+        "attempts": 10000,
+        "confirmed_invalid": 3195,
+        "confirmed_valid": 45,
+        "confirmed_valid_ratio": 0.0045,
+        "no_result": 6082,
+        "status": "completed",
+        "undetermined": 678
+      },
+      "505": {
+        "attempts": 10000,
+        "confirmed_invalid": 3134,
+        "confirmed_valid": 32,
+        "confirmed_valid_ratio": 0.0032,
+        "no_result": 6162,
+        "status": "completed",
+        "undetermined": 672
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 15824,
+      "confirmed_valid": 193,
+      "no_result": 30724,
+      "undetermined": 3259
+    }
+  },
+  "experiment_id": "cedar-poc-20261121T153402Z",
+  "held_out_baseline": null,
+  "runs": {
+    "run-001": {
+      "adopted": [
+        {
+          "candidate_sha256": "3d7bff16910dcc087335c5609b5886630f732139b5162e346ce553ffd20d04c1",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            }
+          },
+          "from_attempt": "attempt-001",
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        }
+      ],
+      "adopted_count": 1,
+      "attempts": [
+        {
+          "adopted_id": "v001",
+          "candidate_sha256": "3d7bff16910dcc087335c5609b5886630f732139b5162e346ce553ffd20d04c1",
+          "feedback_summary": "",
+          "id": "attempt-001",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 577024,
+              "input_tokens": 609836,
+              "output_tokens": 6898,
+              "reasoning_output_tokens": 3534,
+              "status": "available"
+            },
+            "wall_seconds": 174.0216957970988
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 626560,
+              "input_tokens": 661732,
+              "output_tokens": 14413,
+              "reasoning_output_tokens": 10179,
+              "status": "available"
+            },
+            "wall_seconds": 294.52034496492706
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive predicate covering seven simple typed expressions and a general case."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "c54e962a47ec5ac1b8fc5e28eaf30b016a1870846b36afaa30c671efbf85c03b",
+          "feedback_summary": "syntax_rejected: v002.predicate.CNotFalse: proposition premise is not a permitted inductive relation application: Candidate.SeedSchema ets acts req",
+          "id": "attempt-002",
+          "measurement": null,
+          "proof_cost": {
+            "status": "not_run",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "not_run"
+            },
+            "wall_seconds": null
+          },
+          "reason": "v002.predicate.CNotFalse: proposition premise is not a permitted inductive relation application: Candidate.SeedSchema ets acts req",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 137600,
+              "input_tokens": 167522,
+              "output_tokens": 4461,
+              "reasoning_output_tokens": 2813,
+              "status": "available"
+            },
+            "wall_seconds": 92.74871033895761
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate that adds typed Boolean and integer expression cases to the predecessor."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": null,
+          "feedback_summary": "role_execution_failed",
+          "id": "attempt-003",
+          "measurement": null,
+          "proof_cost": {
+            "status": "not_run",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "not_run"
+            },
+            "wall_seconds": null
+          },
+          "reason": "reformulator execution failed",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "unavailable"
+            },
+            "wall_seconds": 96.16152881993912
+          },
+          "status": "rejected",
+          "transformation_summary": ""
+        }
+      ],
+      "best_candidate_id": "v001",
+      "best_confirmed_valid_ratio": 1.0,
+      "held_out": null,
+      "last_candidate_id": "v001",
+      "proposal_count": 3,
+      "stop_reason": "operational_failure: reformulator"
+    },
+    "run-002": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    },
+    "run-003": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    }
+  },
+  "status": "stopped"
+}
