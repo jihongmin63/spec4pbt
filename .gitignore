@@ -1,0 +1,13 @@
+/_opam-popl18/
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+.lia.cache
+
+# Reproducible specification outputs and local pass evidence
+/specification/**/Generated/
+/specification/**/Spec.v
+/specification/**/PassEvidence.json
+/specification/**/PropertyPlan.json
