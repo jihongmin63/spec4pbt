@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "summary", "reason"],
+  "properties": {
+    "status": {"type": "string", "enum": ["candidate", "no_candidate"]},
+    "summary": {"type": "string"},
+    "reason": {"type": "string"}
+  }
+}

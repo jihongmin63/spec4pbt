@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "reason"],
+  "properties": {
+    "status": {"type": "string", "enum": ["proved", "failed"]},
+    "reason": {"type": "string"}
+  }
+}

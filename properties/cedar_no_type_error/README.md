@@ -63,4 +63,7 @@ bash environment/env.sh coqchk -silent -R specification Specification -R propert
 최초 검증은 기존 `predicate-reformulation` worktree의 설치된 Coq 바이너리를
 읽기 전용으로 사용했고, 소스 복사본과 로그는 이 property의 `.runs/import-check.*`에 보관했다.
 기존 worktree나 환경 설정은 변경하지 않았다.
-후보가 아직 없으므로 `scripts/check.py`/`scripts/run.py` 실행 단계는 아니다.
+Cedar 자동 스케줄링 실험의 실행 방법과 측정 계약은
+[실험 도구 문서](../../scripts/cedar/README.md)를 참고한다. 각 독립 run의 후보
+연결은 `experiments/<experiment-id>/run-NNN/`에, 원시 증거는 이 property의
+`.runs/<experiment-id>/`에 보관한다. 실제 완료 범위는 해당 실행 결과로 확인한다.

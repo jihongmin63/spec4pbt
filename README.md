@@ -149,12 +149,14 @@ python3 scripts/run.py properties/<name> --candidate v001 --samples 100 --size 3
 인스턴스를 사용하고, 사용자 타입의 인스턴스는 원본이나 후보에서 제공한다.
 `--derive-only`에는 출력 인스턴스가 필요 없다.
 
-현재 `run.py`의 도출 경로는 `Derive ArbitrarySizedSuchThat`이다.
-Cedar 비교 실험에는 원본과 모든 후보에 동일한 Testing Theorems 자동 스케줄링
-경로를 연결해야 한다. 위의 후보 문법 검사와 원본 다섯 전제의 독립적인 유효성
-판정도 아직 실험 도구에 구현하지 않았다. 공식 Cedar 실행 성공과 이 실험 도구의
-준비 완료는 구분한다. 비교 대상은 Testing Theorems 하나이며, 앞의 구형 연구
-예제들은 환경 호환성 확인용으로 보존한다.
+`run.py`의 도출 경로는 `Derive ArbitrarySizedSuchThat`이다.
+Cedar 비교 실험은 별도의 [자동 스케줄링 실험 도구](scripts/cedar/README.md)를
+사용한다. 원본과 후보에 `quickchick 2.`를 적용하고, 외부 생성 시도를 기록한 뒤
+[독립 validator](scripts/cedar/README-validator.md)가 원본의 다섯 전제를 검사한다.
+문법 검사, 별도 역할의 동등성 증명, 전체 연결 검사와 독립 검토를 거친 후보만
+측정한다. 도구 구현·검증과 실제 실험 완료는 각 실행의 manifest와 결과로 구분한다.
+비교 대상은 Testing Theorems 하나이며, 앞의 구형 연구 예제들은 환경 호환성
+확인용으로 보존한다.
 
 명세·원본·후보의 복사본, 자동 도출한 `Derived.v`, Coq 커널 검사 로그와
 `result.json`은 각 property의 `.runs/`에 보관한다. 실행한 경우
