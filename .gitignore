@@ -5,6 +5,9 @@
 *.glob
 .*.aux
 .lia.cache
+**/.runs/
+__pycache__/
+*.pyc
 
 # Reproducible specification outputs and local pass evidence
 /specification/**/Generated/
