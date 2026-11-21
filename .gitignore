@@ -1,0 +1,7 @@
+/_opam-popl18/
+*.vo
+*.vos
+*.vok
+*.glob
+.*.aux
+.lia.cache
