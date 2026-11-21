@@ -18,6 +18,7 @@ import shutil
 import signal
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Mapping
 
 if __package__ in (None, ""):
@@ -44,6 +45,7 @@ TOOL_FILES = (
     *(f"scripts/cedar/schemas/{name}.json" for name in roles.EFFORT),
 )
 SAFE_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]*\Z")
+SEED_WORKERS = 5
 TOOL_SUFFIXES = {".py", ".v", ".ml", ".md", ".json", ".txt"}
 
 
@@ -101,10 +103,12 @@ def frozen_manifest(root: Path = ROOT) -> dict[str, Any]:
                            "max_proposals_per_run": experiment.MAX_PROPOSALS,
                            "model": roles.MODEL, "effort": roles.EFFORT,
                            "coq_version": "8.20.0", "ocaml_version": "4.14.2",
+                           "seed_workers": SEED_WORKERS,
                            "validator": {"proof_depth": validator.PROOF_DEPTH,
                                          "tactic_timeout_seconds": validator.TACTIC_TIMEOUT_SECONDS,
                                          "batch_timeout_seconds": validator.MAX_BATCH_SECONDS,
-                                         "batch_size": validator.DEFAULT_BATCH_SIZE}}}
+                                         "batch_size": validator.DEFAULT_BATCH_SIZE,
+                                         "batch_workers": validator.DEFAULT_BATCH_WORKERS}}}
 
 
 def assert_frozen(root: Path, frozen: Mapping[str, Any]) -> None:
@@ -417,13 +421,26 @@ def benchmark_batch(root: Path, staged: Path, candidate: str, seed: int,
 
 def measure(root: Path, staged: Path, candidate: str, seeds: tuple[int, ...],
             evidence: Path, frozen: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
-    result = {}
-    for seed in seeds:
-        result[seed] = benchmark_batch(root, staged, candidate, seed, evidence, frozen)
+    if len(set(seeds)) != len(seeds):
+        raise ExecutionError("duplicate measurement seed would overwrite evidence")
+
+    def one_seed(seed: int) -> dict[str, Any]:
+        counts = benchmark_batch(root, staged, candidate, seed, evidence, frozen)
         write_new(evidence / f"batch-{candidate}-{seed}.json",
-                  {"candidate": candidate, "seed": seed, "counts": result[seed],
+                  {"candidate": candidate, "seed": seed, "counts": counts,
                    "benchmark_result": str(staged / ".runs" / f"benchmark-{candidate}-{seed}" / "result.json")})
-    return result
+        return counts
+
+    with ThreadPoolExecutor(max_workers=SEED_WORKERS) as executor:
+        futures = {seed: executor.submit(one_seed, seed) for seed in seeds}
+        try:
+            # Only a full result escapes measure; a failed seed leaves its logs
+            # and completed peers' immutable per-seed records for audit.
+            return {seed: futures[seed].result() for seed in seeds}
+        except BaseException:
+            for future in futures.values():
+                future.cancel()
+            raise
 
 
 def _stage(run_chain: Path, attempt_dir: Path, version: str, candidate: Path) -> Path:

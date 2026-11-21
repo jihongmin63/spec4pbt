@@ -44,6 +44,13 @@ passes `coqchk` before a valid or invalid result is accepted. The fixed search
 limit is depth 12, with one second for positive and one second for negative
 search per premise. Batches contain at most 500 unique inputs and have a
 1,200 second outer limit; an outer timeout marks its whole batch unknown.
+The driver runs up to four independent batches at once by default. It assigns
+each batch number before starting workers, keeps Coq sources and logs separate,
+and writes cache entries and the final JSONL in input order after all workers
+settle. `--batch-workers 1` enables serial comparison in regressions; the
+selected worker count is part of the cache fingerprint and evidence manifest.
+An exception cancels queued batches and waits for running batches to finish,
+preserving their logs without publishing a partial output.
 
 Proof search is incomplete: an `unknown` verdict neither establishes nor
 refutes a premise. A Coq compile error aborts the run with its source and log

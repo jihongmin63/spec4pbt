@@ -85,6 +85,17 @@ benchmark and original-predicate validator batches. Adoption occurs only
 after all five batches complete. The last adopted candidate remains the next
 predecessor even if its measured ratio is worse.
 
+Measurement runs the five fixed seeds concurrently, with each seed's
+benchmark, validator output, command logs, and count record in its own evidence
+paths. Each validator runs at most four independent Coq batches concurrently,
+for a maximum of twenty active batch tasks across the five seeds. Seeds and
+generated attempts retain their fixed order in returned results and JSONL.
+The five seed workers and four validator batch workers are explicit frozen
+conditions. A seed failure cancels queued work, waits for running work to
+settle, and prevents adoption of a partial measurement; completed peers'
+evidence remains available for audit. Runtime is operational only and is not
+a research metric.
+
 After all exploration runs stop, P0 and each run's last adopted candidate are
 reevaluated on seeds 1101, 1202, 1303, 1404, and 1505. These results never
 enter worker feedback. `summary.json` preserves seed and overall confirmed

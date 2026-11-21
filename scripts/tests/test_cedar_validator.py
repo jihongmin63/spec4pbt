@@ -36,6 +36,63 @@ def input_term(*, ets=ETS, req=REQ, es="[]", ty="intType",
 
 
 class CedarValidatorTests(unittest.TestCase):
+    def test_parallel_real_coq_batches_match_serial_verdicts(self):
+        terms = [
+            input_term(),
+            input_term(ets=f'[({N1}, {ENTRY}); ({N1}, {ENTRY})]'),
+            input_term(req=REQ2),
+            input_term(es=f'[(MkEnvironment (MkSchema {ETS} {ACTS}) {REQ2})]'),
+            input_term(ty=f'(entityType {name("Unknown")})'),
+            input_term(expr='(lit (stringLit "s"), somepaths [])'),
+            input_term(), None,
+        ]
+        scratch = ROOT / "properties/cedar_no_type_error/.runs"
+        scratch.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="validator-parallel-test-", dir=scratch) as directory:
+            work = Path(directory)
+            attempts = work / "attempts.jsonl"
+            attempts.write_text("".join(
+                json.dumps({"id": index, "input_coq": term}) + "\n"
+                for index, term in enumerate(terms)
+            ))
+
+            def invoke(workers, output):
+                return subprocess.run(
+                    [sys.executable, str(VALIDATOR), "--input", str(attempts),
+                     "--output", str(output), "--evidence-dir", str(work / "evidence"),
+                     "--env-script", str(PINNED_ENV), "--batch-size", "2",
+                     "--batch-workers", str(workers)],
+                    text=True, capture_output=True, timeout=240,
+                )
+
+            parallel = work / "parallel.jsonl"
+            serial = work / "serial.jsonl"
+            run = invoke(4, parallel)
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            run = invoke(1, serial)
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            actual = [json.loads(line) for line in parallel.read_text().splitlines()]
+            expected = [json.loads(line) for line in serial.read_text().splitlines()]
+            self.assertEqual(
+                [(row["id"], row["input_sha256"], row["premises"], row["overall"])
+                 for row in actual],
+                [(row["id"], row["input_sha256"], row["premises"], row["overall"])
+                 for row in expected],
+            )
+            self.assertEqual([row["id"] for row in actual], list(range(len(terms))))
+            self.assertEqual(actual[0]["evidence"], actual[6]["evidence"])
+            self.assertEqual(actual[7]["overall"], "no_generation")
+            self.assertEqual(len(list((work / "evidence").rglob("batch_*.v"))), 6)
+            self.assertEqual(len(list((work / "evidence/cache").rglob("*.json"))), 12)
+            manifests = [json.loads(path.read_text()) for path in
+                         (work / "evidence").glob("manifest-*.json")]
+            self.assertEqual({item["batch_workers"] for item in manifests}, {1, 4})
+            cached = work / "cached.jsonl"
+            run = invoke(4, cached)
+            self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
+            self.assertEqual(cached.read_text(), parallel.read_text())
+            self.assertEqual(len(list((work / "evidence").rglob("batch_*.v"))), 6)
+
     def test_real_coq_verdicts_and_exact_input_cache(self):
         duplicate_ets = f'[({N1}, {ENTRY}); ({N1}, {ENTRY})]'
         bad3_extra = f'[(MkEnvironment (MkSchema {ETS} {ACTS}) {REQ2})]'

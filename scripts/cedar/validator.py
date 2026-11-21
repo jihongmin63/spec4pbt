@@ -20,6 +20,7 @@ import signal
 import subprocess
 import sys
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 PREMISES = (
@@ -30,6 +31,7 @@ PREMISES = (
     "HasType",
 )
 DEFAULT_BATCH_SIZE = 500
+DEFAULT_BATCH_WORKERS = 4
 MAX_BATCH_SECONDS = 1200
 PROOF_DEPTH = 12  # Fixed in Validator.v; repeated here for the manifest.
 TACTIC_TIMEOUT_SECONDS = 1  # Per positive and negative search, in Validator.v.
@@ -210,7 +212,7 @@ def run_coq(command: list[str], cwd: Path, log: Path, timeout: int) -> str:
 
 
 def prepare_build(root: Path, evidence: Path, env_script: Path,
-                  coq_version: str, batch_size: int) -> tuple[Path, str]:
+                  coq_version: str, batch_size: int, batch_workers: int) -> tuple[Path, str]:
     coq_sources = {
         Path("specification/cedar/Spec.v"): root / "specification/cedar/Spec.v",
         Path("property/Original.v"): root / "properties/cedar_no_type_error/Original.v",
@@ -224,6 +226,7 @@ def prepare_build(root: Path, evidence: Path, env_script: Path,
     configuration = json.dumps({
         "coq_version": coq_version,
         "batch_size": batch_size,
+        "batch_workers": batch_workers,
         "max_batch_seconds": MAX_BATCH_SECONDS,
         "proof_depth": PROOF_DEPTH,
         "tactic_timeout_seconds": TACTIC_TIMEOUT_SECONDS,
@@ -263,9 +266,11 @@ def validate_batch(items: list[tuple[str, str]], build: Path, env_script: Path,
                    sequence: int, fingerprint: str) -> dict[str, dict]:
     batch_name = f"batch_{sequence:06d}"
     source = build / f"{batch_name}.v"
-    if source.exists():
-        raise ValidationError(f"refusing to overwrite prior evidence: {source}")
-    source.write_text(batch_source(items))
+    try:
+        with source.open("x") as stream:
+            stream.write(batch_source(items))
+    except FileExistsError as error:
+        raise ValidationError(f"refusing to overwrite prior evidence: {source}") from error
     flags = ["-q", "-R", "specification", "Specification", "-R", "property", "Property",
              "-R", "validator", "CedarValidator"]
     coqc_log = build / f"{batch_name}.coqc.log"
@@ -338,9 +343,13 @@ def main() -> int:
     parser.add_argument("--evidence-dir", required=True, type=Path)
     parser.add_argument("--env-script", type=Path, help="pinned environment/env.sh")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
+    parser.add_argument("--batch-workers", type=int, default=DEFAULT_BATCH_WORKERS,
+                        help="concurrent independent Coq batches (1-4; default 4)")
     args = parser.parse_args()
     if args.batch_size < 1 or args.batch_size > DEFAULT_BATCH_SIZE:
         parser.error(f"batch-size must be between 1 and {DEFAULT_BATCH_SIZE}")
+    if args.batch_workers < 1 or args.batch_workers > DEFAULT_BATCH_WORKERS:
+        parser.error(f"batch-workers must be between 1 and {DEFAULT_BATCH_WORKERS}")
     root = Path(__file__).resolve().parents[2]
     env_script = (args.env_script or root / "environment/env.sh").resolve()
     if args.input.resolve() == args.output.resolve():
@@ -376,7 +385,8 @@ def main() -> int:
     evidence_dir = args.evidence_dir.resolve()
     evidence_dir.mkdir(parents=True, exist_ok=True)
     build, fingerprint = prepare_build(root, evidence_dir, env_script,
-                                       coq_version.strip(), args.batch_size)
+                                       coq_version.strip(), args.batch_size,
+                                       args.batch_workers)
     manifest = {
         "source_fingerprint": fingerprint,
         "spec_sha256": sha256((root / "specification/cedar/Spec.v").read_bytes()),
@@ -388,6 +398,7 @@ def main() -> int:
         "tactic_timeout_seconds_each_direction": TACTIC_TIMEOUT_SECONDS,
         "batch_timeout_seconds": MAX_BATCH_SECONDS,
         "batch_size": args.batch_size,
+        "batch_workers": args.batch_workers,
         "input_rows": len(rows),
         "unique_input_terms": len(unique),
         "env_script": str(env_script),
@@ -443,17 +454,40 @@ def main() -> int:
                 continue
             raise ValidationError(f"stale or corrupted cache record: {cached}")
         pending.append((digest, expression))
+    # Reserve distinct batch numbers before any worker can start. Workers only
+    # write their own Coq source and logs; cache and JSONL writes stay here.
+    numbered_batches = []
     sequence = 1
     for start in range(0, len(pending), args.batch_size):
-        while (build / f"batch_{sequence:06d}.v").exists():
-            sequence += 1
-        verdicts = validate_batch(pending[start:start + args.batch_size], build,
-                                  env_script, sequence, fingerprint)
+        while True:
+            batch_name = f"batch_{sequence:06d}"
+            reservation = build / f"{batch_name}.reserve"
+            if (build / f"{batch_name}.v").exists():
+                sequence += 1
+                continue
+            try:
+                reservation.touch(exist_ok=False)
+            except FileExistsError:
+                sequence += 1
+                continue
+            break
+        numbered_batches.append((sequence, pending[start:start + args.batch_size]))
+        sequence += 1
+    with ThreadPoolExecutor(max_workers=args.batch_workers) as executor:
+        futures = [executor.submit(validate_batch, items, build, env_script,
+                                   number, fingerprint)
+                   for number, items in numbered_batches]
+        try:
+            batch_verdicts = [future.result() for future in futures]
+        except BaseException:
+            for future in futures:
+                future.cancel()
+            raise
+    for verdicts in batch_verdicts:
         for digest, data in verdicts.items():
             with (cache / f"{digest}.json").open("x") as stream:
                 stream.write(json.dumps(data, sort_keys=True) + "\n")
         resolved.update(verdicts)
-        sequence += 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as stream:
         for row, digest in rows:

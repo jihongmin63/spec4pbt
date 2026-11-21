@@ -1,6 +1,7 @@
 """Coordinator boundary regressions; no model, Coq, benchmark, or validator calls."""
 
 import json
+import threading
 from pathlib import Path
 import sys
 import tempfile
@@ -102,6 +103,54 @@ class ReviewGateTests(unittest.TestCase):
 
 
 class OrchestrationTests(unittest.TestCase):
+    def test_measure_runs_seeds_concurrently_and_keeps_seed_evidence(self):
+        seeds = (101, 202, 303)
+        barrier = threading.Barrier(len(seeds))
+        with tempfile.TemporaryDirectory(prefix="cedar-measure-") as directory:
+            root = Path(directory)
+            staged = root / "property"
+            evidence = root / "evidence"
+            evidence.mkdir()
+
+            def completed(_root, _staged, candidate, seed, _evidence, _frozen):
+                self.assertEqual(candidate, "P0")
+                barrier.wait(timeout=5)
+                return batches((seed,), valid=seed // 101)[seed]
+
+            with mock.patch.object(execute, "benchmark_batch", side_effect=completed):
+                result = execute.measure(root, staged, "P0", seeds, evidence, {})
+            self.assertEqual(list(result), list(seeds))
+            self.assertEqual(result, batches((101,), valid=1) |
+                             batches((202,), valid=2) | batches((303,), valid=3))
+            for seed in seeds:
+                record = json.loads((evidence / f"batch-P0-{seed}.json").read_text())
+                self.assertEqual(record["seed"], seed)
+                self.assertEqual(record["counts"], result[seed])
+                self.assertEqual(record["benchmark_result"],
+                                 str(staged / ".runs" / f"benchmark-P0-{seed}" / "result.json"))
+
+    def test_measure_failure_waits_for_other_seed_evidence_without_returning(self):
+        seeds = (101, 202, 303)
+        barrier = threading.Barrier(len(seeds))
+        with tempfile.TemporaryDirectory(prefix="cedar-measure-failure-") as directory:
+            root = Path(directory)
+            evidence = root / "evidence"
+            evidence.mkdir()
+
+            def partially_completed(_root, _staged, _candidate, seed, _evidence, _frozen):
+                barrier.wait(timeout=5)
+                if seed == 202:
+                    raise execute.ExecutionError("seed 202 failed")
+                return batches((seed,))[seed]
+
+            with mock.patch.object(execute, "benchmark_batch", side_effect=partially_completed):
+                with self.assertRaisesRegex(execute.ExecutionError, "seed 202 failed"):
+                    execute.measure(root, root / "property", "P0", seeds, evidence, {})
+            for seed in (101, 303):
+                self.assertEqual(json.loads((evidence / f"batch-P0-{seed}.json").read_text())["seed"],
+                                 seed)
+            self.assertFalse((evidence / "batch-P0-202.json").exists())
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="cedar-execute-attempt-")
         self.addCleanup(self.temp.cleanup)
