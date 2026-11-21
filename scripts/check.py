@@ -81,6 +81,22 @@ def code_only(source):
 
 def validate_source(path, data):
     text = code_only(data.decode('utf-8'))
+    # Ban declaration commands even when unused by `equivalent`: Print Assumptions
+    # only audits dependencies. Authored proofs use explicit forall binders instead
+    # of Section variables or contexts, which can introduce global assumptions.
+    declaration = (
+        r'(?:\A|\.\s+)\s*'
+        r'(?:#\[[^]]*\]\s*|(?:Local|Global|Export|Time|Fail|Succeed)\s+|'
+        r'Timeout\s+\d+\s+)*'
+        r'(?P<keyword>Axiom|Axioms|Parameter|Parameters|Conjecture|Conjectures|'
+        r'Hypothesis|Hypotheses|Variable|Variables|Context|Contexts|'
+        r'Assumption|Assumptions|Admitted|Admit)\b'
+    )
+    axiom_or_admission = re.search(declaration, text)
+    if not axiom_or_admission:
+        axiom_or_admission = re.search(r'(?<!\.)\badmit\b', text)
+    if axiom_or_admission:
+        raise CheckError(f'{path}: {axiom_or_admission.groupdict().get("keyword") or "admit"} is not allowed in authored sources')
     forbidden = r'\b(?:Extract|Extraction|Load)\b|\bDeclare\s+ML\b|\b(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)\b|\bUnset\s+(?:Guard|Positivity|Universe)\s+Checking\b'
     execution = r'(?:^|\.\s)\s*(?:(?:Time|Fail|Timeout\s+\d+)\s+)*(?:QuickChick|QuickChickWith|QuickCheck|QuickCheckWith|Sample)\b'
     if re.search(forbidden, text) or re.search(execution, text):

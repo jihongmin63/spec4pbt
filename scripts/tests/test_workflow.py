@@ -71,6 +71,32 @@ Qed.
         with self.assertRaises(CheckError):
             validate_source(Path('Candidate.v'), b'Extract Constant predicate => "true".\n')
 
+    def test_rejects_unused_axiom_in_closed_equivalence(self):
+        proof = self.prop / 'candidates/v001/Equivalence.v'
+        proof.write_text(proof.read_text() + '\nAxiom unused_extra_axiom : False.\n')
+        result, _ = self.invoke('check.py', success=False)
+        self.assertEqual(result['status'], 'failed')
+        self.assertIn('Axiom is not allowed', result['error'])
+
+    def test_rejects_admissions_and_axiom_declarations_outside_comments_and_strings(self):
+        for declaration in ('Axioms a b : False.', 'Parameter a : False.',
+                            'Parameters a b : False.', 'Admitted.', 'admit.',
+                            'Conjecture a : False.', 'Hypothesis a : False.',
+                            'Variable a : False.', 'Variables a b : False.',
+                            'Context (a : False).', 'Assumption a : False.',
+                            'Local Axiom a : False.', '#[local] Axiom a : False.',
+                            '#[local]Axiom a : False.', 'Time Axiom a : False.',
+                            'Admit Obligations.'):
+            with self.subTest(declaration=declaration), self.assertRaises(CheckError):
+                validate_source(Path('Equivalence.v'), declaration.encode())
+        validate_source(Path('Equivalence.v'),
+                        b'(* Axiom ignored : False. (* Admitted. *) *)\n'
+                        b'Check "Parameter a : False. admit.".\n')
+
+    def test_allows_assumption_diagnostics_and_qualified_identifiers(self):
+        validate_source(Path('Equivalence.v'),
+                        b'Print Assumptions equivalent.\nCheck Module.Axiom.\n')
+
     def test_records_the_pinned_opam_packages(self):
         # The real property workspace is outside the local opam switch directory.
         with tempfile.TemporaryDirectory(dir=ROOT / 'properties') as outside:
@@ -149,7 +175,7 @@ Proof. intro x; split; trivial. Qed.
         p = self.prop / 'candidates/v001/Equivalence.v'
         p.write_text(p.read_text().split('Proof.')[0] + 'Admitted.\n')
         result, _ = self.invoke('check.py', success=False)
-        self.assertIn('assumption', result['error'].lower())
+        self.assertIn('Admitted is not allowed', result['error'])
 
     def test_rejects_missing_step(self):
         (self.prop / 'candidates/v002').rename(self.prop / 'candidates/v003')

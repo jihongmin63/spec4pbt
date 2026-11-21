@@ -167,6 +167,9 @@ Cedar 비교 실험은 별도의 [자동 스케줄링 실험 도구](scripts/ced
 동일하게 적용하며, 수정 전 파일과 적용 목록도 결과에 보존한다.
 
 `check.py`의 동등성 증명은 추가 공리 없이 닫혀 있어야 한다.
+작성한 `.v` 소스에서는 사용되지 않는 선언도 포함하여 `Axiom`/`Parameter`류의
+공리 선언과 `Admitted`, `admit`를 금지한다. `Section`의 `Variable`/`Context`류
+선언도 금지하므로 증명에 필요한 변수는 `forall`로 명시한다.
 생성된 정의의 `coqchk` 통과는 생성기 soundness/completeness 증명이 아니다.
 추출 코드 치환이나 authored source 안의 실행 명령은 허용하지 않는다.
 이 검사는 신뢰할 수 있는 로컬 Coq 개발을 위한 도구이며, 악의적인 Coq 코드의
