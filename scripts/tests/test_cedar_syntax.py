@@ -24,7 +24,7 @@ class CedarSyntaxTests(unittest.TestCase):
         (cls.property / "candidates/v001").mkdir(parents=True)
         shutil.copy2(PROPERTY / "Original.v", cls.property / "Original.v")
 
-    def gate(self, label, candidate, success, fragment=None):
+    def gate(self, label, candidate, success, fragment=None, expect_compiled=True):
         (self.property / "candidates/v001/Candidate.v").write_text(candidate)
         evidence = self.root / label
         command = [sys.executable, str(GATE), str(self.property), "--candidate", "v001",
@@ -35,7 +35,7 @@ class CedarSyntaxTests(unittest.TestCase):
         self.assertEqual(report["status"], "passed" if success else "failed")
         if fragment:
             self.assertIn(fragment, report.get("error", ""))
-        if label not in {"malformed", "changed-original"}:
+        if expect_compiled and label not in {"malformed", "changed-original"}:
             self.assertTrue(any(item["command"][-1] == "property/candidates/v001/Candidate.v"
                                 for item in report["commands"]))
         return command, report
@@ -69,6 +69,49 @@ Inductive predicate : Original.Input -> Prop :=
 """
         self.gate("boolean", source, False, "not a permitted inductive relation")
 
+    def test_quickchick_hint_mutation_cannot_change_frozen_support(self):
+        source = """Require Import Property.Original.
+From QuickChick Require Import QuickChick.
+#[global] Remove Hints genBoolSized : typeclass_instances.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    predicate i.
+"""
+        self.gate("quickchick-hint", source, False, "candidate import", expect_compiled=False)
+
+    def test_policy_and_proof_commands_rejected_independently(self):
+        commands = {
+            "hint": "Hint Resolve I : core.",
+            "remove-hints": "#[global] Remove Hints genBoolSized : typeclass_instances.",
+            "existing-instance": "Existing Instance genBoolSized.",
+            "instance": "Instance custom_gen : True := I.",
+            "option": "Set Universe Polymorphism.",
+            "automation": "Ltac automate := idtac.",
+        }
+        for label, command in commands.items():
+            with self.subTest(command=label):
+                source = """Require Import Property.Original.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    predicate i.
+""" + command + "\n"
+                self.gate("policy-" + label, source, False,
+                          "candidate command", expect_compiled=False)
+
+    def test_standard_data_notation_import_is_allowed(self):
+        source = """From Coq Require Import Lists.List.
+Require Import Property.Original.
+Import ListNotations.
+Open Scope list_scope.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    predicate i.
+"""
+        self.gate("data-notation", source, True)
+
     def test_definition_wrapper(self):
         source = """Require Import Property.Original.
 Definition wrapped (i : Original.Input) : Prop :=
@@ -76,7 +119,7 @@ Definition wrapped (i : Original.Input) : Prop :=
 Inductive predicate : Original.Input -> Prop :=
 | mk : forall i : Original.Input, wrapped i -> predicate i.
 """
-        self.gate("wrapper", source, False, "unsupported def")
+        self.gate("wrapper", source, False, "candidate command", expect_compiled=False)
 
     def test_inductive_wrapper_cannot_hide_boolean_premise(self):
         source = """Require Import Property.Original Bool.
@@ -133,7 +176,8 @@ Inductive predicate : nat -> Prop :=
 Inductive predicate : Original.Input -> Prop :=
 | mk : forall i : Original.Input, predicate i
 """
-        self.gate("malformed", source, False, "dependencies failed")
+        self.gate("malformed", source, False, "Unterminated candidate command",
+                  expect_compiled=False)
 
     def test_evidence_cannot_be_overwritten(self):
         source = """Require Import Property.Original.

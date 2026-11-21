@@ -16,7 +16,21 @@ output, and individual type probes remain in that directory.
 
 `Candidate.v` must declare one `predicate : Original.Input -> Prop` as an
 `Inductive`, and may declare additional Prop-valued inductive helpers. No new
-definitions, axioms, or other declarations are accepted. For each new
+definitions, axioms, or other declarations are accepted. The only candidate
+commands are `Inductive`, `Require Import`, `Import` of `ListNotations` or
+`StringNotations`, and `Open Scope` for `bool_scope`, `list_scope`,
+`string_scope`, or `nat_scope`. Imports are limited to the fixed
+`Specification.cedar.Spec` and `Property.Original`, earlier candidate
+modules in the selected prefix, and the standard data libraries `Bool`,
+`List`, `String`, and `Coq.Init.Datatypes` (including their fully qualified
+Coq names). `From ... Require Import` is accepted when it resolves to one
+of those modules. Importing QuickChick or another arbitrary module is
+rejected because it can change the available generation instances.
+
+Hints, instance declarations, options, tactics, notations, and other
+vernacular commands are rejected, including `Remove Hints` and
+`Existing Instance`, even when they create no declaration in Coq's `.glob`
+file. This keeps the benchmark support policy fixed. For each new
 constructor, data binders may carry values and witnesses. A logical premise
 must elaborate to an application of a fixed `Specification.cedar.Spec`
 inductive relation, a verified predecessor relation, or one of the new
@@ -29,8 +43,10 @@ constructors are compiled but not subjected to the new grammar.
 The gate snapshots the fixed repository specification, checks the staged
 `Original.v` byte-for-byte against the fixed repository original, copies
 `Candidate.v` files through the selected candidate, compiles them with
-the local Coq switch, and inspects every candidate in that prefix. It does
-not need any `Equivalence.v` in that prefix and does
+the local Coq switch, and inspects every candidate in that prefix. The
+command check is followed by Coq compilation, declaration inspection,
+elaborated `Print` output, and type probes; source text alone does not
+establish a valid relation. The gate does not need any `Equivalence.v` in that prefix and does
 not derive a generator. The existing `scripts/check.py` checks the completed
 equivalence chain after proof; the benchmark performs actual automatic
 generator derivation.

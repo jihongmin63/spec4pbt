@@ -30,6 +30,13 @@ UNSAFE = re.compile(
     r"|\bUnset\s+(?:Guard|Positivity|Universe)\s+Checking\b"
 )
 BAD_TERM = re.compile(r"\b(?:forall|fun|match|if|let|fix|cofix|Prop|SProp)\b|=>|->")
+MODULE = re.compile(r"[A-Za-z_][A-Za-z_0-9']*(?:\.[A-Za-z_][A-Za-z_0-9']*)*\Z")
+DATA_IMPORTS = {
+    "Bool", "Coq.Bool.Bool", "List", "Coq.Lists.List",
+    "String", "Coq.Strings.String", "Coq.Init.Datatypes",
+}
+DATA_SCOPES = {"bool_scope", "list_scope", "string_scope", "nat_scope"}
+DATA_NOTATIONS = {"ListNotations", "StringNotations"}
 
 
 class GateError(Exception):
@@ -78,6 +85,49 @@ def code_only(source):
     if depth or quoted:
         raise GateError("Unterminated Coq comment or string")
     return "".join(out)
+
+
+def candidate_commands(source):
+    """Separate vernacular commands, keeping dots inside qualified names."""
+    start = 0
+    for index, char in enumerate(source):
+        if char == "." and (index + 1 == len(source) or source[index + 1].isspace()):
+            command = source[start:index].strip()
+            if not command:
+                raise GateError("Empty candidate command")
+            yield command
+            start = index + 1
+    if source[start:].strip():
+        raise GateError("Unterminated candidate command")
+
+
+def check_candidate_commands(source, version):
+    """Allow only fixed/data imports and inductive relations in a candidate."""
+    predecessor = {f"Property.candidates.v{index:03d}.Candidate"
+                   for index in range(1, int(version[1:]))}
+    permitted = DATA_IMPORTS | predecessor | {
+        "Property.Original", "Specification.cedar.Spec",
+    }
+    for command in candidate_commands(source):
+        match = re.fullmatch(r"(?:From\s+([A-Za-z_][\w'.]*)\s+)?Require\s+Import\s+(.+)", command, re.S)
+        if match:
+            prefix, imports = match.groups()
+            for module in imports.split():
+                if not MODULE.fullmatch(module):
+                    raise GateError(f"Unsupported candidate import: {module}")
+                name = f"{prefix}.{module}" if prefix else module
+                if name not in permitted:
+                    raise GateError(f"Unsupported candidate import: {name}")
+            continue
+        match = re.fullmatch(r"Import\s+(.+)", command, re.S)
+        if match and match.group(1).split() and set(match.group(1).split()) <= DATA_NOTATIONS:
+            continue
+        match = re.fullmatch(r"Open\s+Scope\s+([A-Za-z_][A-Za-z_0-9']*)", command)
+        if match and match.group(1) in DATA_SCOPES:
+            continue
+        if re.match(r"Inductive\s", command):
+            continue
+        raise GateError(f"Unsupported candidate command: {command[:160]}")
 
 
 def split_top(source, separator):
@@ -274,6 +324,8 @@ class Gate:
                 raise GateError(f"Invalid UTF-8 source: {source}") from error
             if UNSAFE.search(stripped):
                 raise GateError(f"Unsafe authored Coq directive: {source}")
+            if relative.parts[:2] == ("property", "candidates"):
+                check_candidate_commands(stripped, relative.parts[2])
             target = self.sources / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
