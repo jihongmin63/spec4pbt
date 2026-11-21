@@ -1,0 +1,382 @@
+{
+  "baseline": {
+    "confirmed_valid_ratio": 0.00386,
+    "per_seed": {
+      "101": {
+        "attempts": 10000,
+        "confirmed_invalid": 3199,
+        "confirmed_valid": 36,
+        "confirmed_valid_ratio": 0.0036,
+        "no_result": 6107,
+        "status": "completed",
+        "undetermined": 658
+      },
+      "202": {
+        "attempts": 10000,
+        "confirmed_invalid": 3122,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6190,
+        "status": "completed",
+        "undetermined": 648
+      },
+      "303": {
+        "attempts": 10000,
+        "confirmed_invalid": 3174,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6183,
+        "status": "completed",
+        "undetermined": 603
+      },
+      "404": {
+        "attempts": 10000,
+        "confirmed_invalid": 3195,
+        "confirmed_valid": 45,
+        "confirmed_valid_ratio": 0.0045,
+        "no_result": 6082,
+        "status": "completed",
+        "undetermined": 678
+      },
+      "505": {
+        "attempts": 10000,
+        "confirmed_invalid": 3134,
+        "confirmed_valid": 32,
+        "confirmed_valid_ratio": 0.0032,
+        "no_result": 6162,
+        "status": "completed",
+        "undetermined": 672
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 15824,
+      "confirmed_valid": 193,
+      "no_result": 30724,
+      "undetermined": 3259
+    }
+  },
+  "experiment_id": "cedar-poc-20261121T141829Z",
+  "held_out_baseline": null,
+  "runs": {
+    "run-001": {
+      "adopted": [
+        {
+          "candidate_sha256": "f0e199a3e9c1cb96e1b2393ddb6c3617fc416be4d965fe65c930017536da2556",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.00082,
+              "difference": -0.00304,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0007,
+                  "difference": -0.0029,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.003,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0032,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0005,
+                  "difference": -0.004,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0011,
+                  "difference": -0.0021000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.00082,
+              "difference": -0.00304,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0007,
+                  "difference": -0.0029,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.003,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0032,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0005,
+                  "difference": -0.004,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0011,
+                  "difference": -0.0021000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            }
+          },
+          "from_attempt": "attempt-001",
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00082,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 7,
+                "confirmed_valid_ratio": 0.0007,
+                "no_result": 9907,
+                "status": "completed",
+                "undetermined": 86
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9909,
+                "status": "completed",
+                "undetermined": 81
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9919,
+                "status": "completed",
+                "undetermined": 73
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 5,
+                "confirmed_valid_ratio": 0.0005,
+                "no_result": 9916,
+                "status": "completed",
+                "undetermined": 79
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 11,
+                "confirmed_valid_ratio": 0.0011,
+                "no_result": 9926,
+                "status": "completed",
+                "undetermined": 63
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 41,
+              "no_result": 49577,
+              "undetermined": 382
+            }
+          }
+        }
+      ],
+      "adopted_count": 1,
+      "attempts": [
+        {
+          "adopted_id": "v001",
+          "candidate_sha256": "f0e199a3e9c1cb96e1b2393ddb6c3617fc416be4d965fe65c930017536da2556",
+          "feedback_summary": "",
+          "id": "attempt-001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00082,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 7,
+                "confirmed_valid_ratio": 0.0007,
+                "no_result": 9907,
+                "status": "completed",
+                "undetermined": 86
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9909,
+                "status": "completed",
+                "undetermined": 81
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9919,
+                "status": "completed",
+                "undetermined": 73
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 5,
+                "confirmed_valid_ratio": 0.0005,
+                "no_result": 9916,
+                "status": "completed",
+                "undetermined": 79
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 11,
+                "confirmed_valid_ratio": 0.0011,
+                "no_result": 9926,
+                "status": "completed",
+                "undetermined": 63
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 41,
+              "no_result": 49577,
+              "undetermined": 382
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 462464,
+              "input_tokens": 499204,
+              "output_tokens": 5309,
+              "reasoning_output_tokens": 3150,
+              "status": "available"
+            },
+            "wall_seconds": 130.2145609469153
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 314368,
+              "input_tokens": 345915,
+              "output_tokens": 5049,
+              "reasoning_output_tokens": 3525,
+              "status": "available"
+            },
+            "wall_seconds": 107.31159573397599
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate that exposes the schema, action, request, and environment structure."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "53575edd3edc2dd5775d58afa4eedd86082ae6b9b1e23a47545763694f831702",
+          "feedback_summary": "syntax_rejected: Constructor of predicate has unexpected result: forall\n                     (ets : list\n                              (prod Spec.EntityName Spec.EntitySchemaEntry))\n                     (acts : list\n ",
+          "id": "attempt-002",
+          "measurement": null,
+          "proof_cost": {
+            "status": "not_run",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "not_run"
+            },
+            "wall_seconds": null
+          },
+          "reason": "Constructor of predicate has unexpected result: forall\n                     (ets : list\n                              (prod Spec.EntityName Spec.EntitySchemaEntry))\n                     (acts : list\n                               (prod Spec.EntityUID Spec.ActionSchemaEntry))\n                     (rs",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 269440,
+              "input_tokens": 302153,
+              "output_tokens": 6206,
+              "reasoning_output_tokens": 4553,
+              "status": "available"
+            },
+            "wall_seconds": 126.85124600096606
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate containing a general constructor and a focused constructor for a true literal with one request."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": null,
+          "feedback_summary": "role_execution_failed",
+          "id": "attempt-003",
+          "measurement": null,
+          "proof_cost": {
+            "status": "not_run",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "not_run"
+            },
+            "wall_seconds": null
+          },
+          "reason": "reformulator execution failed",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": null,
+              "input_tokens": null,
+              "output_tokens": null,
+              "reasoning_output_tokens": null,
+              "status": "unavailable"
+            },
+            "wall_seconds": 61.954188314964995
+          },
+          "status": "rejected",
+          "transformation_summary": ""
+        }
+      ],
+      "best_candidate_id": "v001",
+      "best_confirmed_valid_ratio": 0.00082,
+      "held_out": null,
+      "last_candidate_id": "v001",
+      "proposal_count": 3,
+      "stop_reason": "operational_failure: reformulator"
+    },
+    "run-002": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    },
+    "run-003": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    }
+  },
+  "status": "stopped"
+}

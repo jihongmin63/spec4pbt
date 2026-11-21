@@ -1,0 +1,29 @@
+{
+  "status": "superseded_before_baseline_completion",
+  "reason": "Replace serial seed/batch scheduling with separately verified and independently reviewed fixed bounded concurrency; restart all baseline and exploration under a new experiment ID. No partial measurement is reused.",
+  "time_utc": "2026-11-21T14:05:29.025244+00:00",
+  "completed_unique_input_cache_records": 1500,
+  "target_processes": [
+    {
+      "pid": 3621070,
+      "pgid": 3621070,
+      "cwd": "/workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261121T134241Z/baseline-property/.runs/benchmark-P0-101/validator-evidence/build-86ee7a955d482c1a",
+      "command": [
+        "coqc",
+        "-q",
+        "-R",
+        "specification",
+        "Specification",
+        "-R",
+        "property",
+        "Property",
+        "-R",
+        "validator",
+        "CedarValidator",
+        "batch_000004.v"
+      ]
+    }
+  ],
+  "baseline_completed": false,
+  "role_attempts": 0
+}

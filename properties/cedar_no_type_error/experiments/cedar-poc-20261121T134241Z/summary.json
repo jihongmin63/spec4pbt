@@ -1,0 +1,41 @@
+{
+  "baseline": null,
+  "experiment_id": "cedar-poc-20261121T134241Z",
+  "held_out_baseline": null,
+  "runs": {
+    "run-001": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    },
+    "run-002": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    },
+    "run-003": {
+      "adopted": [],
+      "adopted_count": 0,
+      "attempts": [],
+      "best_candidate_id": null,
+      "best_confirmed_valid_ratio": null,
+      "held_out": null,
+      "last_candidate_id": null,
+      "proposal_count": 0,
+      "stop_reason": "not_run_due_to_operational_failure"
+    }
+  },
+  "status": "stopped"
+}

@@ -1,0 +1,86 @@
+{
+  "frozen": {
+    "commit": "3adc1ddf59d03088e02ae286e737504a8eae02ba",
+    "conditions": {
+      "attempts_per_seed": 10000,
+      "coq_version": "8.20.0",
+      "effort": {
+        "inspector": "high",
+        "prover": "xhigh",
+        "reformulator": "xhigh"
+      },
+      "eval_seeds": [
+        101,
+        202,
+        303,
+        404,
+        505
+      ],
+      "held_out_seeds": [
+        1101,
+        1202,
+        1303,
+        1404,
+        1505
+      ],
+      "max_proposals_per_run": 10,
+      "model": "gpt-6-sol",
+      "ocaml_version": "4.14.2",
+      "runs": [
+        "run-001",
+        "run-002",
+        "run-003"
+      ],
+      "size": 2,
+      "validator": {
+        "batch_size": 500,
+        "batch_timeout_seconds": 1200,
+        "proof_depth": 12,
+        "tactic_timeout_seconds": 1
+      }
+    },
+    "sources": {
+      "properties/cedar_no_type_error/Original.v": "ae6d5e33f2e02c509a16fe1d84a9b8bb894d6f92cd3665da8d7487a987b52d21",
+      "specification/cedar/Spec.v": "075b9e65c01c5782ddd5e778bf98387a4bbbe1d5bd12bba01841bcb2441c4f13"
+    },
+    "tools": {
+      "AGENTS.md": "7d4856db9df462c0c651b519ec5f36220e5f536d8560ee16d1b9b03586144fa3",
+      "environment/env.sh": "6f1a74561ccb1996a30f6b47bb6d20edc2ef8bd34cc88bb930eaea2e0a1254bf",
+      "environment/opam-switch.export": "9db9c8978c8f3577a4ccd5e11e24d30aec5dbacb9ca20c2433cf661ff11d2574",
+      "prompts/cedar-experiments.txt": "b194121cc7a1f8a47c39bf8c6be21a4314b159075fa205897606e2613e686e16",
+      "properties/cedar_no_type_error/upstream/CedarWellTypedTermGenerator.v.txt": "3063d50f086691301cc3f1c0a81e9776c0f0159cfde685cf71979785198529cd",
+      "scripts/cedar/BENCHMARK.md": "297ffab23c2cf95b58aafdb268896afbabcfaa3d22b2f13c4db6e64b86b0b7a5",
+      "scripts/cedar/README-validator.md": "33de5d104a4de60454fb78fad2f941f0d1b62a896a2ea0242bbcd5badf10afe6",
+      "scripts/cedar/README.md": "84229aad058bda83d9df9d7869628482fc0cd6875f3b4b9610c3ba5d2f3702a9",
+      "scripts/cedar/SYNTAX.md": "5cdf97010ecd60151223d63b6381eef45c447f191b72cab41dad6dab06bf18f0",
+      "scripts/cedar/Support.v": "7717aa6c42ef7b010090e37bdca43b058d4d8dca5a6a5342b9b01b7f26428498",
+      "scripts/cedar/Validator.v": "f1d05ca848ae293bea0b74392fe28c05ad3be98fadaeb01a4e115686227684d8",
+      "scripts/cedar/__init__.py": "2afc669b8bd6cf549d8370e0e10c88b5159250c8afd4cb1f492cb6151af8e91a",
+      "scripts/cedar/benchmark.py": "6ff64b9320b7a23f95e081bcded289243b58e923ffdfe1f5e73b00cebfb0103e",
+      "scripts/cedar/driver.ml": "17f7a3ca41f8b5df06ef6185bbef8cb0c63a948b5a75a93157f624e1e918a0ee",
+      "scripts/cedar/execute.py": "a9afcec2c5b4a38e97d7ab39fbb3f0f33031c168d6c422e500c3406342591f84",
+      "scripts/cedar/experiment.py": "f10bcda18f4a2406c7879219356b0bfc890eb24005ed3d5dbd2e6d4b877d659e",
+      "scripts/cedar/prompts/inspector.txt": "bcb8410f57a45240e4abb3975c4ad989789c25110cac2e2fcc2aee0e55c8c175",
+      "scripts/cedar/prompts/prover.txt": "9fb3316bdc7924cb4a05cbf3a4a19bc1d0f846211bc2960d3c874d9878795eb4",
+      "scripts/cedar/prompts/reformulator.txt": "5dbaca3ec6327ed8ff4667ead542cc4b5577d95e5c5638fcaa102e509a34ebeb",
+      "scripts/cedar/roles.py": "c8879d449d6b0721d2bc584c1751b96403e3380b6986150adcf0b0961ce5ffe4",
+      "scripts/cedar/schemas/inspector.json": "6319d24ed87e4decdc64250740d3151fe9b97014e1db35b1d23a071945e04d8a",
+      "scripts/cedar/schemas/prover.json": "91216e14a0349f9f2877bfc50783c1153f0cc974ceebcae461bdbdf2a861e646",
+      "scripts/cedar/schemas/reformulator.json": "6e837a1b9b5ef848b1f476ed1458fb8c44eb42a8a50c4b904f89a05522130a53",
+      "scripts/cedar/serialization.py": "9934738e42a9eb90a7d0651a76d8d2377a270627474f7edf49c44e33605a52e2",
+      "scripts/cedar/syntax.py": "5b83a2d04632e09c769139fc69dba227e47e7e22c2395d28da413c879bdcef4b",
+      "scripts/cedar/validator.py": "9156b6ee8d8f2f6b04a3a16df40ef2ddc2b97cc1ef81baa3de1b54e7c3c808b0",
+      "scripts/check.py": "7206e5714f778938c5c80d36e73ea27f4291bc411e26f0da513535cf2c7ac4d6",
+      "scripts/run.py": "b8112dcd8e8963e58e06442bfd9c4a11feaef3b70915b089f06654c05b35437f",
+      "scripts/tests/test_cedar_benchmark.py": "b42c253c27aca68a8ce1c026ffa71905227d83bdae3f1ced6e08943e28894d29",
+      "scripts/tests/test_cedar_execute.py": "a144cb92ac88bfbab26f039d935041b96d86ee030f44d7f1e3903077b1b9455d",
+      "scripts/tests/test_cedar_experiment.py": "b7cc11372e615008791c4cd542a8d7de94a3783ac3d0680ec6f47dd96ac90bde",
+      "scripts/tests/test_cedar_roles.py": "a5982a7a1184976cbab62ca52991448670c3c5954de7dd00eeda4640eefe9555",
+      "scripts/tests/test_cedar_syntax.py": "7ff7341eccc51c1b2c37b293ed8ae41819d8de244090e7e010a2f63b56a775a1",
+      "scripts/tests/test_cedar_validator.py": "b099a252b324064cce581e7fcdb3278ceb1a3b0171e2248e11d82892ea3fca74",
+      "scripts/tests/test_workflow.py": "15c990dd8afec2faff071cea6ac3cb3f22a2f6f89b1f7cce52b82f73a3e81f52",
+      "specification/cedar/upstream/Cedar.v.txt": "0ff523f080c9e26e15afbc25cc89b519da9c7dd25dfa9a8c2cfb917fc681e911"
+    }
+  },
+  "tool_review": "/workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261121T120106Z/tool-review-003/review.json"
+}

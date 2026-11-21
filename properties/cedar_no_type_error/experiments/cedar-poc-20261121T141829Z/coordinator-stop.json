@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-21T15:00:05.824612+00:00",
+  "reason": "Confirmed infrastructure false rejection: peel_foralls accepts literal space after forall but not Coq pretty-printed newline. Stop before correction; preserve all original evidence and costs; fresh experiment baseline required after independent review.",
+  "active_role_pid": 3657533,
+  "reproduction": {
+    "space": [
+      [
+        [
+          "x",
+          "nat"
+        ]
+      ],
+      "R x"
+    ],
+    "newline": [
+      [],
+      "forall\\n (x : nat), R x"
+    ]
+  },
+  "reuse_measurements": false
+}
