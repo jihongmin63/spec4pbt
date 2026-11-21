@@ -1,0 +1,129 @@
+(* Helpers *)
+
+let starts_with prefix s =
+    let lp = String.length prefix in
+      String.length s >= lp && String.sub s 0 lp = prefix
+
+  let contains_sub sub s =
+      let ls = String.length s and lsub = String.length sub in
+      let rec loop i =
+          if i + lsub > ls then false
+          else if String.sub s i lsub = sub then true
+          else loop (i + 1)
+      in
+      loop 0
+
+  let is_error_line s =
+      starts_with "Err: " s ||
+      starts_with "Parse error: " s ||
+      starts_with "Context error: " s
+
+  let report_cedar_output expr_str lines =
+      print_string "\n┌─────────────────────────────────────────────┐\n";
+      print_string "│ CEDAR ERROR                            │\n";
+      print_string "└─────────────────────────────────────────────┘\n";
+      print_string "Input expression:\n  ";
+      print_string expr_str;
+      print_string "\nCedar server output:\n";
+      List.iter (fun l -> print_string "  "; print_string l; print_string "\n") lines;
+      print_string "─────────────────────────────────────────────\n\n";
+      flush stdout;
+
+      let oc = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 "/tmp/cedar_client.log" in
+      Printf.fprintf oc "=== CEDAR ERROR ===\n";
+      Printf.fprintf oc "expr: [%s]\n" expr_str;
+      List.iter (fun l -> Printf.fprintf oc "  %s\n" l) lines;
+      Printf.fprintf oc "\n";
+      close_out oc
+
+  let run_cedar (predicate : string -> bool) (x : char list) : bool =
+      let pipe_dir =
+          match Sys.getenv_opt "CEDAR_PIPE_DIR" with
+          | Some d -> d
+          | None -> "../cedar-server/target/release/pipes"
+      in
+      let input_path = Filename.concat pipe_dir "input" in
+      let output_path = Filename.concat pipe_dir "output" in
+      try
+          let oc = open_out_gen [Open_wronly] 0o666 input_path in
+          output_string oc (String.of_seq (List.to_seq x) ^ "\n");
+          flush oc;
+          close_out oc;
+
+          let ic = open_in output_path in
+          let rec read_all acc =
+              try
+                  let line = input_line ic in
+                  read_all (line :: acc)
+              with End_of_file -> List.rev acc
+          in
+          let lines = read_all [] in
+          close_in ic;
+          
+          (* Debug: log all lines received *)
+          let expr_str = String.of_seq (List.to_seq x) in
+          let oc_debug = open_out_gen [Open_creat; Open_wronly; Open_append] 0o644 "/tmp/cedar_all_output.log" in
+          Printf.fprintf oc_debug "=== INPUT ===\n%s\n" expr_str;
+          Printf.fprintf oc_debug "=== OUTPUT (%d lines) ===\n" (List.length lines);
+          List.iter (fun l -> Printf.fprintf oc_debug "%s\n" l) lines;
+          Printf.fprintf oc_debug "\n";
+          close_out oc_debug;
+          
+          (* Drop lines until we find one matching predicate, then keep remainder *)
+          let rec drop_until_match = function
+            | [] -> []
+            | line :: rest -> 
+                if predicate line then line :: rest
+                else drop_until_match rest
+          in
+          let matching_lines = drop_until_match lines in
+          let unexpected_lines = List.filter is_error_line lines in
+          let lines_to_report =
+              if matching_lines <> [] then matching_lines
+              else if unexpected_lines <> [] then unexpected_lines
+              else if lines = [] then ["No output from cedar server"]
+              else []
+          in
+
+          if lines_to_report <> [] then
+              report_cedar_output expr_str lines_to_report;
+
+          matching_lines = [] && unexpected_lines = [] && lines <> []
+      with
+      | Sys_error msg ->
+          report_cedar_output
+              (String.of_seq (List.to_seq x))
+              ["Sys_error: " ^ msg];
+          false
+      | End_of_file -> false
+
+  (* Properties *)
+
+  let cedar_parse_no_duplicate_record (x : char list) : bool =
+      run_cedar (fun s -> starts_with "Parse error: " s && not (contains_sub "duplicate key" s)) x
+
+  let cedar_no_duplicate_record (x : char list) : bool =
+      run_cedar (fun l -> contains_sub "duplicate key" l) x
+
+let cedar_no_type_error (x : char list) : bool =
+    run_cedar (starts_with "Err: type error:") x
+
+let cedar_no_type_error_with_ctx
+    (schema_chars   : char list)
+    (principal_chars : char list)
+    (action_chars   : char list)
+    (resource_chars : char list)
+    (expr_chars     : char list) : bool =
+  let encode xs = String.of_seq (List.to_seq xs) in
+  let combined =
+    encode schema_chars   ^ "|||" ^
+    encode principal_chars ^ "|||" ^
+    encode action_chars   ^ "|||" ^
+    encode resource_chars ^ "|||" ^
+    encode expr_chars
+  in
+  run_cedar (starts_with "Err: type error:") (List.of_seq (String.to_seq combined))
+
+(* Backward-compatible entry points *)
+
+let cedar_response_coq (xs : char list) : bool = cedar_no_duplicate_record xs

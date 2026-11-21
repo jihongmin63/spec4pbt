@@ -1,70 +1,44 @@
 #!/usr/bin/env python3
-"""Derive and verify a selected candidate's generator, then run reproducible samples."""
+"""Verify predicate equivalence, derive a generator, and run reproducible samples."""
 import argparse
 import json
 from pathlib import Path
 import re
 import sys
 
-from check import CheckError, Session, COQ_FLAGS, assumptions, module, nonnegative, positive
+from check import CheckError, Session, COQ_FLAGS, module, nonnegative, positive
 
-PRELUDE = '''From QuickChick Require Import QuickChick Tactics Instances Classes DependentClasses.
+PRELUDE = '''From QuickChick Require Import QuickChick.
 From Coq Require Import List ZArith String.
-From mathcomp Require Import ssreflect ssrfun ssrbool ssrnat eqtype seq.
-Import GenLow GenHigh ListNotations QcDefaultNotation.
+Import ListNotations QcDefaultNotation.
 Open Scope qc_scope.
 '''
-RANDOM_ASSUMPTIONS = {
-    prefix + name for prefix in ['QuickChick.RandomQC.', 'RandomQC.'] for name in [
-        'RandomSeed', 'randomSplit', 'randomSplitAssumption', 'randomSeed_inhabited',
-        'randomRNat', 'ramdomRNatCorrect', 'randomRBool', 'randomRBoolCorrect',
-        'randomRInt', 'ramdomRIntCorrect']
-}
 
 
 def derivation(candidate):
     target = module(candidate)
-    commands = '\n'.join(f'Derive {name} for (fun x => predicate x).' for name in [
-        'ArbitrarySizedSuchThat', 'SizedProofEqs', 'SizeMonotonicSuchThatOpt',
-        'GenSizedSuchThatCorrect', 'GenSizedSuchThatSizeMonotonicOpt'])
     return PRELUDE + f'''Require Sequence.
 Import Property.Original.
 Require Import {target}.
-{commands}
+Derive ArbitrarySizedSuchThat for (fun x => predicate x).
 Definition generator : G (option Property.Original.Input) :=
   @arbitraryST _ (fun x => {target}.predicate x) _.
-Definition candidate_correct := @STCorrect _ (fun x => {target}.predicate x) generator _.
-Theorem original_correct : forall x : Property.Original.Input,
-  semGen generator (Some x) <-> Property.Original.predicate x.
-Proof.
-  intro x; split; intro H.
-  - apply (proj2 (Sequence.original_equivalent x)).
-    assert (Hx : (isSome :&: semGen generator) (Some x)).
-    {{ split; [reflexivity | exact H]. }}
-    apply (proj1 (candidate_correct (Some x))) in Hx.
-    destruct Hx as [y [Hy Heq]]. inversion Heq; subst. exact Hy.
-  - assert (Hx : {target}.predicate x).
-    {{ apply (proj1 (Sequence.original_equivalent x)). exact H. }}
-    assert (Hs : (isSome :&: semGen generator) (Some x)).
-    {{ apply (proj2 (candidate_correct (Some x))). exists x; split; [exact Hx | reflexivity]. }}
-    exact (proj2 Hs).
-Qed.
 '''
 
 
-def extraction(samples, size, seed):
+def extraction(samples, size):
     return PRELUDE + f'''Require Derived.
 Fixpoint sample_seeds (n : nat) (seed : RandomSeed) : list RandomSeed :=
   match n with
   | O => nil
   | S m => let '(r1, r2) := randomSplit seed in r1 :: sample_seeds m r2
   end.
-Definition rendered : list (option string) :=
+Definition rendered (seed : RandomSeed) : list (option string) :=
   List.map (fun r =>
     match run Derived.generator {size} r with
     | Some x => Some (show x)
     | None => None
-    end) (sample_seeds {samples} (mkRandomSeed (Z.of_nat {seed}))).
+    end) (sample_seeds {samples} seed).
 Extraction "samples.ml" rendered.
 '''
 
@@ -85,7 +59,7 @@ let () =
   List.iteri (fun i item ->
     if i > 0 then print_char ',';
     match item with None -> print_string "null" | Some chars -> json_string chars
-  ) Samples.rendered;
+  ) (Samples.rendered (Random.State.make [| SAMPLER_SEED |]));
   print_endline "]"
 '''
 
@@ -110,24 +84,19 @@ def execute(session, candidate, samples, size, seed, derive_only=False):
     session.check()
     (session.sources / 'Derived.v').write_text(derivation(candidate))
     session.compile('Derived.v', 'derivation')
-    # A fresh module without Import prints qualified assumption names, preventing name collisions.
-    (session.sources / 'ProofAudit.v').write_text('Require Derived.\nPrint Assumptions Derived.original_correct.\n')
-    found = assumptions(session.compile('ProofAudit.v', 'generator-assumptions'))
-    session.report['generator_assumptions'] = found
-    unsupported = set(found) - RANDOM_ASSUMPTIONS
-    if unsupported:
-        raise CheckError(f'Generator proof has unsupported assumptions: {", ".join(sorted(unsupported))}')
-    session.command(['coqchk', '-silent', *COQ_FLAGS, 'ProofAudit'], 'generator-kernel')
+    # The branch checks predicate equivalence, but does not certify generators.
+    session.report['generator_proof'] = 'not_checked'
+    session.command(['coqchk', '-silent', *COQ_FLAGS, 'Derived'], 'generator-kernel')
     session.fresh()
     if derive_only:
         return
-    (session.sources / 'ExtractSamples.v').write_text(extraction(samples, size, seed))
+    (session.sources / 'ExtractSamples.v').write_text(extraction(samples, size))
     session.compile('ExtractSamples.v', 'extraction')
     session.report['normalized_extraction_files'] = normalize_extraction(session.sources)
     # Unlike the upstream Sample command, compile the extracted interface as well.
-    session.command(['ocamlopt', '-rectypes', '-w', '-a', '-c', 'samples.mli'], 'compile-interface')
-    (session.sources / 'driver.ml').write_text(DRIVER)
-    session.command(['ocamlopt', '-rectypes', '-w', '-a', 'samples.ml', 'driver.ml', '-o', 'sampler'], 'compile-executable')
+    session.command(['ocamlfind', 'ocamlopt', '-package', 'zarith,unix', '-linkpkg', '-rectypes', '-w', '-a', '-c', 'samples.mli'], 'compile-interface')
+    (session.sources / 'driver.ml').write_text(DRIVER.replace('SAMPLER_SEED', str(seed)))
+    session.command(['ocamlfind', 'ocamlopt', '-package', 'zarith,unix', '-linkpkg', '-rectypes', '-w', '-a', 'samples.ml', 'driver.ml', '-o', 'sampler'], 'compile-executable')
     session.fresh()
     output = session.command([str(session.sources / 'sampler')], 'execution', coq=False)
     try:
@@ -149,13 +118,13 @@ def main():
     parser.add_argument('--size', type=nonnegative, default=30)
     parser.add_argument('--seed', type=nonnegative, default=0)
     parser.add_argument('--timeout', type=positive, default=120, help='seconds per subprocess')
-    parser.add_argument('--derive-only', action='store_true', help='derive and verify without sampling; no Show instance needed')
+    parser.add_argument('--derive-only', action='store_true', help='derive without sampling or generator proofs; no Show instance needed')
     args = parser.parse_args()
     session = None
     try:
         session = Session(args.property, selected=args.candidate, timeout=args.timeout)
         execute(session, args.candidate, args.samples, args.size, args.seed, args.derive_only)
-        print(f'Derived and verified {args.candidate}: {session.finish()}')
+        print(f'Equivalence checked; generator derived for {args.candidate}: {session.finish()}')
         return 0
     except (CheckError, OSError, UnicodeError) as error:
         if session:

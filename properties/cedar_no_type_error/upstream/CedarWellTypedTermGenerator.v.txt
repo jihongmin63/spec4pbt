@@ -1,0 +1,361 @@
+(** Cedar Well-Typed Term Generator
+    Generates well-typed Cedar expressions using constrained generation.
+*)
+
+From QuickChick Require Import QuickChick.
+From Cedar Require Import Cedar.
+Require Import List.
+Require Import BinNat.
+Require Import Ascii.
+Require Import String.
+(* Require Import ZArith. *)
+Import ListNotations.
+
+Open Scope string_scope.
+
+
+Axiom cedar_response_coq : list ascii -> bool.
+Extract Constant cedar_response_coq => "Foo.cedar_response_coq".
+
+(* Extended OCaml properties *)
+Axiom cedar_parse_no_duplicate_record_coq : list ascii -> bool.
+Extract Constant cedar_parse_no_duplicate_record_coq => "Foo.cedar_parse_no_duplicate_record".
+
+Axiom cedar_no_duplicate_record_coq : list ascii -> bool.
+Extract Constant cedar_no_duplicate_record_coq => "Foo.cedar_no_duplicate_record".
+
+Axiom cedar_no_type_error_coq : list ascii -> bool.
+Extract Constant cedar_no_type_error_coq => "Foo.cedar_no_type_error".
+
+Axiom cedar_no_type_error_with_ctx_coq :
+  list ascii -> list ascii -> list ascii -> list ascii -> list ascii -> bool.
+Extract Constant cedar_no_type_error_with_ctx_coq =>
+  "Foo.cedar_no_type_error_with_ctx".
+
+Fixpoint string_of_list_ascii (l : list ascii) : string :=
+  match l with
+  | [] => EmptyString
+  | c :: cs => String c (string_of_list_ascii cs)
+  end.
+
+Definition list_ascii_of_string' : string -> list ascii := String.list_ascii_of_string.
+
+Definition genEntityNameConst : G EntityName :=
+  freq_ (returnGen (MkName "EntityType1" []))
+    [(1, returnGen (MkName "EntityType1" []));
+     (1, returnGen (MkName "EntityType2" []))].
+
+#[global]
+Instance genSizedEntityNameConst : GenSized EntityName :=
+  {| arbitrarySized := fun _ => genEntityNameConst |}.
+
+Definition genEntityUIDConst : G EntityUID :=
+  bindGen genEntityNameConst (fun n =>
+    freq_ (returnGen (MkEntityUID n "A"))
+      [(1, returnGen (MkEntityUID n "A"));
+       (1, returnGen (MkEntityUID n "B"));
+       (1, returnGen (MkEntityUID n "C"));
+       (1, returnGen (MkEntityUID n "D"));
+       (1, returnGen (MkEntityUID n "Hicks"));
+       (1, returnGen (MkEntityUID n "Kesha"))]).
+
+#[global]
+Instance genSizedEntityUIDConst : GenSized EntityUID :=
+  {| arbitrarySized := fun _ => genEntityUIDConst |}.
+
+
+(* Definition genCedarString (size : nat) : G string :=
+  freq_ (returnGen "Aaron") [(1, returnGen "Aaron"); (1, returnGen "John");
+        (1, returnGen "Mike"); (1, returnGen "Kesha"); (1, returnGen "Hicks");
+        (1, returnGen "A"); (1, returnGen "B"); (1, returnGen "C"); (1, returnGen "D")].
+
+(* Definition genCedarString (size : nat) : G string := returnGen "1 + 1". *)
+
+#[global]
+Instance genSizedString : GenSized string := {| arbitrarySized := genCedarString |}.
+
+Definition shrinkCedarString (s : string) : list string := nil.
+
+#[global]
+Instance shrinkString : Shrink string := {| shrink := shrinkCedarString |}. *)
+
+#[global]
+Instance showListAscii : Show (list ascii) := { show := fun l => show (string_of_list_ascii l) }.
+
+#[global]
+Instance genSizedListAscii : GenSized (list ascii) :=
+  {| arbitrarySized := fun n => bindGen (arbitrarySized n : G string)
+                                          (fun s => returnGen (list_ascii_of_string' s)) |}.
+
+#[global]
+Instance shrinkListAscii : Shrink (list ascii) :=
+  {| shrink := fun l => map list_ascii_of_string' (shrink (string_of_list_ascii l)) |}.
+
+(* QCInclude "examples/paper-tests/cedar/ocaml/*". *)
+QCInclude "ocaml/*".
+Definition cedar_response_expr (e : CedarExpr) : bool :=
+  cedar_response_coq (list_ascii_of_string' (stringOfExpr e)).
+
+Definition cedar_parse_no_duplicate_record_expr (e : CedarExpr) : bool :=
+  cedar_parse_no_duplicate_record_coq (list_ascii_of_string' (stringOfExpr e)).
+
+Definition cedar_no_duplicate_record_expr (e : CedarExpr) : bool :=
+  cedar_no_duplicate_record_coq (list_ascii_of_string' (stringOfExpr e)).
+
+Definition cedar_no_type_error_expr (e : CedarExpr) : bool :=
+  cedar_no_type_error_coq (list_ascii_of_string' (stringOfExpr e)).
+
+(* QuickChick (forAll (arbitrary : G CedarExpr) cedar_response_expr).
+QuickChick (forAll (arbitrary : G CedarExpr) cedar_parse_no_duplicate_record_expr).
+QuickChick (forAll (arbitrary : G CedarExpr) cedar_no_duplicate_record_expr).
+QuickChick (forAll (arbitrary : G CedarExpr) cedar_no_type_error_expr). *)
+
+(* Schema based on Cedar's sample apps*)
+Definition schema : Schema :=
+  (* Entity types *)
+  let team := MkName "Team" [] in
+  let teamDef := MkEntitySchemaEntry [team] [] in
+  let user := MkName "User" [] in
+  let userDef := MkEntitySchemaEntry [team]
+    [("manager", true, entityType user)] in
+  let lst := MkName "List" [] in
+  let lstDef := MkEntitySchemaEntry []
+    [("owner", true, entityType user);
+     ("readers", true, entityType team);
+     ("editors", true, entityType team);
+     ("age", true, intType);
+     ("description", true, stringType)] in
+  let app := MkName "Application" [] in
+  let appDef := MkEntitySchemaEntry [] [] in
+  let action := MkName "Action" [] in
+  let actionDef := MkEntitySchemaEntry [action] [] in
+  let ets := [(user, userDef); (team, teamDef); (lst, lstDef); (app, appDef); (action, actionDef)] in
+  
+  (* Action definitions *)
+  let getAct := MkActionSchemaEntry [user] [lst] [] in
+  let createAct := MkActionSchemaEntry [user] [app] [] in
+  let updateAct := MkActionSchemaEntry [user] [lst] [] in
+  let acts := [(MkEntityUID action "getList", getAct);
+               (MkEntityUID action "createList", createAct);
+               (MkEntityUID action "updateList", updateAct)] in
+  MkSchema ets acts.
+
+(** Generator for well-typed Cedar expressions *)
+Instance GenSizedSchemaconst : GenSized Schema := {| arbitrarySized n := returnGen schema |}.
+Derive GenSized for Environment.
+Derive Show for PathSet.
+
+(*Definition genCedarExpr (fuel : nat) : G (option CedarExpr) :=
+  match schema with
+  | MkSchema ets acts =>
+      (* Generate RequestTypes based on the schema *)
+      bindOpt (@arbitrarySizeST _ (fun rs => ActionSchemaToRequestTypes acts [] rs) _ fuel)
+        (fun reqs =>         
+          (* Generate a list of environments *)
+          bindOpt (@arbitrarySizeST _ (fun es => SchemaToEnvironments (MkSchema ets acts) reqs es) _ fuel)
+            (fun envs =>
+              match envs with
+              | v :: _ =>
+                  (* Generate a well-typed expression from the first environment *)
+                  bindOpt (@arbitrarySizeST _ (fun e => HasType (somepaths []) v e (boolType anyBool)) _ fuel)
+                    (fun ep =>
+                      match ep with
+                      | (expr, _) => returnGen (Some expr)
+                      end)
+              | [] => returnGen None
+              end))
+  end.
+
+(** Generator for well-formed types and expressions *)
+Definition genWellFormedTypeAndExpr (fuel : nat) : G (option (CedarType * CedarExpr)) :=
+  match schema with
+  | MkSchema ets acts =>
+      bindGen (arbitrarySizeST (fun s => WfSchema [MkName "EntityType1" []; MkName "EntityType2" []] s) fuel)
+        (fun xs =>
+          match xs with
+          | MkSchema ets' acts' =>
+              bindGen (arbitrarySizeST (fun rs => ActionSchemaToRequestTypes acts' [] rs) fuel)
+                (fun reqs =>
+                  bindGen (arbitrarySizeST (fun es => SchemaToEnvironments (MkSchema ets' acts') reqs es) fuel)
+                    (fun envs =>
+                      match envs with
+                      | v :: _ =>
+                          bindGen (arbitrarySizeST (fun t => WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] t) fuel)
+                            (fun ty =>
+                              bindGen (arbitrarySizeST (fun e => HasType (somepaths []) v e ty) fuel)
+                                (fun ep =>
+                                  match ep with
+                                  | (expr, _) => returnGen (Some (ty, expr))
+                                  end))
+                      | [] => returnGen None
+                      end))
+          end)
+  end.*)
+
+Derive Valid Schedules HasType 2 consnum 13 derive "Gen".
+
+(* ------------------------------------------------------------------ *)
+(* Schema serializer producing valid cedarschema syntax.               *)
+(*  show (MkSchema ...) has three bugs that make Cedar reject it:      *)
+(*  1. actions use "Type::\"id\"" instead of just "\"id\""             *)
+(*  2. appliesTo parts are separated by ";" instead of ","             *)
+(*  3. the required context clause must include generated context attrs *)
+(*  4. optional attrs are "name:? T" instead of "name?: T"             *)
+(*  5. intType serialises as "Int", Cedar schema needs "Long"          *)
+(* ------------------------------------------------------------------ *)
+
+Fixpoint typeToSchemaStr (t : CedarType) : string :=
+  match t with
+  | intType    => "Long"
+  | stringType => "String"
+  | boolType _ => "Bool"
+  | entityType n => stringOfEntityNameFull n
+  | setType t' => "Set<" ++ typeToSchemaStr t' ++ ">"
+  | recordTypeNil => "{}"
+  | recordTypeCons fn o t' recordTypeNil =>
+      "{ " ++ quoteIfNeeded fn ++ (if o then "?: " else ": ") ++ typeToSchemaStr t' ++ " }"
+  | recordTypeCons fn o t' rest =>
+      "{ " ++ quoteIfNeeded fn ++ (if o then "?: " else ": ") ++ typeToSchemaStr t' ++
+      ", " ++ recordTypeToSchemaStr rest ++ " }"
+  end
+
+with recordTypeToSchemaStr (t : CedarType) : string :=
+  match t with
+  | recordTypeNil => ""
+  | recordTypeCons fn o t' recordTypeNil =>
+      quoteIfNeeded fn ++ (if o then "?: " else ": ") ++ typeToSchemaStr t'
+  | recordTypeCons fn o t' rest =>
+      quoteIfNeeded fn ++ (if o then "?: " else ": ") ++ typeToSchemaStr t' ++
+      ", " ++ recordTypeToSchemaStr rest
+  | _ => ""
+  end.
+
+Fixpoint attrsToSchemaStr (attrs : list (string * bool * CedarType)) : string :=
+  match attrs with
+  | nil => ""
+  | cons (s, o, t) nil =>
+      quoteIfNeeded s ++ (if o then "?: " else ": ") ++ typeToSchemaStr t
+  | cons (s, o, t) rest =>
+      quoteIfNeeded s ++ (if o then "?: " else ": ") ++ typeToSchemaStr t
+      ++ ", " ++ attrsToSchemaStr rest
+  end.
+
+Fixpoint etsToSchemaStr (ets : list (EntityName * EntitySchemaEntry)) : string :=
+  match ets with
+  | nil => ""
+  | cons (n, MkEntitySchemaEntry ancs attrs) rest =>
+      "entity " ++ stringOfEntityNameFull n ++
+      (match ancs with
+       | nil => ""
+       | _   => " in [" ++ stringOfEntityNameList ancs ++ "]"
+       end) ++
+      (match attrs with
+       | nil => ""
+       | _   => " { " ++ attrsToSchemaStr attrs ++ " }"
+       end) ++
+      "; " ++ etsToSchemaStr rest
+  end.
+
+Fixpoint actsToSchemaStrAcc
+    (seen_ids : list string)
+    (acts : list (EntityUID * ActionSchemaEntry)) : string :=
+  match acts with
+  | nil => ""
+  | cons (uid, MkActionSchemaEntry ps rs ctx) rest =>
+      let id := match uid with MkEntityUID _ i => i end in
+      if List.existsb (String.eqb id) seen_ids then
+        actsToSchemaStrAcc seen_ids rest
+      else
+        "action " ++ """" ++ id ++ """" ++
+        " appliesTo { principal: [" ++ stringOfEntityNameList ps ++
+        "], resource: ["             ++ stringOfEntityNameList rs ++
+        "], context: {"              ++ attrsToSchemaStr ctx ++
+        "} }; "                      ++ actsToSchemaStrAcc (id :: seen_ids) rest
+  end.
+
+Definition actsToSchemaStr (acts : list (EntityUID * ActionSchemaEntry)) : string :=
+  actsToSchemaStrAcc [] acts.
+
+Definition schemaToStr (s : Schema) : string :=
+  match s with
+  | MkSchema ets acts => etsToSchemaStr ets ++ actsToSchemaStr acts
+  end.
+
+Definition actionUIDToCedarStr (u : EntityUID) : string :=
+  match u with
+  | MkEntityUID _ id => "Action::" ++ """" ++ id ++ """"
+  end.
+
+(* Pull the context info out of an environment and call the Rust checker.
+   Wrapping the match in a Definition keeps the theorem conclusion match-free
+   so QuickChick can process it. *)
+Definition no_type_error_with_env
+    (sc : Schema) (e : Environment) (expr : CedarExpr * PathSet) : bool :=
+  match e with
+  | MkEnvironment _ (MkRequest P action_uid R _) =>
+    cedar_no_type_error_with_ctx_coq
+      (list_ascii_of_string' (schemaToStr sc))
+      (list_ascii_of_string' (stringOfEntityNameFull P ++ "::" ++ """" ++ "e1" ++ """"))
+      (list_ascii_of_string' (actionUIDToCedarStr action_uid))
+      (list_ascii_of_string' (stringOfEntityNameFull R ++ "::" ++ """" ++ "e2" ++ """"))
+      (list_ascii_of_string' (stringOfExpr (fst expr)))
+  end.
+
+Theorem prop_no_type_error :
+  forall ets acts rs e es ty expr,
+    WfSchema [MkName "EntityType1" []; MkName "EntityType2" []] (MkSchema ets acts) ->
+    ActionSchemaToRequestTypes acts [] rs ->
+    SchemaToEnvironments (MkSchema ets acts) rs (cons e es) ->
+    WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] ty ->
+    HasType (somepaths []) e expr ty ->
+    no_type_error_with_env (MkSchema ets acts) e expr = true.
+  quickchick 2.
+Admitted.
+(* 
+(** Property: All generated expressions should be well-typed *)
+Definition prop_genCedarExprWellTyped :
+  forall ets acts rs e es ty expr, 
+    WfSchema [MkName "EntityType1" []; MkName "EntityType2" []] (MkSchema ets acts) ->
+    ActionSchemaToRequestTypes acts [] rs ->
+    SchemaToEnvironments (MkSchema ets acts) rs (cons e es) ->
+    WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] ty ->
+    HasType (somepaths []) e expr ty ->
+    cedar_response_coq ( list_ascii_of_string' (stringOfExpr (fst expr))) = true.
+quickchick 0.
+Admitted. 
+
+Theorem prop_parse_no_duplicate_record :
+  forall ets acts rs e es ty expr,
+    WfSchema [MkName "EntityType1" []; MkName "EntityType2" []] (MkSchema ets acts) ->
+    ActionSchemaToRequestTypes acts [] rs ->
+    SchemaToEnvironments (MkSchema ets acts) rs (cons e es) ->
+    WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] ty ->
+    HasType (somepaths []) e expr ty ->
+    cedar_parse_no_duplicate_record_coq (list_ascii_of_string' (show (fst expr))) = true.
+quickchick 0.
+Admitted.
+
+Theorem prop_no_duplicate_record :
+  forall ets acts rs e es ty expr,
+    WfSchema [MkName "EntityType1" []; MkName "EntityType2" []] (MkSchema ets acts) ->
+    ActionSchemaToRequestTypes acts [] rs ->
+    SchemaToEnvironments (MkSchema ets acts) rs (cons e es) ->
+    WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] ty ->
+    HasType (somepaths []) e expr ty ->
+    cedar_no_duplicate_record_coq (list_ascii_of_string' (show (fst expr))) = true.
+quickchick 0.
+Admitted.
+
+Instance Dec_Eq_Schema : Dec_Eq Schema. dec_eq. Defined.
+
+Theorem prop_no_duplicate_re'cord :
+  forall (schema : Schema) ets acts rs e es ty expr,
+    schema = MkSchema ets acts ->
+    ActionSchemaToRequestTypes (id acts) [] rs ->
+    SchemaToEnvironments schema rs (cons e es) ->
+    WfCedarType [MkName "EntityType1" []; MkName "EntityType2" []] ty ->
+    HasType (somepaths []) e expr ty ->
+    cedar_no_type_error_coq (list_ascii_of_string' (show (fst expr))) = true.
+  valid_schedules.
+  quickchick 0 .
+Admitted. *)

@@ -1,0 +1,1169 @@
+(** Cedar Policy Language Formalization
+    Adapted from Mike Hicks's Coq formalization.
+    This file contains the core Cedar expression language, type system, and schemas.
+*)
+
+From QuickChick Require Import QuickChick.
+Require Import String.
+Require Import ZArith.
+Require Import List.
+Require Import Decidable.
+Import ListNotations.
+Import QcDefaultNotation. Open Scope qc_scope.
+Open Scope string_scope.
+
+(* * Manual generator for strings - generates from a small fixed set
+Definition genCedarString (size : nat) : G string :=
+  freq [(1, returnGen "A"); (1, returnGen "B"); (1, returnGen "C"); 
+        (1, returnGen "D"); (1, returnGen "E"); (1, returnGen "F"); 
+        (1, returnGen "manager"); (1, returnGen "owner"); (1, returnGen "readers"); 
+        (1, returnGen "editors"); (1, returnGen "age"); (1, returnGen "description"); 
+        (1, returnGen "Team"); (1, returnGen "User"); (1, returnGen "List"); 
+        (1, returnGen "Application"); (1, returnGen "Action"); (1, returnGen "principal"); 
+        (1, returnGen "action"); (1, returnGen "resource"); (1, returnGen "context"); 
+        (1, returnGen "Alice"); (1, returnGen "Bob"); (1, returnGen "Charlie")].
+
+#[global]
+Instance genSizedString : GenSized string := {| arbitrarySized := genCedarString |}. *)
+
+Definition genCedarString (size : nat) : G string :=
+  freq_ (returnGen "Aaron") [(1, returnGen "Aaron"); (1, returnGen "John");
+        (1, returnGen "Mike"); (1, returnGen "Kesha"); (1, returnGen "Hicks");
+        (1, returnGen "A"); (1, returnGen "B"); (1, returnGen "C"); (1, returnGen "D")].
+
+(* Definition genCedarString (size : nat) : G string := returnGen "1 + 1". *)
+
+#[global]
+Instance genSizedString : GenSized string := {| arbitrarySized := genCedarString |}.
+
+Definition shrinkCedarString (s : string) : list string := nil.
+
+#[global]
+Instance shrinkString : Shrink string := {| shrink := shrinkCedarString |}.
+
+
+(* Definition shrinkCedarString (s : string) : list string := nil.
+
+#[global]
+Instance shrinkString : Shrink string := {| shrink := shrinkCedarString |}. *)
+
+(** Part One: Cedar expression syntax *)
+
+(** The name of an entity *)
+Inductive EntityName : Type :=
+  | MkName : string -> list string -> EntityName.
+
+Derive (Arbitrary) for EntityName.
+Derive Show for EntityName.
+
+Definition genEntityNameCanonical : G EntityName :=
+  freq_ (returnGen (MkName "EntityType1" []))
+    [(1, returnGen (MkName "EntityType1" []));
+     (1, returnGen (MkName "EntityType2" []))].
+
+#[global]
+Instance genSizedEntityNameCanonical : GenSized EntityName | 1 :=
+  {| arbitrarySized := fun _ => genEntityNameCanonical |}.
+
+Instance DecidableEqEntityName : Dec_Eq EntityName. dec_eq. Defined.
+
+(** Entity UIDs *)
+Inductive EntityUID : Type :=
+  | MkEntityUID : EntityName -> string -> EntityUID.
+
+Derive (Arbitrary) for EntityUID.
+Derive Show for EntityUID.
+
+Definition genEntityUIDCanonical : G EntityUID :=
+  bindGen genEntityNameCanonical (fun n =>
+    freq_ (returnGen (MkEntityUID n "A"))
+      [(1, returnGen (MkEntityUID n "A"));
+       (1, returnGen (MkEntityUID n "B"));
+       (1, returnGen (MkEntityUID n "C"));
+       (1, returnGen (MkEntityUID n "D"))]).
+
+#[global]
+Instance genSizedEntityUIDCanonical : GenSized EntityUID | 1 :=
+  {| arbitrarySized := fun _ => genEntityUIDCanonical |}.
+
+
+Instance DecidableEqEntityUID : Dec_Eq EntityUID. dec_eq. Defined.
+
+(** Primitive values *)
+Inductive Prim : Type :=
+  | boolean : bool -> Prim
+  | int : Z -> Prim
+  | stringLit : string -> Prim
+  | entityUID : EntityUID -> Prim.
+
+Derive (Arbitrary) for Prim.
+Derive Show for Prim.
+
+Instance DecidableEqPrim : Dec_Eq Prim. dec_eq. Defined.
+
+(** Part Two: Pretty Printing Cedar Expressions *)
+
+Require Import Ascii.
+
+Fixpoint stringOfEntityName (ps : list string) (t : string) : string :=
+  let escapeIdent (s : string) : string :=
+    if (String.length s =? 0)%nat then """" ++ s ++ """"
+    else s
+  in
+  match ps with
+  | nil => escapeIdent t
+  | cons p ps' => escapeIdent p ++ "::" ++ stringOfEntityName ps' t
+  end.
+
+Fixpoint stringOfEntityUID (ps : list string) (t : string) (id : string) : string :=
+  stringOfEntityName ps t ++ "::" ++ """" ++ id ++ """".
+
+(* Custom show instances removed - using derived Show instances instead *)
+
+(** Variables *)
+Inductive Var : Type :=
+  | principal
+  | action
+  | resource
+  | context.
+
+Derive (Arbitrary) for Var.
+Derive Show for Var.
+
+(** Pattern elements *)
+Inductive PatElem : Type :=
+  | star
+  | justLit : string -> PatElem.
+
+Derive (Arbitrary) for PatElem.
+Derive Show for PatElem.
+
+(** Unary operations *)
+Inductive UnaryOp : Type :=
+  | not_
+  | neg
+  | like : list PatElem -> UnaryOp
+  | is_ : EntityName -> UnaryOp.
+
+Derive (Arbitrary) for UnaryOp.
+Derive Show for UnaryOp.
+
+(** Binary operations *)
+Inductive BinaryOp : Type :=
+  | equals
+  | mem
+  | less
+  | lessEq
+  | add_
+  | sub_
+  | mul_
+  | contains
+  | containsAll
+  | containsAny.
+
+Derive (Arbitrary) for BinaryOp.
+Derive Show for BinaryOp.
+
+(** Cedar expressions *)
+Inductive CedarExpr : Type :=
+  | lit : Prim -> CedarExpr
+  | var : Var -> CedarExpr
+  | ite : CedarExpr -> CedarExpr -> CedarExpr -> CedarExpr
+  | andExpr : CedarExpr -> CedarExpr -> CedarExpr
+  | orExpr : CedarExpr -> CedarExpr -> CedarExpr
+  | unaryApp : UnaryOp -> CedarExpr -> CedarExpr
+  | binaryApp : BinaryOp -> CedarExpr -> CedarExpr -> CedarExpr
+  | getAttr : CedarExpr -> string -> CedarExpr
+  | hasAttr : CedarExpr -> string -> CedarExpr
+  | setExprNil : CedarExpr
+  | setExprCons : CedarExpr -> CedarExpr -> CedarExpr
+  | recExprNil : CedarExpr
+  | recExprCons : string -> CedarExpr -> CedarExpr -> CedarExpr.
+
+Derive (Arbitrary) for CedarExpr.
+Derive Show for CedarExpr.
+
+Instance DecidableEqCedarExpr : Dec_Eq CedarExpr. dec_eq. Defined.
+
+(** Entity data *)
+Inductive EntityData : Type :=
+  | MkEntityData : CedarExpr -> list EntityUID -> EntityData.
+
+Derive (Arbitrary) for EntityData.
+
+(** Request *)
+Inductive Request : Type :=
+  | MkReq : EntityUID -> EntityUID -> EntityUID -> CedarExpr -> Request.
+
+Derive Arbitrary for Request.
+(** Helper to check if a character is alphanumeric or underscore *)
+Definition ascii_between (c lo hi : ascii) : bool :=
+  Nat.leb (nat_of_ascii lo) (nat_of_ascii c) &&
+  Nat.leb (nat_of_ascii c) (nat_of_ascii hi).
+
+Definition ascii_eq (a b : ascii) : bool :=
+  if ascii_dec a b then true else false.
+
+Definition isAlphaNum (c : ascii) : bool :=
+  orb (ascii_between c "0"%char "9"%char)
+      (orb (ascii_between c "A"%char "Z"%char)
+     (orb (ascii_between c "a"%char "z"%char)
+       (ascii_eq c "_"%char))).
+
+(* Helper to check if a string needs quoting *)
+Definition needsQuoting (s : string) : bool :=
+  (String.length s =? 0)%nat ||
+  List.existsb (fun c => negb (isAlphaNum c)) (list_ascii_of_string s).
+
+(* Helper to escape and quote strings *)
+Definition escapeString (s : string) : string :=
+  let escaped := s in (* TODO: proper escape handling for \ and quote *)
+  """" ++ escaped ++ """".
+
+(* Helper to quote identifiers if needed *)
+Definition quoteIfNeeded (s : string) : string :=
+  if needsQuoting s then escapeString s else s.
+
+(* Custom Show instances removed - using derived Show instances instead *)
+
+Definition stringOfPrim (p : Prim) : string :=
+  match p with
+  | boolean true => "true"
+  | boolean false => "false"
+  | int i => show i
+  | stringLit s => escapeString s
+  | entityUID (MkEntityUID (MkName t ps) id) => stringOfEntityUID ps t id
+  end.
+
+Definition stringOfVar (v : Var) : string :=
+  match v with
+  | principal => "principal"
+  | action => "action"
+  | resource => "resource"
+  | context => "context"
+  end.
+
+Definition stringOfPatElem (p : PatElem) : string :=
+  match p with
+  | star => "*"
+  | justLit s => s
+  end.
+
+Fixpoint stringOfPats (p : list PatElem) : string :=
+  match p with
+  | nil => ""
+  | cons e ps => stringOfPatElem e ++ stringOfPats ps
+  end.
+
+Fixpoint stringOfExpr (e : CedarExpr) : string :=
+  match e with
+  | lit p => stringOfPrim p
+  | var v => stringOfVar v
+  | ite cond thenExpr elseExpr => 
+      "if (" ++ stringOfExpr cond ++ ") then (" ++ stringOfExpr thenExpr ++ ") else (" ++ stringOfExpr elseExpr ++ ")"
+  | andExpr a b => "(" ++ stringOfExpr a ++ ") && (" ++ stringOfExpr b ++ ")"
+  | orExpr a b => "(" ++ stringOfExpr a ++ ") || (" ++ stringOfExpr b ++ ")"
+  | unaryApp op expr =>
+      (match op with
+       | not_ => "!(" ++ stringOfExpr expr ++ ")"
+       | neg => "-(" ++ stringOfExpr expr ++ ")"
+       | like ps => "(" ++ stringOfExpr expr ++ ") like """ ++ stringOfPats ps ++ """"
+       | is_ (MkName t ps) => "(" ++ stringOfExpr expr ++ ") is " ++ stringOfEntityName ps t
+       end)
+  | binaryApp op a b =>
+      let sa := "(" ++ stringOfExpr a ++ ")" in
+      let sb := "(" ++ stringOfExpr b ++ ")" in
+      (match op with
+       | equals => sa ++ "==" ++ sb
+       | mem => sa ++ " in " ++ sb
+       | less => sa ++ "<" ++ sb
+       | lessEq => sa ++ "<=" ++ sb
+       | add_ => sa ++ "+" ++ sb
+       | sub_ => sa ++ "-" ++ sb
+       | mul_ => sa ++ "*" ++ sb
+       | contains => sa ++ ".contains" ++ sb
+       | containsAll => sa ++ ".containsAll" ++ sb
+       | containsAny => sa ++ ".containsAny" ++ sb
+       end)
+  | getAttr expr attr => "(" ++ stringOfExpr expr ++ ")." ++ quoteIfNeeded attr
+  | hasAttr expr attr => "(" ++ stringOfExpr expr ++ ") has " ++ quoteIfNeeded attr
+  | setExprNil => "[]"
+  | setExprCons e setExprNil => "[" ++ stringOfExpr e ++ "]"
+  | setExprCons e rest => "[" ++ stringOfExpr e ++ ", " ++ stringOfExprSet rest ++ "]"
+  | recExprNil => "{}"
+  | recExprCons s e recExprNil => "{" ++ quoteIfNeeded s ++ ": " ++ stringOfExpr e ++ "}"
+  | recExprCons s e attrs => "{" ++ quoteIfNeeded s ++ ": " ++ stringOfExpr e ++ ", " ++ stringOfExprRec attrs ++ "}"
+  end
+
+with stringOfExprSet (e : CedarExpr) : string :=
+  match e with
+  | setExprNil => ""
+  | setExprCons e setExprNil => stringOfExpr e
+  | setExprCons e rest => stringOfExpr e ++ ", " ++ stringOfExprSet rest
+  | _ => ""
+  end
+
+with stringOfExprRec (e : CedarExpr) : string :=
+  match e with
+  | recExprNil => ""
+  | recExprCons s e recExprNil => quoteIfNeeded s ++ ": " ++ stringOfExpr e
+  | recExprCons s e attrs => quoteIfNeeded s ++ ": " ++ stringOfExpr e ++ ", " ++ stringOfExprRec attrs
+  | _ => ""
+  end.
+
+(* Custom ShowCedarExpr removed - using derived Show instance instead *)
+
+Instance ShowRequest : Show Request := {
+  show r := match r with
+            | MkReq p a res c => "MkReq " ++ show p ++ " " ++ show a ++ " " ++ show res ++ " " ++ show c
+            end
+}.
+
+(** Compute depth of an expression *)
+Fixpoint depthExpr (e : CedarExpr) : nat :=
+  match e with
+  | lit _ => 1
+  | var _ => 1
+  | ite cond thenExpr elseExpr => 
+      1 + max (max (depthExpr cond) (depthExpr thenExpr)) (depthExpr elseExpr)
+  | andExpr a b => 1 + max (depthExpr a) (depthExpr b)
+  | orExpr a b => 1 + max (depthExpr a) (depthExpr b)
+  | unaryApp _ expr => 1 + depthExpr expr
+  | binaryApp _ a b => 1 + max (depthExpr a) (depthExpr b)
+  | getAttr expr _ => 1 + depthExpr expr
+  | hasAttr expr _ => 1 + depthExpr expr
+  | setExprNil => 1
+  | setExprCons e rest => 1 + max (depthExpr e) (depthExpr rest)
+  | recExprNil => 1
+  | recExprCons _ e attrs => 1 + max (depthExpr e) (depthExpr attrs)
+  end.
+
+(** Compute size of an expression *)
+Fixpoint sizeExpr (e : CedarExpr) : nat :=
+  match e with
+  | lit _ => 1
+  | var _ => 1
+  | ite cond thenExpr elseExpr => 
+      1 + sizeExpr cond + sizeExpr thenExpr + sizeExpr elseExpr
+  | andExpr a b => 1 + sizeExpr a + sizeExpr b
+  | orExpr a b => 1 + sizeExpr a + sizeExpr b
+  | unaryApp _ expr => 1 + sizeExpr expr
+  | binaryApp _ a b => 1 + sizeExpr a + sizeExpr b
+  | getAttr expr _ => 1 + sizeExpr expr
+  | hasAttr expr _ => 1 + sizeExpr expr
+  | setExprNil => 1
+  | setExprCons e rest => 1 + sizeExpr e + sizeExpr rest
+  | recExprNil => 1
+  | recExprCons _ e attrs => 1 + sizeExpr e + sizeExpr attrs
+  end.
+
+(** Part Three: Cedar expression typing *)
+
+(** Predicate: When an expression is a record *)
+Inductive RecordExpr : CedarExpr -> Prop :=
+  | RENil : RecordExpr recExprNil
+  | RECons : forall fn e r, RecordExpr (recExprCons fn e r).
+
+(** Predicate: field name is not present in a record expression *)
+Inductive NotInRecExpr : string -> CedarExpr -> Prop :=
+  | NIRNil : forall fn,
+      NotInRecExpr fn recExprNil
+  | NIRCons : forall fn fn' e r,
+      fn <> fn' ->
+      NotInRecExpr fn r ->
+      NotInRecExpr fn (recExprCons fn' e r).
+
+(** Predicate: When an expression is a set *)
+Inductive SetExpr : CedarExpr -> Prop :=
+  | SENil : SetExpr setExprNil
+  | SECons : forall e r, SetExpr (setExprCons e r).
+
+Inductive WfExprSyntax : CedarExpr -> Prop :=
+  | WFSPrim : forall p, WfExprSyntax (lit p)
+  | WFSVar : forall v, WfExprSyntax (var v)
+  | WFSIte : forall c t e,
+      WfExprSyntax c ->
+      WfExprSyntax t ->
+      WfExprSyntax e ->
+      WfExprSyntax (ite c t e)
+  | WFSAnd : forall e1 e2,
+      WfExprSyntax e1 ->
+      WfExprSyntax e2 ->
+      WfExprSyntax (andExpr e1 e2)
+  | WFSOr : forall e1 e2,
+      WfExprSyntax e1 ->
+      WfExprSyntax e2 ->
+      WfExprSyntax (orExpr e1 e2)
+  | WFSUnary : forall op e,
+      WfExprSyntax e ->
+      WfExprSyntax (unaryApp op e)
+  | WFSBinary : forall op e1 e2,
+      WfExprSyntax e1 ->
+      WfExprSyntax e2 ->
+      WfExprSyntax (binaryApp op e1 e2)
+  | WFSGetAttr : forall e a,
+      WfExprSyntax e ->
+      WfExprSyntax (getAttr e a)
+  | WFSHasAttr : forall e a,
+      WfExprSyntax e ->
+      WfExprSyntax (hasAttr e a)
+  | WFSSetNil : WfExprSyntax setExprNil
+  | WFSSetCons : forall e rest,
+      WfExprSyntax e ->
+      WfSetSyntax rest ->
+      WfExprSyntax (setExprCons e rest)
+  | WFSRecNil : WfExprSyntax recExprNil
+  | WFSRecCons : forall s e rest,
+      WfExprSyntax e ->
+      WfRecSyntax rest ->
+      NotInRecExpr s rest ->
+      WfExprSyntax (recExprCons s e rest)
+
+with WfSetSyntax : CedarExpr -> Prop :=
+  | WFSSNil : WfSetSyntax setExprNil
+  | WFSSCons : forall e rest,
+      WfExprSyntax e ->
+      WfSetSyntax rest ->
+      WfSetSyntax (setExprCons e rest)
+
+with WfRecSyntax : CedarExpr -> Prop :=
+  | WFRNil : WfRecSyntax recExprNil
+  | WFRCons : forall s e rest,
+      WfExprSyntax e ->
+      WfRecSyntax rest ->
+      NotInRecExpr s rest ->
+      WfRecSyntax (recExprCons s e rest).
+
+(** Predicate: When an expression is a value *)
+Inductive Value : CedarExpr -> Prop :=
+  | VLit : forall p, Value (lit p)
+  | VSNil : Value setExprNil
+  | VSCons : forall e rest, Value e -> Value rest -> Value (setExprCons e rest)
+  | VRNil : Value recExprNil
+  | VRCons : forall s e rest, Value e -> Value rest -> Value (recExprCons s e rest).
+
+(** Predicate: When an expression is a set of entity values *)
+Inductive SetEntityValues : CedarExpr -> Prop :=
+  | SEVNil : SetEntityValues setExprNil
+  | SEVCons : forall uid r,
+      SetEntityValues r ->
+      SetEntityValues (setExprCons (lit (entityUID uid)) r).
+
+(** Types *)
+
+Inductive BoolType : Type :=
+  | anyBool
+  | tt_
+  | ff_.
+
+Derive (Arbitrary) for BoolType.
+Derive Show for BoolType.
+
+Inductive CedarType : Type :=
+  | boolType : BoolType -> CedarType
+  | intType : CedarType
+  | stringType : CedarType
+  | entityType : EntityName -> CedarType
+  | setType : CedarType -> CedarType
+  | recordTypeNil : CedarType
+  | recordTypeCons : string -> bool -> CedarType -> CedarType -> CedarType.
+
+
+
+Definition stringOfBoolType (b : BoolType) : string :=
+  match b with
+  | anyBool => "Bool"
+  | tt_ => "True"
+  | ff_ => "False"
+  end.
+
+Fixpoint stringOfCedarType (t : CedarType) : string :=
+  match t with
+  | boolType b => stringOfBoolType b
+  | intType => "Int"
+  | stringType => "String"
+  | entityType (MkName t ps) => stringOfEntityName ps t
+  | setType t' => "Set<" ++ stringOfCedarType t' ++ ">"
+  | recordTypeNil => "{}"
+  | recordTypeCons s o t' recordTypeNil =>
+      "{" ++ s ++ ":" ++ (if o then "?" else " ") ++ stringOfCedarType t' ++ "}"
+  | recordTypeCons s o t' tr =>
+      "{" ++ s ++ ":" ++ (if o then "?" else " ") ++ stringOfCedarType t' ++ ", " ++ stringOfRecordType tr ++ "}"
+  end
+with stringOfRecordType (t : CedarType) : string :=
+  match t with
+  | recordTypeNil => ""
+  | recordTypeCons s o t' tr =>
+      s ++ ":" ++ (if o then "?" else " ") ++ stringOfCedarType t' ++ ", " ++ stringOfRecordType tr
+  | _ => ""
+  end.
+
+(* Custom Show instances removed - using derived Show instances instead *)
+
+Derive (Arbitrary) for CedarType.
+Derive Show for CedarType.
+
+Instance DecidableEqCedarType : Dec_Eq CedarType. dec_eq. Defined.
+
+(** Predicate: Determines whether a CedarType is a RecordType *)
+Inductive RecordType : CedarType -> Prop :=
+  | RTNil : RecordType recordTypeNil
+  | RTCons : forall fn o T1 T2, RecordType (recordTypeCons fn o T1 T2).
+
+(** Predicate: Name is defined in list *)
+Inductive DefinedName : list EntityName -> EntityName -> Prop :=
+  | DNFound : forall L A B, A = B -> DefinedName (A :: L) B
+  | DNRest : forall L A B, A <> B -> DefinedName L A -> DefinedName (B :: L) A.
+
+(** Predicate: All names in list are defined *)
+Inductive DefinedNames : list EntityName -> list EntityName -> Prop :=
+  | DNSNil : forall ns, DefinedNames ns nil
+  | DNSCons : forall n ns0 ns, DefinedName ns n -> DefinedNames ns ns0 -> DefinedNames ns (n :: ns0).
+
+Inductive NotInEntityNames : EntityName -> list EntityName -> Prop :=
+  | NIENil : forall n,
+      NotInEntityNames n nil
+  | NIECons : forall n n' ns,
+      n <> n' ->
+      NotInEntityNames n ns ->
+      NotInEntityNames n (n' :: ns).
+
+(** Well-formedness of Cedar types *)
+Inductive WfCedarType : list EntityName -> CedarType -> Prop :=
+  | WfBoolType : forall ns B, WfCedarType ns (boolType B)
+  | WfIntType : forall ns, WfCedarType ns intType
+  | WfStringType : forall ns, WfCedarType ns stringType
+  | WfEntityType : forall ns n,
+      DefinedName ns n ->
+      WfCedarType ns (entityType n)
+  | WfSetType : forall ns T,
+      WfCedarType ns T ->
+      WfCedarType ns (setType T)
+  | WfRecordTypeNil : forall ns, WfCedarType ns recordTypeNil
+  | WfRecordTypeConsNil : forall ns fn o T1,
+      WfCedarType ns T1 ->
+      WfCedarType ns (recordTypeCons fn o T1 recordTypeNil)
+  | WfRecordTypeConsCons : forall ns fn o T1 fn1 o1 T2 r,
+      WfCedarType ns T1 ->
+      WfCedarType ns (recordTypeCons fn1 o1 T2 r) ->
+      WfCedarType ns (recordTypeCons fn o T1 (recordTypeCons fn1 o1 T2 r)).
+
+(** Well-formedness of Cedar *schema* types: Bool is only ever anyBool in schemas *)
+Inductive WfSchemaType : list EntityName -> CedarType -> Prop :=
+  | WfSchemaBoolType : forall ns, WfSchemaType ns (boolType anyBool)
+  | WfSchemaIntType : forall ns, WfSchemaType ns intType
+  | WfSchemaStringType : forall ns, WfSchemaType ns stringType
+  | WfSchemaEntityType : forall ns n,
+      DefinedName ns n ->
+      WfSchemaType ns (entityType n)
+  | WfSchemaSetType : forall ns T,
+      WfSchemaType ns T ->
+      WfSchemaType ns (setType T)
+  | WfSchemaRecordTypeNil : forall ns, WfSchemaType ns recordTypeNil
+  | WfSchemaRecordTypeConsNil : forall ns fn o T1,
+      WfSchemaType ns T1 ->
+      WfSchemaType ns (recordTypeCons fn o T1 recordTypeNil)
+  | WfSchemaRecordTypeConsCons : forall ns fn o T1 fn1 o1 T2 r,
+      WfSchemaType ns T1 ->
+      WfSchemaType ns (recordTypeCons fn1 o1 T2 r) ->
+      WfSchemaType ns (recordTypeCons fn o T1 (recordTypeCons fn1 o1 T2 r)).
+
+(** Well-formed record types *)
+Inductive WfRecordType : list EntityName -> CedarType -> Prop :=
+  | WfRecordTypeConsConsRTcons : forall ns fn' o' T1' fn1 o1 T2 r,
+      WfCedarType ns (recordTypeCons fn1 o1 T2 r) ->
+      WfCedarType ns T1' ->
+      WfRecordType ns (recordTypeCons fn' o' T1' (recordTypeCons fn1 o1 T2 r))
+  | WfRecordTypeConsNilRTcons : forall ns fn' o' T1',
+      WfCedarType ns T1' ->
+      WfRecordType ns (recordTypeCons fn' o' T1' recordTypeNil)
+  | WfRecordTypeNilRTnil : forall ns, WfRecordType ns recordTypeNil.
+
+(** Schemas *)
+
+Inductive EntitySchemaEntry : Type :=
+  | MkEntitySchemaEntry : list EntityName -> list (string * bool * CedarType) -> EntitySchemaEntry.
+
+Derive (Arbitrary) for EntitySchemaEntry.
+
+Inductive NotInAttrs : string -> list (string * bool * CedarType) -> Prop :=
+  | NIANil : forall s,
+      NotInAttrs s nil
+  | NIACons : forall s s' b T attrs,
+      s <> s' ->
+      NotInAttrs s attrs ->
+      NotInAttrs s ((s', b, T) :: attrs).
+
+Inductive WfAttrs : list EntityName -> list (string * bool * CedarType) -> Prop :=
+  | WfAttrsNil : forall ns, WfAttrs ns nil
+  | WfAttrsCons : forall ns T s b attrs,
+      WfSchemaType ns T ->
+      NotInAttrs s attrs ->
+      WfAttrs ns attrs ->
+      WfAttrs ns ((s, b, T) :: attrs).
+
+Inductive WfET : list EntityName -> EntitySchemaEntry -> Prop :=
+  | WfETSingle : forall ns ancs attrs,
+      DefinedNames ns ancs ->
+      WfAttrs ns attrs ->
+      WfET ns (MkEntitySchemaEntry ancs attrs).
+
+Inductive WfETS : list EntityName -> list EntityName -> list (EntityName * EntitySchemaEntry) -> Prop :=
+  | WfETSSingle : forall ns n et,
+      DefinedName ns n ->
+      WfET ns et ->
+      WfETS ns (n :: nil) ((n, et) :: nil)
+  | WfETSCons : forall ns n ns0 et ets,
+      DefinedName ns n ->
+      NotInEntityNames n ns0 ->
+      WfET ns et ->
+      WfETS ns ns0 ets ->
+      WfETS ns (n :: ns0) ((n, et) :: ets).
+
+Inductive ActionSchemaEntry : Type :=
+  | MkActionSchemaEntry : list EntityName -> list EntityName -> list (string * bool * CedarType) -> ActionSchemaEntry.
+
+Derive (Arbitrary) for ActionSchemaEntry.
+
+Instance DecidableEqActionSchemaEntry : Dec_Eq ActionSchemaEntry. dec_eq. Defined.
+
+Inductive WfACT : list EntityName -> (EntityUID * ActionSchemaEntry) -> Prop :=
+  | WfACTSingle : forall ns p r s attrs,
+      DefinedName ns p ->
+      DefinedName ns r ->
+      WfAttrs ns attrs ->
+      WfACT ns ((MkEntityUID (MkName "Action" []) s), (MkActionSchemaEntry (p :: nil) (r :: nil) attrs)).
+
+Inductive WfACTS : list EntityName -> list (EntityUID * ActionSchemaEntry) -> Prop :=
+  | WfACTSSingle : forall ns act,
+      WfACT ns act ->
+      WfACTS ns (act :: nil)
+  | WfACTSCons : forall ns act acts,
+      WfACT ns act ->
+      WfACTS ns acts ->
+      WfACTS ns (act :: acts).
+
+Inductive Schema : Type :=
+  | MkSchema : list (EntityName * EntitySchemaEntry) -> list (EntityUID * ActionSchemaEntry) -> Schema.
+
+(*Derive (Arbitrary) for Schema.*)
+
+Fixpoint stringOfAttrs (attrs : list (string * bool * CedarType)) : string :=
+  match attrs with
+  | nil => ""
+  | cons (s, o, t) nil => quoteIfNeeded s ++ ":" ++ (if o then "? " else " ") ++ stringOfCedarType t
+  | cons (s, o, t) rest => quoteIfNeeded s ++ ":" ++ (if o then "? " else " ") ++ stringOfCedarType t ++ ", " ++ stringOfAttrs rest
+  end.
+
+Definition stringOfEntityNameFull (n : EntityName) : string :=
+  match n with MkName t ps => stringOfEntityName ps t end.
+
+Definition stringOfEntityUIDFull (u : EntityUID) : string :=
+  match u with MkEntityUID (MkName t ps) id => stringOfEntityUID ps t id end.
+
+Fixpoint stringOfEntityNameList (ns : list EntityName) : string :=
+  match ns with
+  | nil => ""
+  | cons n nil => stringOfEntityNameFull n
+  | cons n rest => stringOfEntityNameFull n ++ ", " ++ stringOfEntityNameList rest
+  end.
+
+Fixpoint stringOfSchemaEts (ets : list (EntityName * EntitySchemaEntry)) : string :=
+  match ets with
+  | nil => ""
+  | cons (n, MkEntitySchemaEntry ancs attrs) rest =>
+      "entity " ++ stringOfEntityNameFull n ++
+      (match ancs with
+       | nil => ""
+       | _ => " in [" ++ stringOfEntityNameList ancs ++ "]"
+       end) ++
+      (match attrs with
+       | nil => ""
+       | _ => " { " ++ stringOfAttrs attrs ++ " }"
+       end) ++
+      "; " ++ stringOfSchemaEts rest
+  end.
+
+Fixpoint stringOfSchemaActs (acts : list (EntityUID * ActionSchemaEntry)) : string :=
+  match acts with
+  | nil => ""
+  | cons (uid, MkActionSchemaEntry ps rs ctx) rest =>
+      "action " ++ stringOfEntityUIDFull uid ++
+      " appliesTo { principal: [" ++ stringOfEntityNameList ps ++
+      "]; resource: [" ++ stringOfEntityNameList rs ++
+      "]; context: {" ++ stringOfAttrs ctx ++ "} }; " ++
+      stringOfSchemaActs rest
+  end.
+
+Instance ShowSchema : Show Schema := {
+  show s := match s with
+            | MkSchema ets acts => stringOfSchemaEts ets ++ stringOfSchemaActs acts
+            end
+}.
+
+Definition actionIdOf (a : EntityUID * ActionSchemaEntry) : string :=
+  match a with
+  | (MkEntityUID _ id, _) => id
+  end.
+
+Fixpoint dedupActsByIdAcc
+    (seen_ids : list string)
+    (acts : list (EntityUID * ActionSchemaEntry))
+    : list (EntityUID * ActionSchemaEntry) :=
+  match acts with
+  | nil => nil
+  | cons a rest =>
+      let id := actionIdOf a in
+      if List.existsb (String.eqb id) seen_ids then
+        dedupActsByIdAcc seen_ids rest
+      else
+        a :: dedupActsByIdAcc (id :: seen_ids) rest
+  end.
+
+Definition dedupActsById (acts : list (EntityUID * ActionSchemaEntry))
+  : list (EntityUID * ActionSchemaEntry) :=
+  dedupActsByIdAcc [] acts.
+
+Inductive WfSchema : list EntityName -> Schema -> Prop :=
+  | WfS : forall ns ets acts acts',
+      WfETS ns ns ets ->
+      WfACTS ns acts ->
+      dedupActsById acts = acts' ->
+      WfSchema ns (MkSchema ets acts').
+
+Inductive DefinedEntity : list (EntityName * EntitySchemaEntry) -> EntityName -> Prop :=
+  | DENow : forall n E R, DefinedEntity ((n, E) :: R) n
+  | DELater : forall n n1 E R, n <> n1 -> DefinedEntity R n -> DefinedEntity ((n1, E) :: R) n.
+
+Inductive DefinedEntities : list (EntityName * EntitySchemaEntry) -> list EntityName -> Prop :=
+  | DESNil : DefinedEntities nil nil
+  | DESCons : forall n ns et ets,
+      DefinedEntities ets ns ->
+      DefinedEntities ((n, et) :: ets) (n :: ns).
+
+Inductive LookupEntityAttr : list (string * bool * CedarType) -> (string * bool) -> CedarType -> Prop :=
+  | LUNow : forall F B FS TF, LookupEntityAttr ((F, B, TF) :: FS) (F, B) TF
+  | LULater : forall F1 B1 F2 FS TF B,
+      F1 <> F2 ->
+      LookupEntityAttr FS (F1, B1) TF ->
+      LookupEntityAttr ((F2, B, TF) :: FS) (F1, B1) TF.
+
+Inductive GetEntityAttr : list (EntityName * EntitySchemaEntry) -> (EntityName * string * bool) -> CedarType -> Prop :=
+  | GENow : forall n fn b A E R T,
+      LookupEntityAttr E (fn, b) T ->
+      GetEntityAttr ((n, (MkEntitySchemaEntry A E)) :: R) (n, fn, b) T
+  | GELater : forall n n1 fn b E R T,
+      n <> n1 ->
+      GetEntityAttr R (n, fn, b) T ->
+      GetEntityAttr ((n1, E) :: R) (n, fn, b) T.
+
+(** Environments *)
+
+Inductive RequestType : Type :=
+  | MkRequest : EntityName -> EntityUID -> EntityName -> list (string * bool * CedarType) -> RequestType.
+
+Derive (Arbitrary) for RequestType.
+
+Instance ShowRequestType : Show RequestType := {
+  show r := match r with
+            | MkRequest p a res ctx =>
+                "principal: " ++ stringOfEntityNameFull p ++
+                ", action: " ++ stringOfEntityUIDFull a ++
+                ", resource: " ++ stringOfEntityNameFull res
+            end
+}.
+
+Inductive ReqContextToCedarType : list (string * bool * CedarType) -> CedarType -> Prop :=
+  | RNil : ReqContextToCedarType nil recordTypeNil
+  | RCons : forall i B T R TR,
+      ReqContextToCedarType R TR ->
+      ReqContextToCedarType ((i, B, T) :: R) (recordTypeCons i B T TR).
+
+Inductive ActionToRequestTypes : EntityUID -> EntityName -> list EntityName -> 
+    list (string * bool * CedarType) -> list RequestType -> list RequestType -> Prop :=
+  | ATRTSingle : forall uid p r c acc,
+      ActionToRequestTypes uid p (r :: nil) c acc ((MkRequest p uid r c) :: acc)
+  | ATRTCons : forall uid p r rs c acc reqs,
+      ActionToRequestTypes uid p rs c acc reqs ->
+      ActionToRequestTypes uid p (r :: rs) c acc ((MkRequest p uid r c) :: reqs).
+
+Inductive ActionSchemaEntryToRequestTypes : EntityUID -> ActionSchemaEntry -> 
+    list RequestType -> list RequestType -> Prop :=
+  | ASTRTSingle : forall uid p rs c acc reqs,
+      ActionToRequestTypes uid p rs c acc reqs ->
+      ActionSchemaEntryToRequestTypes uid (MkActionSchemaEntry (p :: nil) rs c) acc reqs
+  | ASTRTCons : forall uid p ps rs c acc reqs reqs',
+      ActionToRequestTypes uid p rs c acc reqs' ->
+      ActionSchemaEntryToRequestTypes uid (MkActionSchemaEntry ps rs c) reqs' reqs ->
+      ActionSchemaEntryToRequestTypes uid (MkActionSchemaEntry (p :: ps) rs c) acc reqs.
+
+Inductive ActionSchemaToRequestTypes : list (EntityUID * ActionSchemaEntry) ->
+    list RequestType -> list RequestType -> Prop :=
+  | ASTESingle : forall uid a acc reqs,
+      ActionSchemaEntryToRequestTypes uid a acc reqs ->
+      ActionSchemaToRequestTypes ((uid, a) :: nil) acc reqs
+  | ASTECons : forall uid a ass acc reqs' reqs,
+      ActionSchemaEntryToRequestTypes uid a acc reqs' ->
+      ActionSchemaToRequestTypes ass reqs' reqs ->
+      ActionSchemaToRequestTypes ((uid, a) :: ass) acc reqs.
+
+Inductive Environment : Type :=
+  | MkEnvironment : Schema -> RequestType -> Environment.
+
+(*Derive (Arbitrary) for Environment.*)
+
+Instance ShowEnvironment : Show Environment := {
+  show e := "Environment()"
+}.
+
+Instance DecEqEnvironment : Dec_Eq Environment. dec_eq. Defined.
+
+Inductive SchemaToEnvironments : Schema -> list RequestType -> list Environment -> Prop :=
+  | MkEnvsSingle : forall s r,
+      SchemaToEnvironments s (r :: nil) ((MkEnvironment s r) :: nil)
+  | MkEnvsCons : forall s r rs envs,
+      SchemaToEnvironments s rs envs ->
+      SchemaToEnvironments s (r :: rs) ((MkEnvironment s r) :: envs).
+
+(** Subtyping *)
+
+Inductive SubType : CedarType -> CedarType -> Prop :=
+  | SBoolAny : forall B,
+      SubType (boolType B) (boolType anyBool)
+  | SSet : forall T1 T2,
+      SubType T1 T2 ->
+      SubType (setType T1) (setType T2)
+  | SRecEmpty :
+      SubType recordTypeNil recordTypeNil
+  | SRecAttr : forall A o T1 T2 R1 R2,
+      SubType T1 T2 ->
+      RecordType R2 ->
+      SubType R1 R2 ->
+      RecordType R1 ->
+      SubType (recordTypeCons A o T1 R1) (recordTypeCons A o T2 R2)
+  | ST : forall T, SubType T T.
+
+Inductive BranchJoin : CedarType -> CedarType -> CedarType -> Prop :=
+  | BJExact : forall T,
+      BranchJoin T T T
+  | BJBool : forall B1 B2,
+      BranchJoin (boolType B1) (boolType B2) (boolType anyBool)
+  | BJSet : forall T1 T2 T,
+      BranchJoin T1 T2 T ->
+      BranchJoin (setType T1) (setType T2) (setType T)
+  | BJRecordNil :
+      BranchJoin recordTypeNil recordTypeNil recordTypeNil
+  | BJRecordCons : forall k o T1 T2 T R1 R2 R,
+      BranchJoin T1 T2 T ->
+      BranchJoin R1 R2 R ->
+      BranchJoin
+        (recordTypeCons k o T1 R1)
+        (recordTypeCons k o T2 R2)
+        (recordTypeCons k o T R).
+
+(** Typing: Primitives and Variables *)
+
+Inductive HasTypePrim : Environment -> Prim -> CedarType -> Prop :=
+  | TTrue : forall V, HasTypePrim V (boolean true) (boolType tt_)
+  | TFalse : forall V, HasTypePrim V (boolean false) (boolType ff_)
+  | TInt : forall V i, HasTypePrim V (int i) intType
+  | TString : forall V s, HasTypePrim V (stringLit s) stringType
+  | TEntity : forall ETS ACTS n i R,
+      DefinedEntity ETS n ->
+      HasTypePrim (MkEnvironment (MkSchema ETS ACTS) R) (entityUID (MkEntityUID n i)) (entityType n).
+
+Inductive HasTypeVar : Environment -> Var -> CedarType -> Prop :=
+  | TPrincipal : forall s P A R C,
+      HasTypeVar (MkEnvironment s (MkRequest P A R C)) principal (entityType P)
+  | TAction : forall s P i R C,
+    HasTypeVar (MkEnvironment s (MkRequest P (MkEntityUID (MkName "Action" []) i) R C)) action (entityType (MkName "Action" []))
+  | TResource : forall s P A R C,
+      HasTypeVar (MkEnvironment s (MkRequest P A R C)) resource (entityType R)
+  | TContext : forall s P A R C T,
+      ReqContextToCedarType C T ->
+      HasTypeVar (MkEnvironment s (MkRequest P A R C)) context T.
+
+Inductive BindAttrType : list EntityName -> (CedarType * string * bool) -> CedarType -> Prop :=
+  | BindNow : forall ns x t b r,
+      WfRecordType ns r ->
+      BindAttrType ns ((recordTypeCons x b t r), x, b) t
+  | BindLater : forall ns x y b i t1 t r,
+      x <> y ->
+      WfRecordType ns r ->
+      BindAttrType ns (r, x, b) t1 ->
+      BindAttrType ns ((recordTypeCons y i t r), x, b) t1.
+
+(** PathSet: Cedar typing "capability" *)
+Inductive PathSet : Type :=
+  | allpaths : PathSet
+  | somepaths : list CedarExpr -> PathSet.
+
+Derive (Arbitrary) for PathSet.
+
+Instance DecidableEqPathSet : Dec_Eq PathSet. dec_eq. Defined.
+
+(** Membership test of x in ps *)
+Definition validPathExpr (x : CedarExpr) (ps : PathSet) : bool :=
+  match ps with
+  | allpaths => true
+  | somepaths xs => existsb (fun y => if (x = y)? then true else false) xs
+  end.
+
+(** Intersect two pathsets *)
+Definition interExprs (ps : PathSet) (ys : PathSet) : PathSet :=
+  match ps with
+  | allpaths => ys
+  | somepaths xs =>
+      match ys with
+      | allpaths => ps
+      | somepaths ys' =>
+          somepaths (filter (fun x => validPathExpr x (somepaths ys')) xs)
+      end
+  end.
+
+(** Remove x from list *)
+Fixpoint subExprs (x : CedarExpr) (l : list CedarExpr) : list CedarExpr :=
+  match l with
+  | nil => nil
+  | y :: ys => if (x = y)? then ys else y :: subExprs x ys
+  end.
+
+(** Union of xs and ys *)
+Definition mergeExprs (xs : PathSet) (ys : PathSet) : PathSet :=
+  match xs with
+  | allpaths => allpaths
+  | somepaths xs0 =>
+      match ys with
+      | allpaths => allpaths
+      | somepaths ys0 =>
+          let fix aux (xs : list CedarExpr) (ys : list CedarExpr) : list CedarExpr :=
+            match xs with
+            | nil => ys
+            | x :: xs' => x :: aux xs' (subExprs x ys)
+            end
+          in
+          somepaths (aux xs0 ys0)
+      end
+  end.
+
+Inductive HasType : PathSet -> Environment -> (CedarExpr * PathSet) -> CedarType -> Prop :=
+  | TLitFalse : forall a V P,
+      HasTypePrim V P (boolType ff_) ->
+      HasType a V ((lit P), allpaths) (boolType ff_)
+  | TLitOther : forall a V P T,
+      T <> (boolType ff_) ->
+      HasTypePrim V P T ->
+      HasType a V ((lit P), somepaths []) T
+  | TVar : forall a V X T,
+      HasTypeVar V X T ->
+      HasType a V ((var X), somepaths []) T
+  | TCondTrue : forall a V E2 E3 x2 T2,
+      HasType a V (E2, x2) T2 ->
+      WfExprSyntax E3 ->
+      HasType a V ((ite (lit (boolean true)) E2 E3), x2) T2
+  | TCondFalse : forall a V E2 E3 x3 T3,
+      WfExprSyntax E2 ->
+      HasType a V (E3, x3) T3 ->
+      HasType a V ((ite (lit (boolean false)) E2 E3), x3) T3
+  | TAnd : forall a x V E1 E2 B,
+      HasType a V ((ite E1 E2 (lit (boolean false))), x) (boolType B) ->
+      HasType a V ((andExpr E1 E2), x) (boolType B)
+  (* | TOr : forall a x V E1 E2 T1,
+      HasType a V ((ite E1 (lit (boolean true)) E2), x) T1 ->
+      HasType a V ((orExpr E1 E2), x) T1 *)
+  | TNotAny : forall a x V e,
+      HasType a V (e, x) (boolType anyBool) ->
+      HasType a V ((unaryApp not_ e), somepaths []) (boolType anyBool)
+  | TNotTrue : forall a x V e,
+      HasType a V (e, x) (boolType tt_) ->
+      HasType a V ((unaryApp not_ e), allpaths) (boolType ff_)
+  | TNotFalse : forall a x V e,
+      HasType a V (e, x) (boolType ff_) ->
+      HasType a V ((unaryApp not_ e), somepaths []) (boolType tt_)
+  | TNeg : forall a V x e,
+      HasType a V (e, x) intType ->
+      HasType a V ((unaryApp neg e), somepaths []) intType
+  | TLike : forall a V e x P,
+      HasType a V (e, x) stringType ->
+      HasType a V ((unaryApp (like P) e), somepaths []) (boolType anyBool)
+  | TEqLitTrue : forall a V P T,
+      HasTypePrim V P T ->
+      HasType a V ((binaryApp equals (lit P) (lit P)), somepaths []) (boolType tt_)
+  | TEqLitFalse : forall a V P1 P2 T1 T2,
+      HasTypePrim V P1 T1 ->
+      HasTypePrim V P2 T2 ->
+      P1 <> P2 ->
+      HasType a V ((binaryApp equals (lit P1) (lit P2)), allpaths) (boolType ff_)
+  | TLessThan : forall a x1 x2 V E1 E2,
+      HasType a V (E1, x1) intType ->
+      HasType a V (E2, x2) intType ->
+      HasType a V ((binaryApp less E1 E2), somepaths []) (boolType anyBool)
+  | TLessEqualThan : forall a x1 x2 V E1 E2,
+      HasType a V (E1, x1) intType ->
+      HasType a V (E2, x2) intType ->
+      HasType a V ((binaryApp lessEq E1 E2), somepaths []) (boolType anyBool)
+  | TAdd : forall a x1 x2 V E1 E2,
+      HasType a V (E1, x1) intType ->
+      HasType a V (E2, x2) intType ->
+      HasType a V ((binaryApp add_ E1 E2), somepaths []) intType
+  | TSub : forall a x1 x2 V E1 E2,
+      HasType a V (E1, x1) intType ->
+      HasType a V (E2, x2) intType ->
+      HasType a V ((binaryApp sub_ E1 E2), somepaths []) intType
+  | TMul : forall a x1 x2 V E1 E2,
+      HasType a V (E1, x1) intType ->
+      HasType a V (E2, x2) intType ->
+      HasType a V ((binaryApp mul_ E1 E2), somepaths []) intType
+  | TRecNil : forall a V,
+      HasType a V (recExprNil, somepaths []) recordTypeNil
+  | TRecCons : forall a x rx V e i T R TR,
+      HasType a V (e, x) T ->
+      RecordType TR ->
+      HasType a V (R, rx) TR ->
+      WfRecSyntax R ->
+      NotInRecExpr i R ->
+      HasType a V ((recExprCons i e R), somepaths []) (recordTypeCons i false T TR)
+  | TSetSingle : forall a x V e T,
+      HasType a V (e, x) T ->
+      HasType a V ((setExprCons e setExprNil), somepaths []) (setType T)
+  | TSetMany : forall a x rx V e T R,
+      HasType a V (e, x) T ->
+      HasType a V (R, rx) (setType T) ->
+      WfSetSyntax R ->
+      HasType a V ((setExprCons e R), somepaths []) (setType T)
+  | TIsTrue : forall a x V e n ets acts R ns,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns (entityType n) ->
+      HasType a V (e, x) (entityType n) ->
+      HasType a V ((unaryApp (is_ n) e), somepaths []) (boolType tt_)
+  | TIsFalse : forall a x V e N1 N2 ets acts R ns,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns (entityType N1) ->
+      HasType a V (e, x) (entityType N2) ->
+      N1 <> N2 ->
+      HasType a V ((unaryApp (is_ N1) e), allpaths) (boolType ff_)
+  | TCondBool : forall a V E1 E2 E3 x1 x2 x3 T2 T3 T u,
+      BranchJoin T2 T3 T ->
+      HasType a V (E1, x1) (boolType anyBool) ->
+      HasType (mergeExprs a x1) V (E2, x2) T2 ->
+      HasType a V (E3, x3) T3 ->
+      u = interExprs (mergeExprs x1 x2) x3 ->
+      HasType a V ((ite E1 E2 E3), u) T
+  | TEqEntity : forall a x1 x2 V E1 N1 E2 N2 ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns (entityType N1) ->
+      WfCedarType ns (entityType N2) ->
+      N1 <> N2 ->
+      HasType a V (E1, x1) (entityType N1) ->
+      HasType a V (E2, x2) (entityType N2) ->
+      HasType a V ((binaryApp equals E1 E2), allpaths) (boolType ff_)
+  | TEqAny : forall a x1 x2 V E1 E2 T T1 T2 ets acts R ns,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns T ->
+      SubType T1 T -> SubType T2 T ->
+      HasType a V (E1, x1) T1 ->
+      HasType a V (E2, x2) T2 ->
+      HasType a V ((binaryApp equals E1 E2), somepaths []) (boolType anyBool)
+  | TInEntity : forall a x1 x2 V E1 E2 N1 N2 ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns (entityType N1) ->
+      WfCedarType ns (entityType N2) ->
+      HasType a V (E1, x1) (entityType N1) ->
+      HasType a V (E2, x2) (entityType N2) ->
+      HasType a V ((binaryApp mem E1 E2), somepaths []) (boolType anyBool)
+  | TInEntitySet : forall a x1 x2 V E1 E2 N1 N2 ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns (entityType N1) ->
+      WfCedarType ns (entityType N2) ->
+      HasType a V (E1, x1) (entityType N1) ->
+      HasType a V (E2, x2) (setType (entityType N2)) ->
+      HasType a V ((binaryApp mem E1 E2), somepaths []) (boolType anyBool)
+  | TContains : forall a x1 x2 V E1 E2 ets acts R ns T1 T2 T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns T ->
+      SubType T1 T -> SubType T2 T ->
+      HasType a V (E1, x1) (setType T1) ->
+      HasType a V (E2, x2) T2 ->
+      HasType a V ((binaryApp contains E1 E2), somepaths []) (boolType anyBool)
+  | TContainsAll : forall a x1 x2 V E1 E2 ets acts R ns T1 T2 T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns T ->
+      SubType T1 T -> SubType T2 T ->
+      HasType a V (E1, x1) (setType T1) ->
+      HasType a V (E2, x2) (setType T2) ->
+      HasType a V ((binaryApp containsAll E1 E2), somepaths []) (boolType anyBool)
+  | TContainsAny : forall a x1 x2 V E1 E2 ets acts R ns T1 T2 T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      WfCedarType ns T ->
+      SubType T1 T -> SubType T2 T ->
+      HasType a V (E1, x1) (setType T1) ->
+      HasType a V (E2, x2) (setType T2) ->
+      HasType a V ((binaryApp containsAny E1 E2), somepaths []) (boolType anyBool)
+  | THasAttrRecOpt : forall a x V e F T TE ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      BindAttrType ns (TE, F, true) T ->
+      HasType a V (e, x) TE ->
+      HasType a V ((hasAttr e F), (somepaths [getAttr e F])) (boolType anyBool)
+  | THasAttrRecReq : forall a x V e F T TE ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      BindAttrType ns (TE, F, false) T ->
+      HasType a V (e, x) TE ->
+      HasType a V ((hasAttr e F), (somepaths [getAttr e F])) (boolType tt_)
+  | TGetAttrRecOpt : forall a x V e F T TE ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      BindAttrType ns (TE, F, true) T ->
+      HasType a V (e, x) TE ->
+      validPathExpr (getAttr e F) a = true ->
+      HasType a V ((getAttr e F), somepaths []) T
+  | TGetAttrRecReq : forall a x V e F T TE ns ets acts R,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      DefinedEntities ets ns ->
+      BindAttrType ns (TE, F, false) T ->
+      HasType a V (e, x) TE ->
+      HasType a V ((getAttr e F), somepaths []) T
+  | THasAttrEntityOpt : forall a x V ets acts R e n fn T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      GetEntityAttr ets (n, fn, true) T ->
+      HasType a V (e, x) (entityType n) ->
+      HasType a V ((hasAttr e fn), somepaths [getAttr e fn]) (boolType anyBool)
+  | THasAttrEntityReq : forall a x V ets acts R e n fn T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      GetEntityAttr ets (n, fn, false) T ->
+      HasType a V (e, x) (entityType n) ->
+      HasType a V ((hasAttr e fn), somepaths [getAttr e fn]) (boolType anyBool)
+  | TGetAttrEntityOpt : forall a x V ets acts R e n fn T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      GetEntityAttr ets (n, fn, true) T ->
+      HasType a V (e, x) (entityType n) ->
+      validPathExpr (getAttr e fn) a = true ->
+      HasType a V ((getAttr e fn), somepaths []) T
+  | TGetAttrEntityReq : forall a x V ets acts R e n fn T,
+      V = (MkEnvironment (MkSchema ets acts) R) ->
+      GetEntityAttr ets (n, fn, false) T ->
+      HasType a V (e, x) (entityType n) ->
+      HasType a V ((getAttr e fn), somepaths []) T.
+
+(** Test the generated HasType generator *)
+Definition sampleEnv : Environment :=
+  let entityName := MkName "User" [] in
+  let entityUID := MkEntityUID entityName "alice" in
+  let schema := MkSchema [(entityName, MkEntitySchemaEntry [] [])] [] in
+  let reqType := MkRequest entityName entityUID entityName [] in
+  MkEnvironment schema reqType.
+
+Eval compute in mutual_fuel.
+
+Derive Density HasType 1 2 derive "Gen".
+(** GenSizedSuchThat instance for HasType *)

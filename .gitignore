@@ -1,4 +1,12 @@
+/_opam-testing-theorems/
 /_opam-popl18/
+# Preserved installations and worktrees from other research branches.
+/.worktrees/
+/.lake/
+/build/
+/implementations/
+/out/
+/p4-spectec/
 *.vo
 *.vos
 *.vok

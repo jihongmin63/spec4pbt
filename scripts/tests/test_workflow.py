@@ -15,7 +15,7 @@ import run as runner
 
 class WorkflowTests(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(dir=ROOT / '_opam-popl18')
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems')
         self.addCleanup(self.temp.cleanup)
         self.prop = Path(self.temp.name)
         (self.prop / 'Original.v').write_text('''Definition Input := nat.
@@ -78,8 +78,8 @@ Qed.
             session = Session(Path(outside))
             session.snapshot()
             packages = (session.directory / 'packages.log').read_text()
-        self.assertRegex(packages, r'(?m)^coq\s+8\.6\.1\s*$')
-        self.assertRegex(packages, r'(?m)^coq-quickchick\s+0\.0\.0\+popl2018\s*$')
+        self.assertRegex(packages, r'(?m)^coq\s+8\.20\.0\s*$')
+        self.assertRegex(packages, r'(?m)^coq-quickchick\s+dev\s*$')
 
     def test_compiles_integer_alias_in_extracted_implementation_and_interface(self):
         normalize = getattr(runner, 'normalize_extraction', None)
@@ -164,6 +164,8 @@ Proof. intro x; split; trivial. Qed.
         self.assertEqual(result['status'], 'passed')
         self.assertEqual(result['sequence'], ['v001'])
         self.assertEqual(result['candidate'], 'v001')
+        self.assertEqual(result['generator_proof'], 'not_checked')
+        self.assertEqual(result['assumptions'], [])
         self.assertEqual(result['samples'], 12)
         values = json.loads((run / 'samples.json').read_text())
         self.assertEqual(len(values), 12)
