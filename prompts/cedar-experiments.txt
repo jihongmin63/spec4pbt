@@ -1,0 +1,187 @@
+Cedar predicate reformulation PoC 실행 프롬프트
+
+당신은 /workspace/spec4pbt의 cedar-experiments 브랜치에서 다음 실험을 구현하고
+실제로 실행하는 조정자다. AGENTS.md를 먼저 읽고 따른다. 아래 계획을 다시
+제안하는 데서 멈추지 말고, 필요한 실험 도구를 완성하고 검증한 다음 실험과
+결과 보고까지 수행한다. 이 프롬프트를 작성한 세션의 대화는 필요하지 않다.
+
+1. 목적과 고정 범위
+
+- Testing Theorems, Fully Automatically의 Cedar 예제만 사용한다.
+- 비교 대상은 Testing Theorems 하나다. 다른 연구의 비교 실험은 추가하지 않는다.
+- 원본 predicate P0와 agent가 만든 동등한 predicate Pi에 동일한 Testing
+  Theorems 자동 스케줄링·생성기 도출 경로를 적용한다. 각 iteration에서 P0 및
+  직전 채택 후보와 비교하여 predicate 변형의 효과를 확인한다.
+- specification/cedar/Spec.v와 properties/cedar_no_type_error/Original.v는
+  수정하지 않는다. 시작 시 내용의 해시를 고정하고 매 단계에서 확인한다.
+- 환경은 environment/env.sh의 공식 아티팩트 fork, Coq 8.20.0, OCaml 4.14.2다.
+  설치·환경 선택은 기존 env.sh와 opam-switch.export에서 관리한다.
+- predicate 동등성은 반드시 Coq에서 증명한다. 추가 공리, Admitted, admit,
+  guard/positivity 검사 해제 및 추출 치환으로 검사를 우회하지 않는다.
+- 생성기 soundness/completeness 증명은 요구하지 않는다. 샘플링과 coqchk를
+  생성기 정확성 증명이라고 보고하지 않는다. Generator.v를 직접 작성하지 않는다.
+- 다른 worktree, 기존 설치, 이전 검증 기록은 변경하거나 삭제하지 않는다.
+
+2. 모델과 역할
+
+- 조정·실행 agent: gpt-6-sol, reasoning_effort=high를 권장 설정으로 사용한다.
+- 실험 도구를 구현하는 작업 agent: gpt-6-sol, reasoning_effort=xhigh.
+- Reformulator: gpt-6-sol, reasoning_effort=xhigh.
+- Prover: gpt-6-sol, reasoning_effort=xhigh.
+- 독립 검사 agent: gpt-6-sol, reasoning_effort=high.
+- 모델명과 effort를 실제 호출 옵션에 명시한다. 프롬프트에 이름만 적어두고
+  다른 모델을 실행하지 않는다. 모델을 사용할 수 없으면 몰래 대체하지 말고
+  해당 제한을 보고한다. 모델 자체의 우열을 비교하는 실험은 아니다.
+- 단순 컴파일·샘플 실행·집계는 고정 스크립트가 한다. LLM의 판단을 Coq 커널
+  검사나 입력 유효성 판정 대신 사용하지 않는다.
+
+3. context 격리와 전달 계약
+
+- Reformulator와 Prover는 서로 다른 agent다. 각 run, iteration, 역할 호출마다
+  새 세션과 별도 작업 디렉터리를 만든다. 이전 세션을 resume하거나 대화를
+  fork하지 않는다. spawn_agent를 사용한다면 fork_turns="none"을 지정한다.
+- CLI를 쓴다면 새 codex exec 호출을 사용한다. worker의 옵션 예시는 다음과 같다.
+  codex exec --ephemeral --json --ignore-user-config -m gpt-6-sol \
+    -c 'model_reasoning_effort="xhigh"' -C <해당 역할의 작업 디렉터리> \
+    --output-schema <역할별 결과 스키마> -
+  stdin에는 그 역할의 지시와 허용된 입력 묶음만 넣는다. 검사 agent에는 같은
+  방식으로 effort="high"를 지정한다. 권한은 실제 역할에 필요한 범위로 설정한다.
+- --ephemeral은 세션 기록의 기본 저장을 끄는 옵션이며 파일 접근을 격리하지
+  않는다. 깨끗한 작업 사본을 제공하고 다른 agent의 transcript, 메모리, 원시
+  usage/event 로그를 입력에서 제외한다. 작업 디렉터리 분리만으로 파일 접근이
+  차단되었다고 주장하지 않는다. harness가 제공하는 접근 제한도 함께 적용한다.
+- Reformulator 입력: 고정 명세·Original, 직전 채택 predicate와 필요한 helper,
+  후보 문법, 해당 run의 구조화된 수치·실패 피드백, 이미 시도한 후보의 식별자와
+  짧은 변형 요약. 다른 run의 후보와 결과, prover 대화·증명 전략은 주지 않는다.
+- Reformulator 출력: Candidate.v, 짧은 변형 설명, 또는 no_candidate와 이유.
+- Prover 입력: 고정 명세·Original, 필요한 선행 정의, 직전 predicate, 동결된
+  Candidate.v, 증명할 정리의 정확한 타입. reformulator의 설명·대화·성능 기대와
+  측정 결과는 주지 않는다. Prover는 Equivalence.v만 작성한다.
+- Prover는 Candidate.v를 수정할 수 없다. 수정이 필요하면 실패 사유를 반환하고
+  다음 제안으로 넘긴다. 역할별 수정 범위를 파일 차이와 해시로 확인한다.
+- 독립 검사 agent를 작업 시작부터 상주시키지 않는다. 도구 준비 완료 시점과
+  각 후보·증명의 제출 시점에만 새 검사 세션을 시작하고, 한 번의 검사 후 종료한다.
+  재검사도 새 세션에서 한다. 진행 중 diff나 대화, 이전 검사 agent의 기억을
+  계속 전달하지 않는다.
+- 검사 agent 입력: 고정 검사 기준, 완성된 소스 snapshot, 필요한 동등성 연결,
+  고정 실행 조건. 스스로 검사하여 생성한 로그를 근거로 결과를 반환한다.
+  작업 agent의 성공 주장이나 사고 과정을 검증 근거로 받지 않는다.
+- 검사 agent는 소스·증명을 고치거나 개선 후보를 제안하지 않는다. 통과 여부,
+  재현 명령, 증거 경로, 구체적 위반 사항만 반환한다. 조정자는 이 구조화된
+  피드백을 다음 역할에 필요한 부분만 전달한다.
+- 모든 원시 transcript와 이벤트는 역할별 비공개 증거 디렉터리에 보존하고,
+  후속 worker가 읽는 소스 snapshot과 분리한다. 조정자의 상태도 후보 식별자,
+  해시, 수치, 판정, 증거 경로 중심으로 유지한다.
+
+4. 먼저 완성하고 고정할 실험 도구
+
+- 현재 scripts/run.py는 Derive ArbitrarySizedSuchThat를 사용한다. 공식 Cedar의
+  quickchick 자동 스케줄링 실행이 성공한 사실과, 작성된 property workflow가
+  Testing Theorems 방식으로 연결되었다는 사실을 혼동하지 않는다.
+- 공식 아티팩트의 자동 스케줄링 경로를 확인하고 원본과 모든 후보에 공통으로
+  적용하는 benchmark 경로를 구현한다. 구형 도출 경로로 조용히 대체하지 않는다.
+  입력 record와 원본의 일곱 변수 사이 adapter가 필요하면 그 대응을 검증한다.
+  P0를 낮추는 기계적 표현 변환이 필요하면 의미 보존을 증명하고 고정한다.
+- 원본과 후보의 도출·지원 인스턴스·기본 값 생성기·size·seed·시도 수·재시도
+  정책을 동일하게 유지한다. agent가 predicate 이외의 생성 전략을 바꾸게 하지 않는다.
+- P0 단독 측정, 후보 prefix 검증, 모든 입력 필드의 손실 없는 기록, 원본의
+  다섯 전제에 대한 독립적인 유효성 판정이 가능하도록 한다. Show 문자열이나
+  Rust no_type_error 결과만으로 원본 predicate 만족을 판정하지 않는다.
+- validator는 원본의 WfSchema, ActionSchemaToRequestTypes,
+  SchemaToEnvironments, WfCedarType, HasType를 모두 확인한다. candidate의
+  predicate를 판정 기준으로 사용하지 않는다. 판정기의 한계·연료 제한이 있으면
+  시작 전에 고정하고, 판정 불가는 valid 또는 invalid로 임의 분류하지 않는다.
+  알려진 만족 입력과 전제를 위반하도록 바꾼 입력으로 실제 동작을 검증한다.
+- 새 후보와 새 helper의 문법을 검사하는 절차를 마련한다. 단순 문자열 검색만
+  믿지 말고 Coq에서 해석한 관계와 실제 도출도 확인한다. 고정된 원본 명세의
+  기존 정의까지 새 문법 제약을 소급 적용하지 않는다.
+- scripts/check.py 또는 scripts/run.py를 변경한다면 일반적인 실험 인프라
+  변경으로 분리하고 scripts/tests의 실제 Coq 회귀검사로 검증한다. 특정 후보를
+  통과시키려고 검사 기준을 완화하지 않는다. 환경·예제를 변경하면 env.sh check도
+  실행한다. 문서와 실제 지원 범위가 맞도록 갱신한다.
+- 독립 검사 agent가 도구·측정 의미·역할 분리를 검토한 뒤, 도구와 validator,
+  실행 조건의 해시를 고정한다. 실험 중 이를 바꾸면 같은 실험으로 섞지 말고
+  새 실험 ID로 baseline부터 다시 실행한다.
+- 현재 env.sh check-cedar는 출력 요약을 확인할 때 Failed/Gave up도 찾으므로
+  종료 코드 0만으로 테스트 통과를 단정하지 않는다. 실제 QuickChick 결과를 확인한다.
+- 실제 실행이 준비되지 않은 상태에서 예상 수치나 도출 성공을 만들어 내지 않는다.
+  해결할 수 없는 차단 사항은 재현 증거와 함께 보고하고 미실행 구간을 명시한다.
+
+5. 후보의 형태와 iteration
+
+- Candidate.v의 predicate는 Original.Input -> Prop인 Inductive 관계여야 한다.
+- constructor의 데이터 변수 바인더를 제외한 논리 premise는 귀납 관계 적용만
+  허용한다. conjunction은 여러 premise, disjunction은 여러 constructor,
+  existential witness는 constructor의 데이터 변수로 표현한다.
+- 새 premise의 임의 Boolean/함수 판정, 고차 조건, premise 안의 임의 forall,
+  match/if를 허용하지 않는다. 함수 조건을 새 Inductive wrapper에 숨기는 우회도
+  허용하지 않는다. 기존 명세 관계의 적용은 허용한다. 문법 조건을 만족해도
+  실제 도출 검사는 필요하며, 도출 실패율을 연구 지표로 따로 측정하지 않는다.
+- 한 iteration은 새 predicate 한 개의 제안이다. 그 제안을 대상으로 형태·컴파일
+  검사 → 별도 prover의 동등성 증명 → 독립 검증 → 자동 도출·실행 → 비교를 한다.
+- equivalent의 타입은 forall x : Original.Input, P_previous x <-> P_candidate x다.
+  첫 후보는 Original과, 이후는 직전 채택 후보와 연결한다. 전체 연결을
+  scripts/check.py로 검사하고 추가 공리가 없음을 확인한다.
+- run별 최대 제안 수는 10이다. 형태 검사나 증명에 실패한 제안도 이 한도에
+  포함한다. 실패한 후보는 채택 체인에 넣지 않고 .runs/ 증거로 남긴다.
+- 제안 번호 attempt-001…과 채택 번호 v001…을 구분한다. 채택된
+  candidates/vNNN/Candidate.v 및 Equivalence.v의 번호는 연속이어야 한다.
+  생성·측정까지 검증된 후보만 다음 iteration의 predecessor로 삼는다.
+- 후보가 유효하더라도 성능이 낮아졌다는 이유만으로 기록에서 빼지 않는다.
+  다음 단계는 마지막 채택 후보에서 진행하고, 마지막 후보와 최고 점수 후보를
+  구분한다. 각 채택 후보를 P0 및 직전 후보와 모두 비교한다.
+- no_candidate가 반환되면 그 run을 조기 종료한다. 별도의 정체 횟수 기준은
+  추가하지 않는다. 무제한 재호출로 10회 한도를 우회하지 않는다.
+- 에러·중단·도출 문제는 실행을 설명하는 운영 기록으로 남긴다. 별도 실패율
+  연구 지표로 만들거나, 실패한 제안과 소요 agent 비용을 결과에서 누락하지 않는다.
+
+6. 실험 조건과 측정
+
+- 독립 run 3회. run 간 worker context, 후보, 피드백을 공유하지 않는다.
+- size=2, 평가 seed 5개, seed마다 10,000회의 생성 시도. 생성된 유효 입력
+  10,000개가 채워질 때까지 실행하는 방식으로 바꾸지 않는다.
+- 예비 기본 seed는 [101, 202, 303, 404, 505]로 고정한다. 최종 재평가용 seed는
+  [1101, 1202, 1303, 1404, 1505]로 분리하며, 이 결과는 worker 피드백에 사용하지 않는다.
+  초기 준비 단계에서 다른 seed가 필요하면 확정한 값을 manifest에 먼저 기록한다.
+- 같은 조건의 P0 baseline을 먼저 실행하고 각 iteration 비교에 재사용한다.
+  최종 재평가 때는 P0와 각 run의 마지막 채택 후보를 동일한 미사용 seed로 비교한다.
+  후보를 하나도 채택하지 못한 run은 그 사실을 기록한다.
+- 생성 시도는 benchmark가 생성기를 한 번 호출해 결과를 받는 외부 시도다.
+  내부 backtracking/retry 횟수를 별도 지표로 측정하지 않는다. None과 discard도
+  전체 시도 수에 포함한다. 실행이 중단된 batch는 완성된 batch처럼 집계하지 않는다.
+- 주 지표:
+  유효 입력 비율 = 원본 다섯 전제를 모두 만족한다고 확인된 입력 수 / 전체 생성 시도 수.
+  판정 불가가 있으면 그 수를 함께 밝혀 이 비율이 확인된 유효 입력의 비율임을 명시한다.
+  유효하지 않은 입력, 생성 결과 없음, 판정 불가의 원시 집계는 분모를 감사할 수
+  있도록 보관하되 별도의 생성 성공률 지표를 추가하지 않는다.
+- 비용 지표는 iteration별 reformulation 시간·토큰과 proof 시간·토큰뿐이다.
+  시간은 각 역할 호출 시작부터 종료까지의 wall time으로 정의하고 해당 호출 안의
+  도구 대기를 포함한다. 별도 검사·benchmark 실행 시간은 이 역할 시간에 넣지 않는다.
+  호출이 여러 turn으로 구성되면 그 역할 호출 안의 usage 이벤트만 합산한다.
+- 토큰은 실제 harness/API usage에서 읽는다. input_tokens와 output_tokens를
+  분리하며 cached_input_tokens와 reasoning_output_tokens는 제공될 때만 부속
+  필드로 보존한다. 포함 관계를 확인하고 이들을 중복 합산하지 않는다. 누락된
+  usage를 모델의 추정이나 0으로 채우지 말고 unavailable로 표시한다.
+- no_candidate 응답과 실패한 제안에도 해당 역할의 시간·토큰을 남긴다.
+  호출하지 않은 prover 비용은 not_run으로 표시한다.
+- 도구 비용, 생성 속도·효율, 누적 탐색 비용, 다양성, 도출 실패율은 평가 항목에서 뺀다.
+  실행 재현용 원시 로그를 보존하는 것은 이들을 연구 지표로 추가하는 것이 아니다.
+
+7. 산출물과 완료 조건
+
+- property-local .runs/<experiment-id>/ 아래에 run·attempt·역할별 snapshot,
+  원시 이벤트/usage, 검사 로그, 샘플 및 판정, 해시와 실행 manifest를 보존한다.
+  이곳의 과거 기록을 지우거나 덮어쓰지 않는다. 검색 설정 JSON은 만들 필요 없다.
+  역할의 결과 스키마와 실행 결과 manifest는 재현·집계에 필요한 범위로 작성한다.
+- 재실행 가능한 실험 도구, 역할별 프롬프트, 사용한 모델/effort, seed·조건과
+  검증된 후보·증명은 버전 관리한다. 각 run의 고정 Original은 원본과 해시가
+  같아야 하며 다른 run의 후보 체인을 하나로 섞지 않는다.
+- 결과는 (1) run/iteration별 P0·직전 후보와의 유효 입력 비율 비교,
+  (2) reformulation/proof의 시간·토큰, (3) 실제 종료 이유와 제안·채택 수로 보고한다.
+  seed별 값과 합산값을 남기고 최종 미사용 seed 결과는 구분한다.
+- 모든 단계에서 개선을 가정하지 않는다. 개선이 없거나 판정 불가 때문에 결론이
+  제한되면 그대로 보고한다. 관측된 유효 입력 비율의 개선을 생성기 정확성이나
+  모든 크기·seed에 대한 우위의 증명으로 확대하지 않는다.
+- 마지막에 실행 명령, 증거 경로, 고정 commit과 해시, 실제 완료/미완료 범위를
+  한국어로 간결하게 보고한다. 실험 도구 및 채택 산출물은 검증 후 논리적인
+  단위로 커밋하고, 사용자 요청 없이 push나 merge는 하지 않는다.

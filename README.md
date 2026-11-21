@@ -8,6 +8,9 @@
 [생성 전제와 성질](properties/cedar_no_type_error/README.md)은
 `properties/cedar_no_type_error/Original.v`에 있다. 원본 아티팩트도 보존한다.
 
+[실험 실행 프롬프트](prompts/cedar-experiments.txt)는 Testing Theorems와의 비교,
+역할별 모델 설정, 매 호출의 context 격리, 측정·종료 조건을 정리한다.
+
 ## 환경
 
 | 구성 요소 | 버전 |
