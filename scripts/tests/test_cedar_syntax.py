@@ -43,6 +43,27 @@ class CedarSyntaxTests(unittest.TestCase):
                                 for item in report["commands"]))
         return command, report
 
+    def gate_prefix(self, label, sources, success, fragment=None):
+        staged = self.root / (label + "-property")
+        staged.mkdir()
+        shutil.copy2(PROPERTY / "Original.v", staged / "Original.v")
+        for index, source in enumerate(sources, 1):
+            candidate = staged / f"candidates/v{index:03d}/Candidate.v"
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            candidate.write_text(source)
+        evidence = self.root / label
+        result = subprocess.run([sys.executable, str(GATE), str(staged),
+                                 "--candidate", f"v{len(sources):03d}",
+                                 "--evidence-dir", str(evidence),
+                                 "--env-script", str(ENV)], cwd=ROOT, text=True,
+                                capture_output=True, timeout=120)
+        self.assertEqual(result.returncode == 0, success, result.stdout + result.stderr)
+        report = json.loads((evidence / "result.json").read_text())
+        self.assertEqual(report["status"], "passed" if success else "failed")
+        if fragment:
+            self.assertIn(fragment, report.get("error", ""))
+        return report
+
     def test_peel_foralls_accepts_whitespace_after_keyword(self):
         for separator in (" ", "\n ", "\t", "\r\n  "):
             with self.subTest(separator=repr(separator)):
@@ -270,6 +291,104 @@ Inductive predicate : Property.Original.Input -> Prop :=
         report = json.loads((evidence / "result.json").read_text())
         self.assertEqual(report["verified_relations"],
                          {"v001": ["predicate"], "v002": ["predicate"]})
+
+    def test_prior_helper_printed_as_candidate_alias_is_accepted(self):
+        previous = """Require Import Property.Original.
+Inductive SeedSchema : Original.Input -> Prop :=
+| seed : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    SeedSchema i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, SeedSchema i -> predicate i.
+"""
+        current = """Require Import Property.candidates.v001.Candidate.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Property.candidates.v001.Candidate.SeedSchema i -> predicate i.
+"""
+        report = self.gate_prefix("prior-helper-alias", [previous, current], True)
+        printed = (self.root / "prior-helper-alias/elaborated-v002.log").read_text()
+        self.assertIn("Candidate.SeedSchema i", printed)
+        premises = [binder for binder in report["binders"]
+                    if binder["version"] == "v002" and
+                    binder["classification"] == "relation premise"]
+        self.assertEqual(len(premises), 1)
+
+    def test_same_helper_name_in_multiple_prior_modules_and_current(self):
+        first = """Require Import Property.Original.
+Inductive Shared : Original.Input -> Prop :=
+| one : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    Shared i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, Shared i -> predicate i.
+"""
+        second = """Require Import Property.candidates.v001.Candidate.
+Inductive Shared : Original.Input -> Prop :=
+| two : forall i : Original.Input,
+    Property.candidates.v001.Candidate.Shared i -> Shared i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, Shared i -> predicate i.
+"""
+        third = """Require Import Property.candidates.v001.Candidate.
+Require Import Property.candidates.v002.Candidate.
+Inductive Shared : Original.Input -> Prop :=
+| three : forall i : Original.Input,
+    Property.candidates.v001.Candidate.Shared i ->
+    Property.candidates.v002.Candidate.Shared i -> Shared i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Property.candidates.v001.Candidate.Shared i ->
+    Property.candidates.v002.Candidate.Shared i ->
+    Shared i -> predicate i.
+"""
+        report = self.gate_prefix("colliding-helper-aliases", [first, second, third], True)
+        premises = [binder for binder in report["binders"]
+                    if binder["version"] == "v003" and
+                    binder["classification"] == "relation premise"]
+        self.assertEqual(len(premises), 5)
+        self.assertEqual(sorted(binder["resolved_relation"] for binder in premises),
+                         sorted([
+                             "Property.candidates.v001.Candidate.Shared",
+                             "Property.candidates.v001.Candidate.Shared",
+                             "Property.candidates.v002.Candidate.Shared",
+                             "Property.candidates.v002.Candidate.Shared",
+                             "Property.candidates.v003.Candidate.Shared",
+                         ]))
+
+    def test_local_type_binder_shadowing_relation_name_is_data(self):
+        source = """Require Import Property.Original.
+Inductive Shared : Original.Input -> Prop :=
+| base : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    Shared i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall (Shared : Set) (x : Shared) (i : Original.Input),
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    predicate i.
+"""
+        report = self.gate_prefix("local-type-shadow", [source], True)
+        binder = next(b for b in report["binders"]
+                      if b["constructor"] == "mk" and b["type"] == "Shared")
+        self.assertEqual(binder["classification"], "data binder")
+
+    def test_original_prop_function_is_not_a_relation(self):
+        source = """Require Import Property.Original.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, Original.predicate i -> predicate i.
+"""
+        self.gate_prefix("original-function", [source], False,
+                         "not a permitted inductive relation")
+
+    def test_inductive_wrapper_cannot_hide_original_prop_function(self):
+        source = """Require Import Property.Original.
+Inductive Shared : Original.Input -> Prop :=
+| wrap : forall i : Original.Input, Original.predicate i -> Shared i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, Shared i -> predicate i.
+"""
+        self.gate_prefix("original-function-wrapper", [source], False,
+                         "not a permitted inductive relation")
 
 
 if __name__ == "__main__":

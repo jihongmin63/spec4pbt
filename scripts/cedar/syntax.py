@@ -235,9 +235,7 @@ def printed_inductive(output, name):
         if len(pair) < 2 or not IDENT.fullmatch(pair[0]):
             raise GateError(f"Cannot parse elaborated constructor of {name}")
         binders, result = peel_foralls(":".join(pair[1:]))
-        if relation_head(result) != name:
-            raise GateError(f"Constructor of {name} has unexpected result: {result}")
-        constructors.append((pair[0], binders))
+        constructors.append((pair[0], binders, result))
     return header_binders, constructors
 
 
@@ -356,7 +354,6 @@ class Gate:
         spec_printed = self.run(["coqc", "-q", *FLAGS, spec_inspect_name], "fixed-spec-sorts")
         for name in spec_names:
             if printed_sort(spec_printed, name) == "Prop":
-                fixed.add("Spec." + name)
                 fixed.add("Specification.cedar.Spec." + name)
         predecessor = set()
         verified = {}
@@ -372,12 +369,36 @@ class Gate:
                                     + "\n".join(f"Print {module}.{name}." for name in names) + "\n"
                                     + f"Check ({module}.predicate : Property.Original.Input -> Prop).\n")
             printed = self.run(["coqc", "-q", *FLAGS, inspect_name], f"elaborated-{version}")
-            permitted = fixed | predecessor | set(names) | {module + "." + name for name in names}
+            permitted = fixed | predecessor | {module + "." + name for name in names}
+            resolved_heads = {}
+            def resolve_head(head):
+                if head not in resolved_heads:
+                    path = self.sources / f"SyntaxResolve_{version}_{len(resolved_heads):03d}.v"
+                    path.write_text(f"Require Import {module}.\nAbout {head}.\n")
+                    try:
+                        output = self.run(["coqc", "-q", *FLAGS,
+                                           path.name],
+                                          f"resolve-{version}-{len(resolved_heads):03d}")
+                    except GateError:
+                        # A printed local binder or sort need not be a global.
+                        # The following Prop probe still rejects any condition.
+                        resolved_heads[head] = None
+                    else:
+                        identities = re.findall(
+                            r"^Expands to: Inductive ([A-Za-z_][A-Za-z_0-9']*(?:\.[A-Za-z_][A-Za-z_0-9']*)*)\s*$",
+                            output, re.M)
+                        resolved_heads[head] = identities[0] if len(identities) == 1 else None
+                return resolved_heads[head]
             checks = []
             for name in names:
                 header, constructors = printed_inductive(printed, name)
                 checks.append((name, "relation", header))
-                for constructor, binders in constructors:
+                for constructor, binders, result in constructors:
+                    result_head = relation_head(result)
+                    if (not result_head or
+                            result_head in {binder for binder, _ in binders} or
+                            resolve_head(result_head) != module + "." + name):
+                        raise GateError(f"Constructor of {name} has unexpected result: {result}")
                     checks.append((name, constructor, binders))
             probe = 0
             for relation, context, binders in checks:
@@ -386,7 +407,14 @@ class Gate:
                     if BAD_TERM.search(typ):
                         raise GateError(f"{version}.{relation}.{context}: higher-order or nested condition in {typ}")
                     head = relation_head(typ)
-                    expected_prop = head in permitted
+                    # Resolve under the candidate's Coq import scope. Textual
+                    # aliases from Print All are not declaration identities.
+                    # A preceding binder shadows any global of the same name.
+                    local_names = {name for name, _ in prefix}
+                    identity = (resolve_head(head) if head and
+                                head not in local_names and head not in {"Set", "Type"}
+                                else None)
+                    expected_prop = identity in permitted
                     lambda_prefix = "".join(f"fun ({n} : {t}) => " for n, t in prefix)
                     if expected_prop:
                         source = f"Check ({lambda_prefix}({typ} : Prop)).\n"
@@ -404,11 +432,11 @@ class Gate:
                     classification = "relation premise" if expected_prop else "data binder"
                     self.report.setdefault("binders", []).append({"version": version,
                         "relation": relation, "constructor": context, "name": binder,
-                        "type": typ, "classification": classification})
+                        "type": typ, "classification": classification,
+                        **({"resolved_relation": identity} if expected_prop else {})})
                     prefix.append((binder, typ))
                     probe += 1
             verified[version] = names
-            predecessor.update({f"{version}.Candidate.{name}" for name in names})
             predecessor.update({f"Property.candidates.{version}.Candidate.{name}" for name in names})
         self.report["new_relations"] = verified[self.candidate]
         self.report["verified_relations"] = verified

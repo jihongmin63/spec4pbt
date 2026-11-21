@@ -45,8 +45,13 @@ The gate snapshots the fixed repository specification, checks the staged
 `Candidate.v` files through the selected candidate, compiles them with
 the local Coq switch, and inspects every candidate in that prefix. The
 command check is followed by Coq compilation, declaration inspection,
-elaborated `Print` output, and type probes; source text alone does not
-establish a valid relation. The gate does not need any `Equivalence.v` in that prefix and does
+elaborated `Print` output, and type probes. Coq may abbreviate a verified
+predecessor's relation in `Print` output, so the gate asks Coq to resolve each
+printed global head and compares its full inductive identity with the permitted
+declarations. A name bound earlier in the constructor is treated as local;
+its type probe must show that it is data rather than a logical premise.
+Source text alone does not establish a valid relation. The gate does not need
+any `Equivalence.v` in that prefix and does
 not derive a generator. The existing `scripts/check.py` checks the completed
 equivalence chain after proof; the benchmark performs actual automatic
 generator derivation.
