@@ -5,3 +5,6 @@
 *.glob
 .*.aux
 .lia.cache
+**/.runs/
+__pycache__/
+*.pyc

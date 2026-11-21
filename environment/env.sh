@@ -55,5 +55,5 @@ case "$action" in
     opam exec --switch="$switch" -- coqchk -silent example 2>&1 | tee kernel-check.log
     printf 'Verified generator, generated proof, execution, and kernel check: %s\n' "$run"
     ;;
-  *) exec opam exec --switch="$switch" -- "$action" "$@" ;;
+  *) exec opam exec --switch="$switch" --set-switch -- "$action" "$@" ;;
 esac

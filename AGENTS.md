@@ -15,3 +15,13 @@ Do not replace failing proof automation with admissions, new axioms, or a test-o
 claim of correctness. Report upstream assumptions printed by Coq. Completeness
 ranges over all sizes and random seeds, not all values in a finite test run.
 Do not modify other worktrees.
+
+For property exploration, keep Original.v and the selected specification fixed.
+Each candidates/vNNN directory contains Candidate.v and Equivalence.v; the latter
+proves `equivalent` against the immediately preceding predicate (Original for v001).
+Never edit scripts/check.py or scripts/run.py to make a candidate pass. Run check.py
+for the entire sequence; run.py --candidate vNNN verifies that prefix and derives
+that candidate's generator and correctness automatically. Do not author Generator.v.
+Keep property snapshots and evidence in ignored property-local .runs/ directories.
+The two scripts are maintained verification infrastructure; changes require the
+real Coq regressions in scripts/tests. No search configuration JSON is needed.
