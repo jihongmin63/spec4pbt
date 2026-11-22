@@ -1,0 +1,23 @@
+syntax narrow = | VALUE nat
+syntax broad = | VALUE int | OTHER
+syntax narrowTree
+syntax broadTree
+syntax narrowTree = | LEAF nat | BRANCH narrowTree* | OPTIONAL narrowTree?
+syntax broadTree = | LEAF int | BRANCH broadTree* | OPTIONAL broadTree? | EXTRA
+syntax aliasNarrow = narrow
+syntax aliasBroad = broad
+syntax tagged<T> = | TAG T
+syntax invariant<T> = { ITEM T }
+syntax bag<T> = | BAG T*
+syntax nestedNarrow
+syntax nestedBroad
+syntax nestedNarrow = | STOP | WRAP bag<nestedNarrow>
+syntax nestedBroad = | STOP | WRAP bag<nestedBroad> | EXTRA
+syntax mutualNarrowA
+syntax mutualNarrowB
+syntax mutualBroadA
+syntax mutualBroadB
+syntax mutualNarrowA = | A mutualNarrowB
+syntax mutualNarrowB = | B mutualNarrowA? | END
+syntax mutualBroadA = | A mutualBroadB | EXTRA
+syntax mutualBroadB = | B mutualBroadA? | END | EXTRA

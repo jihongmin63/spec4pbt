@@ -1,0 +1,29 @@
+;; Recursive records, mutual recursion, nested containers, source variant order,
+;; polymorphic records/variants, aliases, extern and ordinary empty syntax.
+syntax leaf = nat
+syntax tree
+syntax forest
+syntax tree = { LABEL text, CHILDREN forest }
+syntax forest = | EMPTY | NODE tree forest
+syntax box<T> = { ITEM T, MORE T*, MAYBE T? }
+syntax tagged<T> = | FIRST T | SECOND T
+syntax nested = | PACK (tree*, tree?)
+extern syntax opaque
+syntax empty<T>
+syntax ordered = | ZED | ALPHA
+syntax narrow = | _ID text
+syntax broad = | _ID text | OTHER nat
+syntax mixed = | narrow A | broad B
+syntax hinted = | MARK text hint(print "!"#%)
+syntax recursive
+syntax recursiveChildren = recursive*
+syntax recursive = { CHILDREN recursiveChildren }
+syntax ignoredHint = | SKIP tree hint(print "ok")
+syntax triple = (nat, bool, text)
+syntax mixedNumeric = | nat A | int B
+syntax bag<T> = | BAG T*
+syntax duo<A,B> = | DUO A B
+syntax polyTree<T>
+syntax polyTree<T> = | PTLEAF T | PTNODE polyTree<T>*
+syntax nestedPoly
+syntax nestedPoly = | DONE | STEP bag<duo<nat,nestedPoly>> | TREE polyTree<nestedPoly>
