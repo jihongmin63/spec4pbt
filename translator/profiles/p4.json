@@ -1,0 +1,465 @@
+{
+  "schema_version": 1,
+  "name": "p4",
+  "frontend": {
+    "repository": "https://github.com/kaist-plrg/p4-spectec.git",
+    "revision": "2730cfd9e74048bb5439da0f8afcef124079a064",
+    "source_root": "_opam-testing-theorems/sources/p4-spectec",
+    "archive": "_opam-testing-theorems/sources/p4-spectec-2730cfd9e74048bb5439da0f8afcef124079a064.tar",
+    "archive_sha256": "4faf7f2da71ba4e9c4753b2c2b1dac7308568f77415f649c1086cc046369afa6",
+    "patches": []
+  },
+  "source": {
+    "repository": "https://github.com/kaist-plrg/p4-spectec.git",
+    "revision": "2730cfd9e74048bb5439da0f8afcef124079a064",
+    "root": "_opam-testing-theorems/sources/p4-spectec/spec"
+  },
+  "input_order": {
+    "method": "recursive-bytewise-lexicographic",
+    "reference": "p4spec/lib/util/filesys.ml:collect_files",
+    "suffix": ".watsup",
+    "excluded_directory_name": "include",
+    "meaning": "Ordered whole-specification source inputs; source inventory only, not a successful AL conversion."
+  },
+  "inputs": [
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/0-aux/0.0-stdlib.watsup",
+      "sha256": "547086fd30c3a3dc33447baaa4ca85af5bf8364292ef4bd277eb84a235702d54"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/0-aux/0.1-stdlib-p4.watsup",
+      "sha256": "44b1f4ed9748b608cfd1b05059d66006b553ed29cf0a814d01972712efa31343"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/0-aux/0.2-example.watsup",
+      "sha256": "9aa052ebc9deff5c3022ba778dcf1a65db850df6c44587a694ae5a2c589ff11d"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/1-p4-surface/1-syntax.watsup",
+      "sha256": "4657ce5aecc747ae2665d466d3d975e7a77df7e103741cf1e904f55c917ef285"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.0-domain.watsup",
+      "sha256": "48817760dca71914c00b1d3a28d8387dc1d1ad2b9c4f108a16449443dc936ee6"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.1.1-value.watsup",
+      "sha256": "d5ac138816352a4a1dbe55563fc6a5bf8339fc1661a1ae07c26fb5afb1213e42"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.1.2-value-aux.watsup",
+      "sha256": "0f6e85c6bbcb121518864eeb567b18f79bf9bafbdabc5b62a481f13adf3129af"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.2.1-type.watsup",
+      "sha256": "3b88f664b01f06e476978edf02e14e176ef1d2dee8fea8b51aed6d497a318c50"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.2.2-type-def.watsup",
+      "sha256": "be40b899bd53428a4c233793f462f7d14de71c68af99f7ee5ecaf3e56578f102"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.2.3-type-aux.watsup",
+      "sha256": "3e90882e58f81e1455ae3665af11c609617f02bd386b9827958fbb38a436dcac"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.2.4-type-def-aux.watsup",
+      "sha256": "ca7e404051ea611acf7d11e9fc8058b2582f41a47f7f114051bba7358f752038"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.3.1-type-callable.watsup",
+      "sha256": "56c613ceeaf1089e8a700335afefa42847b1047a3a69e3db73c676a08cd87294"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.3.2-type-callable-aux.watsup",
+      "sha256": "67e7e75852d20d81c577d25ef21f848dd5891600bb3ce2f4285d798853bfe53e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.3.3-type-callable-def.watsup",
+      "sha256": "74c129ce6d386a02ab0bba71aae078146608d8454700cc053040571e71044c19"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.3.4-type-callable-def-aux.watsup",
+      "sha256": "c0a626571c63a1145a98263dd02c6ae9cca5d018f9d5699715fac15ff0cca4af"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.4.1-type-constructor.watsup",
+      "sha256": "e97c31b016eb4f0241b00e4840cb6727d00902a8f21bbce7117c8a18be650649"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.4.2-type-constructor-def.watsup",
+      "sha256": "31d85c97ae55b9855079f1d0162090662fb28d5900369019e6d66918ff446b15"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.4.3-type-constructor-def-aux.watsup",
+      "sha256": "b859a19c172209af02b2286fe0e9148c1ee7f84d2b9eee52c4c9b23791cb6568"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.5.1-type-free.watsup",
+      "sha256": "c4fd6693c1f648a7dd7d802756de04be47b1b9077bd051fddbb4f45a3513130f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.5.2-type-subst.watsup",
+      "sha256": "517b06b856254d98a128063f28ce2aecae0d5a62bfa94b5fa9d4ca0415fcdc5b"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.5.3-type-specialization.watsup",
+      "sha256": "1edb6626d7deea78ec7901a50b6189b81d41377a52512498723f372b4b10a6b5"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.6-type-alpha.watsup",
+      "sha256": "86b00db77ecd25f5e303874cd690874079f86f3a7a9bce9d0cad187aad9ac442"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/2-static-runtime/2.7-compile-time-known.watsup",
+      "sha256": "03994bd2ef6af665f138fafc4a888d6f6f18ca0223bb994586f3e698f89a4d0b"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/3-operations/3-operations.watsup",
+      "sha256": "c7f7fba975c4fd262be70e66e2f1a36b7647b6c6e524540361b6080140fa012f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.0-ir-syntax.watsup",
+      "sha256": "76ec58f9ae4e4c3d2cd21ebd8e06f4177bbf1d16bf36004ec4cf55b34c2b419e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.1-ir-call-helper.watsup",
+      "sha256": "c587df7b025f97d0c26ffcb5cd77c67da7e292bb0b4efeb91f2e95b9a1985191"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.2-ir-call-overload.watsup",
+      "sha256": "1242412fea046828d2797281b68ee1a14f93491022342c59a205cbc8baaf3158"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.3-annotation.watsup",
+      "sha256": "4332caa1dd7c37e0d1606ca0401a206914c00958fcab281041bb3f5b41c06951"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.4-ir-subexpression.watsup",
+      "sha256": "61fd48ed0a0021cb2cf64e62e7e21d0a3a65abe4b79f975b227f50c94e137724"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/4-p4-ir/4.5-ir-to-surface.watsup",
+      "sha256": "12790bf2e477865cc49e861570b7b6702f5f2b8a8e7cc84c7990b6706e280345"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.00.1-flow.watsup",
+      "sha256": "5ac866e157e5375d13436ee1428252893cb3ff6b2facb0c15585c8d2bc12cd11"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.00.2-loop.watsup",
+      "sha256": "aa24382bdcdd54996717e1184c14074f9e20fac681fbda1a0a8507caa2fd119f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.01-static-env.watsup",
+      "sha256": "9af196c901a1d278912fb138ae4b2aae67477f10310dcf1c79db38602518c915"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.02.1-typing-context.watsup",
+      "sha256": "667f58c53edc477bcbbb1800edff6d02ca4e6b1fb4f870f7af9ac3c797507464"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.02.2-typing-table-context.watsup",
+      "sha256": "8ea2725bf0e00e47bdaf70234abba1cb7bc9ea204fc5ffcbb7ba3991e1f81a24"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.03-typing-wellformed.watsup",
+      "sha256": "ca661f6c40b4a98f1fdfb961a20d8de477393231b8914ea072bf8bbbbed618e1"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.04-typing-relation.watsup",
+      "sha256": "49117e33417de3284065abd8b837c6f66175dd359ac5908b70b296df49d63157"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.05.1-typing-type.watsup",
+      "sha256": "c94a48256cda0600cab5d6f1b1f0753f8cb8bf6181be2171131d784e14a82bce"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.05.2-typing-casting.watsup",
+      "sha256": "a1ae6c10093ecb0c350ac834b5e3dcbcdf07c819ce3cf9825bdba9da19ff28ca"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.05.3-typing-type-argument.watsup",
+      "sha256": "296c2a8384319c3d578092bf2930ed240b514eb6d708419a8fb4508f1cc563fd"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.05.4-typing-type-parameter.watsup",
+      "sha256": "c1d0196ca820a712fa8ed10504741b930705e2240eaf8ce00884b1134cb240a9"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.06.1-typing-expression.watsup",
+      "sha256": "59e63068b503dda13befe5c399c31764a912213b500b847bfb9f905485e36825"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.06.2-typing-expression-eval.watsup",
+      "sha256": "83a584b504654f03911239212a7cb02abeb2bd9eef1607f18349225778575db1"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.07-typing-argument.watsup",
+      "sha256": "d75bde56dd492b6607325bf0f0e1dac56632eb8e9d8f858074cc145c864f86c8"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.08-typing-lvalue.watsup",
+      "sha256": "1e6e6f0abee64e6ba3db9389c67ef8f8ba7100cee9aa5a9f291231628b8b887e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.09-typing-parameter.watsup",
+      "sha256": "738d89537d34d21ec3a064007e50bc9777d68a82b2f39700cdcde8bab254d351"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.10-typing-statement.watsup",
+      "sha256": "e406928380c9791b1c0a4c2fc2302a17e093f39796fea6450b4e9e36579698a5"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.11-typing-declaration.watsup",
+      "sha256": "ecd385f42429c09b82c27ad6877c8c79b64750e4a253a811387a4da72d55e9b5"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.12-typing-extern-method.watsup",
+      "sha256": "b282078c1cc6b70ccb64bf5e37da0f1bd8e85d89279daf0049b66fa54e0ec262"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.13.1-typing-parser-statement.watsup",
+      "sha256": "4b165330a072718210c49eda32e4cee5d446803435790a282e31f2a66eee124c"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.13.2-typing-parser-state.watsup",
+      "sha256": "313de05686a5d470307e65f569f265d4f8cbf2fca10b611cde7aecc19998f51e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.13.3-typing-parser-declaration.watsup",
+      "sha256": "7f983ce1dbb44fd066010c64e8b66135fd946403771c6a147895da8a8a0cc946"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.14.1-typing-control-table.watsup",
+      "sha256": "bd0460815c90fb4f6465e07cec11a63cbd2c1be43f9ab5a65aaf3c5fe7600db9"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.14.2-typing-control-declaration.watsup",
+      "sha256": "2f29e151e48d805ed646516f57eda478d3f79b5682e2276fa40f90c46f71a1dd"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.15.1-typing-call-convention.watsup",
+      "sha256": "d574f2a6722aa206e2e35f5a4fd5b39dd85a30e6f1db2008b695ff8c8fab809f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.15.2-typing-call-inference.watsup",
+      "sha256": "5bcdf2ec7549c40b71331aea4111dfd8ae546a0ec8d76d74f78873a307addd1f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.15.3-typing-constructor-call.watsup",
+      "sha256": "c7803af63477354b0a562aa378acd0a31e7b1bcf19bc383567437401d583cd6a"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/5-typing/5.15.4-typing-callable-call.watsup",
+      "sha256": "5d019b776c2d4c9ed6a7b915bbacc64b44a3fec1ad2086dbcd607df86d44efed"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.0-domain.watsup",
+      "sha256": "b3774588e0732486c49b32cc9760f6a74d65ee1f0b29a88fd823ac95df1d6837"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.1-storage-reference.watsup",
+      "sha256": "27e26d14ed0e48f15c345ae3c4994253203030932c90774a5c3b2e7d8f41e755"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.2.1-callable-def.watsup",
+      "sha256": "bc6e8814e2b50c29ebd0cf702f6bcd7ea201c107b77e9d59309a968a8ff3967c"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.2.2-callable-def-aux.watsup",
+      "sha256": "2cbb2856a35d93e152ff76a9baaef4f2da39194be513484a157f5db2cd6e418b"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.2.3-callable-callee.watsup",
+      "sha256": "e42314eb5ef222e714e9c09aeea8f683f0a701e378cadaee501f8710c2258641"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.3.1-constructor-def.watsup",
+      "sha256": "1bccfe9b7ce37aa52b8779acd913bf4292119d3732f495325227fab0b7ec5c88"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.3.2-constructor-def-aux.watsup",
+      "sha256": "6fd8e83b7f567e554debed2517cd5d2b0847d8117d4644a8565d31eec5253d00"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/6-dynamic-runtime/6.4.1-object.watsup",
+      "sha256": "3b3d5057e1ba636806ce51debaf72ba1eff19511831bf843f45428ab546ae1b5"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.01.1-dynamic-env.watsup",
+      "sha256": "e919d77bcbec88e7fbd186a7b97c96a7f92710d56cdf4bc5733a067ed63a3901"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.01.2-dynamic-store.watsup",
+      "sha256": "c50ca171cbb63a617fb79a26e9f55cdca3f6c6aa0f1cedb57880a4dd81bf3822"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.02-inst-context.watsup",
+      "sha256": "106998af631ac680142b00a24a447189a612215695b89f612303558f4553e5e1"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.03-inst-relation.watsup",
+      "sha256": "cfc94f4270f7c7c37be74a8520d04c9c4c6f0ac84b4765507cf226f99570adaa"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.04-inst-expression.watsup",
+      "sha256": "e7b202d46b61ba5f2967e16c5ebce1726ffab600f0923a55126fd7852f66956f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.05-inst-argument.watsup",
+      "sha256": "fb890c5300fceb4846c052c30d96d7deedfb373bb8cd2a323f076e88af16740d"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.06-inst-statement.watsup",
+      "sha256": "a5ee144de6c0bf00cbd4a1e73108796178a4c452133b0099cde9a85e64f99f28"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.07-inst-declaration.watsup",
+      "sha256": "3371bfcd56139975c4d5b5706f633897fcfabddcc9bff9fb443ca4cb8cb2dbaa"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.08-inst-extern-method.watsup",
+      "sha256": "e21ba85330d9fea5ebd36798c9e8f615e3cea11eb6e4122d7b10fe65dcc2c2f5"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.09.1-inst-parser-statement.watsup",
+      "sha256": "edce1ac8441b45755af6751821b976f123afb984757333a03c767e03cd08695c"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.09.2-inst-parser-state.watsup",
+      "sha256": "af94d5d06119c467217a47747e94cc6b2f6cab40878ca3bb0c8be7910a4ac6d0"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.09.3-parser-declaration.watsup",
+      "sha256": "30d3c74055a19a891dc8b71494202543a60148ea7b10609c9a0982602a3a5a41"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.10.1-inst-control-table.watsup",
+      "sha256": "c3deff3f3dcd7e0bc64471e69b433c55047cb444f93c0ae0fb6ea5080f6b299a"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.10.2-inst-control-declaration.watsup",
+      "sha256": "703c7d8d8f81a700fcf6bf0e456de8c02daf97dcdf26975d048707a3de802c08"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.11.1-inst-constructor.watsup",
+      "sha256": "48be0f63ebe2ce7b9e279502d0cf06d9b7b7e4f64759100dfe4aff20c38e64f8"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/7-instantiation/7.11.2-inst-constructor-call.watsup",
+      "sha256": "5ffa21b8a2e67df94c3dc6ebfa9bc62110be3dc3ad3fb3cc4ae4d4ce3cb8cb6e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.01.1-eval-context.watsup",
+      "sha256": "1c0f69fe727f8a1a545d5f58d3429627d57b99e4db9b6d0e96b783be90b4d0d6"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.01.2-eval-arch.watsup",
+      "sha256": "adfa6fa67760082de2536d1150aa7727aaab3a571c305f1aa86134e2b1367f46"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.02-evaluation-relation.watsup",
+      "sha256": "f239504f0c5dbad293e4df5f1a54406eaa1d0ff88997eb84278217b5a39cc63e"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.03.1-eval-expression.watsup",
+      "sha256": "af79fe2e5ba0849c6bf6bf1c0d80d82b8123e75225e49085135b61dd8ed9e759"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.03.2-eval-keyset-expression.watsup",
+      "sha256": "efb8149ff175509001c05827f231d821663a4cf2a9f5ce73cacc2ae5f9c16809"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.04-eval-argument.watsup",
+      "sha256": "3df80372303a212701e0b473879664ec921e098d6994991332290b66a8dda935"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.05-eval-lvalue.watsup",
+      "sha256": "a568f281233708bf832be13d4912ef7423cdfa0a852349bbe7761b0c1653030d"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.06-eval-statement.watsup",
+      "sha256": "9e982577a502dab0c56bb50ffc319f5f33c094ce389ed366d80b4404bc669c18"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.07-eval-declaration.watsup",
+      "sha256": "779b5f796403b9c49f7e0bd628d710fa528b6092eb3dfcc85a1c3081a9e8dde3"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.08.1-eval-parser-statement.watsup",
+      "sha256": "fa298cf4f88ca90c1808f8c917735d66bd505f48758121fd4ea6a5eb54136600"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.08.2-eval-parser-declaration.watsup",
+      "sha256": "d42bdf68985fb80f8cdf93c5dc42fed33cb3fee0deedc008d5d8dc3e64a9248b"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.08.3-eval-parser-state.watsup",
+      "sha256": "a79e2047da974aebc327391e151cb0b739855b051898a3ecc40ddd44e140f8f2"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.09.1-eval-control-table.watsup",
+      "sha256": "0cb4689e58471fbffc2243f5000adaeec6226072089502c440537807929f1527"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.09.2-eval-control-statement.watsup",
+      "sha256": "6728591ae4c8cb7236ef111b617a510c4a2ca1bd97072cc58941a4647f7b00bf"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.09.3-eval-control-declaration.watsup",
+      "sha256": "44829888c66d30418cbae0eded54e8b2d8accdef452b1f76706dba698f95726c"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.10.1-eval-call-callee.watsup",
+      "sha256": "f767b20c4da277e9d3e05b14d08c9f660e9adefa89b819942ee771130ed7e77f"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.10.2-eval-call-copyin.watsup",
+      "sha256": "78da4048b4a4108faec7ce74cb67ff35e00c9a57488a4bd43d292918891c3773"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.10.3-eval-call-copyout.watsup",
+      "sha256": "e256344f01f3721bbe60c2db4dbd3e4add0fe348ef6af2973cdb4b069fc1aeb3"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/8-dynamic/8.10.4-eval-call.watsup",
+      "sha256": "ff7f946dd1b07f18b860d1a7147a46fc367a4a930dfd4aa8edb1c8fedefd031c"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.0-eval-arch.watsup",
+      "sha256": "e4b849a0df76b23ac107db6fb31a6937fac5d3c2ba6e4d106bdaa89f4d3163ab"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.1-table-interface.watsup",
+      "sha256": "7be87315d3d301f08c223271b5a0adcb44f6b1ad7e4942e9c0fc97d987250fc0"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.A-v1model.watsup",
+      "sha256": "e0453a9f748d1e2f20ef19ba648cdc517566682aeb0301defcdc139f9cf2eb95"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.B-ebpf.watsup",
+      "sha256": "e66c7e40cbcf438acbd824f4ab8acd36c25d78b84b9a00e19e620528a122fd18"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.C.1-psa.watsup",
+      "sha256": "4f90d447a1e0de1a7343584e425f647d7cf9c676b24d43721d07a48cef83bca3"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.C.2-psa-ingress-pipeline.watsup",
+      "sha256": "ffac8f8939f2aaed75becf598663f4085f28a1d906aa81c9805879eadbda2a42"
+    },
+    {
+      "path": "_opam-testing-theorems/sources/p4-spectec/spec/9-arch/9.C.3-psa-egress-pipeline.watsup",
+      "sha256": "4457e3f4fd788c92e0dc93ca476951bf6ce00a5956eec9834b26257780150146"
+    }
+  ],
+  "execution_policy": {
+    "clause_selection": "first-success",
+    "fallback_on": "Unmatch",
+    "errors": "propagate",
+    "extern_syntax": "independent-single-constructor",
+    "extern_callable": "all-typed-outputs"
+  }
+}
