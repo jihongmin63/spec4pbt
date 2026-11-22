@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Fail-closed coordinator for the fixed Cedar predicate experiment.
 
-All model calls pass through roles.run_role. A fresh, independently accepted
-tool inspection bound to the exact source, tools, conditions, and commit is
-required before the first benchmark. No old role session is ever resumed.
+All model calls pass through roles.run_role; only the Reformulator and Prover
+are model roles. A passed scripted tool review bound to the exact source,
+tools, conditions, and commit is required before the first benchmark, and
+each candidate passes the scripted independent inspection in inspection.py
+before measurement. No old role session is ever resumed.
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ from typing import Any, Mapping
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from scripts.cedar import benchmark, experiment, roles, validator
+from scripts.cedar import benchmark, experiment, inspection, roles, validator
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -142,72 +144,16 @@ def _inside(path: Path, ancestor: Path) -> bool:
     return True
 
 
-def inspect_result(path: Path, required_inputs: Mapping[str, str],
-                   required_context: Mapping[str, Any], evidence_root: Path) -> dict[str, Any]:
-    """Accept only a fresh inspector role's own checks and bound input bundle."""
-    if not _inside(path, evidence_root):
-        raise ExecutionError("inspector result is outside property-local private evidence")
-    report = json.loads(path.read_text())
-    manifest = report.get("manifest") or {}
-    answer = report.get("answer") or {}
-    if (report.get("status") != "accepted" or report.get("execution_status") != "completed"
-            or manifest.get("role") != "inspector" or manifest.get("model") != roles.MODEL
-            or manifest.get("effort") != roles.EFFORT["inspector"]
-            or answer.get("status") != "passed" or answer.get("violations") != []):
-        raise ExecutionError(f"independent inspection did not pass: {path}")
-    inputs = manifest.get("input_sha256") or {}
-    if any(inputs.get(name) != value for name, value in required_inputs.items()):
-        raise ExecutionError("inspector did not inspect exact frozen source bundle")
-    workspace = Path(manifest.get("workspace", ""))
-    if not _inside(workspace, evidence_root):
-        raise ExecutionError("inspector workspace is outside private evidence")
-    private = Path(manifest.get("evidence", ""))
-    if (not _inside(private, evidence_root) or path.resolve() != (private / "result.json").resolve()
-            or report.get("changed_source_files") != []):
-        raise ExecutionError("inspector result path or source inventory is inconsistent")
-    for name, value in required_inputs.items():
-        if digest(workspace / name) != value:
-            raise ExecutionError(f"inspector workspace source differs from frozen bundle: {name}")
-    if (manifest.get("prompt_sha256") != required_inputs.get("scripts/cedar/prompts/inspector.txt")
-            or manifest.get("schema_sha256") != required_inputs.get("scripts/cedar/schemas/inspector.json")
-            or manifest.get("prompt_sha256") is None or manifest.get("schema_sha256") is None):
-        raise ExecutionError("inspector prompt or schema differs from frozen role contract")
-    sandbox = report.get("sandbox") or {}
-    probe_path = Path(sandbox.get("probe", ""))
-    if (sandbox.get("kind") != "Landlock" or not _inside(probe_path, private)
-            or json.loads(probe_path.read_text()).get("status") != "passed"):
-        raise ExecutionError("inspector confinement probe did not pass")
-    context = workspace / "context.json"
-    if digest(context) != manifest.get("context_sha256"):
-        raise ExecutionError("inspector context hash is missing or changed")
-    if json.loads(context.read_text()) != required_context:
-        raise ExecutionError("inspector conditions or commit differ from frozen experiment")
-    if not answer.get("commands") or not answer.get("evidence_paths"):
-        raise ExecutionError("inspector supplied no independently generated check evidence")
-    for item in answer["evidence_paths"]:
-        evidence = Path(item)
-        if not evidence.is_absolute():
-            evidence = workspace / evidence
-        if not _inside(evidence, workspace / "scratch"):
-            raise ExecutionError("inspector evidence is missing or outside its scratch area")
-    if not (private / "events.jsonl").is_file():
-        raise ExecutionError("inspector raw role events are missing")
-    return report
-
-
 def review_gate(review_path: Path, frozen: Mapping[str, Any],
                 property_root: Path = PROPERTY) -> dict[str, Any]:
-    """Review envelope is a pointer to actual inspector evidence, not approval text."""
+    """Accept only a passed scripted tool review of the exact frozen manifest."""
     private = property_root / ".runs"
     if not _inside(review_path, private):
         raise ExecutionError("tool review must be property-local private evidence")
-    review = json.loads(review_path.read_text())
-    if review.get("frozen") != frozen:
-        raise ExecutionError("tool review is not bound to exact frozen hashes/commit")
-    inputs = {**frozen["sources"], **frozen["tools"]}
-    context = {"frozen": frozen, "purpose": "independent_tool_review"}
-    inspect_result(Path(review.get("inspector_result", "")), inputs, context, private)
-    return review
+    try:
+        return inspection.check_tool_review(review_path, frozen)
+    except inspection.InspectionError as error:
+        raise ExecutionError(str(error)) from error
 
 
 def role_inputs(root: Path, chain: Path, *, candidate: Path | None = None,
@@ -225,14 +171,6 @@ def role_inputs(root: Path, chain: Path, *, candidate: Path | None = None,
             raise ExecutionError("candidate bundle needs a selected version")
         bundle["Candidate.v"] = candidate
         bundle[f"property/candidates/{selected}/Candidate.v"] = candidate
-    return bundle
-
-
-def inspector_inputs(root: Path, staged: Path) -> dict[str, Path]:
-    bundle = {name: root / name for name in SOURCE_FILES + tool_files(root)}
-    bundle["property/Original.v"] = staged / "Original.v"
-    for path in sorted((staged / "candidates").rglob("*.v")):
-        bundle[f"property/{path.relative_to(staged).as_posix()}"] = path
     return bundle
 
 
@@ -465,6 +403,17 @@ def measure(root: Path, staged: Path, candidate: str, seeds: tuple[int, ...],
             raise
 
 
+def inspect_candidate(root: Path, staged: Path, chain: Path, version: str,
+                      candidate_sha256: str, frozen: Mapping[str, Any],
+                      evidence: Path) -> dict[str, Any]:
+    """Scripted independent inspection; an inability to inspect stops the run."""
+    try:
+        return inspection.inspect_candidate(root, staged, chain, version,
+                                            candidate_sha256, frozen, evidence)
+    except inspection.InspectionError as error:
+        raise ExecutionError(f"inspection could not run: {error}") from error
+
+
 def _stage(run_chain: Path, attempt_dir: Path, version: str, candidate: Path) -> Path:
     staged = attempt_dir / "staged-property"
     staged.mkdir()
@@ -616,26 +565,22 @@ def execute_attempt(root: Path, chain: Path, chains_root: Path, evidence: Path,
                         summary, candidate, "prefix_failed")
         save_state(state_path, state)
         return
-    inputs = inspector_inputs(root, staged)
-    inspection = call_role("inspector", root, attempt_dir, inputs,
-                           {"frozen": frozen, "purpose": "candidate_inspection",
-                            "run_id": run_id, "candidate": version,
-                            "theorem_type": theorem}, chain, chains_root)
-    write_new(attempt_dir / "inspector-stage.json",
-              {"status": inspection["status"],
-               "result": str(Path(inspection["manifest"]["evidence"]) / "result.json")})
-    inspection_path = Path(inspection["manifest"]["evidence"]) / "result.json"
-    expected = {name: digest(path) for name, path in inputs.items()}
-    try:
-        inspect_result(inspection_path, expected,
-                       {"frozen": frozen, "purpose": "candidate_inspection",
-                        "run_id": run_id, "candidate": version, "theorem_type": theorem},
-                       evidence.parent)
-    except ExecutionError as error:
-        _finish_failure(state, run_id, attempt_id, reform, proof, str(error),
+    assert_frozen(root, frozen)
+    report = inspect_candidate(root, staged, chain, version, frozen_candidate,
+                               frozen, attempt_dir)
+    write_new(attempt_dir / "inspection-stage.json",
+              {"status": report["status"],
+               "result": str(attempt_dir / "inspection" / "result.json")})
+    if report["status"] != "passed":
+        _finish_failure(state, run_id, attempt_id, reform, proof,
+                        "; ".join(report["violations"]) or "inspection failed",
                         summary, candidate, "inspection_failed")
         save_state(state_path, state)
         return
+    try:
+        inspection.check_candidate_report(attempt_dir / "inspection" / "result.json", version)
+    except inspection.InspectionError as error:
+        raise ExecutionError(str(error)) from error
     try:
         per_seed = measure(root, staged, version, experiment.EVAL_SEEDS, attempt_dir, frozen)
     except ProposalRejected as error:

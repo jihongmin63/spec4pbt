@@ -25,8 +25,9 @@ from typing import Any, Mapping, Sequence
 
 
 MODEL = "gpt-6-sol"
-EFFORT = {"reformulator": "xhigh", "prover": "xhigh", "inspector": "high"}
-OUTPUT = {"reformulator": "Candidate.v", "prover": "Equivalence.v", "inspector": None}
+# Independent inspection is deterministic (inspection.py), not a model role.
+EFFORT = {"reformulator": "xhigh", "prover": "xhigh"}
+OUTPUT = {"reformulator": "Candidate.v", "prover": "Equivalence.v"}
 HERE = Path(__file__).resolve().parent
 SCHEMA = {name: HERE / "schemas" / f"{name}.json" for name in EFFORT}
 PROMPT = {name: HERE / "prompts" / f"{name}.txt" for name in EFFORT}

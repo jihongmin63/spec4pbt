@@ -10,7 +10,7 @@ import time
 import unittest
 from unittest import mock
 
-from scripts.cedar import execute, experiment, roles
+from scripts.cedar import execute, experiment, inspection, roles
 
 
 def batches(seeds, valid=1, *, status="completed"):
@@ -27,68 +27,49 @@ class ReviewGateTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.prop = Path(self.temp.name) / "property"
         self.private = self.prop / ".runs"
-        self.workspace = self.private / "review-role/workspace"
-        self.evidence = self.private / "review-role/private-evidence"
-        (self.workspace / "scratch").mkdir(parents=True)
-        self.evidence.mkdir()
-        (self.workspace / "scratch/checked.log").write_text("passed\n")
-        (self.evidence / "events.jsonl").write_text('{"type":"turn.completed"}\n')
-        (self.workspace / "Spec.v").write_text("source\n")
-        (self.workspace / "benchmark.py").write_text("tool\n")
-        prompt = "scripts/cedar/prompts/inspector.txt"
-        schema = "scripts/cedar/schemas/inspector.json"
-        for name in (prompt, schema):
-            target = self.workspace / name
-            target.parent.mkdir(parents=True)
-            target.write_bytes((execute.ROOT / name).read_bytes())
-        self.frozen = {"commit": "a" * 40,
-                       "sources": {"Spec.v": execute.digest(self.workspace / "Spec.v")},
-                       "tools": {"benchmark.py": execute.digest(self.workspace / "benchmark.py"),
-                                 prompt: execute.digest(self.workspace / prompt),
-                                 schema: execute.digest(self.workspace / schema)},
-                       "conditions": {"size": 2}}
-        context = {"frozen": self.frozen, "purpose": "independent_tool_review"}
-        (self.workspace / "context.json").write_text(json.dumps(context))
-        self.report = {"status": "accepted", "execution_status": "completed",
-                       "manifest": {"role": "inspector", "model": roles.MODEL,
-                                    "effort": roles.EFFORT["inspector"],
-                                    "workspace": str(self.workspace),
-                                    "evidence": str(self.evidence),
-                                    "input_sha256": {**self.frozen["sources"], **self.frozen["tools"]},
-                                    "context_sha256": execute.digest(self.workspace / "context.json"),
-                                    "prompt_sha256": self.frozen["tools"][prompt],
-                                    "schema_sha256": self.frozen["tools"][schema]},
-                       "changed_source_files": [],
-                       "sandbox": {"kind": "Landlock",
-                                   "probe": str(self.evidence / "sandbox-probe.json")},
-                       "answer": {"status": "passed", "commands": ["python3 -m unittest"],
-                                  "evidence_paths": ["scratch/checked.log"], "violations": []}}
-        (self.evidence / "sandbox-probe.json").write_text('{"status":"passed"}\n')
-        self.result = self.evidence / "result.json"
-        self.result.write_text(json.dumps(self.report))
-        self.review = self.private / "tool-review.json"
-        self.review.write_text(json.dumps({"frozen": self.frozen,
-                                           "inspector_result": str(self.result)}))
+        self.review_dir = self.private / "tool-review"
+        self.review_dir.mkdir(parents=True)
+        self.log = self.review_dir / "unittest.log"
+        self.log.write_text("...\n----\nRan 3 tests in 0.010s\n\nOK\n")
+        self.frozen = {"commit": "a" * 40, "sources": {"Spec.v": "s"},
+                       "tools": {"benchmark.py": "t"}, "conditions": {"size": 2}}
+        self.report = {"kind": inspection.TOOL_REVIEW_KIND, "status": "passed",
+                       "frozen": self.frozen, "tests_run": 3,
+                       "commands": [{"command": ["python3", "-B", "-m", "unittest"],
+                                     "status": "completed", "returncode": 0,
+                                     "log": str(self.log),
+                                     "log_sha256": execute.digest(self.log)}]}
+        self.review = self.review_dir / "review.json"
+        self.review.write_text(json.dumps(self.report))
 
-    def test_exact_inspector_evidence_passes(self):
+    def test_exact_scripted_review_passes(self):
         self.assertEqual(execute.review_gate(self.review, self.frozen, self.prop)["frozen"],
                          self.frozen)
 
-    def test_review_rejects_changed_hash_and_unaccepted_inspector(self):
+    def test_review_rejects_changed_hash_and_failed_review(self):
         wrong = {**self.frozen, "tools": {"benchmark.py": "different"}}
         with self.assertRaises(execute.ExecutionError):
             execute.review_gate(self.review, wrong, self.prop)
-        self.report["status"] = "rejected"
-        self.result.write_text(json.dumps(self.report))
+        self.report["status"] = "failed"
+        self.review.write_text(json.dumps(self.report))
         with self.assertRaises(execute.ExecutionError):
             execute.review_gate(self.review, self.frozen, self.prop)
 
-    def test_review_rejects_missing_or_external_inspector_logs(self):
-        (self.workspace / "scratch/checked.log").unlink()
+    def test_review_rejects_changed_missing_or_external_logs(self):
+        self.log.write_text("Ran 3 tests in 0.010s\n\nFAILED (failures=1)\n")
         with self.assertRaises(execute.ExecutionError):
             execute.review_gate(self.review, self.frozen, self.prop)
-        self.report["answer"]["evidence_paths"] = ["/etc/passwd"]
-        self.result.write_text(json.dumps(self.report))
+        self.log.unlink()
+        with self.assertRaises(execute.ExecutionError):
+            execute.review_gate(self.review, self.frozen, self.prop)
+        outside = Path(self.temp.name) / "review.json"
+        outside.write_text(json.dumps(self.report))
+        with self.assertRaises(execute.ExecutionError):
+            execute.review_gate(outside, self.frozen, self.prop)
+
+    def test_legacy_model_review_envelope_is_rejected(self):
+        self.review.write_text(json.dumps({"frozen": self.frozen,
+                                           "inspector_result": str(self.log)}))
         with self.assertRaises(execute.ExecutionError):
             execute.review_gate(self.review, self.frozen, self.prop)
 
@@ -179,9 +160,9 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(own_run, self.chain)
         self.assertNotIn("held_out", json.dumps(context))
         self.assertNotIn("run-002", json.dumps(context))
-        if role != "inspector":
-            self.assertFalse(any("Equivalence.v" in name for name in inputs))
-            self.assertFalse(any("benchmark.py" in name for name in inputs))
+        self.assertIn(role, ("reformulator", "prover"))
+        self.assertFalse(any("Equivalence.v" in name for name in inputs))
+        self.assertFalse(any("benchmark.py" in name for name in inputs))
         if role == "reformulator":
             self.assertEqual(inputs["grammar.md"], self.root / "scripts/cedar/SYNTAX.md")
         if role == "prover":
@@ -198,11 +179,6 @@ class OrchestrationTests(unittest.TestCase):
             self.assertEqual(context["frozen_candidate_sha256"], execute.digest(inputs["Candidate.v"]))
             (workspace / "Equivalence.v").write_text("Theorem equivalent : True. Proof. exact I. Qed.\n")
             answer = {"status": "proved", "reason": ""}
-        else:
-            self.assertIn("property/candidates/v001/Equivalence.v", inputs)
-            self.assertEqual(context["purpose"], "candidate_inspection")
-            answer = {"status": "passed", "commands": ["coqchk"],
-                      "evidence_paths": ["scratch/check.log"], "violations": []}
         private = attempt_dir / "roles" / f"{role}-fake" / "private-evidence"
         private.mkdir(parents=True)
         (private / "result.json").write_text("{}")
@@ -212,12 +188,30 @@ class OrchestrationTests(unittest.TestCase):
                          "usage": {"status": "available", "input_tokens": 10,
                                    "output_tokens": 2}}}
 
+    def _inspect(self, root, staged, chain, version, candidate_sha, frozen, evidence,
+                 *, passed=True):
+        self.assertEqual(chain, self.chain)
+        self.assertEqual(candidate_sha,
+                         execute.digest(staged / "candidates" / version / "Candidate.v"))
+        self.assertTrue((staged / "candidates" / version / "Equivalence.v").is_file())
+        names = ["frozen_tools", "snapshot", "syntax", "equivalence_chain",
+                 "derivation_probe", "sources_unchanged", "tools_unchanged"]
+        report = {"kind": inspection.CANDIDATE_KIND, "candidate": version,
+                  "status": "passed" if passed else "failed",
+                  "checks": [{"name": name, "status": "passed", "detail": ""}
+                             for name in names],
+                  "violations": [] if passed else ["derivation_probe: no generator"],
+                  "commands": []}
+        (evidence / "inspection").mkdir()
+        (evidence / "inspection/result.json").write_text(json.dumps(report))
+        return report
+
     def _run(self, **patches):
         defaults = {"assert_frozen": lambda *args: None,
                     "call_role": self._role,
                     "syntax_check": lambda *args: (True, ""),
                     "prefix_check": lambda *args: (True, ""),
-                    "inspect_result": lambda *args: {},
+                    "inspect_candidate": self._inspect,
                     "measure": lambda *args: batches(experiment.EVAL_SEEDS)}
         defaults.update(patches)
         with mock.patch.multiple(execute, **defaults):
@@ -306,6 +300,29 @@ class OrchestrationTests(unittest.TestCase):
         self.assertEqual(attempt["proof_cost"]["wall_seconds"], 5)
         self.assertEqual(attempt["feedback_summary"], "derivation_or_execution_failed")
         self.assertIsNone(self.state["runs"]["run-001"]["stop_reason"])
+        self.assertFalse((self.chain / "candidates/v001").exists())
+
+    def test_failed_scripted_inspection_rejects_without_measurement(self):
+        def failing(*args):
+            return self._inspect(*args, passed=False)
+        self._run(inspect_candidate=failing,
+                  measure=lambda *args: self.fail("measurement must not run after failed inspection"))
+        attempt = self.state["runs"]["run-001"]["attempts"][0]
+        self.assertEqual(attempt["status"], "rejected")
+        self.assertEqual(attempt["feedback_summary"], "inspection_failed")
+        self.assertIn("no generator", attempt["reason"])
+        self.assertFalse((self.chain / "candidates/v001").exists())
+        stage = json.loads((self.evidence / "run-001/attempt-001/inspection-stage.json").read_text())
+        self.assertEqual(stage["status"], "failed")
+
+    def test_inspection_report_must_carry_every_passed_check(self):
+        def incomplete(*args):
+            report = self._inspect(*args)
+            report["checks"] = report["checks"][:-1]
+            (args[-1] / "inspection/result.json").write_text(json.dumps(report))
+            return report
+        with self.assertRaises(execute.ExecutionError):
+            self._run(inspect_candidate=incomplete)
         self.assertFalse((self.chain / "candidates/v001").exists())
 
     def test_adoption_occurs_only_after_all_checks_and_measurement(self):
