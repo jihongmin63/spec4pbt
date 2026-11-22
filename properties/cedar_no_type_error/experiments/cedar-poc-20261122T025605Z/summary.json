@@ -1,0 +1,4747 @@
+{
+  "baseline": {
+    "confirmed_valid_ratio": 0.00386,
+    "per_seed": {
+      "101": {
+        "attempts": 10000,
+        "confirmed_invalid": 3199,
+        "confirmed_valid": 36,
+        "confirmed_valid_ratio": 0.0036,
+        "no_result": 6107,
+        "status": "completed",
+        "undetermined": 658
+      },
+      "202": {
+        "attempts": 10000,
+        "confirmed_invalid": 3122,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6190,
+        "status": "completed",
+        "undetermined": 648
+      },
+      "303": {
+        "attempts": 10000,
+        "confirmed_invalid": 3174,
+        "confirmed_valid": 40,
+        "confirmed_valid_ratio": 0.004,
+        "no_result": 6183,
+        "status": "completed",
+        "undetermined": 603
+      },
+      "404": {
+        "attempts": 10000,
+        "confirmed_invalid": 3195,
+        "confirmed_valid": 45,
+        "confirmed_valid_ratio": 0.0045,
+        "no_result": 6082,
+        "status": "completed",
+        "undetermined": 678
+      },
+      "505": {
+        "attempts": 10000,
+        "confirmed_invalid": 3134,
+        "confirmed_valid": 32,
+        "confirmed_valid_ratio": 0.0032,
+        "no_result": 6162,
+        "status": "completed",
+        "undetermined": 672
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 15824,
+      "confirmed_valid": 193,
+      "no_result": 30724,
+      "undetermined": 3259
+    }
+  },
+  "experiment_id": "cedar-poc-20261122T025605Z",
+  "held_out_baseline": {
+    "confirmed_valid_ratio": 0.0028,
+    "per_seed": {
+      "1101": {
+        "attempts": 10000,
+        "confirmed_invalid": 3164,
+        "confirmed_valid": 23,
+        "confirmed_valid_ratio": 0.0023,
+        "no_result": 6156,
+        "status": "completed",
+        "undetermined": 657
+      },
+      "1202": {
+        "attempts": 10000,
+        "confirmed_invalid": 3168,
+        "confirmed_valid": 32,
+        "confirmed_valid_ratio": 0.0032,
+        "no_result": 6152,
+        "status": "completed",
+        "undetermined": 648
+      },
+      "1303": {
+        "attempts": 10000,
+        "confirmed_invalid": 3198,
+        "confirmed_valid": 29,
+        "confirmed_valid_ratio": 0.0029,
+        "no_result": 6128,
+        "status": "completed",
+        "undetermined": 645
+      },
+      "1404": {
+        "attempts": 10000,
+        "confirmed_invalid": 3170,
+        "confirmed_valid": 34,
+        "confirmed_valid_ratio": 0.0034,
+        "no_result": 6174,
+        "status": "completed",
+        "undetermined": 622
+      },
+      "1505": {
+        "attempts": 10000,
+        "confirmed_invalid": 3255,
+        "confirmed_valid": 22,
+        "confirmed_valid_ratio": 0.0022,
+        "no_result": 6066,
+        "status": "completed",
+        "undetermined": 657
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 15955,
+      "confirmed_valid": 140,
+      "no_result": 30676,
+      "undetermined": 3229
+    }
+  },
+  "runs": {
+    "run-001": {
+      "adopted": [
+        {
+          "candidate_sha256": "9ab132b0fa4e2ca22d18e8e681b6430eed62b155a9b7d760060c184e1f11e510",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.00302,
+              "difference": -0.00084,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0029,
+                  "difference": -0.0007000000000000001,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0031,
+                  "difference": -0.0009000000000000002,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0028,
+                  "difference": -0.0012000000000000001,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0037,
+                  "difference": -0.0007999999999999995,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0026,
+                  "difference": -0.0006000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.00302,
+              "difference": -0.00084,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0029,
+                  "difference": -0.0007000000000000001,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0031,
+                  "difference": -0.0009000000000000002,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0028,
+                  "difference": -0.0012000000000000001,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0037,
+                  "difference": -0.0007999999999999995,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0026,
+                  "difference": -0.0006000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            }
+          },
+          "from_attempt": "attempt-001",
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00302,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 2866,
+                "confirmed_valid": 29,
+                "confirmed_valid_ratio": 0.0029,
+                "no_result": 6539,
+                "status": "completed",
+                "undetermined": 566
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 2929,
+                "confirmed_valid": 31,
+                "confirmed_valid_ratio": 0.0031,
+                "no_result": 6420,
+                "status": "completed",
+                "undetermined": 620
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 2880,
+                "confirmed_valid": 28,
+                "confirmed_valid_ratio": 0.0028,
+                "no_result": 6483,
+                "status": "completed",
+                "undetermined": 609
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 2893,
+                "confirmed_valid": 37,
+                "confirmed_valid_ratio": 0.0037,
+                "no_result": 6482,
+                "status": "completed",
+                "undetermined": 588
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 2934,
+                "confirmed_valid": 26,
+                "confirmed_valid_ratio": 0.0026,
+                "no_result": 6438,
+                "status": "completed",
+                "undetermined": 602
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 14502,
+              "confirmed_valid": 151,
+              "no_result": 32362,
+              "undetermined": 2985
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e38a77c267672f32f7cb4f4dab76a368f3523d97e7664330cebfd54603739f97",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.04918,
+              "difference": 0.04532,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0508,
+                  "difference": 0.0472,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.052,
+                  "difference": 0.048,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0483,
+                  "difference": 0.044300000000000006,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0488,
+                  "difference": 0.044300000000000006,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.046,
+                  "difference": 0.0428,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.04918,
+              "difference": 0.04616,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0508,
+                  "difference": 0.0479,
+                  "reference_ratio": 0.0029
+                },
+                "202": {
+                  "candidate_ratio": 0.052,
+                  "difference": 0.0489,
+                  "reference_ratio": 0.0031
+                },
+                "303": {
+                  "candidate_ratio": 0.0483,
+                  "difference": 0.045500000000000006,
+                  "reference_ratio": 0.0028
+                },
+                "404": {
+                  "candidate_ratio": 0.0488,
+                  "difference": 0.0451,
+                  "reference_ratio": 0.0037
+                },
+                "505": {
+                  "candidate_ratio": 0.046,
+                  "difference": 0.0434,
+                  "reference_ratio": 0.0026
+                }
+              },
+              "reference_ratio": 0.00302
+            }
+          },
+          "from_attempt": "attempt-003",
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.04918,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8238,
+                "confirmed_valid": 508,
+                "confirmed_valid_ratio": 0.0508,
+                "no_result": 399,
+                "status": "completed",
+                "undetermined": 855
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8169,
+                "confirmed_valid": 520,
+                "confirmed_valid_ratio": 0.052,
+                "no_result": 409,
+                "status": "completed",
+                "undetermined": 902
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8290,
+                "confirmed_valid": 483,
+                "confirmed_valid_ratio": 0.0483,
+                "no_result": 392,
+                "status": "completed",
+                "undetermined": 835
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8219,
+                "confirmed_valid": 488,
+                "confirmed_valid_ratio": 0.0488,
+                "no_result": 419,
+                "status": "completed",
+                "undetermined": 874
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8300,
+                "confirmed_valid": 460,
+                "confirmed_valid_ratio": 0.046,
+                "no_result": 405,
+                "status": "completed",
+                "undetermined": 835
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41216,
+              "confirmed_valid": 2459,
+              "no_result": 2024,
+              "undetermined": 4301
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4105211b1f9d714c868779083da910f16bee19c795dbdc5e8af7bcf6e58b489e",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99518,
+              "difference": 0.99132,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9947,
+                  "difference": 0.9911,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.9952,
+                  "difference": 0.9912,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.9949,
+                  "difference": 0.9909,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.9952,
+                  "difference": 0.9907,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.9959,
+                  "difference": 0.9927,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99518,
+              "difference": 0.946,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9947,
+                  "difference": 0.9439000000000001,
+                  "reference_ratio": 0.0508
+                },
+                "202": {
+                  "candidate_ratio": 0.9952,
+                  "difference": 0.9431999999999999,
+                  "reference_ratio": 0.052
+                },
+                "303": {
+                  "candidate_ratio": 0.9949,
+                  "difference": 0.9466,
+                  "reference_ratio": 0.0483
+                },
+                "404": {
+                  "candidate_ratio": 0.9952,
+                  "difference": 0.9464,
+                  "reference_ratio": 0.0488
+                },
+                "505": {
+                  "candidate_ratio": 0.9959,
+                  "difference": 0.9499,
+                  "reference_ratio": 0.046
+                }
+              },
+              "reference_ratio": 0.04918
+            }
+          },
+          "from_attempt": "attempt-004",
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99518,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9947,
+                "confirmed_valid_ratio": 0.9947,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 53
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9952,
+                "confirmed_valid_ratio": 0.9952,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 48
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9949,
+                "confirmed_valid_ratio": 0.9949,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 51
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9952,
+                "confirmed_valid_ratio": 0.9952,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 48
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9959,
+                "confirmed_valid_ratio": 0.9959,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 41
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49759,
+              "no_result": 0,
+              "undetermined": 241
+            }
+          }
+        },
+        {
+          "candidate_sha256": "21c50375572111ff51c23b8523f7dea0ac9f8e7cc2f77c907052c08cc6efc91b",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.0489,
+              "difference": 0.04504,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0487,
+                  "difference": 0.0451,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0492,
+                  "difference": 0.045200000000000004,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0541,
+                  "difference": 0.050100000000000006,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0454,
+                  "difference": 0.040900000000000006,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0471,
+                  "difference": 0.0439,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.0489,
+              "difference": -0.94628,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0487,
+                  "difference": -0.9460000000000001,
+                  "reference_ratio": 0.9947
+                },
+                "202": {
+                  "candidate_ratio": 0.0492,
+                  "difference": -0.946,
+                  "reference_ratio": 0.9952
+                },
+                "303": {
+                  "candidate_ratio": 0.0541,
+                  "difference": -0.9408,
+                  "reference_ratio": 0.9949
+                },
+                "404": {
+                  "candidate_ratio": 0.0454,
+                  "difference": -0.9498,
+                  "reference_ratio": 0.9952
+                },
+                "505": {
+                  "candidate_ratio": 0.0471,
+                  "difference": -0.9488,
+                  "reference_ratio": 0.9959
+                }
+              },
+              "reference_ratio": 0.99518
+            }
+          },
+          "from_attempt": "attempt-006",
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0489,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8296,
+                "confirmed_valid": 487,
+                "confirmed_valid_ratio": 0.0487,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 844
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8266,
+                "confirmed_valid": 492,
+                "confirmed_valid_ratio": 0.0492,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 869
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8165,
+                "confirmed_valid": 541,
+                "confirmed_valid_ratio": 0.0541,
+                "no_result": 424,
+                "status": "completed",
+                "undetermined": 870
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8342,
+                "confirmed_valid": 454,
+                "confirmed_valid_ratio": 0.0454,
+                "no_result": 383,
+                "status": "completed",
+                "undetermined": 821
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8232,
+                "confirmed_valid": 471,
+                "confirmed_valid_ratio": 0.0471,
+                "no_result": 430,
+                "status": "completed",
+                "undetermined": 867
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41301,
+              "confirmed_valid": 2445,
+              "no_result": 1983,
+              "undetermined": 4271
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e67151a1b4385494bf98e5ee5487da981d730e336f94d918b819c227da5b1cde",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.0489,
+              "difference": 0.04504,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0487,
+                  "difference": 0.0451,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0492,
+                  "difference": 0.045200000000000004,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0541,
+                  "difference": 0.050100000000000006,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0454,
+                  "difference": 0.040900000000000006,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0471,
+                  "difference": 0.0439,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.0489,
+              "difference": 0.0,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0487,
+                  "difference": 0.0,
+                  "reference_ratio": 0.0487
+                },
+                "202": {
+                  "candidate_ratio": 0.0492,
+                  "difference": 0.0,
+                  "reference_ratio": 0.0492
+                },
+                "303": {
+                  "candidate_ratio": 0.0541,
+                  "difference": 0.0,
+                  "reference_ratio": 0.0541
+                },
+                "404": {
+                  "candidate_ratio": 0.0454,
+                  "difference": 0.0,
+                  "reference_ratio": 0.0454
+                },
+                "505": {
+                  "candidate_ratio": 0.0471,
+                  "difference": 0.0,
+                  "reference_ratio": 0.0471
+                }
+              },
+              "reference_ratio": 0.0489
+            }
+          },
+          "from_attempt": "attempt-010",
+          "id": "v005",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0489,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8296,
+                "confirmed_valid": 487,
+                "confirmed_valid_ratio": 0.0487,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 844
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8266,
+                "confirmed_valid": 492,
+                "confirmed_valid_ratio": 0.0492,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 869
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8165,
+                "confirmed_valid": 541,
+                "confirmed_valid_ratio": 0.0541,
+                "no_result": 424,
+                "status": "completed",
+                "undetermined": 870
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8342,
+                "confirmed_valid": 454,
+                "confirmed_valid_ratio": 0.0454,
+                "no_result": 383,
+                "status": "completed",
+                "undetermined": 821
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8232,
+                "confirmed_valid": 471,
+                "confirmed_valid_ratio": 0.0471,
+                "no_result": 430,
+                "status": "completed",
+                "undetermined": 867
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41301,
+              "confirmed_valid": 2445,
+              "no_result": 1983,
+              "undetermined": 4271
+            }
+          }
+        }
+      ],
+      "adopted_count": 5,
+      "attempts": [
+        {
+          "adopted_id": "v001",
+          "candidate_sha256": "9ab132b0fa4e2ca22d18e8e681b6430eed62b155a9b7d760060c184e1f11e510",
+          "feedback_summary": "",
+          "id": "attempt-001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00302,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 2866,
+                "confirmed_valid": 29,
+                "confirmed_valid_ratio": 0.0029,
+                "no_result": 6539,
+                "status": "completed",
+                "undetermined": 566
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 2929,
+                "confirmed_valid": 31,
+                "confirmed_valid_ratio": 0.0031,
+                "no_result": 6420,
+                "status": "completed",
+                "undetermined": 620
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 2880,
+                "confirmed_valid": 28,
+                "confirmed_valid_ratio": 0.0028,
+                "no_result": 6483,
+                "status": "completed",
+                "undetermined": 609
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 2893,
+                "confirmed_valid": 37,
+                "confirmed_valid_ratio": 0.0037,
+                "no_result": 6482,
+                "status": "completed",
+                "undetermined": 588
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 2934,
+                "confirmed_valid": 26,
+                "confirmed_valid_ratio": 0.0026,
+                "no_result": 6438,
+                "status": "completed",
+                "undetermined": 602
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 14502,
+              "confirmed_valid": 151,
+              "no_result": 32362,
+              "undetermined": 2985
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 229376,
+              "input_tokens": 244668,
+              "output_tokens": 2437,
+              "reasoning_output_tokens": 1476,
+              "status": "available"
+            },
+            "wall_seconds": 60.456004340201616
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 246272,
+              "input_tokens": 267168,
+              "output_tokens": 3355,
+              "reasoning_output_tokens": 2250,
+              "status": "available"
+            },
+            "wall_seconds": 78.59161751787178
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with two inductive constructors for the single and recursive environment cases."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "276bb586ccbc35bc445703547d6e44d42bf2e25b53231c62f78fe047fa6cb485",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-002",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 547328,
+              "input_tokens": 574059,
+              "output_tokens": 5454,
+              "reasoning_output_tokens": 2772,
+              "status": "available"
+            },
+            "wall_seconds": 138.97931752214208
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-001/attempt-002/roles/inspector-c88ce280ecd6452ab36f1f34e087dc33/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 224000,
+              "input_tokens": 242364,
+              "output_tokens": 6258,
+              "reasoning_output_tokens": 4927,
+              "status": "available"
+            },
+            "wall_seconds": 126.59532348811626
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with an inductive helper for the fixed two-entity schema and single and recursive environment constructors."
+        },
+        {
+          "adopted_id": "v002",
+          "candidate_sha256": "e38a77c267672f32f7cb4f4dab76a368f3523d97e7664330cebfd54603739f97",
+          "feedback_summary": "",
+          "id": "attempt-003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.04918,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8238,
+                "confirmed_valid": 508,
+                "confirmed_valid_ratio": 0.0508,
+                "no_result": 399,
+                "status": "completed",
+                "undetermined": 855
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8169,
+                "confirmed_valid": 520,
+                "confirmed_valid_ratio": 0.052,
+                "no_result": 409,
+                "status": "completed",
+                "undetermined": 902
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8290,
+                "confirmed_valid": 483,
+                "confirmed_valid_ratio": 0.0483,
+                "no_result": 392,
+                "status": "completed",
+                "undetermined": 835
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8219,
+                "confirmed_valid": 488,
+                "confirmed_valid_ratio": 0.0488,
+                "no_result": 419,
+                "status": "completed",
+                "undetermined": 874
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8300,
+                "confirmed_valid": 460,
+                "confirmed_valid_ratio": 0.046,
+                "no_result": 405,
+                "status": "completed",
+                "undetermined": 835
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41216,
+              "confirmed_valid": 2459,
+              "no_result": 2024,
+              "undetermined": 4301
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 189312,
+              "input_tokens": 222044,
+              "output_tokens": 3854,
+              "reasoning_output_tokens": 2574,
+              "status": "available"
+            },
+            "wall_seconds": 84.27660390199162
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 936576,
+              "input_tokens": 965927,
+              "output_tokens": 9602,
+              "reasoning_output_tokens": 6628,
+              "status": "available"
+            },
+            "wall_seconds": 213.6407062059734
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with a predecessor case and specialized true and false literal cases."
+        },
+        {
+          "adopted_id": "v003",
+          "candidate_sha256": "4105211b1f9d714c868779083da910f16bee19c795dbdc5e8af7bcf6e58b489e",
+          "feedback_summary": "",
+          "id": "attempt-004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99518,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9947,
+                "confirmed_valid_ratio": 0.9947,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 53
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9952,
+                "confirmed_valid_ratio": 0.9952,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 48
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9949,
+                "confirmed_valid_ratio": 0.9949,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 51
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9952,
+                "confirmed_valid_ratio": 0.9952,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 48
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9959,
+                "confirmed_valid_ratio": 0.9959,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 41
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49759,
+              "no_result": 0,
+              "undetermined": 241
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 207616,
+              "input_tokens": 226251,
+              "output_tokens": 7008,
+              "reasoning_output_tokens": 4580,
+              "status": "available"
+            },
+            "wall_seconds": 150.3467571171932
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 629248,
+              "input_tokens": 654034,
+              "output_tokens": 12347,
+              "reasoning_output_tokens": 8348,
+              "status": "available"
+            },
+            "wall_seconds": 249.90358057711273
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive canonical schema case, simple typed expressions, and a direct integer literal case."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "13544d9938dade7694b20048f066ddcaf3a239c872ce4554b7b9b1f6612bd78e",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-005",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 356992,
+              "input_tokens": 389202,
+              "output_tokens": 6025,
+              "reasoning_output_tokens": 2611,
+              "status": "available"
+            },
+            "wall_seconds": 127.35688679199666
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-001/attempt-005/roles/inspector-4b2e8805fc9348fd8c04b891924495b3/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 250624,
+              "input_tokens": 274009,
+              "output_tokens": 6843,
+              "reasoning_output_tokens": 4354,
+              "status": "available"
+            },
+            "wall_seconds": 138.61896785791032
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with an inductive predicate that retains the predecessor and adds canonical expression cases for variables, operators, sets, records, and literal equality."
+        },
+        {
+          "adopted_id": "v004",
+          "candidate_sha256": "21c50375572111ff51c23b8523f7dea0ac9f8e7cc2f77c907052c08cc6efc91b",
+          "feedback_summary": "",
+          "id": "attempt-006",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0489,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8296,
+                "confirmed_valid": 487,
+                "confirmed_valid_ratio": 0.0487,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 844
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8266,
+                "confirmed_valid": 492,
+                "confirmed_valid_ratio": 0.0492,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 869
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8165,
+                "confirmed_valid": 541,
+                "confirmed_valid_ratio": 0.0541,
+                "no_result": 424,
+                "status": "completed",
+                "undetermined": 870
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8342,
+                "confirmed_valid": 454,
+                "confirmed_valid_ratio": 0.0454,
+                "no_result": 383,
+                "status": "completed",
+                "undetermined": 821
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8232,
+                "confirmed_valid": 471,
+                "confirmed_valid_ratio": 0.0471,
+                "no_result": 430,
+                "status": "completed",
+                "undetermined": 867
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41301,
+              "confirmed_valid": 2445,
+              "no_result": 1983,
+              "undetermined": 4271
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 467456,
+              "input_tokens": 487066,
+              "output_tokens": 5229,
+              "reasoning_output_tokens": 2790,
+              "status": "available"
+            },
+            "wall_seconds": 126.57404281385243
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 277248,
+              "input_tokens": 301593,
+              "output_tokens": 4483,
+              "reasoning_output_tokens": 2767,
+              "status": "available"
+            },
+            "wall_seconds": 96.49925503088161
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with inductive cases for equality of identical integer and string literals in single and recursive request environments."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "8957fa233f2fba1f06207a0f8afe84cdf487af5578c16c8caa91c2413e20088d",
+          "feedback_summary": "proof_failed",
+          "id": "attempt-007",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 352640,
+              "input_tokens": 375311,
+              "output_tokens": 4881,
+              "reasoning_output_tokens": 2584,
+              "status": "available"
+            },
+            "wall_seconds": 117.74458140716888
+          },
+          "reason": "Equivalence.v proves the supplied theorem. It compiled with Coq, passed coqchk, and the frozen candidate\u2019s hash is unchanged.",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 195712,
+              "input_tokens": 215787,
+              "output_tokens": 5223,
+              "reasoning_output_tokens": 3439,
+              "status": "available"
+            },
+            "wall_seconds": 110.81294561503455
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with six inductive cases for Boolean literal equality and negation. It compiled with the supplied Coq sources."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "226e2914648f7fac225e2349152c297d4a1fee409897a147f98e5be4336b51c8",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-008",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 345088,
+              "input_tokens": 375137,
+              "output_tokens": 4924,
+              "reasoning_output_tokens": 2674,
+              "status": "available"
+            },
+            "wall_seconds": 110.07453558803536
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-001/attempt-008/roles/inspector-24ff0e2f26904d499ba91b2d3418406a/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 240128,
+              "input_tokens": 263197,
+              "output_tokens": 3528,
+              "reasoning_output_tokens": 2156,
+              "status": "available"
+            },
+            "wall_seconds": 80.21779637690634
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with inductive cases that reuse the predecessor\u2019s SimpleExpr relation across schemas and request lists."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "4df95dc752661c989d026a2c5d947fc4935da8edd754f3a0ee5fd94ceccd3b2e",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-009",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 328448,
+              "input_tokens": 366320,
+              "output_tokens": 5253,
+              "reasoning_output_tokens": 2806,
+              "status": "available"
+            },
+            "wall_seconds": 122.4770116629079
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-001/attempt-009/roles/inspector-d0eb67a04de346bb96014c9e3d11f134/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 263680,
+              "input_tokens": 301024,
+              "output_tokens": 4229,
+              "reasoning_output_tokens": 2244,
+              "status": "available"
+            },
+            "wall_seconds": 92.59180504106916
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with inductive cases for integer negation, addition, comparison, and empty records in single and recursive request environments."
+        },
+        {
+          "adopted_id": "v005",
+          "candidate_sha256": "e67151a1b4385494bf98e5ee5487da981d730e336f94d918b819c227da5b1cde",
+          "feedback_summary": "",
+          "id": "attempt-010",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0489,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 8296,
+                "confirmed_valid": 487,
+                "confirmed_valid_ratio": 0.0487,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 844
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 8266,
+                "confirmed_valid": 492,
+                "confirmed_valid_ratio": 0.0492,
+                "no_result": 373,
+                "status": "completed",
+                "undetermined": 869
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 8165,
+                "confirmed_valid": 541,
+                "confirmed_valid_ratio": 0.0541,
+                "no_result": 424,
+                "status": "completed",
+                "undetermined": 870
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 8342,
+                "confirmed_valid": 454,
+                "confirmed_valid_ratio": 0.0454,
+                "no_result": 383,
+                "status": "completed",
+                "undetermined": 821
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 8232,
+                "confirmed_valid": 471,
+                "confirmed_valid_ratio": 0.0471,
+                "no_result": 430,
+                "status": "completed",
+                "undetermined": 867
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 41301,
+              "confirmed_valid": 2445,
+              "no_result": 1983,
+              "undetermined": 4271
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 276224,
+              "input_tokens": 309154,
+              "output_tokens": 4422,
+              "reasoning_output_tokens": 2535,
+              "status": "available"
+            },
+            "wall_seconds": 97.8940083310008
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 193792,
+              "input_tokens": 214267,
+              "output_tokens": 3798,
+              "reasoning_output_tokens": 2495,
+              "status": "available"
+            },
+            "wall_seconds": 82.94080223701894
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with inductive integer and string literal cases for single and recursive request environments."
+        }
+      ],
+      "best_candidate_id": "v003",
+      "best_confirmed_valid_ratio": 0.99518,
+      "held_out": {
+        "candidate": "v005",
+        "comparison": {
+          "candidate_ratio": 0.04966,
+          "difference": 0.046860000000000006,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 0.0512,
+              "difference": 0.0489,
+              "reference_ratio": 0.0023
+            },
+            "1202": {
+              "candidate_ratio": 0.0471,
+              "difference": 0.0439,
+              "reference_ratio": 0.0032
+            },
+            "1303": {
+              "candidate_ratio": 0.0483,
+              "difference": 0.0454,
+              "reference_ratio": 0.0029
+            },
+            "1404": {
+              "candidate_ratio": 0.0516,
+              "difference": 0.0482,
+              "reference_ratio": 0.0034
+            },
+            "1505": {
+              "candidate_ratio": 0.0501,
+              "difference": 0.0479,
+              "reference_ratio": 0.0022
+            }
+          },
+          "reference_ratio": 0.0028
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 0.04966,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 8233,
+              "confirmed_valid": 512,
+              "confirmed_valid_ratio": 0.0512,
+              "no_result": 394,
+              "status": "completed",
+              "undetermined": 861
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 8305,
+              "confirmed_valid": 471,
+              "confirmed_valid_ratio": 0.0471,
+              "no_result": 397,
+              "status": "completed",
+              "undetermined": 827
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 8260,
+              "confirmed_valid": 483,
+              "confirmed_valid_ratio": 0.0483,
+              "no_result": 408,
+              "status": "completed",
+              "undetermined": 849
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 8229,
+              "confirmed_valid": 516,
+              "confirmed_valid_ratio": 0.0516,
+              "no_result": 389,
+              "status": "completed",
+              "undetermined": 866
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 8268,
+              "confirmed_valid": 501,
+              "confirmed_valid_ratio": 0.0501,
+              "no_result": 366,
+              "status": "completed",
+              "undetermined": 865
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 41295,
+            "confirmed_valid": 2483,
+            "no_result": 1954,
+            "undetermined": 4268
+          }
+        },
+        "status": "completed"
+      },
+      "last_candidate_id": "v005",
+      "proposal_count": 10,
+      "stop_reason": "attempt_limit"
+    },
+    "run-002": {
+      "adopted": [
+        {
+          "candidate_sha256": "d6ae00eeb6660e7a95653ee512bbbba68785b431a79bc377dc69b3ff0e1348f1",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.00302,
+              "difference": -0.00084,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0029,
+                  "difference": -0.0007000000000000001,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0031,
+                  "difference": -0.0009000000000000002,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0028,
+                  "difference": -0.0012000000000000001,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0037,
+                  "difference": -0.0007999999999999995,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0026,
+                  "difference": -0.0006000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.00302,
+              "difference": -0.00084,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0029,
+                  "difference": -0.0007000000000000001,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0031,
+                  "difference": -0.0009000000000000002,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0028,
+                  "difference": -0.0012000000000000001,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0037,
+                  "difference": -0.0007999999999999995,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0026,
+                  "difference": -0.0006000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            }
+          },
+          "from_attempt": "attempt-001",
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00302,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 2866,
+                "confirmed_valid": 29,
+                "confirmed_valid_ratio": 0.0029,
+                "no_result": 6539,
+                "status": "completed",
+                "undetermined": 566
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 2929,
+                "confirmed_valid": 31,
+                "confirmed_valid_ratio": 0.0031,
+                "no_result": 6420,
+                "status": "completed",
+                "undetermined": 620
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 2880,
+                "confirmed_valid": 28,
+                "confirmed_valid_ratio": 0.0028,
+                "no_result": 6483,
+                "status": "completed",
+                "undetermined": 609
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 2893,
+                "confirmed_valid": 37,
+                "confirmed_valid_ratio": 0.0037,
+                "no_result": 6482,
+                "status": "completed",
+                "undetermined": 588
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 2934,
+                "confirmed_valid": 26,
+                "confirmed_valid_ratio": 0.0026,
+                "no_result": 6438,
+                "status": "completed",
+                "undetermined": 602
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 14502,
+              "confirmed_valid": 151,
+              "no_result": 32362,
+              "undetermined": 2985
+            }
+          }
+        },
+        {
+          "candidate_sha256": "886f6116d2bf874705b06ef8e273aed21abe4694b31450184ec5a673ffaf5a05",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.0007,
+              "difference": -0.00316,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0028,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.003,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0003,
+                  "difference": -0.0037,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0036999999999999997,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0006,
+                  "difference": -0.0026000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.0007,
+              "difference": -0.00232,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0021,
+                  "reference_ratio": 0.0029
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.0021,
+                  "reference_ratio": 0.0031
+                },
+                "303": {
+                  "candidate_ratio": 0.0003,
+                  "difference": -0.0025,
+                  "reference_ratio": 0.0028
+                },
+                "404": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0029000000000000002,
+                  "reference_ratio": 0.0037
+                },
+                "505": {
+                  "candidate_ratio": 0.0006,
+                  "difference": -0.002,
+                  "reference_ratio": 0.0026
+                }
+              },
+              "reference_ratio": 0.00302
+            }
+          },
+          "from_attempt": "attempt-002",
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0007,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 389,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 393,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9525,
+                "status": "completed",
+                "undetermined": 72
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 401,
+                "confirmed_valid": 3,
+                "confirmed_valid_ratio": 0.0003,
+                "no_result": 9514,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 386,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 85
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 391,
+                "confirmed_valid": 6,
+                "confirmed_valid_ratio": 0.0006,
+                "no_result": 9542,
+                "status": "completed",
+                "undetermined": 61
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 1960,
+              "confirmed_valid": 35,
+              "no_result": 47623,
+              "undetermined": 382
+            }
+          }
+        },
+        {
+          "candidate_sha256": "59dfa164f4064d91070fe31316ca30f8dd1846c76edfa3bb45ec179c12a15893",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.04138,
+              "difference": 0.03752,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0447,
+                  "difference": 0.0411,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0381,
+                  "difference": 0.034100000000000005,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0403,
+                  "difference": 0.0363,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0388,
+                  "difference": 0.034300000000000004,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.045,
+                  "difference": 0.0418,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.04138,
+              "difference": 0.04068,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0447,
+                  "difference": 0.043899999999999995,
+                  "reference_ratio": 0.0008
+                },
+                "202": {
+                  "candidate_ratio": 0.0381,
+                  "difference": 0.0371,
+                  "reference_ratio": 0.001
+                },
+                "303": {
+                  "candidate_ratio": 0.0403,
+                  "difference": 0.04,
+                  "reference_ratio": 0.0003
+                },
+                "404": {
+                  "candidate_ratio": 0.0388,
+                  "difference": 0.038,
+                  "reference_ratio": 0.0008
+                },
+                "505": {
+                  "candidate_ratio": 0.045,
+                  "difference": 0.044399999999999995,
+                  "reference_ratio": 0.0006
+                }
+              },
+              "reference_ratio": 0.0007
+            }
+          },
+          "from_attempt": "attempt-004",
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.04138,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 5776,
+                "confirmed_valid": 447,
+                "confirmed_valid_ratio": 0.0447,
+                "no_result": 3295,
+                "status": "completed",
+                "undetermined": 482
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 5810,
+                "confirmed_valid": 381,
+                "confirmed_valid_ratio": 0.0381,
+                "no_result": 3400,
+                "status": "completed",
+                "undetermined": 409
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 5921,
+                "confirmed_valid": 403,
+                "confirmed_valid_ratio": 0.0403,
+                "no_result": 3239,
+                "status": "completed",
+                "undetermined": 437
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 5939,
+                "confirmed_valid": 388,
+                "confirmed_valid_ratio": 0.0388,
+                "no_result": 3285,
+                "status": "completed",
+                "undetermined": 388
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 5870,
+                "confirmed_valid": 450,
+                "confirmed_valid_ratio": 0.045,
+                "no_result": 3283,
+                "status": "completed",
+                "undetermined": 397
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 29316,
+              "confirmed_valid": 2069,
+              "no_result": 16502,
+              "undetermined": 2113
+            }
+          }
+        },
+        {
+          "candidate_sha256": "6b49df7168fbce72824eaf63f95dd3291a040036fcb38ce190a023a723034742",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 0.95862,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9553,
+                  "reference_ratio": 0.0447
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9619,
+                  "reference_ratio": 0.0381
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9597,
+                  "reference_ratio": 0.0403
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9612,
+                  "reference_ratio": 0.0388
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.955,
+                  "reference_ratio": 0.045
+                }
+              },
+              "reference_ratio": 0.04138
+            }
+          },
+          "from_attempt": "attempt-005",
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        },
+        {
+          "candidate_sha256": "259c445ee2917342f230f92699899f3c72d62c0fda25cbd53228d66e37cbf5fd",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 0.0,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 1.0
+            }
+          },
+          "from_attempt": "attempt-006",
+          "id": "v005",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        },
+        {
+          "candidate_sha256": "9459c9660eecbe2427b35156814df9fe79e766a3dd8407af3078e3dd4cd328ea",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.93244,
+              "difference": 0.9285800000000001,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9326,
+                  "difference": 0.9289999999999999,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.9329,
+                  "difference": 0.9289,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.9318,
+                  "difference": 0.9278,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.9336,
+                  "difference": 0.9291,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.9313,
+                  "difference": 0.9281,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.93244,
+              "difference": -0.06755999999999995,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9326,
+                  "difference": -0.06740000000000002,
+                  "reference_ratio": 1.0
+                },
+                "202": {
+                  "candidate_ratio": 0.9329,
+                  "difference": -0.06710000000000005,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 0.9318,
+                  "difference": -0.06820000000000004,
+                  "reference_ratio": 1.0
+                },
+                "404": {
+                  "candidate_ratio": 0.9336,
+                  "difference": -0.06640000000000001,
+                  "reference_ratio": 1.0
+                },
+                "505": {
+                  "candidate_ratio": 0.9313,
+                  "difference": -0.06869999999999998,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 1.0
+            }
+          },
+          "from_attempt": "attempt-007",
+          "id": "v006",
+          "measurement": {
+            "confirmed_valid_ratio": 0.93244,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9326,
+                "confirmed_valid_ratio": 0.9326,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 674
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9329,
+                "confirmed_valid_ratio": 0.9329,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 671
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9318,
+                "confirmed_valid_ratio": 0.9318,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 682
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9336,
+                "confirmed_valid_ratio": 0.9336,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 664
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9313,
+                "confirmed_valid_ratio": 0.9313,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 687
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 46622,
+              "no_result": 0,
+              "undetermined": 3378
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e79ff109c90b020122e0817f6e9906c5f1b5d62dcb25c243867d34cc7b443eb3",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99396,
+              "difference": 0.9901,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9939,
+                  "difference": 0.9903,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.9946,
+                  "difference": 0.9906,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.9938,
+                  "difference": 0.9898,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.9942,
+                  "difference": 0.9897,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.9933,
+                  "difference": 0.9901,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99396,
+              "difference": 0.06151999999999991,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9939,
+                  "difference": 0.06130000000000002,
+                  "reference_ratio": 0.9326
+                },
+                "202": {
+                  "candidate_ratio": 0.9946,
+                  "difference": 0.06170000000000009,
+                  "reference_ratio": 0.9329
+                },
+                "303": {
+                  "candidate_ratio": 0.9938,
+                  "difference": 0.062000000000000055,
+                  "reference_ratio": 0.9318
+                },
+                "404": {
+                  "candidate_ratio": 0.9942,
+                  "difference": 0.06059999999999999,
+                  "reference_ratio": 0.9336
+                },
+                "505": {
+                  "candidate_ratio": 0.9933,
+                  "difference": 0.061999999999999944,
+                  "reference_ratio": 0.9313
+                }
+              },
+              "reference_ratio": 0.93244
+            }
+          },
+          "from_attempt": "attempt-008",
+          "id": "v007",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99396,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9939,
+                "confirmed_valid_ratio": 0.9939,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 61
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9946,
+                "confirmed_valid_ratio": 0.9946,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 54
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9938,
+                "confirmed_valid_ratio": 0.9938,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 62
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9942,
+                "confirmed_valid_ratio": 0.9942,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 58
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9933,
+                "confirmed_valid_ratio": 0.9933,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 67
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49698,
+              "no_result": 0,
+              "undetermined": 302
+            }
+          }
+        },
+        {
+          "candidate_sha256": "fefaeb54711797e2f3a789c038cf2482e544b1a2214d711eb13304f0ff824ec4",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.0,
+              "difference": -0.00386,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.0036,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.004,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.004,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.0045,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.0032,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.0,
+              "difference": -0.99396,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.9939,
+                  "reference_ratio": 0.9939
+                },
+                "202": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.9946,
+                  "reference_ratio": 0.9946
+                },
+                "303": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.9938,
+                  "reference_ratio": 0.9938
+                },
+                "404": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.9942,
+                  "reference_ratio": 0.9942
+                },
+                "505": {
+                  "candidate_ratio": 0.0,
+                  "difference": -0.9933,
+                  "reference_ratio": 0.9933
+                }
+              },
+              "reference_ratio": 0.99396
+            }
+          },
+          "from_attempt": "attempt-009",
+          "id": "v008",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 0,
+              "no_result": 0,
+              "undetermined": 50000
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4a73908450c5e1515e401abae22325afeb04e2dc1066b5fb121e0a88e91a2223",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 1.0,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 1.0,
+                  "reference_ratio": 0.0
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 1.0,
+                  "reference_ratio": 0.0
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 1.0,
+                  "reference_ratio": 0.0
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 1.0,
+                  "reference_ratio": 0.0
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 1.0,
+                  "reference_ratio": 0.0
+                }
+              },
+              "reference_ratio": 0.0
+            }
+          },
+          "from_attempt": "attempt-010",
+          "id": "v009",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        }
+      ],
+      "adopted_count": 9,
+      "attempts": [
+        {
+          "adopted_id": "v001",
+          "candidate_sha256": "d6ae00eeb6660e7a95653ee512bbbba68785b431a79bc377dc69b3ff0e1348f1",
+          "feedback_summary": "",
+          "id": "attempt-001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.00302,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 2866,
+                "confirmed_valid": 29,
+                "confirmed_valid_ratio": 0.0029,
+                "no_result": 6539,
+                "status": "completed",
+                "undetermined": 566
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 2929,
+                "confirmed_valid": 31,
+                "confirmed_valid_ratio": 0.0031,
+                "no_result": 6420,
+                "status": "completed",
+                "undetermined": 620
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 2880,
+                "confirmed_valid": 28,
+                "confirmed_valid_ratio": 0.0028,
+                "no_result": 6483,
+                "status": "completed",
+                "undetermined": 609
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 2893,
+                "confirmed_valid": 37,
+                "confirmed_valid_ratio": 0.0037,
+                "no_result": 6482,
+                "status": "completed",
+                "undetermined": 588
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 2934,
+                "confirmed_valid": 26,
+                "confirmed_valid_ratio": 0.0026,
+                "no_result": 6438,
+                "status": "completed",
+                "undetermined": 602
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 14502,
+              "confirmed_valid": 151,
+              "no_result": 32362,
+              "undetermined": 2985
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 259456,
+              "input_tokens": 275569,
+              "output_tokens": 3874,
+              "reasoning_output_tokens": 2622,
+              "status": "available"
+            },
+            "wall_seconds": 90.88761699898168
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 291712,
+              "input_tokens": 311577,
+              "output_tokens": 4841,
+              "reasoning_output_tokens": 3234,
+              "status": "available"
+            },
+            "wall_seconds": 103.74221684597433
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with two inductive constructors for singleton and nonempty request lists."
+        },
+        {
+          "adopted_id": "v002",
+          "candidate_sha256": "886f6116d2bf874705b06ef8e273aed21abe4694b31450184ec5a673ffaf5a05",
+          "feedback_summary": "",
+          "id": "attempt-002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0007,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 389,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 393,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9525,
+                "status": "completed",
+                "undetermined": 72
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 401,
+                "confirmed_valid": 3,
+                "confirmed_valid_ratio": 0.0003,
+                "no_result": 9514,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 386,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 85
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 391,
+                "confirmed_valid": 6,
+                "confirmed_valid_ratio": 0.0006,
+                "no_result": 9542,
+                "status": "completed",
+                "undetermined": 61
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 1960,
+              "confirmed_valid": 35,
+              "no_result": 47623,
+              "undetermined": 382
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 291968,
+              "input_tokens": 309258,
+              "output_tokens": 2932,
+              "reasoning_output_tokens": 1556,
+              "status": "available"
+            },
+            "wall_seconds": 81.05097712785937
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 352768,
+              "input_tokens": 374944,
+              "output_tokens": 4231,
+              "reasoning_output_tokens": 2803,
+              "status": "available"
+            },
+            "wall_seconds": 103.93321073916741
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with one inductive constructor that aligns each request with its environment."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "3dbd34672454c08167f6da2a722f0c25dbd9670176de8f76bc89cbdc3065e68a",
+          "feedback_summary": "proof_failed",
+          "id": "attempt-003",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 221184,
+              "input_tokens": 236812,
+              "output_tokens": 3716,
+              "reasoning_output_tokens": 2191,
+              "status": "available"
+            },
+            "wall_seconds": 79.72230823989958
+          },
+          "reason": "Equivalence.v proves the supplied theorem. Coq compilation succeeded, and Print Assumptions reports that equivalent is closed under the global context.",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 251520,
+              "input_tokens": 281037,
+              "output_tokens": 7984,
+              "reasoning_output_tokens": 6309,
+              "status": "available"
+            },
+            "wall_seconds": 164.03852536110207
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with five constructors for simple typed expressions and one general constructor."
+        },
+        {
+          "adopted_id": "v003",
+          "candidate_sha256": "59dfa164f4064d91070fe31316ca30f8dd1846c76edfa3bb45ec179c12a15893",
+          "feedback_summary": "",
+          "id": "attempt-004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.04138,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 5776,
+                "confirmed_valid": 447,
+                "confirmed_valid_ratio": 0.0447,
+                "no_result": 3295,
+                "status": "completed",
+                "undetermined": 482
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 5810,
+                "confirmed_valid": 381,
+                "confirmed_valid_ratio": 0.0381,
+                "no_result": 3400,
+                "status": "completed",
+                "undetermined": 409
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 5921,
+                "confirmed_valid": 403,
+                "confirmed_valid_ratio": 0.0403,
+                "no_result": 3239,
+                "status": "completed",
+                "undetermined": 437
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 5939,
+                "confirmed_valid": 388,
+                "confirmed_valid_ratio": 0.0388,
+                "no_result": 3285,
+                "status": "completed",
+                "undetermined": 388
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 5870,
+                "confirmed_valid": 450,
+                "confirmed_valid_ratio": 0.045,
+                "no_result": 3283,
+                "status": "completed",
+                "undetermined": 397
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 29316,
+              "confirmed_valid": 2069,
+              "no_result": 16502,
+              "undetermined": 2113
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 257792,
+              "input_tokens": 279168,
+              "output_tokens": 3293,
+              "reasoning_output_tokens": 1869,
+              "status": "available"
+            },
+            "wall_seconds": 87.68894479400478
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 156288,
+              "input_tokens": 173043,
+              "output_tokens": 3053,
+              "reasoning_output_tokens": 2082,
+              "status": "available"
+            },
+            "wall_seconds": 73.75099495099857
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate covering a singleton request with a false Boolean literal and a case using the predecessor predicate. It compiles with coqc."
+        },
+        {
+          "adopted_id": "v004",
+          "candidate_sha256": "6b49df7168fbce72824eaf63f95dd3291a040036fcb38ce190a023a723034742",
+          "feedback_summary": "",
+          "id": "attempt-005",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 306560,
+              "input_tokens": 346931,
+              "output_tokens": 5992,
+              "reasoning_output_tokens": 3855,
+              "status": "available"
+            },
+            "wall_seconds": 135.66210335399956
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 244224,
+              "input_tokens": 263297,
+              "output_tokens": 9147,
+              "reasoning_output_tokens": 6904,
+              "status": "available"
+            },
+            "wall_seconds": 189.02602806407958
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with five literal and empty-record cases over a fixed one-action schema, plus a constructor retaining the predecessor predicate."
+        },
+        {
+          "adopted_id": "v005",
+          "candidate_sha256": "259c445ee2917342f230f92699899f3c72d62c0fda25cbd53228d66e37cbf5fd",
+          "feedback_summary": "",
+          "id": "attempt-006",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 511616,
+              "input_tokens": 546983,
+              "output_tokens": 6630,
+              "reasoning_output_tokens": 4204,
+              "status": "available"
+            },
+            "wall_seconds": 155.9711856918875
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 169984,
+              "input_tokens": 189248,
+              "output_tokens": 3579,
+              "reasoning_output_tokens": 2263,
+              "status": "available"
+            },
+            "wall_seconds": 77.45700509403832
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive integer-expression relation and a predicate case for it, while retaining the predecessor case."
+        },
+        {
+          "adopted_id": "v006",
+          "candidate_sha256": "9459c9660eecbe2427b35156814df9fe79e766a3dd8407af3078e3dd4cd328ea",
+          "feedback_summary": "",
+          "id": "attempt-007",
+          "measurement": {
+            "confirmed_valid_ratio": 0.93244,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9326,
+                "confirmed_valid_ratio": 0.9326,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 674
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9329,
+                "confirmed_valid_ratio": 0.9329,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 671
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9318,
+                "confirmed_valid_ratio": 0.9318,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 682
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9336,
+                "confirmed_valid_ratio": 0.9336,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 664
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9313,
+                "confirmed_valid_ratio": 0.9313,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 687
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 46622,
+              "no_result": 0,
+              "undetermined": 3378
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 383104,
+              "input_tokens": 404641,
+              "output_tokens": 7719,
+              "reasoning_output_tokens": 3647,
+              "status": "available"
+            },
+            "wall_seconds": 173.4880379009992
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 227584,
+              "input_tokens": 251008,
+              "output_tokens": 3778,
+              "reasoning_output_tokens": 2469,
+              "status": "available"
+            },
+            "wall_seconds": 84.6421297120396
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive case for integer comparisons and their negations, plus a case retaining the predecessor predicate. It compiles with coqc."
+        },
+        {
+          "adopted_id": "v007",
+          "candidate_sha256": "e79ff109c90b020122e0817f6e9906c5f1b5d62dcb25c243867d34cc7b443eb3",
+          "feedback_summary": "",
+          "id": "attempt-008",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99396,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9939,
+                "confirmed_valid_ratio": 0.9939,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 61
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9946,
+                "confirmed_valid_ratio": 0.9946,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 54
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9938,
+                "confirmed_valid_ratio": 0.9938,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 62
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9942,
+                "confirmed_valid_ratio": 0.9942,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 58
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9933,
+                "confirmed_valid_ratio": 0.9933,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 67
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49698,
+              "no_result": 0,
+              "undetermined": 302
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 583680,
+              "input_tokens": 605031,
+              "output_tokens": 6586,
+              "reasoning_output_tokens": 3582,
+              "status": "available"
+            },
+            "wall_seconds": 154.79295167699456
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 249984,
+              "input_tokens": 270695,
+              "output_tokens": 4775,
+              "reasoning_output_tokens": 3397,
+              "status": "available"
+            },
+            "wall_seconds": 108.16274507297203
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive case for nonempty integer sets, retaining the predecessor predicate."
+        },
+        {
+          "adopted_id": "v008",
+          "candidate_sha256": "fefaeb54711797e2f3a789c038cf2482e544b1a2214d711eb13304f0ff824ec4",
+          "feedback_summary": "",
+          "id": "attempt-009",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 0,
+                "confirmed_valid_ratio": 0.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 10000
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 0,
+              "no_result": 0,
+              "undetermined": 50000
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 358784,
+              "input_tokens": 391320,
+              "output_tokens": 6546,
+              "reasoning_output_tokens": 4196,
+              "status": "available"
+            },
+            "wall_seconds": 136.6369053919334
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 203648,
+              "input_tokens": 225853,
+              "output_tokens": 3851,
+              "reasoning_output_tokens": 2595,
+              "status": "available"
+            },
+            "wall_seconds": 92.97367916093208
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an Inductive case for one-field integer records and a constructor retaining the predecessor predicate."
+        },
+        {
+          "adopted_id": "v009",
+          "candidate_sha256": "4a73908450c5e1515e401abae22325afeb04e2dc1066b5fb121e0a88e91a2223",
+          "feedback_summary": "",
+          "id": "attempt-010",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 432256,
+              "input_tokens": 457294,
+              "output_tokens": 5918,
+              "reasoning_output_tokens": 2738,
+              "status": "available"
+            },
+            "wall_seconds": 141.54933058517054
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 218112,
+              "input_tokens": 243691,
+              "output_tokens": 3572,
+              "reasoning_output_tokens": 2222,
+              "status": "available"
+            },
+            "wall_seconds": 86.49901726003736
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with inductive cases for principal, resource, and context variables, plus the predecessor case. Coq compilation passed."
+        }
+      ],
+      "best_candidate_id": "v004",
+      "best_confirmed_valid_ratio": 1.0,
+      "held_out": {
+        "candidate": "v009",
+        "comparison": {
+          "candidate_ratio": 1.0,
+          "difference": 0.9972,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9977,
+              "reference_ratio": 0.0023
+            },
+            "1202": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9968,
+              "reference_ratio": 0.0032
+            },
+            "1303": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9971,
+              "reference_ratio": 0.0029
+            },
+            "1404": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9966,
+              "reference_ratio": 0.0034
+            },
+            "1505": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9978,
+              "reference_ratio": 0.0022
+            }
+          },
+          "reference_ratio": 0.0028
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 1.0,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 0,
+            "confirmed_valid": 50000,
+            "no_result": 0,
+            "undetermined": 0
+          }
+        },
+        "status": "completed"
+      },
+      "last_candidate_id": "v009",
+      "proposal_count": 10,
+      "stop_reason": "attempt_limit"
+    },
+    "run-003": {
+      "adopted": [
+        {
+          "candidate_sha256": "e48d86d83cf419834856ae7d667f3c47cfe514e1e73c58013704d3deabe70b14",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.0007,
+              "difference": -0.00316,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0028,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.003,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0003,
+                  "difference": -0.0037,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0036999999999999997,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0006,
+                  "difference": -0.0026000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.0007,
+              "difference": -0.00316,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0028,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.001,
+                  "difference": -0.003,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.0003,
+                  "difference": -0.0037,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.0008,
+                  "difference": -0.0036999999999999997,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.0006,
+                  "difference": -0.0026000000000000003,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            }
+          },
+          "from_attempt": "attempt-001",
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0007,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 389,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 393,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9525,
+                "status": "completed",
+                "undetermined": 72
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 401,
+                "confirmed_valid": 3,
+                "confirmed_valid_ratio": 0.0003,
+                "no_result": 9514,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 386,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 85
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 391,
+                "confirmed_valid": 6,
+                "confirmed_valid_ratio": 0.0006,
+                "no_result": 9542,
+                "status": "completed",
+                "undetermined": 61
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 1960,
+              "confirmed_valid": 35,
+              "no_result": 47623,
+              "undetermined": 382
+            }
+          }
+        },
+        {
+          "candidate_sha256": "3e004e513139f2504602b6817f4872739f059e0111101b54642f7449613b4fb3",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 0.9993,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9992,
+                  "reference_ratio": 0.0008
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.999,
+                  "reference_ratio": 0.001
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9997,
+                  "reference_ratio": 0.0003
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9992,
+                  "reference_ratio": 0.0008
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9994,
+                  "reference_ratio": 0.0006
+                }
+              },
+              "reference_ratio": 0.0007
+            }
+          },
+          "from_attempt": "attempt-006",
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4a2bc0f552f3280469cd64813fdc394376408bd97254f477e01356d66e0db312",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 1.0,
+              "difference": 0.99614,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9964,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.996,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9955,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.9968,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 1.0,
+              "difference": 0.0,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "404": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 1.0
+            }
+          },
+          "from_attempt": "attempt-007",
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          }
+        },
+        {
+          "candidate_sha256": "31904dc9e2a6e016b34535ab6d364e44858f8861f477ef7e4c48509359ff3893",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.86102,
+              "difference": 0.85716,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.8654,
+                  "difference": 0.8617999999999999,
+                  "reference_ratio": 0.0036
+                },
+                "202": {
+                  "candidate_ratio": 0.8624,
+                  "difference": 0.8584,
+                  "reference_ratio": 0.004
+                },
+                "303": {
+                  "candidate_ratio": 0.8556,
+                  "difference": 0.8516,
+                  "reference_ratio": 0.004
+                },
+                "404": {
+                  "candidate_ratio": 0.8596,
+                  "difference": 0.8551000000000001,
+                  "reference_ratio": 0.0045
+                },
+                "505": {
+                  "candidate_ratio": 0.8621,
+                  "difference": 0.8589,
+                  "reference_ratio": 0.0032
+                }
+              },
+              "reference_ratio": 0.00386
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.86102,
+              "difference": -0.13898,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.8654,
+                  "difference": -0.13460000000000005,
+                  "reference_ratio": 1.0
+                },
+                "202": {
+                  "candidate_ratio": 0.8624,
+                  "difference": -0.13759999999999994,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 0.8556,
+                  "difference": -0.14439999999999997,
+                  "reference_ratio": 1.0
+                },
+                "404": {
+                  "candidate_ratio": 0.8596,
+                  "difference": -0.14039999999999997,
+                  "reference_ratio": 1.0
+                },
+                "505": {
+                  "candidate_ratio": 0.8621,
+                  "difference": -0.13790000000000002,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 1.0
+            }
+          },
+          "from_attempt": "attempt-010",
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.86102,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8654,
+                "confirmed_valid_ratio": 0.8654,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1346
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8624,
+                "confirmed_valid_ratio": 0.8624,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1376
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8556,
+                "confirmed_valid_ratio": 0.8556,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1444
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8596,
+                "confirmed_valid_ratio": 0.8596,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1404
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8621,
+                "confirmed_valid_ratio": 0.8621,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1379
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 43051,
+              "no_result": 0,
+              "undetermined": 6949
+            }
+          }
+        }
+      ],
+      "adopted_count": 4,
+      "attempts": [
+        {
+          "adopted_id": "v001",
+          "candidate_sha256": "e48d86d83cf419834856ae7d667f3c47cfe514e1e73c58013704d3deabe70b14",
+          "feedback_summary": "",
+          "id": "attempt-001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.0007,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 389,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 393,
+                "confirmed_valid": 10,
+                "confirmed_valid_ratio": 0.001,
+                "no_result": 9525,
+                "status": "completed",
+                "undetermined": 72
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 401,
+                "confirmed_valid": 3,
+                "confirmed_valid_ratio": 0.0003,
+                "no_result": 9514,
+                "status": "completed",
+                "undetermined": 82
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 386,
+                "confirmed_valid": 8,
+                "confirmed_valid_ratio": 0.0008,
+                "no_result": 9521,
+                "status": "completed",
+                "undetermined": 85
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 391,
+                "confirmed_valid": 6,
+                "confirmed_valid_ratio": 0.0006,
+                "no_result": 9542,
+                "status": "completed",
+                "undetermined": 61
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 1960,
+              "confirmed_valid": 35,
+              "no_result": 47623,
+              "undetermined": 382
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 322560,
+              "input_tokens": 341599,
+              "output_tokens": 3041,
+              "reasoning_output_tokens": 1793,
+              "status": "available"
+            },
+            "wall_seconds": 76.96361618302763
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 157184,
+              "input_tokens": 175584,
+              "output_tokens": 2794,
+              "reasoning_output_tokens": 1857,
+              "status": "available"
+            },
+            "wall_seconds": 61.798994299955666
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate that makes the first request and its environment explicit."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "d5b9d780a3bbc87d0d2710f02a521b7d2af14cfcdd5e784bc3a1d9b6283f4129",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-002",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 256128,
+              "input_tokens": 273140,
+              "output_tokens": 3634,
+              "reasoning_output_tokens": 2169,
+              "status": "available"
+            },
+            "wall_seconds": 82.11459280899726
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-003/attempt-002/roles/inspector-d3dd4726989240219bfe4cd77940c72c/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 249984,
+              "input_tokens": 269069,
+              "output_tokens": 3322,
+              "reasoning_output_tokens": 1998,
+              "status": "available"
+            },
+            "wall_seconds": 75.63432374503464
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with one Inductive constructor expressing the five original premises."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "08be0e8604635d42fba9840787746a850ed5fab1ca4f1cbe0968ec45fe51e01c",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-003",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 433152,
+              "input_tokens": 453229,
+              "output_tokens": 3167,
+              "reasoning_output_tokens": 1488,
+              "status": "available"
+            },
+            "wall_seconds": 79.55287128384225
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-003/attempt-003/roles/inspector-8338330928914febb641d312b3fd2d96/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 214912,
+              "input_tokens": 236368,
+              "output_tokens": 3230,
+              "reasoning_output_tokens": 2161,
+              "status": "available"
+            },
+            "wall_seconds": 72.4776870161295
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with separate constructors for single and multiple requests."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "39105afad20afb33ec593e6f124665d89aafca0d4bd01e0f7f2bc0091ba3f1ac",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-004",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 256000,
+              "input_tokens": 273826,
+              "output_tokens": 3812,
+              "reasoning_output_tokens": 2535,
+              "status": "available"
+            },
+            "wall_seconds": 94.77112438110635
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-003/attempt-004/roles/inspector-5a28a18e3b3f4016a6459261dd7417b1/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 294528,
+              "input_tokens": 314270,
+              "output_tokens": 5677,
+              "reasoning_output_tokens": 4110,
+              "status": "available"
+            },
+            "wall_seconds": 117.54133033519611
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with four literal-focused constructors and a general constructor using the predecessor relation."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "e51de34adca84a734bee015fcf43e668b6eecfaf5d2e81d4361c6afa8af60a00",
+          "feedback_summary": "proof_failed",
+          "id": "attempt-005",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 189824,
+              "input_tokens": 205224,
+              "output_tokens": 2977,
+              "reasoning_output_tokens": 1818,
+              "status": "available"
+            },
+            "wall_seconds": 69.72740592388436
+          },
+          "reason": "Equivalence.v proves the supplied theorem without admits or new axioms. Coq compilation succeeded using the permitted sources copied under scratch/; the frozen candidate hash matches context.json.",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 264320,
+              "input_tokens": 284394,
+              "output_tokens": 5909,
+              "reasoning_output_tokens": 4333,
+              "status": "available"
+            },
+            "wall_seconds": 122.29896896099672
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with a single-request true-literal constructor and a predecessor fallback."
+        },
+        {
+          "adopted_id": "v002",
+          "candidate_sha256": "3e004e513139f2504602b6817f4872739f059e0111101b54642f7449613b4fb3",
+          "feedback_summary": "",
+          "id": "attempt-006",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 339200,
+              "input_tokens": 385039,
+              "output_tokens": 3889,
+              "reasoning_output_tokens": 2122,
+              "status": "available"
+            },
+            "wall_seconds": 99.69782831403427
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 637184,
+              "input_tokens": 658702,
+              "output_tokens": 8422,
+              "reasoning_output_tokens": 6043,
+              "status": "available"
+            },
+            "wall_seconds": 180.52659559994936
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with a concrete true-literal constructor and a general predecessor constructor."
+        },
+        {
+          "adopted_id": "v003",
+          "candidate_sha256": "4a2bc0f552f3280469cd64813fdc394376408bd97254f477e01356d66e0db312",
+          "feedback_summary": "",
+          "id": "attempt-007",
+          "measurement": {
+            "confirmed_valid_ratio": 1.0,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 50000,
+              "no_result": 0,
+              "undetermined": 0
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 334336,
+              "input_tokens": 357545,
+              "output_tokens": 6501,
+              "reasoning_output_tokens": 3848,
+              "status": "available"
+            },
+            "wall_seconds": 145.6611506131012
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 203648,
+              "input_tokens": 234019,
+              "output_tokens": 5067,
+              "reasoning_output_tokens": 3575,
+              "status": "available"
+            },
+            "wall_seconds": 117.46401917608455
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with an inductive predicate that adds simple typed expression cases and retains the predecessor relation as a fallback."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "032e90af3ccda9769e4b6d8fd408fd3ecc5b3a842a9f0b7a307c42263d44a02c",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-008",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 833152,
+              "input_tokens": 857532,
+              "output_tokens": 7470,
+              "reasoning_output_tokens": 3879,
+              "status": "available"
+            },
+            "wall_seconds": 191.45742518804036
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-003/attempt-008/roles/inspector-b4666cefb74548dfa722f81a93a31b8c/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 396928,
+              "input_tokens": 425820,
+              "output_tokens": 6527,
+              "reasoning_output_tokens": 4130,
+              "status": "available"
+            },
+            "wall_seconds": 140.10106884199195
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with an Inductive predicate adding explicit typed expression cases and a predecessor fallback."
+        },
+        {
+          "adopted_id": null,
+          "candidate_sha256": "d9477aa36f6e47c3c6460c4beb0f9ada638517fad1572a0117b6918a92dd0bf9",
+          "feedback_summary": "inspection_failed",
+          "id": "attempt-009",
+          "measurement": null,
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 602624,
+              "input_tokens": 629228,
+              "output_tokens": 6729,
+              "reasoning_output_tokens": 2696,
+              "status": "available"
+            },
+            "wall_seconds": 166.86221433104947
+          },
+          "reason": "independent inspection did not pass: /workspace/spec4pbt/properties/cedar_no_type_error/.runs/cedar-poc-20261122T025605Z/run-003/attempt-009/roles/inspector-dd70bc23e93d4ba091e67c37682d0342/private-evidence/result.json",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 197376,
+              "input_tokens": 216806,
+              "output_tokens": 5464,
+              "reasoning_output_tokens": 3683,
+              "status": "available"
+            },
+            "wall_seconds": 110.75640523293987
+          },
+          "status": "rejected",
+          "transformation_summary": "Wrote Candidate.v with inductive typed-expression cases and a predecessor fallback. Coq compilation passed."
+        },
+        {
+          "adopted_id": "v004",
+          "candidate_sha256": "31904dc9e2a6e016b34535ab6d364e44858f8861f477ef7e4c48509359ff3893",
+          "feedback_summary": "",
+          "id": "attempt-010",
+          "measurement": {
+            "confirmed_valid_ratio": 0.86102,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8654,
+                "confirmed_valid_ratio": 0.8654,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1346
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8624,
+                "confirmed_valid_ratio": 0.8624,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1376
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8556,
+                "confirmed_valid_ratio": 0.8556,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1444
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8596,
+                "confirmed_valid_ratio": 0.8596,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1404
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 8621,
+                "confirmed_valid_ratio": 0.8621,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1379
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 43051,
+              "no_result": 0,
+              "undetermined": 6949
+            }
+          },
+          "proof_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 532352,
+              "input_tokens": 585692,
+              "output_tokens": 6335,
+              "reasoning_output_tokens": 3244,
+              "status": "available"
+            },
+            "wall_seconds": 140.94638446089812
+          },
+          "reason": "verified",
+          "reformulation_cost": {
+            "status": "measured",
+            "usage": {
+              "cached_input_tokens": 237184,
+              "input_tokens": 257664,
+              "output_tokens": 5602,
+              "reasoning_output_tokens": 3431,
+              "status": "available"
+            },
+            "wall_seconds": 116.09639287996106
+          },
+          "status": "adopted",
+          "transformation_summary": "Wrote Candidate.v with inductive integer expression cases and a predecessor fallback."
+        }
+      ],
+      "best_candidate_id": "v002",
+      "best_confirmed_valid_ratio": 1.0,
+      "held_out": {
+        "candidate": "v004",
+        "comparison": {
+          "candidate_ratio": 0.86136,
+          "difference": 0.85856,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 0.8515,
+              "difference": 0.8492000000000001,
+              "reference_ratio": 0.0023
+            },
+            "1202": {
+              "candidate_ratio": 0.8646,
+              "difference": 0.8614,
+              "reference_ratio": 0.0032
+            },
+            "1303": {
+              "candidate_ratio": 0.8599,
+              "difference": 0.857,
+              "reference_ratio": 0.0029
+            },
+            "1404": {
+              "candidate_ratio": 0.8676,
+              "difference": 0.8642000000000001,
+              "reference_ratio": 0.0034
+            },
+            "1505": {
+              "candidate_ratio": 0.8632,
+              "difference": 0.861,
+              "reference_ratio": 0.0022
+            }
+          },
+          "reference_ratio": 0.0028
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 0.86136,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 8515,
+              "confirmed_valid_ratio": 0.8515,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1485
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 8646,
+              "confirmed_valid_ratio": 0.8646,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1354
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 8599,
+              "confirmed_valid_ratio": 0.8599,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1401
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 8676,
+              "confirmed_valid_ratio": 0.8676,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1324
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 8632,
+              "confirmed_valid_ratio": 0.8632,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1368
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 0,
+            "confirmed_valid": 43068,
+            "no_result": 0,
+            "undetermined": 6932
+          }
+        },
+        "status": "completed"
+      },
+      "last_candidate_id": "v004",
+      "proposal_count": 10,
+      "stop_reason": "attempt_limit"
+    }
+  }
+}

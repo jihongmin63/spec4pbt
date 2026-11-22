@@ -1,0 +1,152 @@
+{
+  "status": "passed",
+  "experiment_id": "cedar-poc-20261122T025605Z",
+  "frozen_commit": "bd50bbfdacbafd3ee1b47d27a954b761b0b7ebd5",
+  "adopted_artifacts": [
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v001/Candidate.v",
+      "sha256": "9ab132b0fa4e2ca22d18e8e681b6430eed62b155a9b7d760060c184e1f11e510"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v001/Equivalence.v",
+      "sha256": "dcff2f81b89a6a650ece8bae747e908a41f7ce7d4a79ae15a370c8ec3852d3ff"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v002/Candidate.v",
+      "sha256": "e38a77c267672f32f7cb4f4dab76a368f3523d97e7664330cebfd54603739f97"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v002/Equivalence.v",
+      "sha256": "75bd9d4f9760af1601841a8c1a1cef0e55c40401d52f893981b10e38aa686eaa"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v003/Candidate.v",
+      "sha256": "4105211b1f9d714c868779083da910f16bee19c795dbdc5e8af7bcf6e58b489e"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v003/Equivalence.v",
+      "sha256": "f9ea777806a8cc794517bcd70bd693b62db041c21ecb04a3c21e28c45518c7ee"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v004/Candidate.v",
+      "sha256": "21c50375572111ff51c23b8523f7dea0ac9f8e7cc2f77c907052c08cc6efc91b"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v004/Equivalence.v",
+      "sha256": "d62c799b0fe1547c0869e798dd4e9d31550e79e79a92d76645ef4e549528f61c"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v005/Candidate.v",
+      "sha256": "e67151a1b4385494bf98e5ee5487da981d730e336f94d918b819c227da5b1cde"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-001/candidates/v005/Equivalence.v",
+      "sha256": "decf0f92364fbfb756648f00e78e5578000627e8d73fce3bf965c87db6167c4d"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v001/Candidate.v",
+      "sha256": "d6ae00eeb6660e7a95653ee512bbbba68785b431a79bc377dc69b3ff0e1348f1"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v001/Equivalence.v",
+      "sha256": "d8759ac1fb5ecd414ed3245b992125c93f4d48b18e2dccd0554f87ee5c22d37d"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v002/Candidate.v",
+      "sha256": "886f6116d2bf874705b06ef8e273aed21abe4694b31450184ec5a673ffaf5a05"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v002/Equivalence.v",
+      "sha256": "86046f866494c33f551bb10184a39e6f135e25b32da9bb1336ae198f84292346"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v003/Candidate.v",
+      "sha256": "59dfa164f4064d91070fe31316ca30f8dd1846c76edfa3bb45ec179c12a15893"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v003/Equivalence.v",
+      "sha256": "bcd2d213aa971c0143d9a1c5ec1172de1a733f3ae936d09c3b4812cae68ed574"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v004/Candidate.v",
+      "sha256": "6b49df7168fbce72824eaf63f95dd3291a040036fcb38ce190a023a723034742"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v004/Equivalence.v",
+      "sha256": "583c018b9291ca9ebc5107e82a05d691d2a640bde6321f10b23025817929694c"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v005/Candidate.v",
+      "sha256": "259c445ee2917342f230f92699899f3c72d62c0fda25cbd53228d66e37cbf5fd"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v005/Equivalence.v",
+      "sha256": "bac80e8d5d4feb7bc272d762f8026819c5a8178a6c29afe783531ac62dfaaa7b"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v006/Candidate.v",
+      "sha256": "9459c9660eecbe2427b35156814df9fe79e766a3dd8407af3078e3dd4cd328ea"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v006/Equivalence.v",
+      "sha256": "20f0789e36d77f67b97323d629f05d32e857b91518fae8e5d843f9b1930fa94a"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v007/Candidate.v",
+      "sha256": "e79ff109c90b020122e0817f6e9906c5f1b5d62dcb25c243867d34cc7b443eb3"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v007/Equivalence.v",
+      "sha256": "8592f93be1536397a091fd75f2a860dcfacea58477fdadbc6854ec751028de97"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v008/Candidate.v",
+      "sha256": "fefaeb54711797e2f3a789c038cf2482e544b1a2214d711eb13304f0ff824ec4"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v008/Equivalence.v",
+      "sha256": "ec377590eea3612ef2ac63badace5fedafc169688532d29ca84144b038309ceb"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v009/Candidate.v",
+      "sha256": "4a73908450c5e1515e401abae22325afeb04e2dc1066b5fb121e0a88e91a2223"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-002/candidates/v009/Equivalence.v",
+      "sha256": "ff65a247829dbc749ed699a87c342c80e83131f0922294b4f589fe46d191c8a4"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v001/Candidate.v",
+      "sha256": "e48d86d83cf419834856ae7d667f3c47cfe514e1e73c58013704d3deabe70b14"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v001/Equivalence.v",
+      "sha256": "03947d493e75194d49aa813897c43900b2f7e1fcbf6711ef5d2f8291f56fea3a"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v002/Candidate.v",
+      "sha256": "3e004e513139f2504602b6817f4872739f059e0111101b54642f7449613b4fb3"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v002/Equivalence.v",
+      "sha256": "43e18abc5168da370a60a93cb079a332c86d2b28154db79290a3b9a27d861236"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v003/Candidate.v",
+      "sha256": "4a2bc0f552f3280469cd64813fdc394376408bd97254f477e01356d66e0db312"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v003/Equivalence.v",
+      "sha256": "85105501879ad30f931b9dc9bdc9331388d2d63432bb888451d2b5bfd523d96f"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v004/Candidate.v",
+      "sha256": "31904dc9e2a6e016b34535ab6d364e44858f8861f477ef7e4c48509359ff3893"
+    },
+    {
+      "path": "properties/cedar_no_type_error/experiments/cedar-poc-20261122T025605Z/run-003/candidates/v004/Equivalence.v",
+      "sha256": "131cdbedca74e972d3f48f1b6f045e3b66e0258f5c78ce516ba3d73ddbf9f654"
+    }
+  ],
+  "fresh_role_sessions": 87
+}
