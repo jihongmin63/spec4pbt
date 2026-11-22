@@ -13,12 +13,23 @@ environment/opam-switch.export. Use `bash environment/env.sh coqc` and
 `bash environment/env.sh coqtop` to select the local switch. Run
 `bash environment/env.sh check` after changing the example or environment.
 Keep installations, generated files, archived local data, and verification logs
-under ignored _opam-popl18/. Preserve previous verification evidence.
+under ignored _opam-testing-theorems/. The approved AL-to-Coq workflow publishes
+its checked final .v sources in specification/p4/ and specification/wasm/; compile
+only ignored copies. Preserve _opam-popl18/ and previous verification evidence.
 
-Derive generators and correctness proofs with the pinned upstream QuickChick.
-Do not replace failing proof automation with admissions, new axioms, or a test-only
-claim of correctness. Report upstream assumptions printed by Coq. Completeness
-ranges over all sizes and random seeds, not all values in a finite test run.
+Use Coq 8.20.0, OCaml 4.14.2, and the official Testing Theorems artifact fork
+pinned by source-context archive hash in environment/env.sh. Do not substitute
+stock QuickChick 2.2.0. Frontend tools use a separate OCaml 5.1.1 switch via
+`bash environment/env.sh frontend`. OPAMROOT and both switches must remain under
+the target worktree's _opam-testing-theorems/. Do not modify global opam state or
+shell profiles. Default JOBS is 2.
+
+Generator soundness/completeness proofs and property/QuickChick connections are
+outside the AL-to-Coq experiment scope. Predicate equivalence proofs remain
+mandatory and must be closed without extra axioms or admissions. Finite sampling
+is not a proof of generator correctness or completeness. Upstream Cedar tests
+contain external extraction bindings and Admitted; execute them only as tests,
+never as proofs in an authored property workflow.
 Do not modify other worktrees.
 
 For property exploration, keep Original.v and the selected specification fixed.
@@ -26,7 +37,8 @@ Each candidates/vNNN directory contains Candidate.v and Equivalence.v; the latte
 proves `equivalent` against the immediately preceding predicate (Original for v001).
 Never edit scripts/check.py or scripts/run.py to make a candidate pass. Run check.py
 for the entire sequence; run.py --candidate vNNN verifies that prefix and derives
-that candidate's generator and correctness automatically. Do not author Generator.v.
+that candidate's generator automatically, without requiring generator proofs.
+Do not author Generator.v.
 Keep property snapshots and evidence in ignored property-local .runs/ directories.
 The two scripts are maintained verification infrastructure; changes require the
 real Coq regressions in scripts/tests. No search configuration JSON is needed.
