@@ -8,13 +8,15 @@ let output = ref ""
 let manifest_path = ref ""
 let inventory = ref false
 let data_only = ref false
+let inductive_relations = ref false
 let options = [
   "--profile", Arg.Set_string profile_name, "NAME profile namespace";
   "--input", Arg.String (fun p -> inputs := p :: !inputs), "PATH ordered source input (repeatable)";
   "--output", Arg.Set_string output, "DIR output directory";
   "--manifest", Arg.Set_string manifest_path, "FILE execution manifest";
   "--inventory", Arg.Set inventory, " collect AL inventory only";
-  "--data-only", Arg.Set data_only, " generate all AL datatypes and structural support"
+  "--data-only", Arg.Set data_only, " generate all AL datatypes and structural support";
+  "--inductive-relations", Arg.Set inductive_relations, " emit direct inductive relations for supported Actions"
 ]
 
 let rec mkdir path =
@@ -163,7 +165,7 @@ let run () =
               | Error ds -> diagnostics := ds; 1
               | Ok data -> match Lower_exec.lower context with
                 | Error ds -> diagnostics := ds; 1
-                | Ok bodies -> match Emit.write ~out_dir:!output context ~data ~bodies with
+                | Ok bodies -> match Emit.write ~out_dir:!output ~inductive:!inductive_relations context ~data ~bodies with
                   | Error ds -> diagnostics := ds; 1
                   | Ok () ->
                     let declarations,bindings,counts=audit_generation context data bodies in

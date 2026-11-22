@@ -77,8 +77,9 @@ let render_program ctx bodies body_files =
     line("| " ^ String.concat " " (call_constructor body.call_name::all) ^ " => " ^ apply("B_"^body.call_name)all))bodies;
   line "| ApplyReference reference input => reference_body reference input";
   line "end.";Buffer.contents b
-let render_relations ctx =
-  header ctx ["Types_0000";"References";"Calls";"Program"] ^ String.concat "\n"(List.map(fun(d:Context.declaration)->
+let render_relations ctx ~inductive =
+  header ctx (["Types_0000";"References";"Calls";"Program"] @
+    if inductive then ["InductiveRelations"] else []) ^ String.concat "\n"(List.map(fun(d:Context.declaration)->
     let s=Option.get d.signature in let ps=type_parameters ctx s in
     let arguments=List.mapi(fun i typ->{name="#public"^string_of_int i;typ=Lower_expr.typ ctx typ})s.argument_types in
     let outputs=if d.namespace="rel" then List.map(List.nth arguments)s.output_positions else [{name="#result";typ=result_type ctx s}] in
@@ -87,20 +88,33 @@ let render_relations ctx =
     let args=if d.namespace="rel"then arguments else arguments@outputs in
     let values=parameter_values ps@List.map(fun(b:binding)->identifier b.name)args in
     let public=apply d.generated_name values in
+    let execution = if inductive then
+      apply (d.generated_name ^ "_execute")
+        (parameter_values ps @ List.map(fun(b:binding)->identifier b.name)inputs @
+         ["{| next_fresh := 0 |}"; "Success " ^ par out; "final"])
+    else "Eval (@Body) (Invoke " ^ apply(call_constructor d.generated_name)
+      (parameter_values ps@List.map(fun(b:binding)->identifier b.name)inputs) ^
+      ") {| next_fresh := 0 |} (Success " ^ out ^ ") final" in
     let definition="Definition " ^ d.generated_name ^ " " ^ param_binders ps ^ " " ^ String.concat " " (List.map binding args) ^ " : Prop :=\n" ^
-      "exists final, Eval (@Body) (Invoke " ^ apply(call_constructor d.generated_name)(parameter_values ps@List.map(fun(b:binding)->identifier b.name)inputs) ^
-      ") {| next_fresh := 0 |} (Success " ^ out ^ ") final.\n" in
+      "exists final, " ^ execution ^ ".\n" in
     if d.kind="ExternRelD" || d.kind="ExternDecD" then
       let external_name="External_"^d.generated_name in
       definition ^ "Inductive " ^ external_name ^ " " ^ param_binders ps ^ " " ^ String.concat " " (List.map binding args) ^
       " : Prop :=\n| Permit_" ^ d.generated_name ^ " : " ^ apply external_name values ^ ".\n" ^
       "Lemma " ^ external_name ^ "_realized " ^ param_binders ps ^ " " ^ String.concat " " (List.map binding args) ^
       " : " ^ apply external_name values ^ " -> " ^ public ^ ".\n" ^
-      "Proof. intros _. unfold " ^ d.generated_name ^ ". eexists. apply eval_invoke. cbn. apply eval_choose. Qed.\n"
+      (if inductive then
+        "Proof. intros _. unfold " ^ d.generated_name ^ ". eexists. constructor. Qed.\n"
+       else "Proof. intros _. unfold " ^ d.generated_name ^ ". eexists. apply eval_invoke. cbn. apply eval_choose. Qed.\n")
     else definition)(declarations ctx))
 let rec mkdir path = if not(Sys.file_exists path)then(mkdir(Filename.dirname path);Unix.mkdir path 0o755)
 let write_file path text = let file=open_out path in Fun.protect ~finally:(fun()->close_out file)(fun()->output_string file text)
-let write ~out_dir ctx ~data ~bodies = try
+exception Direct_unsupported of Coq_ir.diagnostic list
+let write ~out_dir ~inductive ctx ~data ~bodies = try
+  let direct = if inductive then match Inductive_emit.render ctx bodies with
+    | Ok source -> Some source
+    | Error diagnostics -> raise (Direct_unsupported diagnostics)
+    else None in
   let generated=Filename.concat out_dir "Generated" in mkdir generated;
   write_file(Filename.concat generated "Types_0000.v")(Emit_data.render ctx data);
   write_file(Filename.concat generated "Casts.v")(header ctx ["Types_0000"] ^ Casts.render ctx data);
@@ -112,7 +126,12 @@ let write ~out_dir ctx ~data ~bodies = try
     write_file(Filename.concat generated(name^".v"))(render_bodies ctx chunk);name::chunks(i+1)rest in
   let body_files=chunks 0 bodies in
   write_file(Filename.concat generated "Program.v")(render_program ctx bodies body_files);
-  write_file(Filename.concat generated "Relations_0000.v")(render_relations ctx);
-  write_file(Filename.concat out_dir "Spec.v")("From " ^ namespace ctx ^ ".Generated Require Export Types_0000 References Calls Program Relations_0000.\n");
+  Option.iter (fun source -> write_file(Filename.concat generated "InductiveRelations.v")
+    (header ctx ["Types_0000";"Casts";"References";"Calls"] ^ source)) direct;
+  write_file(Filename.concat generated "Relations_0000.v")(render_relations ctx ~inductive);
+  write_file(Filename.concat out_dir "Spec.v")("From " ^ namespace ctx ^ ".Generated Require Export Types_0000 References Calls Program Relations_0000" ^
+    (if inductive then " InductiveRelations" else "") ^ ".\n");
   Ok()
-with Data.Unsupported d->Error[d] | exn->Error[{stage="emission";location=Util.Source.no_region;construct="Coq";reason=Printexc.to_string exn}]
+with Data.Unsupported d->Error[d]
+   | Direct_unsupported diagnostics -> Error diagnostics
+   | exn->Error[{stage="emission";location=Util.Source.no_region;construct="Coq";reason=Printexc.to_string exn}]

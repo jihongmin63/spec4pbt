@@ -213,11 +213,24 @@ def builtin_wasm(backend=None):
     return run.path
 
 
+def inductive(backend=None):
+    run = SuiteRun('inductive')
+    try:
+        executable, _ = prepare_backend(run, backend)
+        run.execute(['env', f'INDUCTIVE_BACKEND={executable}', 'python3', '-B',
+                     ROOT / 'translator/tests/inductive/test_inductive.py'],
+                    'inductive.log')
+        run.report['status'] = 'passed'
+    finally:
+        run.close()
+    return run.path
+
+
 def all_suites(backend=None):
     run = SuiteRun('all')
     try:
         executable, _ = prepare_backend(run, backend)
-        names = ['runtime', 'frontend', 'data', 'expressions', 'lowering', 'builtin-p4', 'builtin-wasm']
+        names = ['runtime', 'frontend', 'data', 'expressions', 'lowering', 'inductive', 'builtin-p4', 'builtin-wasm']
         for name in names:
             command = ['python3', '-B', ROOT / 'translator/tests/check.py', '--suite', name]
             if name not in ['runtime', 'builtin-p4']:
@@ -255,7 +268,7 @@ def all_suites(backend=None):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--suite', required=True, choices=['runtime', 'frontend', 'data', 'expressions', 'lowering', 'builtin-p4', 'builtin-wasm', 'all'])
+    parser.add_argument('--suite', required=True, choices=['runtime', 'frontend', 'data', 'expressions', 'lowering', 'inductive', 'builtin-p4', 'builtin-wasm', 'all'])
     parser.add_argument('--backend', type=Path, help='use an existing target-local executable without changing its frontend build')
     args = parser.parse_args()
     if args.suite == 'runtime':
@@ -268,6 +281,8 @@ def main() -> None:
         builtin_p4()
     elif args.suite == 'builtin-wasm':
         builtin_wasm(args.backend)
+    elif args.suite == 'inductive':
+        inductive(args.backend)
     else:
         all_suites(args.backend)
 

@@ -196,3 +196,176 @@ let rec free_action action =
 
 let relation name arguments output = {name; arguments; output; constructors = []}
 
+let render ctx bodies =
+  let current_location = ref Util.Source.no_region in
+  try
+    counter := 0;
+    let known = List.map (fun (body : body) -> body.call_name) bodies in
+    let all = ref [] in
+    let register value = all := !all @ [value]; value in
+    let compiler_body (body : body) =
+      let declaration = Context.String_map.find body.call_name ctx.Context.by_generated_name in
+      current_location := declaration.location;
+      let signature = Option.get declaration.signature in
+      if signature.type_parameters <> [] then
+        raise (Unsupported (body.call_name ^ ": polymorphic direct relations are not supported"));
+      let clauses = match body.action.node with
+        | Alternatives [] -> [{result = body.result; node = Unmatch}]
+        | Alternatives xs -> xs
+        | _ -> [body.action] in
+      let count = List.length clauses in
+      let inputs = body.parameters in
+      let input_types = List.map (fun (b : binding) -> type_string b.typ) inputs in
+      let make_clause index =
+        let suffix = if index = 1 then "_execute" else "_continue_from_" ^ string_of_int index in
+        register (relation (body.call_name ^ suffix) (input_types @ ["State"]) body.result) in
+      let clause_relations = Array.init count (fun i -> make_clause (i + 1)) in
+      let call_index = ref 0 in
+      let rec compile index live action path success miss fail =
+        match action.node with
+        | Return value -> success path (expression path value)
+        | Unmatch -> miss path
+        | Error err -> fail path err
+        | Fresh ->
+            let value = "next_fresh " ^ parenthesize path.state in
+            let next = "{| next_fresh := S " ^ parenthesize value ^ " |}" in
+            success {path with state = next} value
+        | Guard condition ->
+            let value = expression path condition in
+            success (add_premise path (value ^ " = true")) "tt";
+            miss (add_premise path (value ^ " = false"))
+        | Local (binding, value, right) ->
+            compile index live right (add_environment path binding (expression path value)) success miss fail
+        | Bind (binding, left, right) ->
+            let needed_after_left = without_binding binding (free_action right) @ live in
+            compile index needed_after_left left path
+              (fun path value -> compile index live right (add_environment path binding value) success miss fail)
+              miss fail
+        | Alternatives actions ->
+            let alternatives = function
+              | [] -> miss path
+              | head :: tail ->
+                  compile index (live @ List.concat_map free_action tail) head path success
+                    (fun path -> if tail = [] then miss path else
+                       let rec next path = function
+                         | [] -> miss path
+                         | x :: xs -> compile index
+                             (live @ List.concat_map free_action xs)
+                             x path success
+                             (fun path -> next path xs) fail in
+                       next path tail)
+                    fail in
+            alternatives actions
+        | Choose chosen_type ->
+            let chosen = fresh "chosen_" in
+            success (add_variable path chosen (type_string chosen_type)) chosen
+        | Negate inner ->
+            compile index live inner path
+              (fun path _ -> miss path)
+              (fun path -> success path "tt") fail
+        | Invoke call ->
+            if call.target = "#apply" then
+              raise (Unsupported (body.call_name ^ ": higher-order call is not supported"));
+            if not (List.mem call.target known) then
+              raise (Unsupported (body.call_name ^ ": unknown call target " ^ call.target));
+            if call.type_arguments <> [] then
+              raise (Unsupported (body.call_name ^ ": polymorphic call is not supported"));
+            incr call_index;
+            let after_name = Printf.sprintf "%s_after_call_%d_at_%d"
+                body.call_name !call_index index in
+            let captured = List.rev (List.filter (fun ((binding : binding), _) ->
+              List.mem (variable binding) live ||
+              (index < count && List.exists (fun (input : binding) -> input.name = binding.name) inputs))
+                path.environment) in
+            let after = register (relation after_name
+                (List.map (fun ((b : binding), _) -> type_string b.typ) captured @
+                 ["Outcome " ^ parenthesize (type_string call.result); "State"])
+                body.result) in
+            let captured_values = List.map snd captured in
+            let formal = List.map (fun (b, _) -> (b, variable b)) captured in
+            let formal_values = List.map snd formal in
+            let call_result = fresh "call_outcome_" in
+            let call_state = fresh "call_state_" in
+            let outcome = fresh "outcome_" in
+            let final = fresh "final_" in
+            let args = List.map (expression path) call.arguments in
+            let target = applied (call.target ^ "_execute")
+                (args @ [path.state; call_result; call_state]) in
+            let after_call = applied after.name
+                (captured_values @ [call_result; call_state; outcome; final]) in
+            let parent = path |> fun p -> add_variable p call_result
+                  ("Outcome " ^ parenthesize (type_string call.result)) in
+            let parent = add_variable parent call_state "State" in
+            let parent = add_variable parent outcome
+                ("Outcome " ^ parenthesize (type_string body.result)) in
+            let parent = add_variable parent final "State" in
+            emit (parent |> fun p -> add_premise (add_premise p target) after_call) outcome final;
+            let make_after call_outcome state extra =
+              {relation = after; indices = formal_values @ [call_outcome; state];
+               state; variables = List.map (fun ((b : binding), _) -> variable b, type_string b.typ) formal @ extra;
+               premises = []; environment = formal} in
+            let result_name = fresh "value_" in
+            let success_path = make_after ("Success " ^ result_name) call_state
+                [result_name, type_string call.result; call_state, "State"] in
+            success success_path result_name;
+            let miss_path = make_after "Unmatch" call_state [call_state, "State"] in
+            miss miss_path;
+            let err_name = fresh "error_" in
+            let error_path = make_after ("Error " ^ err_name) call_state
+                [err_name, "ExecutionError"; call_state, "State"] in
+            fail error_path err_name
+        | Match (scrutinee, branches) ->
+            let value = expression path scrutinee in
+            let previous = ref [] in
+            List.iter (fun (pattern, branch) ->
+              let branch_path = List.fold_left (fun path prior ->
+                add_premise path ("(match " ^ value ^ " with | " ^ prior ^
+                  " => false | _ => true end) = true")) path !previous in
+              let binders = pattern_binders scrutinee pattern in
+              let branch_path = List.fold_left (fun path ((binding : binding), raw) ->
+                add_environment (add_variable path raw (type_string binding.typ)) binding raw)
+                  branch_path binders in
+              let branch_path = if pattern = "_" then branch_path else
+                add_premise branch_path (value ^ " = " ^ parenthesize pattern) in
+              compile index live branch branch_path success miss fail;
+              previous := !previous @ [pattern]) branches
+        | Traverse _ -> raise (Unsupported (body.call_name ^ ": Traverse direct rule is not supported"))
+        | Primitive_action ("(@P4.fresh_typeId Call)", []) when ctx.Context.profile.name = "p4" ->
+            let number = "next_fresh " ^ parenthesize path.state in
+            let value = "String.append \"FRESH__\" (print_nat " ^ parenthesize number ^ ")" in
+            let next = "{| next_fresh := S " ^ parenthesize number ^ " |}" in
+            success {path with state = next} value
+        | Primitive_action _ -> raise (Unsupported (body.call_name ^ ": Primitive_action direct rule is not supported")) in
+      Array.iteri (fun i clause ->
+        let index = i + 1 in
+        call_index := 0;
+        let relation = clause_relations.(i) in
+        let initial_state = fresh "start_" in
+        let indices = List.map variable inputs @ [initial_state] in
+        let variables = List.map (fun (b : binding) -> variable b, type_string b.typ) inputs @
+            [initial_state, "State"] in
+        let environment = List.map (fun b -> b, variable b) inputs in
+        let path = {relation; indices; state = initial_state; variables;
+                    premises = []; environment} in
+        let success path value = emit path ("Success " ^ parenthesize value) path.state in
+        let miss path =
+          if index = count then emit path "Unmatch" path.state
+          else let outcome = fresh "outcome_" and final = fresh "final_" in
+            let path = add_variable (add_variable path outcome
+                ("Outcome " ^ parenthesize (type_string body.result))) final "State" in
+            let next = applied clause_relations.(index).name
+                (List.map variable inputs @ [path.state; outcome; final]) in
+            emit (add_premise path next) outcome final in
+        compile index [] clause path success miss error)
+        (Array.of_list clauses);
+      () in
+    List.iter compiler_body bodies;
+    let render_relation first item =
+      (if first then "Inductive " else "with ") ^ item.name ^ " : " ^
+      String.concat " -> " (item.arguments @
+        ["Outcome " ^ parenthesize (type_string item.output); "State"; "Prop"]) ^
+      " :=\n" ^ String.concat "\n" item.constructors in
+    Ok (String.concat "\n" (List.mapi (fun i item -> render_relation (i = 0) item) !all) ^ ".\n")
+  with Unsupported reason ->
+    Error [{stage = "inductive"; location = !current_location;
+            construct = "Action"; reason}]

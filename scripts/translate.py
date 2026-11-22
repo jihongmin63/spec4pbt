@@ -86,7 +86,11 @@ def compile_generated(source, profile, run, manifest):
     files = common + [generated / name for name in
                       ['Types_0000.v', 'Casts.v', 'References.v', 'Calls.v']]
     files += sorted(generated.glob('Bodies_*.v'))
-    files += [generated / 'Program.v', generated / 'Relations_0000.v', source / 'Spec.v']
+    files.append(generated / 'Program.v')
+    if (generated / 'InductiveRelations.v').is_file():
+        files.append(generated / 'InductiveRelations.v')
+    files.append(generated / 'Relations_0000.v')
+    files.append(source / 'Spec.v')
     logs = run / 'coq-logs'
     logs.mkdir()
     command = ['bash', str(ROOT / 'environment/env.sh'), 'coqc', '-q',
@@ -271,12 +275,16 @@ def main(argv=None):
     parser.add_argument('--profile', required=True, choices=['p4', 'wasm'])
     parser.add_argument('--inventory', action='store_true', help='collect AL declarations without claiming translation')
     parser.add_argument('--check', action='store_true', help='require full translation and Coq compilation')
+    parser.add_argument('--inductive-relations', action='store_true',
+                        help='emit direct relation definitions for supported Actions')
     args = parser.parse_args(argv)
     if args.inventory and args.check:
         parser.error('--inventory and --check are mutually exclusive')
+    if args.inventory and args.inductive_relations:
+        parser.error('--inventory and --inductive-relations are mutually exclusive')
     (STATE / 'logs').mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'translate-{args.profile}-', dir=STATE / 'logs'))
-    manifest = {'schema_version': 1, 'profile': args.profile, 'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'mode': 'inventory' if args.inventory else 'check' if args.check else 'translation', 'status': 'started', 'commands': [], 'coq_compiled': False, 'code_generation_complete': False, 'translation_complete': False, 'run': str(run)}
+    manifest = {'schema_version': 1, 'profile': args.profile, 'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'mode': 'inventory' if args.inventory else 'check' if args.check else 'translation', 'inductive_relations': args.inductive_relations, 'status': 'started', 'commands': [], 'coq_compiled': False, 'code_generation_complete': False, 'translation_complete': False, 'run': str(run)}
     try:
         profile_path = ROOT / 'translator/profiles' / f'{args.profile}.json'
         profile = json.loads(profile_path.read_text())
@@ -315,6 +323,8 @@ def main(argv=None):
             command += ['--input', str(path)]
         if args.inventory:
             command += ['--inventory']
+        if args.inductive_relations:
+            command += ['--inductive-relations']
         run_command(env + command, cwd=ROOT, log=run / 'frontend.log', manifest=manifest)
         if args.inventory:
             manifest['status'] = 'inventory-complete'

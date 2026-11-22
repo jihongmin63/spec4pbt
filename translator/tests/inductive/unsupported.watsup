@@ -1,0 +1,4 @@
+var n : nat
+
+dec $each(nat*) : nat*
+def $each(n*) = $(n + 1)*

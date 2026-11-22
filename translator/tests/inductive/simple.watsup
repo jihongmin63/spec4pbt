@@ -1,0 +1,34 @@
+var n : nat
+
+relation Identity: nat nat hint(input %0)
+rule Identity/any: n n
+
+relation Called: nat nat hint(input %0)
+rule Called/first: n n_result
+  -- Identity: n n_result
+rule Called/fallback: n 9
+
+dec $error() : nat
+def $error() = $(1 / 0)
+
+dec $sink() : nat
+
+dec $fallback() : nat
+def $fallback() = $sink()
+def $fallback() = 9
+  -- otherwise
+
+dec $wraperror() : nat
+def $wraperror() = $error()
+def $wraperror() = 9
+  -- otherwise
+
+relation Never: NEVER nat hint(input %0)
+rule Never/no: NEVER n
+  -- if false
+
+relation Negated: NEGATED nat hint(input %0)
+rule Negated/yes: NEGATED n
+  -- Never:/ NEVER n
+
+extern dec $arbitrary() : nat
