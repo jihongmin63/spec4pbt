@@ -1,0 +1,9 @@
+{
+  "at_utc": "2026-11-22T02:40:34.267612+00:00",
+  "child_cleanup": "checked_command BaseException handler terminates and reaps its process group",
+  "coordinator_exit_code": 130,
+  "error": "coordinator interrupted after confirmed generic About-output line-wrap parser defect; this frozen experiment is superseded and will not be resumed",
+  "error_type": "CoordinatorInterruptedForInfrastructureDefect",
+  "last_stage": "run-003/attempt-004/prefix_check",
+  "status": "stopped"
+}
