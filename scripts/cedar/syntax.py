@@ -385,7 +385,7 @@ class Gate:
                         resolved_heads[head] = None
                     else:
                         identities = re.findall(
-                            r"^Expands to: Inductive ([A-Za-z_][A-Za-z_0-9']*(?:\.[A-Za-z_][A-Za-z_0-9']*)*)\s*$",
+                            r"^Expands to:\s+Inductive\s+([A-Za-z_][A-Za-z_0-9']*(?:\.[A-Za-z_][A-Za-z_0-9']*)*)\s*$",
                             output, re.M)
                         resolved_heads[head] = identities[0] if len(identities) == 1 else None
                 return resolved_heads[head]

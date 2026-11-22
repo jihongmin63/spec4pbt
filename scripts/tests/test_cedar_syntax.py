@@ -2,6 +2,7 @@
 """Real Coq regressions for the pre-prover Cedar syntax gate."""
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -21,8 +22,9 @@ from scripts.cedar.syntax import peel_foralls
 class CedarSyntaxTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        (PROPERTY / ".runs").mkdir(parents=True, exist_ok=True)
-        cls.root = Path(tempfile.mkdtemp(prefix="syntax-test-", dir=PROPERTY / ".runs"))
+        test_runs = Path(os.environ.get("CEDAR_SYNTAX_TEST_ROOT", PROPERTY / ".runs"))
+        test_runs.mkdir(parents=True, exist_ok=True)
+        cls.root = Path(tempfile.mkdtemp(prefix="syntax-test-", dir=test_runs))
         cls.property = cls.root / "property"
         (cls.property / "candidates/v001").mkdir(parents=True)
         shutil.copy2(PROPERTY / "Original.v", cls.property / "Original.v")
@@ -313,6 +315,53 @@ Inductive predicate : Original.Input -> Prop :=
                     if binder["version"] == "v002" and
                     binder["classification"] == "relation premise"]
         self.assertEqual(len(premises), 1)
+
+    def test_wrapped_about_identity_of_current_helper(self):
+        source = """Require Import Property.Original.
+Inductive EnvironmentsForRequests : Original.Input -> Prop :=
+| request_envs : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    EnvironmentsForRequests i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, EnvironmentsForRequests i -> predicate i.
+"""
+        _, report = self.gate("wrapped-about-current", source, True)
+        self.assertIn(
+            "Expands to: Inductive\nProperty.candidates.v001.Candidate.EnvironmentsForRequests",
+            (self.root / "wrapped-about-current/resolve-v001-000.log").read_text(),
+        )
+        premises = [binder for binder in report["binders"]
+                    if binder["classification"] == "relation premise"]
+        self.assertEqual([binder["resolved_relation"] for binder in premises], [
+            "Specification.cedar.Spec.WfCedarType",
+            "Property.candidates.v001.Candidate.EnvironmentsForRequests",
+        ])
+
+    def test_wrapped_about_identity_of_prior_helper(self):
+        previous = """Require Import Property.Original.
+Inductive EnvironmentsForRequests : Original.Input -> Prop :=
+| request_envs : forall i : Original.Input,
+    Specification.cedar.Spec.WfCedarType Original.entity_names (Original.ty i) ->
+    EnvironmentsForRequests i.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input, EnvironmentsForRequests i -> predicate i.
+"""
+        current = """Require Import Property.candidates.v001.Candidate.
+Inductive predicate : Original.Input -> Prop :=
+| mk : forall i : Original.Input,
+    Property.candidates.v001.Candidate.EnvironmentsForRequests i -> predicate i.
+"""
+        report = self.gate_prefix("wrapped-about-prior", [previous, current], True)
+        logs = sorted((self.root / "wrapped-about-prior").glob("resolve-v002-*.log"))
+        self.assertTrue(any(
+            "Expands to: Inductive\nProperty.candidates.v001.Candidate.EnvironmentsForRequests"
+            in log.read_text() for log in logs))
+        premises = [binder for binder in report["binders"]
+                    if binder["version"] == "v002" and
+                    binder["classification"] == "relation premise"]
+        self.assertEqual([binder["resolved_relation"] for binder in premises], [
+            "Property.candidates.v001.Candidate.EnvironmentsForRequests",
+        ])
 
     def test_same_helper_name_in_multiple_prior_modules_and_current(self):
         first = """Require Import Property.Original.
