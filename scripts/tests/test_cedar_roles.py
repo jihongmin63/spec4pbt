@@ -163,6 +163,8 @@ class PreparationTests(unittest.TestCase):
         self.assertEqual(len(reports), 1)
         self.assertEqual(json.loads(reports[0].read_text())["status"], "passed")
 
+    @unittest.skipUnless(shutil.which("codex"),
+                         "codex CLI is not installed; model roles cannot run on this host")
     def test_codex_command_host_can_start_under_runtime_restriction(self):
         host = Path(shutil.which("codex")).resolve().with_name("codex-code-mode-host")
         self.assertTrue(host.is_file())

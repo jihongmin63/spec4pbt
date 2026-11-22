@@ -106,6 +106,22 @@ failure writes `operational-failure.json` and a stopped summary. Interrupted
 proposals count as rejected and retain available role cost; an uncalled Prover
 is `not_run`. Incomplete batches never become completed measurements.
 
+`remeasure.py` re-measures an earlier experiment with the current frozen tools
+and no model calls. It verifies every adopted `Candidate.v` and
+`Equivalence.v` against the source experiment's `final-audit.json`, requires a
+passed scripted tool review of the current manifest, and measures P0 and every
+adopted candidate on the evaluation seeds and P0 and each run's last adopted
+candidate on the held-out seeds through `execute.measure`:
+
+```sh
+python3 -B scripts/cedar/remeasure.py --source cedar-poc-OLD-ID \
+  --experiment-id cedar-remeasure-NEW-ID \
+  --tool-review properties/cedar_no_type_error/.runs/tool-review-unique/review.json
+```
+
+Its evidence goes to `.runs/NEW-ID/` and its `manifest.json` and
+`summary.json` to `experiments/NEW-ID/`; candidates stay in the source chain.
+
 No research result is produced by this script's unit tests. Run them with
 `python3 -m unittest scripts.tests.test_cedar_execute -v`; they replace model
 and benchmark boundaries with controlled evidence to test the gates.
