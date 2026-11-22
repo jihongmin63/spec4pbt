@@ -399,7 +399,7 @@ class OrchestrationTests(unittest.TestCase):
                   "tools": {name: execute.digest(self.root / name)
                             for name in ("scripts/cedar/benchmark.py", "scripts/cedar/Support.v",
                                          "scripts/cedar/driver.ml", "scripts/cedar/serialization.py",
-                                         "environment/env.sh")}}
+                                         "scripts/cedar/derivation.py", "environment/env.sh")}}
         evidence = self.evidence / "benchmark-failure-evidence"
         evidence.mkdir()
         def fake_command(command, **kwargs):
@@ -415,6 +415,7 @@ class OrchestrationTests(unittest.TestCase):
                                 "Support.v": frozen["tools"]["scripts/cedar/Support.v"],
                                 "driver.ml": frozen["tools"]["scripts/cedar/driver.ml"],
                                 "serialization.py": frozen["tools"]["scripts/cedar/serialization.py"],
+                                "derivation.py": frozen["tools"]["scripts/cedar/derivation.py"],
                                 "env.sh": frozen["tools"]["environment/env.sh"]},
                 "error": "scheduler could not derive"}))
             return SimpleNamespace(returncode=1)
@@ -434,11 +435,14 @@ class OrchestrationTests(unittest.TestCase):
                              "Discarded: 20000\n")
         provenance = {"derivation": {"status": "succeeded", "log": "scheduler.log",
                                      "extracted_checker": "sources/theorem.ml"},
+                      "derivation_guards": {"status": "passed", "schedule_binders": ["x"]},
                       "quickchick": {"status": "gave_up", "tests": 3500,
                                      "discards": 20000,
                                      "summary": "*** Gave up! Passed only 3500 tests\nDiscarded: 20000",
                                      "log": "scheduler.log"}}
         execute.check_benchmark_completion(provenance, output)
+        with self.assertRaisesRegex(execute.ExecutionError, "derivation guards"):
+            execute.check_benchmark_completion({**provenance, "derivation_guards": None}, output)
         with self.assertRaisesRegex(execute.ExecutionError, "internal QuickChick"):
             execute.check_benchmark_completion({**provenance,
                 "quickchick": {**provenance["quickchick"], "status": "passed"}}, output)

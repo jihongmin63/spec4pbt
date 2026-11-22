@@ -42,7 +42,8 @@ TOOL_FILES = (
     "scripts/cedar/benchmark.py", "scripts/cedar/syntax.py",
     "scripts/cedar/validator.py", "scripts/cedar/Validator.v",
     "scripts/cedar/Support.v", "scripts/cedar/driver.ml",
-    "scripts/cedar/serialization.py",
+    "scripts/cedar/serialization.py", "scripts/cedar/derivation.py",
+    "scripts/cedar/inspection.py",
     *(f"scripts/cedar/prompts/{name}.txt" for name in roles.EFFORT),
     *(f"scripts/cedar/schemas/{name}.json" for name in roles.EFFORT),
 )
@@ -298,6 +299,8 @@ def check_benchmark_completion(report: Mapping[str, Any], output: Path) -> None:
         raise ExecutionError("completed benchmark lacks derivation evidence")
     if not (output / "sources/theorem.ml").is_file():
         raise ExecutionError("completed benchmark lacks extracted checker")
+    if (report.get("derivation_guards") or {}).get("status") != "passed":
+        raise ExecutionError("completed benchmark lacks passed derivation guards")
     scheduler = output / "scheduler.log"
     if not scheduler.is_file():
         raise ExecutionError("completed benchmark lacks scheduler.log")
@@ -336,6 +339,7 @@ def benchmark_batch(root: Path, staged: Path, candidate: str, seed: int,
     tool_hashes = report.get("tool_hashes") or {}
     for key, name in {"benchmark.py": "scripts/cedar/benchmark.py", "Support.v": "scripts/cedar/Support.v",
                       "driver.ml": "scripts/cedar/driver.ml", "serialization.py": "scripts/cedar/serialization.py",
+                      "derivation.py": "scripts/cedar/derivation.py",
                       "env.sh": "environment/env.sh"}.items():
         if tool_hashes.get(key) != frozen["tools"][name]:
             raise ExecutionError(f"benchmark tool hash differs: {key}")

@@ -4,6 +4,12 @@
 The official ``quickchick 2`` tactic defines a proof-local ``theorem`` checker.
 Extraction inside that proof captures its generated checker, then each OCaml
 ``run (theorem 2) 2 seed`` call is counted as exactly one outer attempt.
+
+P0 states the fixed entity list literally, as the upstream theorem does.  A
+candidate is checked unmodified by ``check.py``; the scheduler receives the
+audited derivation copy from ``derivation.py`` with version-unique relation
+names.  Two guards stop a batch whose schedule generates anything other than
+the theorem's variables or whose extracted code lacks a reachable relation.
 """
 import argparse
 import hashlib
@@ -19,10 +25,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from check import Session, CheckError, COQ_FLAGS, ROOT
 from cedar.serialization import (ADAPTER_PRELUDE, SerializationError, adapter_lemma,
                                  reconstruct_candidate, reconstruct_p0)
+from cedar.derivation import ENTITY_NAMES_LITERAL, RewriteError, write_derivation_copy
 
 ENV = ROOT / 'environment/env.sh'
 SUPPORT = Path(__file__).with_name('Support.v')
 DRIVER = Path(__file__).with_name('driver.ml')
+DERIVATION = Path(__file__).with_name('derivation.py')
+P0_VARIABLES = {'ets', 'acts', 'rs', 'e', 'es', 'ty', 'expr'}
+SCHEDULER_FRESH = re.compile(r'v[A-Za-z0-9_]*_\Z')
 FIXED_SIZE = 2
 FIXED_SEEDS = (101, 202, 303, 404, 505, 1101, 1202, 1303, 1404, 1505)
 
@@ -65,11 +75,12 @@ Open Scope qc_scope.
 Open Scope string_scope.
 Require Import Specification.cedar.Spec Support Property.Original.
 Check p0_packaging.
+Example entity_names_literal : Original.entity_names = ENTITY_NAMES := eq_refl.
 Theorem observation : forall ets acts rs e es ty expr,
-  WfSchema Original.entity_names (MkSchema ets acts) ->
+  WfSchema ENTITY_NAMES (MkSchema ets acts) ->
   ActionSchemaToRequestTypes acts [] rs ->
   SchemaToEnvironments (MkSchema ets acts) rs (e :: es) ->
-  WfCedarType Original.entity_names ty ->
+  WfCedarType ENTITY_NAMES ty ->
   HasType (somepaths []) e expr ty -> true = true.
 Proof.
   quickchick 2.
@@ -78,7 +89,7 @@ Proof.
   intros; reflexivity.
 Qed.
 Print Assumptions observation.
-'''
+'''.replace('ENTITY_NAMES', ENTITY_NAMES_LITERAL)
     if not candidate.startswith('v') or not candidate[1:].isdigit():
         raise ValueError('candidate must be P0 or vNNN')
     target = f'Property.candidates.{candidate}.Candidate'
@@ -90,7 +101,7 @@ Open Scope qc_scope.
 Open Scope string_scope.
 Require Import Specification.cedar.Spec Support {target}.
 Theorem observation : forall x : Original.Input,
-  {target}.predicate x -> true = true.
+  {target}.predicate_{candidate} x -> true = true.
 Proof.
   quickchick 2.
   Print Assumptions theorem.
@@ -117,15 +128,15 @@ def command(args, cwd, log, timeout=600):
 
 
 def snapshot(property_dir, candidate, output):
+    """Return (sources, prefix audit, derivation rewrite record, sequence)."""
     sources = output / 'sources'
-    if candidate == 'P0':
-        (sources / 'specification/cedar').mkdir(parents=True)
-        (sources / 'property').mkdir()
-        shutil.copy2(ROOT / 'specification/cedar/Spec.v',
-                     sources / 'specification/cedar/Spec.v')
-        shutil.copy2(property_dir / 'Original.v', sources / 'property/Original.v')
-        checked = None
-    else:
+    (sources / 'specification/cedar').mkdir(parents=True)
+    (sources / 'property').mkdir()
+    shutil.copy2(ROOT / 'specification/cedar/Spec.v',
+                 sources / 'specification/cedar/Spec.v')
+    shutil.copy2(property_dir / 'Original.v', sources / 'property/Original.v')
+    checked, record, sequence = None, None, []
+    if candidate != 'P0':
         session = Session(property_dir, selected=candidate, timeout=600)
         try:
             session.check()
@@ -133,20 +144,57 @@ def snapshot(property_dir, candidate, output):
         except Exception as error:
             session.finish(error)
             raise
-        shutil.copytree(session.sources, sources)
+        sequence = list(session.sequence)
+        if not sequence or sequence[-1] != candidate:
+            raise RuntimeError(f'checked sequence {sequence} does not end in {candidate}')
+        record = write_derivation_copy(session.sources / 'property', sequence,
+                                       sources / 'property')
+        record['checked_sources'] = str(session.sources)
+        (output / 'derivation-rewrite.json').write_text(json.dumps(record, indent=2) + '\n')
     shutil.copy2(SUPPORT, sources / 'Support.v')
     shutil.copy2(DRIVER, sources / 'driver.ml')
     (sources / 'Bench.v').write_text(source_for(candidate))
-    return sources, checked
+    return sources, checked, record, sequence
 
 
-def compile_source(sources, candidate, output):
+def schedule_text(log):
+    """The printed theorem schedule, from its header to the checked conclusion."""
+    start = log.find('Theorem Schedule:')
+    end = log.find('=> check conclusion', start)
+    if start < 0 or end < 0:
+        raise RuntimeError('scheduler.log lacks a complete theorem schedule')
+    return log[start + len('Theorem Schedule:'):end]
+
+
+def check_derivation(sources, candidate, log, record):
+    """Fail closed on the two scheduler behaviours that change the measurement."""
+    binders = re.findall(r"(?:\(|,)\s*([A-Za-z_][A-Za-z0-9_']*)\s*:\s",
+                         schedule_text(log))
+    allowed = P0_VARIABLES if candidate == 'P0' else {'x'}
+    generated = [name for name in binders
+                 if name not in allowed and not SCHEDULER_FRESH.fullmatch(name)]
+    if not binders or generated:
+        raise RuntimeError(f'theorem schedule generates non-variables {generated}; '
+                           'see scheduler.log')
+    guards = {'status': 'passed', 'schedule_binders': binders}
+    if candidate != 'P0':
+        extracted = (sources / 'theorem.ml').read_text()
+        missing = [name for name in record['reachable_relations']
+                   if not re.search(rf'(?<![A-Za-z0-9]){re.escape(name)}_', extracted)]
+        if missing:
+            raise RuntimeError(f'extracted checker lacks reachable relations {missing}')
+        guards['reachable_relations'] = record['reachable_relations']
+    return guards
+
+
+def compile_source(sources, candidate, output, sequence=()):
     logs = []
     coq = ['bash', str(ENV), 'coqc', '-q', *COQ_FLAGS]
-    if candidate == 'P0':
-        for label, path in [('spec', 'specification/cedar/Spec.v'),
-                            ('original', 'property/Original.v')]:
-            logs.append(command([*coq, path], sources, output / f'{label}.log'))
+    for label, path in [('spec', 'specification/cedar/Spec.v'),
+                        ('original', 'property/Original.v'),
+                        *((f'derivation-{version}', f'property/candidates/{version}/Candidate.v')
+                          for version in sequence)]:
+        logs.append(command([*coq, path], sources, output / f'{label}.log'))
     logs.append(command([*coq, 'Support.v'], sources, output / 'support.log'))
     logs.append(command([*coq, 'Bench.v'], sources, output / 'scheduler.log'))
     scheduler_log = (output / 'scheduler.log').read_text(errors='replace')
@@ -257,17 +305,21 @@ def main():
                   'Original.v': sha(prop / 'Original.v'),
                   'Spec.v': sha(ROOT / 'specification/cedar/Spec.v')},
               'tool_hashes': {p.name: sha(p) for p in
-                              (Path(__file__), SUPPORT, DRIVER,
+                              (Path(__file__), SUPPORT, DRIVER, DERIVATION,
                                Path(__file__).with_name('serialization.py'), ENV)},
               'commands': [], 'derivation': {'status': 'not_confirmed'}}
     try:
-        sources, checked = snapshot(prop, args.candidate, output)
+        sources, checked, record, sequence = snapshot(prop, args.candidate, output)
         result['prefix_check'] = checked
-        result['commands'].extend(compile_source(sources, args.candidate, output))
+        if record is not None:
+            result['derivation_rewrite'] = 'derivation-rewrite.json'
+        result['commands'].extend(compile_source(sources, args.candidate, output, sequence))
+        scheduler_log = (output / 'scheduler.log').read_text(errors='replace')
+        result['quickchick'] = parse_quickchick_result(scheduler_log)
+        result['derivation_guards'] = check_derivation(sources, args.candidate,
+                                                       scheduler_log, record)
         result['derivation'] = {'status': 'succeeded', 'log': 'scheduler.log',
                                 'extracted_checker': 'sources/theorem.ml'}
-        result['quickchick'] = parse_quickchick_result(
-            (output / 'scheduler.log').read_text(errors='replace'))
         if result['quickchick']['status'] == 'failed':
             raise RuntimeError('internal QuickChick test failed; see scheduler.log')
         counts, generated = run_samples(sources, output, args.candidate,
@@ -275,7 +327,7 @@ def main():
         result['commands'].extend(adapter_check(sources, output, args.candidate, generated))
         result['counts'] = counts
         result['status'] = 'completed'
-    except (CheckError, OSError, RuntimeError, ValueError, SerializationError,
+    except (CheckError, OSError, RuntimeError, ValueError, SerializationError, RewriteError,
             subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
         result['status'] = 'failed'
         result['error'] = str(error)

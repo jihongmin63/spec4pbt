@@ -1,12 +1,11 @@
 """Reconstruct Original.Input from the official theorem checker's captured binders.
 
-The five callback payloads for P0 are the selected schedule's (names, type),
-schema, request types, environments, and expression.  All text is passed back
-to Coq; this parser only finds top-level constructor boundaries.  Coq checks
-the resulting expression and a per-row equality for all seven input fields.
-The scheduler may generalize the fixed entity-name list into an extra generated
-parameter.  We preserve that parameter separately; the independent premise
-validator checks each reconstructed input against Original's fixed list.
+The five callback payloads for P0 are the selected schedule's type, schema,
+request types, environments, and expression.  All text is passed back to Coq;
+this parser only finds top-level constructor boundaries.  Coq checks the
+resulting expression and a per-row equality for all seven input fields.  The
+benchmark states the fixed entity-name list literally, so the scheduler does
+not generate it; ``scheduler_entity_names`` is therefore always ``None``.
 """
 import re
 
@@ -149,12 +148,9 @@ def reconstruct_p0(fields):
     """Return (input_coq, binder_literals, scheduler_names)."""
     if len(fields) != 5:
         raise SerializationError("P0 needs exactly five schedule callbacks")
-    pair, schema, rs, envs, expr = map(lambda s: _coq_literal(_callback_text(s)), fields)
-    if not pair.startswith('(') or not pair.endswith(')'):
-        raise SerializationError("first callback is not the names/type pair")
-    pair_parts = _split_top(pair[1:-1], ',')
-    if len(pair_parts) != 2:
-        raise SerializationError("first callback must contain names and type")
+    ty, schema, rs, envs, expr = map(lambda s: _coq_literal(_callback_text(s)), fields)
+    if len(_split_top(ty if not (ty.startswith('(') and ty.endswith(')')) else ty[1:-1], ',')) != 1:
+        raise SerializationError("first callback must be the generated type alone")
     ets, acts = _schema(schema)
     if not envs.startswith('[') or not envs.endswith(']'):
         raise SerializationError("environment callback must be a list")
@@ -168,9 +164,9 @@ def reconstruct_p0(fields):
     ets, acts = _unparen(ets), _unparen(acts)
     expression = (
         f"Original.mkInput ({ets}) ({acts}) ({rs}) ({e}) ({es}) "
-        f"({pair_parts[1]}) ({expr})"
+        f"({ty}) ({expr})"
     )
-    return expression, (pair, schema, rs, envs, expr), pair_parts[0]
+    return expression, (ty, schema, rs, envs, expr), None
 
 
 def reconstruct_candidate(fields):
@@ -187,14 +183,11 @@ def reconstruct_candidate(fields):
 
 def adapter_lemma(index, expression, binders):
     """A Coq equality checks every P0 binder against the reconstructed input."""
-    pair, schema, rs, envs, expr = binders
+    ty, schema, rs, envs, expr = binders
     n = f"sample_{index}"
     return f'''Definition {n} : Original.Input := {expression}.
-Definition {n}_scheduler_names : list EntityName :=
-  fst ({pair} : list EntityName * CedarType).
 Example {n}_adapter :
-  ({pair} : list EntityName * CedarType) =
-    ({n}_scheduler_names, Original.ty {n}) /\\
+  ({ty} : CedarType) = Original.ty {n} /\\
   ({schema} : Schema) =
     MkSchema (Original.ets {n}) (Original.acts {n}) /\\
   ({rs} : list RequestType) = Original.rs {n} /\\

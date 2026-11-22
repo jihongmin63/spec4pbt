@@ -19,6 +19,28 @@ from cedar.serialization import (_coq_literal, _split_top, reconstruct_candidate
 from cedar.benchmark import parse_quickchick_result
 from cedar import benchmark
 
+CANDIDATE = '''From Coq Require Import List.
+Require Import Specification.cedar.Spec Property.Original.
+Import ListNotations.
+Inductive predicate : Original.Input -> Prop :=
+| intro : forall ets acts rs e es ty expr,
+    WfSchema Original.entity_names (MkSchema ets acts) ->
+    ActionSchemaToRequestTypes acts [] rs ->
+    SchemaToEnvironments (MkSchema ets acts) rs (e :: es) ->
+    WfCedarType Original.entity_names ty ->
+    HasType (somepaths []) e expr ty ->
+    predicate (Original.mkInput ets acts rs e es ty expr).
+'''
+
+EQUIVALENCE = '''Require Import Property.candidates.v001.Candidate.
+Theorem equivalent : forall x, Original.predicate x <-> Candidate.predicate x.
+Proof.
+  intros [ets acts rs e es ty expr]; simpl; split.
+  - intros [Hs [Hr [He [Ht Hp]]]]. exact (Candidate.intro _ _ _ _ _ _ _ Hs Hr He Ht Hp).
+  - intros H. inversion H; subst; repeat split; assumption.
+Qed.
+'''
+
 
 class CedarBenchmarkTests(unittest.TestCase):
     def setUp(self):
@@ -50,7 +72,10 @@ class CedarBenchmarkTests(unittest.TestCase):
         self.assertEqual(result['status'], 'completed')
         self.assertEqual(result['derivation']['status'], 'succeeded')
         self.assertEqual(result['quickchick'], parse_quickchick_result(scheduler))
-        self.assertEqual(result['quickchick']['status'], 'gave_up')
+        # With the literal entity list the internal run matches the upstream
+        # artifact (10000 passed, about 2400 discards) instead of giving up.
+        self.assertEqual(result['quickchick']['status'], 'passed')
+        self.assertEqual(result['quickchick']['tests'], 10000)
         self.assertEqual(result['size'], 2)
         self.assertEqual(result['counts']['generated'] +
                          result['counts']['discard'], 10)
@@ -65,47 +90,90 @@ class CedarBenchmarkTests(unittest.TestCase):
         self.assertEqual(len(rows), 10)
         self.assertTrue(any(row['input_coq'] for row in rows))
         self.assertTrue((output / 'sources/Adapter0000.vo').is_file())
-        self.assertTrue(any(row['scheduler_entity_names'] !=
-                            '[MkName "EntityType1" []; MkName "EntityType2" []]'
-                            for row in rows if row['input_coq']))
+        self.assertTrue(all(row['scheduler_entity_names'] is None for row in rows))
+        schedule = benchmark.schedule_text(scheduler)
+        self.assertNotIn('entity_names', schedule)
+        self.assertTrue(set(result['derivation_guards']['schedule_binders']) >=
+                        {'ty', 'rs', 'expr'})
+        self.assertIn('entity_names_literal', (output / 'sources/Bench.v').read_text())
 
     def test_checked_candidate_uses_same_official_tactic_and_counted_attempts(self):
         prop = self.base / 'candidate-property'
         candidate = prop / 'candidates/v001'
         candidate.mkdir(parents=True)
         shutil.copy2(PROPERTY / 'Original.v', prop / 'Original.v')
-        (candidate / 'Candidate.v').write_text('''From Coq Require Import List.
-Require Import Specification.cedar.Spec Property.Original.
-Import ListNotations.
-Inductive predicate : Original.Input -> Prop :=
-| intro : forall ets acts rs e es ty expr,
-    WfSchema Original.entity_names (MkSchema ets acts) ->
-    ActionSchemaToRequestTypes acts [] rs ->
-    SchemaToEnvironments (MkSchema ets acts) rs (e :: es) ->
-    WfCedarType Original.entity_names ty ->
-    HasType (somepaths []) e expr ty ->
-    predicate (Original.mkInput ets acts rs e es ty expr).
-''')
-        (candidate / 'Equivalence.v').write_text('''Require Import Property.candidates.v001.Candidate.
-Theorem equivalent : forall x, Original.predicate x <-> Candidate.predicate x.
-Proof.
-  intros [ets acts rs e es ty expr]; simpl; split.
-  - intros [Hs [Hr [He [Ht Hp]]]]. exact (Candidate.intro _ _ _ _ _ _ _ Hs Hr He Ht Hp).
-  - intros H. inversion H; subst; repeat split; assumption.
-Qed.
-''')
+        (candidate / 'Candidate.v').write_text(CANDIDATE)
+        (candidate / 'Equivalence.v').write_text(EQUIVALENCE)
         output, result = self.invoke(prop, 'v001')
         self.assertEqual(result['status'], 'completed')
         self.assertEqual(result['derivation']['status'], 'succeeded')
         self.assertEqual(result['quickchick'],
                          parse_quickchick_result((output / 'scheduler.log').read_text()))
-        self.assertEqual(result['quickchick']['status'], 'gave_up')
+        self.assertEqual(result['quickchick']['status'], 'passed')
+        self.assertEqual(result['derivation_guards']['schedule_binders'], ['x'])
+        self.assertEqual(result['derivation_guards']['reachable_relations'], ['predicate_v001'])
+        rewrite = json.loads((output / 'derivation-rewrite.json').read_text())
+        self.assertEqual(rewrite['versions']['v001']['declared'], ['predicate', 'intro'])
+        copy = (output / 'sources/property/candidates/v001/Candidate.v').read_text()
+        self.assertNotIn('entity_names', copy)
+        self.assertIn('Inductive predicate_v001', copy)
+        self.assertEqual((prop / 'candidates/v001/Candidate.v').read_text().count('predicate_v001'), 0)
         self.assertEqual(result['counts']['generated'] +
                          result['counts']['discard'], 10)
         self.assertTrue(result['prefix_check'])
         self.assertIn('Theorem Schedule:', (output / 'scheduler.log').read_text())
         self.assertTrue((output / 'sources/theorem.ml').is_file())
         self.assertEqual(len((output / 'attempts.jsonl').read_text().splitlines()), 10)
+
+    def test_predecessor_relation_gets_its_own_generator(self):
+        # Before version-unique names, the plugin compiled a premise naming
+        # the predecessor's ``predicate`` as a recursive call to itself.
+        prop = self.base / 'chain-property'
+        (prop / 'candidates/v001').mkdir(parents=True)
+        shutil.copy2(PROPERTY / 'Original.v', prop / 'Original.v')
+        (prop / 'candidates/v001/Candidate.v').write_text(CANDIDATE)
+        (prop / 'candidates/v001/Equivalence.v').write_text(EQUIVALENCE)
+        (prop / 'candidates/v002').mkdir()
+        (prop / 'candidates/v002/Candidate.v').write_text('''Require Import List.
+Require Import Specification.cedar.Spec.
+Require Import Property.Original.
+Require Import Property.candidates.v001.Candidate.
+Inductive predicate : Original.Input -> Prop :=
+| Previous : forall i, Property.candidates.v001.Candidate.predicate i -> predicate i.
+''')
+        (prop / 'candidates/v002/Equivalence.v').write_text('''Require Import Property.candidates.v001.Candidate.
+Require Import Property.candidates.v002.Candidate.
+Theorem equivalent : forall x, Property.candidates.v001.Candidate.predicate x <->
+  Property.candidates.v002.Candidate.predicate x.
+Proof.
+  intro x; split; intro H.
+  - exact (Property.candidates.v002.Candidate.Previous x H).
+  - inversion H; assumption.
+Qed.
+''')
+        output, result = self.invoke(prop, 'v002')
+        self.assertEqual(result['status'], 'completed')
+        self.assertEqual(result['derivation_guards']['reachable_relations'],
+                         ['predicate_v001', 'predicate_v002'])
+        extracted = (output / 'sources/theorem.ml').read_text()
+        self.assertIn('genSizedSuchThat_predicate_v001_O', extracted)
+        self.assertGreater(result['counts']['generated'], 0)
+
+    def test_derivation_guards_reject_generated_constants_and_missing_relations(self):
+        log = ('Theorem Schedule:\ndo (entity_names : _, ty : CedarType) <-G (W entity_names ty) ;\n'
+               ' (vacts_ets11_ : _) <-G (S vacts_ets11_)\n=> check conclusion: x\n')
+        with self.assertRaisesRegex(RuntimeError, 'entity_names'):
+            benchmark.check_derivation(self.base, 'P0', log, None)
+        good = log.replace('entity_names : _, ', '')
+        self.assertEqual(benchmark.check_derivation(self.base, 'P0', good, None)['status'], 'passed')
+        (self.base / 'theorem.ml').write_text('let genSizedSuchThat_predicate_v002_O = 0\n')
+        candidate_log = 'Theorem Schedule:\ndo (x : Input) <-G (p x)\n=> check conclusion: y\n'
+        record = {'reachable_relations': ['predicate_v001', 'predicate_v002']}
+        with self.assertRaisesRegex(RuntimeError, 'predicate_v001'):
+            benchmark.check_derivation(self.base, 'v002', candidate_log, record)
+        record['reachable_relations'] = ['predicate_v002']
+        self.assertEqual(benchmark.check_derivation(self.base, 'v002', candidate_log, record)
+                         ['reachable_relations'], ['predicate_v002'])
 
     def test_quickchick_parser_records_reported_outcomes_and_rejects_ambiguity(self):
         gave_up = parse_quickchick_result('Theorem Schedule:\nPieces:\n'
@@ -138,7 +206,7 @@ Qed.
         shutil.copy2(PROPERTY / 'Original.v', prop / 'Original.v')
         output = prop / '.runs/benchmark'
 
-        def fail_after_scheduler(_sources, _candidate, destination):
+        def fail_after_scheduler(_sources, _candidate, destination, _sequence=()):
             (destination / 'scheduler.log').write_text(
                 'Theorem Schedule:\nPieces:\n'
                 '*** Gave up! Passed only 4 tests\nDiscarded: 20\n')
@@ -147,7 +215,7 @@ Qed.
         argv = ['benchmark.py', str(prop), '--candidate', 'P0', '--seed', '101',
                 '--attempts', '10', '--test-mode', '--output-dir', str(output)]
         with mock.patch.object(sys, 'argv', argv), \
-             mock.patch.object(benchmark, 'snapshot', return_value=(prop, None)), \
+             mock.patch.object(benchmark, 'snapshot', return_value=(prop, None, None, [])), \
              mock.patch.object(benchmark, 'compile_source', side_effect=fail_after_scheduler), \
              redirect_stdout(io.StringIO()):
             self.assertEqual(benchmark.main(), 1)
