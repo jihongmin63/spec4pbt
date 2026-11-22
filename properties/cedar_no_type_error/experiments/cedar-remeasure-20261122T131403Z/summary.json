@@ -1,0 +1,2720 @@
+{
+  "baseline": {
+    "confirmed_valid_ratio": 0.7845,
+    "per_seed": {
+      "101": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7848,
+        "confirmed_valid_ratio": 0.7848,
+        "no_result": 1867,
+        "status": "completed",
+        "undetermined": 285
+      },
+      "202": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7872,
+        "confirmed_valid_ratio": 0.7872,
+        "no_result": 1873,
+        "status": "completed",
+        "undetermined": 255
+      },
+      "303": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7832,
+        "confirmed_valid_ratio": 0.7832,
+        "no_result": 1907,
+        "status": "completed",
+        "undetermined": 261
+      },
+      "404": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7865,
+        "confirmed_valid_ratio": 0.7865,
+        "no_result": 1871,
+        "status": "completed",
+        "undetermined": 264
+      },
+      "505": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7808,
+        "confirmed_valid_ratio": 0.7808,
+        "no_result": 1906,
+        "status": "completed",
+        "undetermined": 286
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 0,
+      "confirmed_valid": 39225,
+      "no_result": 9424,
+      "undetermined": 1351
+    }
+  },
+  "experiment_id": "cedar-remeasure-20261122T131403Z",
+  "held_out_baseline": {
+    "confirmed_valid_ratio": 0.78604,
+    "per_seed": {
+      "1101": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7835,
+        "confirmed_valid_ratio": 0.7835,
+        "no_result": 1896,
+        "status": "completed",
+        "undetermined": 269
+      },
+      "1202": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7838,
+        "confirmed_valid_ratio": 0.7838,
+        "no_result": 1907,
+        "status": "completed",
+        "undetermined": 255
+      },
+      "1303": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7886,
+        "confirmed_valid_ratio": 0.7886,
+        "no_result": 1834,
+        "status": "completed",
+        "undetermined": 280
+      },
+      "1404": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7914,
+        "confirmed_valid_ratio": 0.7914,
+        "no_result": 1827,
+        "status": "completed",
+        "undetermined": 259
+      },
+      "1505": {
+        "attempts": 10000,
+        "confirmed_invalid": 0,
+        "confirmed_valid": 7829,
+        "confirmed_valid_ratio": 0.7829,
+        "no_result": 1896,
+        "status": "completed",
+        "undetermined": 275
+      }
+    },
+    "status": "completed",
+    "totals": {
+      "attempts": 50000,
+      "confirmed_invalid": 0,
+      "confirmed_valid": 39302,
+      "no_result": 9360,
+      "undetermined": 1338
+    }
+  },
+  "runs": {
+    "run-001": {
+      "adopted": [
+        {
+          "candidate_sha256": "9ab132b0fa4e2ca22d18e8e681b6430eed62b155a9b7d760060c184e1f11e510",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.63194,
+              "difference": -0.15256000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.6336,
+                  "difference": -0.1512,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.6288,
+                  "difference": -0.15839999999999999,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.6349,
+                  "difference": -0.1483,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.6371,
+                  "difference": -0.14939999999999998,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.6253,
+                  "difference": -0.15550000000000008,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.63194,
+              "difference": -0.15256000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.6336,
+                  "difference": -0.1512,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.6288,
+                  "difference": -0.15839999999999999,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.6349,
+                  "difference": -0.1483,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.6371,
+                  "difference": -0.14939999999999998,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.6253,
+                  "difference": -0.15550000000000008,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            }
+          },
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.63194,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6336,
+                "confirmed_valid_ratio": 0.6336,
+                "no_result": 3457,
+                "status": "completed",
+                "undetermined": 207
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6288,
+                "confirmed_valid_ratio": 0.6288,
+                "no_result": 3463,
+                "status": "completed",
+                "undetermined": 249
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6349,
+                "confirmed_valid_ratio": 0.6349,
+                "no_result": 3429,
+                "status": "completed",
+                "undetermined": 222
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6371,
+                "confirmed_valid_ratio": 0.6371,
+                "no_result": 3388,
+                "status": "completed",
+                "undetermined": 241
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6253,
+                "confirmed_valid_ratio": 0.6253,
+                "no_result": 3540,
+                "status": "completed",
+                "undetermined": 207
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 31597,
+              "no_result": 17277,
+              "undetermined": 1126
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e38a77c267672f32f7cb4f4dab76a368f3523d97e7664330cebfd54603739f97",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.97408,
+              "difference": 0.18957999999999997,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9738,
+                  "difference": 0.18899999999999995,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9742,
+                  "difference": 0.18699999999999994,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9763,
+                  "difference": 0.19309999999999994,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9752,
+                  "difference": 0.18869999999999998,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9709,
+                  "difference": 0.19009999999999994,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.97408,
+              "difference": 0.34214,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9738,
+                  "difference": 0.34019999999999995,
+                  "reference_ratio": 0.6336
+                },
+                "202": {
+                  "candidate_ratio": 0.9742,
+                  "difference": 0.34539999999999993,
+                  "reference_ratio": 0.6288
+                },
+                "303": {
+                  "candidate_ratio": 0.9763,
+                  "difference": 0.3413999999999999,
+                  "reference_ratio": 0.6349
+                },
+                "404": {
+                  "candidate_ratio": 0.9752,
+                  "difference": 0.33809999999999996,
+                  "reference_ratio": 0.6371
+                },
+                "505": {
+                  "candidate_ratio": 0.9709,
+                  "difference": 0.3456,
+                  "reference_ratio": 0.6253
+                }
+              },
+              "reference_ratio": 0.63194
+            }
+          },
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.97408,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9738,
+                "confirmed_valid_ratio": 0.9738,
+                "no_result": 178,
+                "status": "completed",
+                "undetermined": 84
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9742,
+                "confirmed_valid_ratio": 0.9742,
+                "no_result": 162,
+                "status": "completed",
+                "undetermined": 96
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9763,
+                "confirmed_valid_ratio": 0.9763,
+                "no_result": 176,
+                "status": "completed",
+                "undetermined": 61
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9752,
+                "confirmed_valid_ratio": 0.9752,
+                "no_result": 164,
+                "status": "completed",
+                "undetermined": 84
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9709,
+                "confirmed_valid_ratio": 0.9709,
+                "no_result": 212,
+                "status": "completed",
+                "undetermined": 79
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 48704,
+              "no_result": 892,
+              "undetermined": 404
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4105211b1f9d714c868779083da910f16bee19c795dbdc5e8af7bcf6e58b489e",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99738,
+              "difference": 0.21288000000000007,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9977,
+                  "difference": 0.21289999999999998,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9968,
+                  "difference": 0.2096,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9975,
+                  "difference": 0.21430000000000005,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9979,
+                  "difference": 0.21140000000000003,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.997,
+                  "difference": 0.21619999999999995,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99738,
+              "difference": 0.0233000000000001,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9977,
+                  "difference": 0.023900000000000032,
+                  "reference_ratio": 0.9738
+                },
+                "202": {
+                  "candidate_ratio": 0.9968,
+                  "difference": 0.022600000000000064,
+                  "reference_ratio": 0.9742
+                },
+                "303": {
+                  "candidate_ratio": 0.9975,
+                  "difference": 0.021200000000000108,
+                  "reference_ratio": 0.9763
+                },
+                "404": {
+                  "candidate_ratio": 0.9979,
+                  "difference": 0.022700000000000053,
+                  "reference_ratio": 0.9752
+                },
+                "505": {
+                  "candidate_ratio": 0.997,
+                  "difference": 0.026100000000000012,
+                  "reference_ratio": 0.9709
+                }
+              },
+              "reference_ratio": 0.97408
+            }
+          },
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99738,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9977,
+                "confirmed_valid_ratio": 0.9977,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 23
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9968,
+                "confirmed_valid_ratio": 0.9968,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 32
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9975,
+                "confirmed_valid_ratio": 0.9975,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 25
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9979,
+                "confirmed_valid_ratio": 0.9979,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 21
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9970,
+                "confirmed_valid_ratio": 0.997,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 30
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49869,
+              "no_result": 0,
+              "undetermined": 131
+            }
+          }
+        },
+        {
+          "candidate_sha256": "21c50375572111ff51c23b8523f7dea0ac9f8e7cc2f77c907052c08cc6efc91b",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.9989,
+              "difference": 0.21440000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9994,
+                  "difference": 0.2145999999999999,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9991,
+                  "difference": 0.21189999999999998,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9984,
+                  "difference": 0.21519999999999995,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9988,
+                  "difference": 0.21230000000000004,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9988,
+                  "difference": 0.21799999999999997,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.9989,
+              "difference": 0.0015199999999999658,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9994,
+                  "difference": 0.0016999999999999238,
+                  "reference_ratio": 0.9977
+                },
+                "202": {
+                  "candidate_ratio": 0.9991,
+                  "difference": 0.0022999999999999687,
+                  "reference_ratio": 0.9968
+                },
+                "303": {
+                  "candidate_ratio": 0.9984,
+                  "difference": 0.0008999999999999009,
+                  "reference_ratio": 0.9975
+                },
+                "404": {
+                  "candidate_ratio": 0.9988,
+                  "difference": 0.0009000000000000119,
+                  "reference_ratio": 0.9979
+                },
+                "505": {
+                  "candidate_ratio": 0.9988,
+                  "difference": 0.0018000000000000238,
+                  "reference_ratio": 0.997
+                }
+              },
+              "reference_ratio": 0.99738
+            }
+          },
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.9989,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9994,
+                "confirmed_valid_ratio": 0.9994,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 6
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9991,
+                "confirmed_valid_ratio": 0.9991,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 9
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9984,
+                "confirmed_valid_ratio": 0.9984,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 16
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9988,
+                "confirmed_valid_ratio": 0.9988,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 12
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9988,
+                "confirmed_valid_ratio": 0.9988,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 12
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49945,
+              "no_result": 0,
+              "undetermined": 55
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e67151a1b4385494bf98e5ee5487da981d730e336f94d918b819c227da5b1cde",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99954,
+              "difference": 0.21504,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.2147,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9994,
+                  "difference": 0.21219999999999994,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.21630000000000005,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.21310000000000007,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9997,
+                  "difference": 0.21889999999999998,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99954,
+              "difference": 0.0006399999999999739,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.00010000000000010001,
+                  "reference_ratio": 0.9994
+                },
+                "202": {
+                  "candidate_ratio": 0.9994,
+                  "difference": 0.00029999999999996696,
+                  "reference_ratio": 0.9991
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.001100000000000101,
+                  "reference_ratio": 0.9984
+                },
+                "404": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.0008000000000000229,
+                  "reference_ratio": 0.9988
+                },
+                "505": {
+                  "candidate_ratio": 0.9997,
+                  "difference": 0.0009000000000000119,
+                  "reference_ratio": 0.9988
+                }
+              },
+              "reference_ratio": 0.9989
+            }
+          },
+          "id": "v005",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99954,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9994,
+                "confirmed_valid_ratio": 0.9994,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 6
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9996,
+                "confirmed_valid_ratio": 0.9996,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 4
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9997,
+                "confirmed_valid_ratio": 0.9997,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 3
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49977,
+              "no_result": 0,
+              "undetermined": 23
+            }
+          }
+        }
+      ],
+      "held_out": {
+        "candidate": "v005",
+        "comparison": {
+          "candidate_ratio": 0.99952,
+          "difference": 0.21348,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 0.9994,
+              "difference": 0.21589999999999998,
+              "reference_ratio": 0.7835
+            },
+            "1202": {
+              "candidate_ratio": 0.9993,
+              "difference": 0.2154999999999999,
+              "reference_ratio": 0.7838
+            },
+            "1303": {
+              "candidate_ratio": 0.9999,
+              "difference": 0.21130000000000004,
+              "reference_ratio": 0.7886
+            },
+            "1404": {
+              "candidate_ratio": 0.9995,
+              "difference": 0.20810000000000006,
+              "reference_ratio": 0.7914
+            },
+            "1505": {
+              "candidate_ratio": 0.9995,
+              "difference": 0.21660000000000001,
+              "reference_ratio": 0.7829
+            }
+          },
+          "reference_ratio": 0.78604
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 0.99952,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9994,
+              "confirmed_valid_ratio": 0.9994,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 6
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9993,
+              "confirmed_valid_ratio": 0.9993,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 7
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9999,
+              "confirmed_valid_ratio": 0.9999,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9995,
+              "confirmed_valid_ratio": 0.9995,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 5
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9995,
+              "confirmed_valid_ratio": 0.9995,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 5
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 0,
+            "confirmed_valid": 49976,
+            "no_result": 0,
+            "undetermined": 24
+          }
+        }
+      },
+      "last_candidate_id": "v005"
+    },
+    "run-002": {
+      "adopted": [
+        {
+          "candidate_sha256": "d6ae00eeb6660e7a95653ee512bbbba68785b431a79bc377dc69b3ff0e1348f1",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.63194,
+              "difference": -0.15256000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.6336,
+                  "difference": -0.1512,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.6288,
+                  "difference": -0.15839999999999999,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.6349,
+                  "difference": -0.1483,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.6371,
+                  "difference": -0.14939999999999998,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.6253,
+                  "difference": -0.15550000000000008,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.63194,
+              "difference": -0.15256000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.6336,
+                  "difference": -0.1512,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.6288,
+                  "difference": -0.15839999999999999,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.6349,
+                  "difference": -0.1483,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.6371,
+                  "difference": -0.14939999999999998,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.6253,
+                  "difference": -0.15550000000000008,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            }
+          },
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.63194,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6336,
+                "confirmed_valid_ratio": 0.6336,
+                "no_result": 3457,
+                "status": "completed",
+                "undetermined": 207
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6288,
+                "confirmed_valid_ratio": 0.6288,
+                "no_result": 3463,
+                "status": "completed",
+                "undetermined": 249
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6349,
+                "confirmed_valid_ratio": 0.6349,
+                "no_result": 3429,
+                "status": "completed",
+                "undetermined": 222
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6371,
+                "confirmed_valid_ratio": 0.6371,
+                "no_result": 3388,
+                "status": "completed",
+                "undetermined": 241
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 6253,
+                "confirmed_valid_ratio": 0.6253,
+                "no_result": 3540,
+                "status": "completed",
+                "undetermined": 207
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 31597,
+              "no_result": 17277,
+              "undetermined": 1126
+            }
+          }
+        },
+        {
+          "candidate_sha256": "886f6116d2bf874705b06ef8e273aed21abe4694b31450184ec5a673ffaf5a05",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.09736,
+              "difference": -0.68714,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0933,
+                  "difference": -0.6915,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.1004,
+                  "difference": -0.6868,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.0998,
+                  "difference": -0.6834,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.0973,
+                  "difference": -0.6892,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.096,
+                  "difference": -0.6848000000000001,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.09736,
+              "difference": -0.5345799999999999,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0933,
+                  "difference": -0.5403,
+                  "reference_ratio": 0.6336
+                },
+                "202": {
+                  "candidate_ratio": 0.1004,
+                  "difference": -0.5284,
+                  "reference_ratio": 0.6288
+                },
+                "303": {
+                  "candidate_ratio": 0.0998,
+                  "difference": -0.5351,
+                  "reference_ratio": 0.6349
+                },
+                "404": {
+                  "candidate_ratio": 0.0973,
+                  "difference": -0.5398000000000001,
+                  "reference_ratio": 0.6371
+                },
+                "505": {
+                  "candidate_ratio": 0.096,
+                  "difference": -0.5293,
+                  "reference_ratio": 0.6253
+                }
+              },
+              "reference_ratio": 0.63194
+            }
+          },
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.09736,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 933,
+                "confirmed_valid_ratio": 0.0933,
+                "no_result": 9039,
+                "status": "completed",
+                "undetermined": 28
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 1004,
+                "confirmed_valid_ratio": 0.1004,
+                "no_result": 8966,
+                "status": "completed",
+                "undetermined": 30
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 998,
+                "confirmed_valid_ratio": 0.0998,
+                "no_result": 8963,
+                "status": "completed",
+                "undetermined": 39
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 973,
+                "confirmed_valid_ratio": 0.0973,
+                "no_result": 8998,
+                "status": "completed",
+                "undetermined": 29
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 960,
+                "confirmed_valid_ratio": 0.096,
+                "no_result": 9001,
+                "status": "completed",
+                "undetermined": 39
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 4868,
+              "no_result": 44967,
+              "undetermined": 165
+            }
+          }
+        },
+        {
+          "candidate_sha256": "59dfa164f4064d91070fe31316ca30f8dd1846c76edfa3bb45ec179c12a15893",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.43652,
+              "difference": -0.34797999999999996,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.4477,
+                  "difference": -0.33710000000000007,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.4364,
+                  "difference": -0.3508,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.431,
+                  "difference": -0.3522,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.4314,
+                  "difference": -0.35509999999999997,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.4361,
+                  "difference": -0.34470000000000006,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.43652,
+              "difference": 0.33916,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.4477,
+                  "difference": 0.3544,
+                  "reference_ratio": 0.0933
+                },
+                "202": {
+                  "candidate_ratio": 0.4364,
+                  "difference": 0.336,
+                  "reference_ratio": 0.1004
+                },
+                "303": {
+                  "candidate_ratio": 0.431,
+                  "difference": 0.3312,
+                  "reference_ratio": 0.0998
+                },
+                "404": {
+                  "candidate_ratio": 0.4314,
+                  "difference": 0.3341,
+                  "reference_ratio": 0.0973
+                },
+                "505": {
+                  "candidate_ratio": 0.4361,
+                  "difference": 0.34009999999999996,
+                  "reference_ratio": 0.096
+                }
+              },
+              "reference_ratio": 0.09736
+            }
+          },
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.43652,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 4477,
+                "confirmed_valid_ratio": 0.4477,
+                "no_result": 5495,
+                "status": "completed",
+                "undetermined": 28
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 4364,
+                "confirmed_valid_ratio": 0.4364,
+                "no_result": 5606,
+                "status": "completed",
+                "undetermined": 30
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 4310,
+                "confirmed_valid_ratio": 0.431,
+                "no_result": 5656,
+                "status": "completed",
+                "undetermined": 34
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 4314,
+                "confirmed_valid_ratio": 0.4314,
+                "no_result": 5664,
+                "status": "completed",
+                "undetermined": 22
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 4361,
+                "confirmed_valid_ratio": 0.4361,
+                "no_result": 5615,
+                "status": "completed",
+                "undetermined": 24
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 21826,
+              "no_result": 28036,
+              "undetermined": 138
+            }
+          }
+        },
+        {
+          "candidate_sha256": "6b49df7168fbce72824eaf63f95dd3291a040036fcb38ce190a023a723034742",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99956,
+              "difference": 0.21506000000000003,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.2147,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.21230000000000004,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.21640000000000004,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9997,
+                  "difference": 0.21320000000000006,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.2187,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99956,
+              "difference": 0.56304,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.5518000000000001,
+                  "reference_ratio": 0.4477
+                },
+                "202": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.5631,
+                  "reference_ratio": 0.4364
+                },
+                "303": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.5686,
+                  "reference_ratio": 0.431
+                },
+                "404": {
+                  "candidate_ratio": 0.9997,
+                  "difference": 0.5683,
+                  "reference_ratio": 0.4314
+                },
+                "505": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.5634000000000001,
+                  "reference_ratio": 0.4361
+                }
+              },
+              "reference_ratio": 0.43652
+            }
+          },
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99956,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9996,
+                "confirmed_valid_ratio": 0.9996,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 4
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9997,
+                "confirmed_valid_ratio": 0.9997,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 3
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49978,
+              "no_result": 0,
+              "undetermined": 22
+            }
+          }
+        },
+        {
+          "candidate_sha256": "259c445ee2917342f230f92699899f3c72d62c0fda25cbd53228d66e37cbf5fd",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99976,
+              "difference": 0.21526,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.21499999999999997,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.2126,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.21630000000000005,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21340000000000003,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.21899999999999997,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99976,
+              "difference": 0.00019999999999997797,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.00029999999999996696,
+                  "reference_ratio": 0.9995
+                },
+                "202": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.00029999999999996696,
+                  "reference_ratio": 0.9995
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": -9.999999999998899e-05,
+                  "reference_ratio": 0.9996
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.00019999999999997797,
+                  "reference_ratio": 0.9997
+                },
+                "505": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.00029999999999996696,
+                  "reference_ratio": 0.9995
+                }
+              },
+              "reference_ratio": 0.99956
+            }
+          },
+          "id": "v005",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99976,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49988,
+              "no_result": 0,
+              "undetermined": 12
+            }
+          }
+        },
+        {
+          "candidate_sha256": "9459c9660eecbe2427b35156814df9fe79e766a3dd8407af3078e3dd4cd328ea",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.9998,
+              "difference": 0.21530000000000005,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21509999999999996,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.21240000000000003,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.2167,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.21330000000000005,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.21899999999999997,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.9998,
+              "difference": 4.0000000000040004e-05,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 9.999999999998899e-05,
+                  "reference_ratio": 0.9998
+                },
+                "202": {
+                  "candidate_ratio": 0.9996,
+                  "difference": -0.00019999999999997797,
+                  "reference_ratio": 0.9998
+                },
+                "303": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.00039999999999995595,
+                  "reference_ratio": 0.9995
+                },
+                "404": {
+                  "candidate_ratio": 0.9998,
+                  "difference": -9.999999999998899e-05,
+                  "reference_ratio": 0.9999
+                },
+                "505": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.0,
+                  "reference_ratio": 0.9998
+                }
+              },
+              "reference_ratio": 0.99976
+            }
+          },
+          "id": "v006",
+          "measurement": {
+            "confirmed_valid_ratio": 0.9998,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9996,
+                "confirmed_valid_ratio": 0.9996,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 4
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49990,
+              "no_result": 0,
+              "undetermined": 10
+            }
+          }
+        },
+        {
+          "candidate_sha256": "e79ff109c90b020122e0817f6e9906c5f1b5d62dcb25c243867d34cc7b443eb3",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99992,
+              "difference": 0.21542000000000006,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21509999999999996,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.2128,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9998,
+                  "difference": 0.21660000000000001,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21340000000000003,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.21919999999999995,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99992,
+              "difference": 0.00012000000000000899,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.0,
+                  "reference_ratio": 0.9999
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.00039999999999995595,
+                  "reference_ratio": 0.9996
+                },
+                "303": {
+                  "candidate_ratio": 0.9998,
+                  "difference": -9.999999999998899e-05,
+                  "reference_ratio": 0.9999
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 9.999999999998899e-05,
+                  "reference_ratio": 0.9998
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.00019999999999997797,
+                  "reference_ratio": 0.9998
+                }
+              },
+              "reference_ratio": 0.9998
+            }
+          },
+          "id": "v007",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99992,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9998,
+                "confirmed_valid_ratio": 0.9998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 2
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49996,
+              "no_result": 0,
+              "undetermined": 4
+            }
+          }
+        },
+        {
+          "candidate_sha256": "fefaeb54711797e2f3a789c038cf2482e544b1a2214d711eb13304f0ff824ec4",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99996,
+              "difference": 0.21545999999999998,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21509999999999996,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.2128,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.2168,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21340000000000003,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.21919999999999995,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99996,
+              "difference": 3.999999999992898e-05,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.0,
+                  "reference_ratio": 0.9999
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.00019999999999997797,
+                  "reference_ratio": 0.9998
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.0,
+                  "reference_ratio": 0.9999
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 0.99992
+            }
+          },
+          "id": "v008",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99996,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49998,
+              "no_result": 0,
+              "undetermined": 2
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4a73908450c5e1515e401abae22325afeb04e2dc1066b5fb121e0a88e91a2223",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99998,
+              "difference": 0.21548,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.21519999999999995,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.2128,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.2168,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21340000000000003,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.21919999999999995,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99998,
+              "difference": 2.0000000000020002e-05,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 1.0,
+                  "difference": 9.999999999998899e-05,
+                  "reference_ratio": 0.9999
+                },
+                "202": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "303": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                },
+                "404": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.0,
+                  "reference_ratio": 0.9999
+                },
+                "505": {
+                  "candidate_ratio": 1.0,
+                  "difference": 0.0,
+                  "reference_ratio": 1.0
+                }
+              },
+              "reference_ratio": 0.99996
+            }
+          },
+          "id": "v009",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99998,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 10000,
+                "confirmed_valid_ratio": 1.0,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 0
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49999,
+              "no_result": 0,
+              "undetermined": 1
+            }
+          }
+        }
+      ],
+      "held_out": {
+        "candidate": "v009",
+        "comparison": {
+          "candidate_ratio": 1.0,
+          "difference": 0.21396000000000004,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 1.0,
+              "difference": 0.21650000000000003,
+              "reference_ratio": 0.7835
+            },
+            "1202": {
+              "candidate_ratio": 1.0,
+              "difference": 0.21619999999999995,
+              "reference_ratio": 0.7838
+            },
+            "1303": {
+              "candidate_ratio": 1.0,
+              "difference": 0.21140000000000003,
+              "reference_ratio": 0.7886
+            },
+            "1404": {
+              "candidate_ratio": 1.0,
+              "difference": 0.2086,
+              "reference_ratio": 0.7914
+            },
+            "1505": {
+              "candidate_ratio": 1.0,
+              "difference": 0.21709999999999996,
+              "reference_ratio": 0.7829
+            }
+          },
+          "reference_ratio": 0.78604
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 1.0,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 10000,
+              "confirmed_valid_ratio": 1.0,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 0
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 0,
+            "confirmed_valid": 50000,
+            "no_result": 0,
+            "undetermined": 0
+          }
+        }
+      },
+      "last_candidate_id": "v009"
+    },
+    "run-003": {
+      "adopted": [
+        {
+          "candidate_sha256": "e48d86d83cf419834856ae7d667f3c47cfe514e1e73c58013704d3deabe70b14",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.09736,
+              "difference": -0.68714,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0933,
+                  "difference": -0.6915,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.1004,
+                  "difference": -0.6868,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.0998,
+                  "difference": -0.6834,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.0973,
+                  "difference": -0.6892,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.096,
+                  "difference": -0.6848000000000001,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.09736,
+              "difference": -0.68714,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.0933,
+                  "difference": -0.6915,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.1004,
+                  "difference": -0.6868,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.0998,
+                  "difference": -0.6834,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.0973,
+                  "difference": -0.6892,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.096,
+                  "difference": -0.6848000000000001,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            }
+          },
+          "id": "v001",
+          "measurement": {
+            "confirmed_valid_ratio": 0.09736,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 933,
+                "confirmed_valid_ratio": 0.0933,
+                "no_result": 9039,
+                "status": "completed",
+                "undetermined": 28
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 1004,
+                "confirmed_valid_ratio": 0.1004,
+                "no_result": 8966,
+                "status": "completed",
+                "undetermined": 30
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 998,
+                "confirmed_valid_ratio": 0.0998,
+                "no_result": 8963,
+                "status": "completed",
+                "undetermined": 39
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 973,
+                "confirmed_valid_ratio": 0.0973,
+                "no_result": 8998,
+                "status": "completed",
+                "undetermined": 29
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 960,
+                "confirmed_valid_ratio": 0.096,
+                "no_result": 9001,
+                "status": "completed",
+                "undetermined": 39
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 4868,
+              "no_result": 44967,
+              "undetermined": 165
+            }
+          }
+        },
+        {
+          "candidate_sha256": "3e004e513139f2504602b6817f4872739f059e0111101b54642f7449613b4fb3",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99804,
+              "difference": 0.21354000000000006,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9986,
+                  "difference": 0.2138,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.998,
+                  "difference": 0.2108,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9978,
+                  "difference": 0.2146,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9981,
+                  "difference": 0.2116,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9977,
+                  "difference": 0.21689999999999998,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99804,
+              "difference": 0.90068,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9986,
+                  "difference": 0.9053,
+                  "reference_ratio": 0.0933
+                },
+                "202": {
+                  "candidate_ratio": 0.998,
+                  "difference": 0.8976,
+                  "reference_ratio": 0.1004
+                },
+                "303": {
+                  "candidate_ratio": 0.9978,
+                  "difference": 0.898,
+                  "reference_ratio": 0.0998
+                },
+                "404": {
+                  "candidate_ratio": 0.9981,
+                  "difference": 0.9008,
+                  "reference_ratio": 0.0973
+                },
+                "505": {
+                  "candidate_ratio": 0.9977,
+                  "difference": 0.9017000000000001,
+                  "reference_ratio": 0.096
+                }
+              },
+              "reference_ratio": 0.09736
+            }
+          },
+          "id": "v002",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99804,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9986,
+                "confirmed_valid_ratio": 0.9986,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 14
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9980,
+                "confirmed_valid_ratio": 0.998,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 20
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9978,
+                "confirmed_valid_ratio": 0.9978,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 22
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9981,
+                "confirmed_valid_ratio": 0.9981,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 19
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9977,
+                "confirmed_valid_ratio": 0.9977,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 23
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49902,
+              "no_result": 0,
+              "undetermined": 98
+            }
+          }
+        },
+        {
+          "candidate_sha256": "4a2bc0f552f3280469cd64813fdc394376408bd97254f477e01356d66e0db312",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.9992,
+              "difference": 0.2147,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.2147,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9991,
+                  "difference": 0.21189999999999998,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.21630000000000005,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9993,
+                  "difference": 0.2128,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9986,
+                  "difference": 0.2178,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.9992,
+              "difference": 0.0011599999999999389,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.0009000000000000119,
+                  "reference_ratio": 0.9986
+                },
+                "202": {
+                  "candidate_ratio": 0.9991,
+                  "difference": 0.0010999999999999899,
+                  "reference_ratio": 0.998
+                },
+                "303": {
+                  "candidate_ratio": 0.9995,
+                  "difference": 0.0017000000000000348,
+                  "reference_ratio": 0.9978
+                },
+                "404": {
+                  "candidate_ratio": 0.9993,
+                  "difference": 0.0011999999999999789,
+                  "reference_ratio": 0.9981
+                },
+                "505": {
+                  "candidate_ratio": 0.9986,
+                  "difference": 0.0009000000000000119,
+                  "reference_ratio": 0.9977
+                }
+              },
+              "reference_ratio": 0.99804
+            }
+          },
+          "id": "v003",
+          "measurement": {
+            "confirmed_valid_ratio": 0.9992,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9991,
+                "confirmed_valid_ratio": 0.9991,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 9
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9995,
+                "confirmed_valid_ratio": 0.9995,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 5
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9993,
+                "confirmed_valid_ratio": 0.9993,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 7
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9986,
+                "confirmed_valid_ratio": 0.9986,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 14
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49960,
+              "no_result": 0,
+              "undetermined": 40
+            }
+          }
+        },
+        {
+          "candidate_sha256": "31904dc9e2a6e016b34535ab6d364e44858f8861f477ef7e4c48509359ff3893",
+          "comparison": {
+            "vs_P0": {
+              "candidate_ratio": 0.99948,
+              "difference": 0.21498000000000006,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9993,
+                  "difference": 0.2144999999999999,
+                  "reference_ratio": 0.7848
+                },
+                "202": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.21240000000000003,
+                  "reference_ratio": 0.7872
+                },
+                "303": {
+                  "candidate_ratio": 0.9994,
+                  "difference": 0.21619999999999995,
+                  "reference_ratio": 0.7832
+                },
+                "404": {
+                  "candidate_ratio": 0.9992,
+                  "difference": 0.2127,
+                  "reference_ratio": 0.7865
+                },
+                "505": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.21909999999999996,
+                  "reference_ratio": 0.7808
+                }
+              },
+              "reference_ratio": 0.7845
+            },
+            "vs_predecessor": {
+              "candidate_ratio": 0.99948,
+              "difference": 0.000280000000000058,
+              "per_seed": {
+                "101": {
+                  "candidate_ratio": 0.9993,
+                  "difference": -0.000200000000000089,
+                  "reference_ratio": 0.9995
+                },
+                "202": {
+                  "candidate_ratio": 0.9996,
+                  "difference": 0.000500000000000056,
+                  "reference_ratio": 0.9991
+                },
+                "303": {
+                  "candidate_ratio": 0.9994,
+                  "difference": -0.00010000000000010001,
+                  "reference_ratio": 0.9995
+                },
+                "404": {
+                  "candidate_ratio": 0.9992,
+                  "difference": -9.999999999998899e-05,
+                  "reference_ratio": 0.9993
+                },
+                "505": {
+                  "candidate_ratio": 0.9999,
+                  "difference": 0.0012999999999999678,
+                  "reference_ratio": 0.9986
+                }
+              },
+              "reference_ratio": 0.9992
+            }
+          },
+          "id": "v004",
+          "measurement": {
+            "confirmed_valid_ratio": 0.99948,
+            "per_seed": {
+              "101": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9993,
+                "confirmed_valid_ratio": 0.9993,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 7
+              },
+              "202": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9996,
+                "confirmed_valid_ratio": 0.9996,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 4
+              },
+              "303": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9994,
+                "confirmed_valid_ratio": 0.9994,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 6
+              },
+              "404": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9992,
+                "confirmed_valid_ratio": 0.9992,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 8
+              },
+              "505": {
+                "attempts": 10000,
+                "confirmed_invalid": 0,
+                "confirmed_valid": 9999,
+                "confirmed_valid_ratio": 0.9999,
+                "no_result": 0,
+                "status": "completed",
+                "undetermined": 1
+              }
+            },
+            "status": "completed",
+            "totals": {
+              "attempts": 50000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 49974,
+              "no_result": 0,
+              "undetermined": 26
+            }
+          }
+        }
+      ],
+      "held_out": {
+        "candidate": "v004",
+        "comparison": {
+          "candidate_ratio": 0.9997,
+          "difference": 0.21366000000000007,
+          "per_seed": {
+            "1101": {
+              "candidate_ratio": 0.9997,
+              "difference": 0.21620000000000006,
+              "reference_ratio": 0.7835
+            },
+            "1202": {
+              "candidate_ratio": 0.9997,
+              "difference": 0.21589999999999998,
+              "reference_ratio": 0.7838
+            },
+            "1303": {
+              "candidate_ratio": 0.9999,
+              "difference": 0.21130000000000004,
+              "reference_ratio": 0.7886
+            },
+            "1404": {
+              "candidate_ratio": 0.9996,
+              "difference": 0.20820000000000005,
+              "reference_ratio": 0.7914
+            },
+            "1505": {
+              "candidate_ratio": 0.9996,
+              "difference": 0.2167,
+              "reference_ratio": 0.7829
+            }
+          },
+          "reference_ratio": 0.78604
+        },
+        "measurement": {
+          "confirmed_valid_ratio": 0.9997,
+          "per_seed": {
+            "1101": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9997,
+              "confirmed_valid_ratio": 0.9997,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 3
+            },
+            "1202": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9997,
+              "confirmed_valid_ratio": 0.9997,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 3
+            },
+            "1303": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9999,
+              "confirmed_valid_ratio": 0.9999,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 1
+            },
+            "1404": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9996,
+              "confirmed_valid_ratio": 0.9996,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 4
+            },
+            "1505": {
+              "attempts": 10000,
+              "confirmed_invalid": 0,
+              "confirmed_valid": 9996,
+              "confirmed_valid_ratio": 0.9996,
+              "no_result": 0,
+              "status": "completed",
+              "undetermined": 4
+            }
+          },
+          "status": "completed",
+          "totals": {
+            "attempts": 50000,
+            "confirmed_invalid": 0,
+            "confirmed_valid": 49985,
+            "no_result": 0,
+            "undetermined": 15
+          }
+        }
+      },
+      "last_candidate_id": "v004"
+    }
+  },
+  "source_experiment": "cedar-poc-20261122T025605Z"
+}

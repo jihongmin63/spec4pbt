@@ -2,6 +2,8 @@
 
 실험 ID: `cedar-poc-20261122T025605Z`. 상태: **완료**.
 
+> 이 문서의 확인 유효 비율은 측정 도구의 세 결함(엔티티 목록 일반화, 같은 이름 relation 혼동, 검증기 힌트 누락)에 좌우되었습니다. 같은 후보를 고친 도구로 다시 잰 결과는 [cedar-remeasure-20261122T131403Z](../cedar-remeasure-20261122T131403Z/RESULTS.md)에 있습니다. 아래 기록은 원 실행 그대로 보존합니다.
+
 고정 도구 commit: `bd50bbfdacbafd3ee1b47d27a954b761b0b7ebd5`. 전체 소스·도구·환경·실행 조건 해시는 [manifest.json](manifest.json)에, 원시 집계와 역할 비용은 [summary.json](summary.json)에 있습니다.
 
 주 지표는 원본 다섯 전제가 모두 확인된 입력 수 / 전체 외부 생성 시도 수입니다. None·discard도 분모에 포함합니다. 판정 불가가 있으므로 확인된 유효 입력 비율만 보고하며 생성기 soundness/completeness나 모든 크기·seed에 대한 우위를 증명하지 않습니다.

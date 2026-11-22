@@ -1,0 +1,119 @@
+{
+  "chains": {
+    "run-001": [
+      "v001",
+      "v002",
+      "v003",
+      "v004",
+      "v005"
+    ],
+    "run-002": [
+      "v001",
+      "v002",
+      "v003",
+      "v004",
+      "v005",
+      "v006",
+      "v007",
+      "v008",
+      "v009"
+    ],
+    "run-003": [
+      "v001",
+      "v002",
+      "v003",
+      "v004"
+    ]
+  },
+  "frozen": {
+    "commit": "7466fa600c1defa9bd12ac5ade71bd2209e01220",
+    "conditions": {
+      "attempts_per_seed": 10000,
+      "coq_version": "8.20.0",
+      "effort": {
+        "prover": "xhigh",
+        "reformulator": "xhigh"
+      },
+      "eval_seeds": [
+        101,
+        202,
+        303,
+        404,
+        505
+      ],
+      "held_out_seeds": [
+        1101,
+        1202,
+        1303,
+        1404,
+        1505
+      ],
+      "max_proposals_per_run": 10,
+      "model": "gpt-6-sol",
+      "ocaml_version": "4.14.2",
+      "runs": [
+        "run-001",
+        "run-002",
+        "run-003"
+      ],
+      "seed_workers": 5,
+      "size": 2,
+      "validator": {
+        "batch_size": 500,
+        "batch_timeout_seconds": 1200,
+        "batch_workers": 6,
+        "proof_depth": 30,
+        "tactic_timeout_seconds": 1
+      }
+    },
+    "sources": {
+      "properties/cedar_no_type_error/Original.v": "ae6d5e33f2e02c509a16fe1d84a9b8bb894d6f92cd3665da8d7487a987b52d21",
+      "specification/cedar/Spec.v": "075b9e65c01c5782ddd5e778bf98387a4bbbe1d5bd12bba01841bcb2441c4f13"
+    },
+    "tools": {
+      "AGENTS.md": "7d4856db9df462c0c651b519ec5f36220e5f536d8560ee16d1b9b03586144fa3",
+      "environment/env.sh": "6f1a74561ccb1996a30f6b47bb6d20edc2ef8bd34cc88bb930eaea2e0a1254bf",
+      "environment/opam-switch.export": "9db9c8978c8f3577a4ccd5e11e24d30aec5dbacb9ca20c2433cf661ff11d2574",
+      "prompts/cedar-experiments.txt": "d4d3d69215a76700fb193948f712af43706122604a667d52a4ca81485eadd413",
+      "properties/cedar_no_type_error/upstream/CedarWellTypedTermGenerator.v.txt": "3063d50f086691301cc3f1c0a81e9776c0f0159cfde685cf71979785198529cd",
+      "scripts/cedar/BENCHMARK.md": "b60d5e04f2dff31fb226d63552b6f29a7a9064166200aa61c168560496f86ef8",
+      "scripts/cedar/README-validator.md": "e2ffade1aa59c23d7caa5aab89ccd0785d9eeb1c2c13d7eef85cd9e4c26f9354",
+      "scripts/cedar/README.md": "961f9e117a68ee59237d6de00f16f91bd8d445e33a6ce69de74355c2af4bf049",
+      "scripts/cedar/SYNTAX.md": "1e7026ef3a45a0d170ed1634b519bfdba33b7959614e0e5191cdfbcae60645b1",
+      "scripts/cedar/Support.v": "7717aa6c42ef7b010090e37bdca43b058d4d8dca5a6a5342b9b01b7f26428498",
+      "scripts/cedar/Validator.v": "3eaab1f6a1b3d66983ea8d369473d2fb3bb2b3f6c38dca4b923a48f138b9adbc",
+      "scripts/cedar/__init__.py": "2afc669b8bd6cf549d8370e0e10c88b5159250c8afd4cb1f492cb6151af8e91a",
+      "scripts/cedar/benchmark.py": "dfc66e5ad615813ee4eb178b0384e7570a576ce65ea2d55c939b92cdb95fefae",
+      "scripts/cedar/derivation.py": "66cfcda8368c6bd754a014f19a3e3ae46bcb29abf0b9ac2c09f52a478331b6e1",
+      "scripts/cedar/driver.ml": "17f7a3ca41f8b5df06ef6185bbef8cb0c63a948b5a75a93157f624e1e918a0ee",
+      "scripts/cedar/execute.py": "2eddaaba653a8ae19eef28da6f03184a2b63f2322ceaf476434fc9225196f334",
+      "scripts/cedar/experiment.py": "f10bcda18f4a2406c7879219356b0bfc890eb24005ed3d5dbd2e6d4b877d659e",
+      "scripts/cedar/inspection.py": "cef3760ecf9aaf192f263ac66bc8a9250c2961a2d426d98c76ac84ce9d868e4c",
+      "scripts/cedar/prompts/prover.txt": "9fb3316bdc7924cb4a05cbf3a4a19bc1d0f846211bc2960d3c874d9878795eb4",
+      "scripts/cedar/prompts/reformulator.txt": "5dbaca3ec6327ed8ff4667ead542cc4b5577d95e5c5638fcaa102e509a34ebeb",
+      "scripts/cedar/remeasure.py": "cb63fcaf8a622164161e68866de356e63ae8e28eb0df7e6e5c51645a478b1e30",
+      "scripts/cedar/roles.py": "83fe2fc833c055b18f1a6fefcd4fde000368683e9d52438c68b5b078094c519d",
+      "scripts/cedar/schemas/prover.json": "91216e14a0349f9f2877bfc50783c1153f0cc974ceebcae461bdbdf2a861e646",
+      "scripts/cedar/schemas/reformulator.json": "6e837a1b9b5ef848b1f476ed1458fb8c44eb42a8a50c4b904f89a05522130a53",
+      "scripts/cedar/serialization.py": "42c873918aa699d892da570d5464c38702cf2c6182d6514f7339e013b2d918e6",
+      "scripts/cedar/syntax.py": "111416bc4a110d96afc0df506b34ee9aa73401dac5b3ea99e3dacd4ea1b8bdf6",
+      "scripts/cedar/validator.py": "a33cc2fe4ad34a1d51550a8dada2deac6a1ce26863e810ddf9d6b5605be78572",
+      "scripts/check.py": "7206e5714f778938c5c80d36e73ea27f4291bc411e26f0da513535cf2c7ac4d6",
+      "scripts/run.py": "b8112dcd8e8963e58e06442bfd9c4a11feaef3b70915b089f06654c05b35437f",
+      "scripts/tests/test_cedar_benchmark.py": "eff2d7adeeb82badec21660f557cad02ffcab739c7dd1617d2b671bcd5d2cc85",
+      "scripts/tests/test_cedar_derivation.py": "1f7417d9744dcb5653548a6b8e8882e82f4960e07f33e0b5d3d117a55d84501b",
+      "scripts/tests/test_cedar_execute.py": "d5928f254aed885a77de4322f54d95caecd6690022d430bd8201f62c8c1099ea",
+      "scripts/tests/test_cedar_experiment.py": "b7cc11372e615008791c4cd542a8d7de94a3783ac3d0680ec6f47dd96ac90bde",
+      "scripts/tests/test_cedar_inspection.py": "c11c7d6ae7a0f1dba83088e76b2760eb1c62307cadb159082bceabab16aa2928",
+      "scripts/tests/test_cedar_remeasure.py": "747177da8a17f10cb8bd1a69eef0b2be89a1f520f6c48d5c86add3b4df40d24a",
+      "scripts/tests/test_cedar_roles.py": "1fe63adc97df7894359d9c57f21747bc6e4ad93afcd71a339c051e3b769fc95a",
+      "scripts/tests/test_cedar_syntax.py": "b1e1290aa50617444071223553aa344e4c5fd555d55118c11db7cea201454c4f",
+      "scripts/tests/test_cedar_validator.py": "4a9953b4e31fc18ebf4393181e584038d655f80a20148256df02df5569327f7c",
+      "scripts/tests/test_workflow.py": "15c990dd8afec2faff071cea6ac3cb3f22a2f6f89b1f7cce52b82f73a3e81f52",
+      "specification/cedar/upstream/Cedar.v.txt": "0ff523f080c9e26e15afbc25cc89b519da9c7dd25dfa9a8c2cfb917fc681e911"
+    }
+  },
+  "source_experiment": "cedar-poc-20261122T025605Z",
+  "source_final_audit_sha256": "6ca480d6f7812f50b7123ac6e608b9ff2984382ad2f5051adfef9667c34cbdc5",
+  "tool_review": "/workspace/spec4pbt/properties/cedar_no_type_error/.runs/tool-review-20261122T130800Z/review.json"
+}
