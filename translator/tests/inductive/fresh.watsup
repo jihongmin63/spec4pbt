@@ -1,0 +1,12 @@
+syntax typeId = text
+var n : nat
+var t : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation Paths: nat text hint(input %0)
+rule Paths/fail: n t
+  -- if t = $fresh_typeId()
+  -- if false
+rule Paths/win: n t
+  -- if t = $fresh_typeId()
