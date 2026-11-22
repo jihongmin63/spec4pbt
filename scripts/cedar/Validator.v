@@ -7,19 +7,26 @@ Require Import Specification.cedar.Spec.
 Require Import Property.Original.
 
 Create HintDb cedar_validator.
+(** Every inductive proposition of Spec.v.  [Hint Constructors] on one member
+    of a mutual block adds only that member's constructors, so WfSetSyntax and
+    WfRecSyntax are listed separately from WfExprSyntax.  Without them no
+    record with a field and no set with two or more elements was provable. *)
 Hint Constructors
   DefinedName DefinedNames NotInEntityNames WfCedarType WfSchemaType
-  NotInAttrs WfAttrs WfET WfETS WfACT WfACTS WfSchema
+  WfRecordType NotInAttrs WfAttrs WfET WfETS WfACT WfACTS WfSchema
   ReqContextToCedarType ActionToRequestTypes
   ActionSchemaEntryToRequestTypes ActionSchemaToRequestTypes
   SchemaToEnvironments HasTypePrim HasTypeVar HasType
-  RecordType RecordExpr SetExpr WfExprSyntax
-  SubType BranchJoin BindAttrType DefinedEntities
-  LookupEntityAttr GetEntityAttr NotInRecExpr
+  RecordType RecordExpr SetExpr WfExprSyntax WfSetSyntax WfRecSyntax
+  Value SetEntityValues SubType BranchJoin BindAttrType
+  DefinedEntity DefinedEntities LookupEntityAttr GetEntityAttr NotInRecExpr
   : cedar_validator.
 Hint Extern 1 (_ <> _) => congruence : cedar_validator.
 Hint Extern 1 (_ = _) => reflexivity : cedar_validator.
 
+(** Depth 30: a two-entity schema with attributes needs more than 12 nested
+    constructor applications under WfETS, so depth 12 failed quickly on
+    well-formed P0 schemas. *)
 Ltac cedar_prove :=
   solve [
     cbv;
@@ -27,11 +34,11 @@ Ltac cedar_prove :=
       lazymatch goal with
       | |- WfSchema ?ns (MkSchema ?ets ?ac) =>
           eapply (WfS ns ets ac ac);
-          [eauto 12 with cedar_validator
-          |eauto 12 with cedar_validator
+          [eauto 30 with cedar_validator
+          |eauto 30 with cedar_validator
           |reflexivity]
       end
-    | eauto 12 with cedar_validator
+    | eauto 30 with cedar_validator
     ]
   ].
 

@@ -31,9 +31,9 @@ PREMISES = (
     "HasType",
 )
 DEFAULT_BATCH_SIZE = 500
-DEFAULT_BATCH_WORKERS = 4
+DEFAULT_BATCH_WORKERS = 6
 MAX_BATCH_SECONDS = 1200
-PROOF_DEPTH = 12  # Fixed in Validator.v; repeated here for the manifest.
+PROOF_DEPTH = 30  # Fixed in Validator.v; repeated here for the manifest.
 TACTIC_TIMEOUT_SECONDS = 1  # Per positive and negative search, in Validator.v.
 TAG_RE = re.compile(
     r'=\s*\("([0-9a-f]{64}):(\w+)"\s*,\s*"(valid|invalid|unknown)"\s*\)',
@@ -344,7 +344,7 @@ def main() -> int:
     parser.add_argument("--env-script", type=Path, help="pinned environment/env.sh")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
     parser.add_argument("--batch-workers", type=int, default=DEFAULT_BATCH_WORKERS,
-                        help="concurrent independent Coq batches (1-4; default 4)")
+                        help="concurrent independent Coq batches (1-6; default 6)")
     args = parser.parse_args()
     if args.batch_size < 1 or args.batch_size > DEFAULT_BATCH_SIZE:
         parser.error(f"batch-size must be between 1 and {DEFAULT_BATCH_SIZE}")

@@ -93,6 +93,38 @@ class CedarValidatorTests(unittest.TestCase):
             self.assertEqual(cached.read_text(), parallel.read_text())
             self.assertEqual(len(list((work / "evidence").rglob("batch_*.v"))), 6)
 
+    def test_records_sets_and_attributed_schemas_are_provable(self):
+        # Each shape was "unknown" before the hint database listed the mutual
+        # WfSetSyntax/WfRecSyntax members and the search depth was raised.
+        attributed = (f'[({N1}, MkEntitySchemaEntry [] [(("John", false), entityType {N2})]); '
+                      f'({N2}, MkEntitySchemaEntry [{N2}] [(("A", false), recordTypeNil)])]')
+        terms = [
+            input_term(ty='(recordTypeCons "f" false intType recordTypeNil)',
+                       expr='(recExprCons "f" (lit (int 0%Z)) recExprNil, somepaths [])'),
+            input_term(ty='(setType intType)',
+                       expr='(setExprCons (lit (int 0%Z)) (setExprCons (lit (int 1%Z)) '
+                            'setExprNil), somepaths [])'),
+            input_term(ets=attributed),
+        ]
+        scratch = ROOT / "properties/cedar_no_type_error/.runs"
+        scratch.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="validator-shapes-", dir=scratch) as directory:
+            work = Path(directory)
+            attempts = work / "attempts.jsonl"
+            output = work / "verdicts.jsonl"
+            attempts.write_text("".join(
+                json.dumps({"id": number, "input_coq": term}) + "\n"
+                for number, term in enumerate(terms)))
+            result = subprocess.run(
+                [sys.executable, "-B", str(VALIDATOR), "--input", str(attempts),
+                 "--output", str(output), "--evidence-dir", str(work / "evidence"),
+                 "--env-script", str(PINNED_ENV)],
+                text=True, capture_output=True, timeout=300)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            verdicts = [json.loads(line) for line in output.read_text().splitlines()]
+            self.assertEqual([item["overall"] for item in verdicts], ["valid"] * 3,
+                             [item["premises"] for item in verdicts])
+
     def test_real_coq_verdicts_and_exact_input_cache(self):
         duplicate_ets = f'[({N1}, {ENTRY}); ({N1}, {ENTRY})]'
         bad3_extra = f'[(MkEnvironment (MkSchema {ETS} {ACTS}) {REQ2})]'

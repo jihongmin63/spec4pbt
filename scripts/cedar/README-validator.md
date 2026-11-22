@@ -41,10 +41,16 @@ for valid, `Some (right proof)` for invalid, or `None` for unknown. Its tag is
 computed from that retained value. Each batch prints `Print Assumptions` for
 every verdict, requires the closed global context, compiles with `coqc`, and
 passes `coqchk` before a valid or invalid result is accepted. The fixed search
-limit is depth 12, with one second for positive and one second for negative
-search per premise. Batches contain at most 500 unique inputs and have a
+limit is depth 30, with one second for positive and one second for negative
+search per premise. The hint database lists every inductive proposition of
+`Spec.v`; `Hint Constructors` on one member of a mutual block adds only that
+member, so `WfSetSyntax` and `WfRecSyntax` are listed beside `WfExprSyntax`.
+Before this, with depth 12 and those two members missing, no record with a
+field, no set with two or more elements, and few two-entity schemas with
+attributes were provable, and such inputs were reported `unknown`.
+Batches contain at most 500 unique inputs and have a
 1,200 second outer limit; an outer timeout marks its whole batch unknown.
-The driver runs up to four independent batches at once by default. It assigns
+The driver runs up to six independent batches at once by default. It assigns
 each batch number before starting workers, keeps Coq sources and logs separate,
 and writes cache entries and the final JSONL in input order after all workers
 settle. `--batch-workers 1` enables serial comparison in regressions; the
@@ -55,7 +61,7 @@ preserving their logs without publishing a partial output.
 Proof search is incomplete: an `unknown` verdict neither establishes nor
 refutes a premise. A Coq compile error aborts the run with its source and log
 preserved; it never becomes `valid`. This validator does not prove generator
-soundness or completeness. Its throughput at 50,000 attempts per target has
-not yet been measured; runtime depends on the number and complexity of unique
-expressions. Candidate predicates, Show output, and the Rust checker do not
+soundness or completeness. On fixed-schedule P0 samples it takes about 0.18
+CPU seconds per unique input in `coqc` and 0.04 in `coqchk`; runtime depends
+on the number and complexity of unique expressions. Candidate predicates, Show output, and the Rust checker do not
 affect these verdicts.
