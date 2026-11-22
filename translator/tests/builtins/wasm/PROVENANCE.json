@@ -1,0 +1,18 @@
+{
+  "source_revision": "4773b2b7abe56e61f279ec2340ac0d3c836b5033",
+  "donor_revision": "16142ff23b30611a3fba1bb0ceb0dd7928187d58",
+  "source_repository": "https://github.com/kaist-plrg/wasm-ntt",
+  "license": "Apache-2.0",
+  "donor_files": {
+    "translator/patches/wasm-native-builtins.patch": "019606cf2d0146a33827ae65e0f49c6f29706a1a6e24a527a2763019f089bd3a",
+    "translator/patches/wasm-scalar-builtins.patch": "51b7a4ca23c053b44db58a45f331b8dd8eceecd54ed481da19bc27a00cb0a81c",
+    "translator/patches/wasm-zz-execution.patch": "cc063816b7a64ab36a6a112ce5e5db55fe3d2d2b81ffaaa467c1007a68057bfd",
+    "translator/patches/wasm-lsl.patch": "7b43099aab26fc8b5a3e8b3e9cf1484f60a949e43c5d0f8199fbb6196b376870"
+  },
+  "adaptations": [
+    "Coq pure Z arithmetic and exact rational round-to-nearest ties-to-even; native bytes are Coq byte strings; type aliases remain nat at generated boundary",
+    "Explicit typed Outcome/Action boundary; native NumericTrap becomes source NumTrap only for eval_binop/eval_cvtop",
+    "Native uint conversions reject invalid natural aliases; scalar byte helper permissiveness is retained",
+    "I32 ExtendS Pack64 explicitly models observed pinned OCaml shift behavior (identity); OCaml documents out-of-range shifts as unspecified"
+  ]
+}

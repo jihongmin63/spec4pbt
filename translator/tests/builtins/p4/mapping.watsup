@@ -1,0 +1,52 @@
+syntax set<K> = `{ K* `}
+syntax pair<K, V> = K ':' V
+syntax map<K, V> = set<pair<K, V>>
+syntax bits = bool*
+syntax typeId = text
+builtin dec $sum_nat(nat*) : nat
+builtin dec $max_nat(nat*) : nat
+builtin dec $min_nat(nat*) : nat
+builtin dec $sum_int(int*) : int
+builtin dec $max_int(int*) : int
+builtin dec $min_int(int*) : int
+builtin dec $text_to_int(text) : int
+builtin dec $int_to_text(int) : text
+builtin dec $split_text(text, text) : text*
+builtin dec $strip_prefix(text, text) : text
+builtin dec $strip_suffix(text, text) : text
+builtin dec $strip_all_whitespace(text) : text
+builtin dec $rev_<X>(X*) : X*
+builtin dec $concat_<X>(X**) : X*
+builtin dec $partition_<X>(X*, nat) : (X*, X*)
+builtin dec $assoc_<X, Y>(X, (X, Y)*) : Y?
+builtin dec $sort_<X>((nat, X)*) : (nat, X)*
+builtin dec $distinct_<K>(K*) : bool
+builtin dec $intersect_set<K>(set<K>, set<K>) : set<K>
+builtin dec $union_set<K>(set<K>, set<K>) : set<K>
+builtin dec $unions_set<K>(set<K>*) : set<K>
+builtin dec $diff_set<K>(set<K>, set<K>) : set<K>
+builtin dec $sub_set<K>(set<K>, set<K>) : bool
+builtin dec $eq_set<K>(set<K>, set<K>) : bool
+builtin dec $find_map<K, V>(map<K, V>, K) : V?
+builtin dec $find_maps<K, V>(map<K, V>*, K) : V?
+builtin dec $add_map<K, V>(map<K, V>, K, V) : map<K, V>
+builtin dec $adds_map<K, V>(map<K, V>, K*, V*) : map<K, V>
+builtin dec $update_map<K, V>(map<K, V>, K, V) : map<K, V>
+builtin dec $print_<X>(X) : text
+builtin dec $fresh_typeId() : typeId
+builtin dec $bitstr_to_int(int, int) : int
+builtin dec $int_to_bitstr(int, int) : int
+builtin dec $bits_to_int_unsigned(bits) : int
+builtin dec $bits_to_int_signed(bits) : int
+builtin dec $int_to_bits_unsigned(nat, int) : bits
+builtin dec $int_to_bits_signed(nat, int) : bits
+builtin dec $pow2(nat) : int
+builtin dec $shl(int, int) : int
+builtin dec $shr(int, int) : int
+builtin dec $shr_arith(int, int, int) : int
+builtin dec $bneg(int) : int
+builtin dec $band(int, int) : int
+builtin dec $bxor(int, int) : int
+builtin dec $bor(int, int) : int
+builtin dec $bitacc(int, int, int) : int
+builtin dec $bitacc_replace(int, int, int, int) : int
