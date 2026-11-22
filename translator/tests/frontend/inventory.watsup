@@ -1,0 +1,11 @@
+dec $a'() : nat
+dec $a_x27_() : nat
+var n : nat
+extern syntax opaque
+extern relation Noncontiguous: nat nat nat nat hint(input %0 %2)
+extern relation Conditional: nat nat hint(input %0 %1)
+extern relation SingleTuple: nat (nat, nat) hint(input %0)
+extern dec $callback<T>(def $f(T) : T, T) : T
+dec $empty() : nat
+syntax uninhabited
+syntax uninhabitedPoly<T>

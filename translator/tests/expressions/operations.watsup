@@ -1,0 +1,40 @@
+var n : nat
+var i : int
+var b : bool
+var t : text
+
+syntax box = {ITEM nat, COUNT nat}
+
+var r : box
+
+extern dec $tick() : bool
+
+dec $eager() : bool
+def $eager() = false /\ $tick()
+
+dec $subtract(nat, nat) : int
+def $subtract(n_a, n_b) = $(n_a - n_b)
+
+dec $sliced(text, nat, nat) : text
+def $sliced(t, n_a, n_b) = t[n_a:n_b]
+
+dec $indexed(nat*, nat) : nat
+def $indexed(n*, n_i) = n*[n_i]
+
+dec $updated(box, nat) : box
+def $updated(r, n_new) = r[.ITEM = n_new]
+
+dec $paired(nat*, nat*) : (nat, nat)*
+def $paired(n_a*, n_b*) = (n_a, n_b)*
+
+dec $text_replace(text, nat, text) : text
+def $text_replace(t, n, t_new) = t[ [n] = t_new ]
+
+dec $slice_replace(nat*, nat, nat, nat*) : nat*
+def $slice_replace(n*, n_start, n_count, n_new*) = n*[ [n_start:n_count] = n_new* ]
+
+syntax store = { DATA box*, COUNT nat }
+var s : store
+
+dec $nested(store, nat, nat) : store
+def $nested(s, n_i, n_new) = s[.DATA[n_i].ITEM = n_new]

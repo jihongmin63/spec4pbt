@@ -1,0 +1,4 @@
+(executable
+ (name main)
+ (modules main context coq_ir data emit_data casts render lower_expr wasm_bindings builtins lower_exec emit)
+ (libraries pass lang domain util diagnostic yojson unix))

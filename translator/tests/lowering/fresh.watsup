@@ -1,0 +1,40 @@
+syntax typeId = text
+var n : nat
+var t : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation Paths: nat text hint(input %0)
+rule Paths/fail: n t
+  -- if t = $fresh_typeId()
+  -- if false
+rule Paths/win: n t
+  -- if t = $fresh_typeId()
+
+dec $per(nat) : text
+def $per(n) = $fresh_typeId()
+
+dec $twice(nat*, nat*) : (text*, text*)
+def $twice(n_a*, n_b*) = (t_a*, t_b*)
+  -- if (t_a = $per(n_a))*
+  -- if (t_b = $per(n_b))*
+
+dec $effect(text) : bool
+def $effect(t_expected) = t = t_expected
+  -- if t = $fresh_typeId()
+
+dec $both() : bool
+def $both() = $effect("FRESH__0") /\ $effect("FRESH__1")
+
+dec $both_false() : bool
+def $both_false() = $effect("never") /\ $effect("FRESH__1")
+
+relation Common: text nat hint(input %0)
+rulegroup Common/shared {
+
+  rule Common/fail: $fresh_typeId() 0
+    -- if false
+
+  rule Common/win: $fresh_typeId() 7
+
+}

@@ -1,0 +1,71 @@
+var n : nat
+var b : bool
+
+relation S: nat nat hint(input %0)
+rule S/zero: 0 1
+rule S/default: n 9
+
+relation R: nat nat hint(input %0)
+rule R/call: n n_result
+  -- S: n n_result
+
+dec $first(nat) : nat
+def $first(n) = 1
+def $first(n) = 9
+
+dec $quotient(nat, nat) : nat
+
+dec $error() : nat
+def $error() = $quotient(1, 0)
+def $error() = 9
+
+def $quotient(n_a, n_b) = $(n_a / n_b)
+
+dec $callback(def $f(nat) : nat, nat) : nat
+def $callback(def $f, n) = $f(n)
+
+dec $through(nat) : nat
+def $through(n) = $callback(def $first, n)
+
+extern syntax opaque
+extern relation External: nat nat hint(input %0)
+extern dec $extern_value() : nat
+dec $sink<T>() : T
+
+relation Never: NEVER nat hint(input %0)
+rule Never/no: NEVER n
+  -- if false
+
+dec $argfail() : nat
+def $argfail() = $sink<nat>()
+
+relation NegArg: NEGARG nat hint(input %0)
+rule NegArg/test: NEGARG n
+  -- Never:/ NEVER $argfail()
+
+relation NegError: NEGERROR nat hint(input %0)
+rule NegError/test: NEGERROR n
+  -- Never:/ NEVER $quotient(1, 0)
+
+dec $zipadd(nat*, nat*) : nat*
+def $zipadd(n_a*, n_b*) = n_c*
+  -- if (n_c = $(n_a + n_b))*
+
+dec $triple(nat*, nat*, nat*) : (nat, nat, nat)*
+def $triple(n_a*, n_b*, n_c*) = (n_a, n_b, n_c)*
+
+dec $eager_error() : bool
+def $eager_error() = false /\ ($quotient(1, 0) = 0)
+
+relation M: MM nat nat hint(input %0)
+rule M/first: MM n 0
+  -- S: n 9
+rule M/fallback: MM n 8
+
+dec $otherwise_error() : nat
+def $otherwise_error() = $quotient(1, 0)
+def $otherwise_error() = 9
+  -- otherwise
+
+dec $shadow(nat*) : (nat*, nat*)
+def $shadow(n*) = ($(n + 1)*, $(n + 2)*)
