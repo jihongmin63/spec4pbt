@@ -281,7 +281,13 @@ let lower_exn ctx (d:Context.declaration) (parameters:binding list) : action =
     if String.starts_with ~prefix:"eval_v" name && not(List.mem name ["eval_load_vec";"eval_store_vec";"eval_load_vec_lane";"eval_store_vec_lane"]) then vector ctx name args else
     memory ctx name s args in
   let needs_prefix=not(List.mem name plain || List.mem name partial) in
-  let code=app "WasmScalar.lift"[par(if needs_prefix then locals(prefix ctx)computation else computation)] in
+  let computation=if needs_prefix then locals(prefix ctx)computation else computation in
+  let computation=if String.starts_with ~prefix:"eval_" name then
+      app "WasmScalar.catch_eval_builtin"[par computation]
+    else if List.mem name ["slice_bytes";"replace_bytes"] then
+      app "WasmScalar.catch_bounds_builtin"[par computation]
+    else computation in
+  let code=app "WasmScalar.lift"[par computation] in
   {result;node=Primitive_action(code,[])}
 let bindings ctx =
   List.filter_map(fun(d:Context.declaration)->if d.kind="BuiltinDecD" && List.mem_assoc d.source_name signatures then
@@ -290,4 +296,8 @@ let bindings ctx =
       "adapter",`String "Wasm_bindings.lower_exn";
       "implementation",`String (if List.mem d.source_name plain || List.mem d.source_name partial then "WasmScalar."^d.source_name
         else if String.starts_with ~prefix:"f" d.source_name then "WasmFloat" else if String.starts_with ~prefix:"eval_v" d.source_name then "WasmVector" else "WasmExecution");
-      "failure_policy",`String "native host conversion and abort distinguished; numeric traps become typed NumTrap; no extern fallback"]) else None)ctx.Context.declarations
+      "failure_policy",`String (if String.starts_with ~prefix:"eval_" d.source_name then
+          "all caught exceptions unmatch; numeric traps become typed NumTrap"
+        else if List.mem d.source_name ["slice_bytes";"replace_bytes"] then
+          "explicit bounds errors unmatch; host conversion remains fatal"
+        else "direct builtin; host conversion and abort remain distinct")]) else None)ctx.Context.declarations

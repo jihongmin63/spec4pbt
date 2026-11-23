@@ -20,6 +20,17 @@ Definition failure {A} (kind : ErrorKind) (detail : string) : Outcome A :=
   Error {| error_kind := kind; error_detail := detail |}.
 Definition lift {Call A} (result : Outcome A) : Action Call A :=
   match result with Success x => Return x | Unmatch => Unmatched | Error e => Raise e end.
+(* interp-al converts BuiltinError to clause backtracking.  The eval_* donor
+   functions catch every OCaml exception and raise BuiltinError themselves. *)
+Definition catch_eval_builtin {A} (result : Outcome A) : Outcome A :=
+  match result with Success x => Success x | _ => Unmatch end.
+(* Direct byte helpers raise BuiltinError only for their explicit bounds check.
+   Their host integer conversion exceptions are outside that catch boundary. *)
+Definition catch_bounds_builtin {A} (result : Outcome A) : Outcome A :=
+  match result with
+  | Error e => match error_kind e with ExternalAbort => Unmatch | _ => Error e end
+  | other => other
+  end.
 Definition map_outcome {A B} (f : A -> B) (x : Outcome A) : Outcome B :=
   match x with Success a => Success (f a) | Unmatch => Unmatch | Error e => Error e end.
 Definition bind_outcome {A B} (x : Outcome A) (f : A -> Outcome B) : Outcome B :=
