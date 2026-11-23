@@ -14,8 +14,12 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV = ROOT / 'environment/env.sh'
-COQ_FLAGS = ['-R', 'specification', 'Specification', '-R', 'property', 'Property']
+COQ_FLAGS = ['-Q', 'support', 'ALCoq', '-Q', 'specification', 'Specification',
+             '-Q', 'fixture', 'FixtureSpec', '-Q', 'p4', 'P4Spec',
+             '-Q', 'wasm', 'WasmSpec', '-R', 'property', 'Property']
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
+REQUIRE = re.compile(r'\b(?:From\s+([A-Za-z0-9_.]+)\s+)?Require'
+                     r'(?:\s+(?:Import|Export))?\s+([A-Za-z0-9_.\s]+?)\s*\.')
 
 
 class CheckError(Exception):
@@ -79,12 +83,49 @@ def code_only(source):
     return ''.join(output)
 
 
-def validate_source(path, data):
+def validate_source(path, data, *, authored=True):
     text = code_only(data.decode('utf-8'))
+    declarations = (r'Axiom|Axioms|Parameter|Parameters|Conjecture|Conjectures|'
+                    r'Admitted|Admit')
+    if authored:
+        declarations += r'|Hypothesis|Hypotheses|Variable|Variables|Context|Contexts|Assumption|Assumptions'
+    declaration = re.search(r'(?:\A|\.\s+)\s*(?:#\[[^]]*\]\s*|'
+                            r'(?:Local|Global|Export|Time|Fail|Succeed)\s+|'
+                            r'Timeout\s+\d+\s+)*(?P<keyword>' + declarations + r')\b', text)
+    if declaration:
+        raise CheckError(f'{path}: {declaration.group("keyword")} is not allowed in sources')
+    if re.search(r'(?<!\.)\badmit\b', text):
+        raise CheckError(f'{path}: admit is not allowed in sources')
     forbidden = r'\b(?:Extract|Extraction|Load)\b|\bDeclare\s+ML\b|\b(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)\b|\bUnset\s+(?:Guard|Positivity|Universe)\s+Checking\b'
     execution = r'(?:^|\.\s)\s*(?:(?:Time|Fail|Timeout\s+\d+)\s+)*(?:QuickChick|QuickChickWith|QuickCheck|QuickCheckWith|Sample)\b'
     if re.search(forbidden, text) or re.search(execution, text):
         raise CheckError(f'{path}: execution, extraction, load-path overrides, and unsafe checking directives are not allowed in authored sources')
+
+
+def dependencies(data):
+    text = code_only(data.decode('utf-8'))
+    for prefix, names in REQUIRE.findall(text):
+        for name in names.split():
+            yield f'{prefix}.{name}' if prefix else name
+
+
+def dependency_path(name, property_name, fixture_root=None):
+    parts = name.split('.')
+    mapping = {
+        'ALCoq': (ROOT / 'translator/coq', Path('support')),
+        'Specification': (ROOT / 'specification', Path('specification')),
+        'P4Spec': (ROOT / 'specification/p4', Path('p4')),
+        'WasmSpec': (ROOT / 'specification/wasm', Path('wasm')),
+        'FixtureSpec': (fixture_root or ROOT / 'specification' / property_name,
+                        Path('fixture')),
+    }
+    if parts[0] not in mapping:
+        return None
+    source_root, target_root = mapping[parts[0]]
+    if not all(IDENTIFIER.fullmatch(part) for part in parts[1:]):
+        raise CheckError(f'Invalid Coq dependency: {name}')
+    relative = Path(*parts[1:]).with_suffix('.v')
+    return source_root / relative, target_root / relative
 
 
 def discover(prop, selected=None):
@@ -157,17 +198,19 @@ def assumptions(output):
 
 
 class Session:
-    def __init__(self, prop, selected=None, timeout=120):
+    def __init__(self, prop, selected=None, timeout=120, fixture_root=None):
         self.prop = prop.resolve()
         self.selected = selected
         self.sequence = discover(self.prop, selected)
         self.timeout = timeout
+        self.fixture_root = fixture_root
         runs = self.prop / '.runs'
         runs.mkdir(exist_ok=True)
         self.directory = Path(tempfile.mkdtemp(prefix='check-' if selected is None else 'run-', dir=runs))
         self.sources = self.directory / 'sources'
         self.sources.mkdir()
-        (self.sources / 'specification').mkdir()
+        for name in ['specification', 'support', 'p4', 'wasm', 'fixture']:
+            (self.sources / name).mkdir()
         self.originals = {}
         self.report = {'status': 'running', 'sequence': self.sequence, 'property': str(self.prop),
                        'commands': [], 'source_hashes': {}, 'tool_hashes': {}, 'timeout_seconds': timeout}
@@ -209,22 +252,27 @@ class Session:
             for filename in ['Candidate.v', 'Equivalence.v']:
                 paths.append((self.prop / 'candidates' / name / filename,
                               Path('property/candidates') / name / filename))
-        spec = ROOT / 'specification'
-        for path in sorted(spec.rglob('*.v')):
-            relative = path.relative_to(spec)
-            if any(not IDENTIFIER.fullmatch(part) for part in (*relative.parts[:-1], relative.stem)):
-                raise CheckError(f'Invalid Coq specification path: {relative}')
-            paths.append((path, Path('specification') / relative))
-        for path, target in paths:
+        pending = list(paths)
+        seen = set()
+        while pending:
+            path, target = pending.pop(0)
+            if target in seen:
+                continue
+            seen.add(target)
             if not path.is_file() or path.is_symlink():
                 raise CheckError(f'Missing source or unsupported symlink: {path}')
             data = path.read_bytes()
-            validate_source(path, data)
+            validate_source(path, data, authored=target.parts[0] == 'property')
             destination = self.sources / target
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(data)
             self.originals[path] = digest(data)
             self.report['source_hashes'][str(target)] = digest(data)
+            for name in dependencies(data):
+                dependency = dependency_path(name, self.prop.name, self.fixture_root)
+                if dependency is not None and dependency[1] not in seen:
+                    pending.append(dependency)
+        self.report['dependency_modules'] = sorted(self.report['source_hashes'])
         for path in [ROOT / 'scripts/check.py', ROOT / 'scripts/run.py', ENV, ROOT / 'environment/opam-switch.export']:
             if path.exists():
                 self.report['tool_hashes'][str(path.relative_to(ROOT))] = digest(path.read_bytes())
