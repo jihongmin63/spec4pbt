@@ -33,6 +33,12 @@ def $text_replace(t, n, t_new) = t[ [n] = t_new ]
 dec $slice_replace(nat*, nat, nat, nat*) : nat*
 def $slice_replace(n*, n_start, n_count, n_new*) = n*[ [n_start:n_count] = n_new* ]
 
+dec $text_slice_replace(text, nat, nat, text) : text
+def $text_slice_replace(t, n_start, n_count, t_new) = t[ [n_start:n_count] = t_new ]
+
+dec $nested_text_slice_replace(text, nat, nat, text) : text
+def $nested_text_slice_replace(t, n_start, n_count, t_new) = t[ [n_start:n_count][0:0] = t_new ]
+
 syntax store = { DATA box*, COUNT nat }
 var s : store
 

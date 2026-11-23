@@ -48,6 +48,20 @@ let rec using_all actions next = match actions with []->next [] | a::xs -> using
 let option_result ?(kind="ALAbort") result option =
   let name=fresh_name() in {result;node=Match(option,["Some " ^ Render.identifier name,ret(lit result (Render.identifier name));
     "None",error result kind "partial expression failed"])}
+let text_host_check condition (normal:action) =
+  {result=normal.result;node=Match(condition,[
+    "true",error normal.result "HostInvalidArgument" "String.sub / Bytes.sub";
+    "false",normal])}
+let slice_result ctx result base start count =
+  let text=is_text ctx base.typ in
+  let normal=option_result result (primitive (Option result)
+    (if text then "slice_text" else "slice_list") [base;start;count]) in
+  if text then text_host_check (primitive Bool "slice_sum_overflows" [start;count]) normal else normal
+let splice_result ctx base start count replacement =
+  let text=is_text ctx base.typ in
+  let normal=option_result base.typ (primitive (Option base.typ)
+    (if text then "splice_text" else "splice_list") [base;start;count;replacement]) in
+  if text then text_host_check (primitive Bool "text_splice_host_error" [start;count;replacement]) normal else normal
 let source_var_key (id,iters) = id.it ^ String.concat "" (List.map(function Il.List->"*" | Il.Opt->"?")iters)
 let rec iter_variable e = match e.it with
   | Il.VarE id -> Some(id,[])
@@ -109,7 +123,7 @@ let rec lower_exn ctx scope e : action =
   | Il.IdxE(base,index) -> using_all[lower base;lower_index ctx scope index](function[base;index]->
       option_result result(primitive(Option result)(if is_text ctx base.typ then "index_text" else "index_list")[base;index])|_->assert false)
   | Il.SliceE(base,start,count) -> using_all[lower base;lower_index ctx scope start;lower_index ctx scope count](function[base;start;count]->
-      option_result result(primitive(Option result)(if is_text ctx base.typ then "slice_text" else "slice_list")[base;start;count])|_->assert false)
+      slice_result ctx result base start count|_->assert false)
   | Il.MemE(element,collection) -> using_all[lower element;lower collection](function[element;collection]->
       ret(primitive Bool ("existsb (equal_value " ^ Emit_data.ops_expr element.typ ^ " " ^ Render.expression element ^ ")")[collection])|_->assert false)
   | Il.MatchE(x,pattern) -> using(lower x)(fun value -> let code = match pattern with
@@ -186,38 +200,35 @@ and subcheck ctx source check value =
       | _->lit Bool "false")
 
 and update_path ctx scope base path replacement =
+  (* Access a parent only when a deeper path needs its value. Native update
+     never reads the final slice before checking the replacement's length. *)
   let rec walk path current finish = match path.it with
-  | Il.RootP -> finish current (fun replacement -> ret replacement)
-  | Il.DotP(parent,field) -> walk parent current (fun parent_value rebuild ->
+  | Il.RootP -> finish (ret current) (fun replacement -> ret replacement)
+  | Il.DotP(parent,field) -> walk parent current (fun parent_read rebuild -> using parent_read (fun parent_value ->
       let name,ts=variant ctx (parent.note $ parent.at) in
       let field_type=snd(List.find(fun(atom,_)->Data.atom_key atom=Data.atom_key field)(record_fields ctx name ts)) in
       let args=List.map(fun t->lit Unit(Emit_data.render_type(typ ctx t)))ts in
       let selected=primitive (typ ctx field_type) (Data.field_name ctx name field) (args@[parent_value]) in
-      finish selected (fun new_value ->
+      finish (ret selected) (fun new_value ->
         let values=List.map(fun(atom,field_type)->
           if Data.atom_key atom=Data.atom_key field then new_value
           else primitive (typ ctx field_type) (Data.field_name ctx name atom) (args@[parent_value]))(record_fields ctx name ts) in
-        rebuild {typ=parent_value.typ;term=Constructor(Data.record_constructor ctx name,values)}))
-  | Il.IdxP(parent,index) -> walk parent current(fun parent_value rebuild ->
+        rebuild {typ=parent_value.typ;term=Constructor(Data.record_constructor ctx name,values)})))
+  | Il.IdxP(parent,index) -> walk parent current(fun parent_read rebuild -> using parent_read (fun parent_value ->
       using(lower_index ctx scope index)(fun index_value->
-        using(option_result (typ ctx (path.note $ path.at))
+        let selected=option_result (typ ctx (path.note $ path.at))
           (primitive(Option(typ ctx (path.note $ path.at)))
-            (if is_text ctx parent_value.typ then "index_text" else "index_list")[parent_value;index_value]))(fun selected ->
-          finish selected(fun new_value ->
+            (if is_text ctx parent_value.typ then "index_text" else "index_list")[parent_value;index_value]) in
+          using selected (fun selected -> finish (ret selected)(fun new_value ->
             let replacement = if is_text ctx parent_value.typ then new_value else
               lit (List new_value.typ) ("[" ^ Render.expression new_value ^ "]") in
-            using(option_result parent_value.typ (primitive(Option parent_value.typ)
-              (if is_text ctx parent_value.typ then "splice_text" else "splice_list")
-              [parent_value;index_value;lit Nat "1%nat";replacement]))rebuild))))
-  | Il.SliceP(parent,start,count) -> walk parent current(fun parent_value rebuild ->
+            using(splice_result ctx parent_value index_value (lit Nat "1%nat") replacement)rebuild)))))
+  | Il.SliceP(parent,start,count) -> walk parent current(fun parent_read rebuild -> using parent_read (fun parent_value ->
       using_all[lower_index ctx scope start;lower_index ctx scope count](function
-        | [start;count] -> using(option_result (typ ctx (path.note $ path.at))
-            (primitive(Option(typ ctx (path.note $ path.at)))
-              (if is_text ctx parent_value.typ then "slice_text" else "slice_list")[parent_value;start;count]))(fun selected->
-              finish selected(fun new_value->using(option_result parent_value.typ
-                (primitive(Option parent_value.typ)(if is_text ctx parent_value.typ then "splice_text" else "splice_list")
-                  [parent_value;start;count;new_value]))rebuild))
-        | _->assert false))
+        | [start;count] ->
+            let selected=slice_result ctx (typ ctx (path.note $ path.at)) parent_value start count in
+            finish selected(fun new_value->using(splice_result ctx parent_value start count new_value)rebuild)
+        | _->assert false)))
   in walk path base (fun _ rebuild->rebuild replacement)
 and lower_iteration ctx scope result inner kind vars =
   if vars=[] then fail inner.at "IterE" "iteration has no variable that determines its extent";

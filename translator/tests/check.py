@@ -162,6 +162,7 @@ def fixture_suite(name, backend=None):
         executable, _ = prepare_backend(run, backend)
         if name == 'expressions':
             run.execute(['python3', '-B', ROOT / 'translator/tests/expressions/casts_run.py', '--full'], 'casts.log')
+            run.execute(['python3', '-B', ROOT / 'translator/tests/expressions/native_slices.py'], 'native-slices.log')
         run.execute(['python3', '-B', ROOT / 'translator/tests/lowering/run.py', '--suite', name,
                      '--backend', executable, '--run-dir', run.path / 'fixtures'], 'fixtures.log')
         fixture_report = json.loads((run.path / 'fixtures/report.json').read_text())

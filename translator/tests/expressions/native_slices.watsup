@@ -1,0 +1,12 @@
+var n : nat
+var t : text
+dec $list_slice(nat*, nat, nat) : nat*
+def $list_slice(n*, n_start, n_count) = n*[n_start:n_count]
+dec $text_slice(text, nat, nat) : text
+def $text_slice(t, n_start, n_count) = t[n_start:n_count]
+dec $list_update(nat*, nat, nat, nat*) : nat*
+def $list_update(n*, n_start, n_count, n_new*) = n*[ [n_start:n_count] = n_new* ]
+dec $text_update(text, nat, nat, text) : text
+def $text_update(t, n_start, n_count, t_new) = t[ [n_start:n_count] = t_new ]
+dec $nested_text_update(text, nat, nat, text) : text
+def $nested_text_update(t, n_start, n_count, t_new) = t[ [n_start:n_count][0:0] = t_new ]
