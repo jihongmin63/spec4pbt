@@ -84,13 +84,19 @@ let rec lower_exn ctx scope e : action =
   | Il.VarE _ -> assert false
   | Il.UnE(op,_,x) -> using(lower x)(fun x->ret(primitive result (match op with `NotOp->"negb"|`PlusOp->"(fun x => x)"|`MinusOp->
       (if unfold_type ctx x.typ=Nat then "(fun n => Z.opp (Z.of_nat n))" else "Z.opp")) [x]))
-  | Il.BinE(op,optyp,a,b) -> using_all [lower a;lower b](function
+  | Il.BinE(op,optyp,a,b) ->
+      let nat_add_one = op=`AddOp && optyp=`NatT &&
+        (match b.it with
+         | Il.NumE (`Nat n) -> Bigint.to_string n = "1"
+         | _ -> false) in
+      using_all [lower a;lower b](function
       | [a;b] -> let a=numeric_operand ctx optyp a and b=numeric_operand ctx optyp b in
         let int=optyp=`IntT in
         (match op with
         | `DivOp | `ModOp -> option_result ~kind:"HostConversion" result (primitive (Option result)
             (match op,int with `DivOp,false->"divide_nat"|`DivOp,true->"divide_int"|_,false->"remainder_nat"|_->"remainder_int") [a;b])
         | `PowOp -> error result "ALAbort" "PowOp is rejected by the pinned native numeric evaluator"
+        | `AddOp when nat_add_one -> ret (primitive result "S" [a])
         | _ -> ret(primitive result (match op with
             | `AndOp->"andb"|`OrOp->"orb"|`ImplOp->"(fun a b => orb (negb a) b)"|`EquivOp->"Bool.eqb"
             | `AddOp->if int then "Z.add" else "Nat.add"

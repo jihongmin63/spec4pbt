@@ -4,6 +4,11 @@ Set Implicit Arguments.
 Set Universe Polymorphism.
 Open Scope string_scope.
 
+(* The relation lowering emits the constructor form for a natural successor.
+   This is the exact arithmetic identity used by that normalization. *)
+Lemma nat_add_one_as_successor : forall n : nat, Nat.add n 1 = S n.
+Proof. intro n; induction n; simpl; congruence. Qed.
+
 (* Equality, source structural order and source printing are separate contracts.
    A polymorphic caller supplies all three rather than equating functions. *)
 Record ValueOps (A : Type) := {

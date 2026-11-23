@@ -2,7 +2,11 @@ open Coq_ir
 include Render
 
 let namespace ctx =
-  match ctx.Context.profile.name with "p4"->"P4Spec"|"wasm"->"WasmSpec"|_->"FixtureSpec"
+  match ctx.Context.profile.name with
+  | "p4" -> "P4Spec"
+  | "wasm" -> "WasmSpec"
+  | "candidate" -> "CandidateSpec"
+  | _ -> "FixtureSpec"
 let type_parameters ctx (signature:Context.signature) = List.map(fun p->Data.parameter_name ctx p.Util.Source.it)signature.type_parameters
 let param_binders ps = String.concat " " (List.map(fun p->par(p^" : Set"))ps @ List.map(fun p->par("ops_"^p^" : ValueOps@{Set} "^p))ps)
 let parameter_values ps = ps @ List.map(fun p->"ops_"^p)ps

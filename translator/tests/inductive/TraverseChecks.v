@@ -1,10 +1,13 @@
 From Coq Require Import List Arith.
-From ALCoq Require Import Execution.
+From ALCoq Require Import Execution Values.
 From FixtureSpec.Generated Require Import Calls Bodies_0000 Program InductiveRelations.
 From FixtureSpec Require Import EvalFacts.
 Import ListNotations.
 
-Definition step (n : nat) := Nat.add n 1.
+Definition step (n : nat) := S n.
+
+Lemma step_matches_source n : step n = Nat.add n 1.
+Proof. unfold step; rewrite nat_add_one_as_successor; reflexivity. Qed.
 
 Lemma direct_traverse xs s o t :
   g_fixture_dec_each_traverse_1_at_1 xs s o t <->
@@ -53,7 +56,7 @@ Qed.
 
 Lemma step_eval n s o t :
   Eval (@Body)
-    (Bind (Return n) (fun a => Bind (Return 1) (fun b => Return (Nat.add a b))))
+    (Bind (Return n) (fun a => Bind (Return 1) (fun b => Return (S a))))
     s o t <-> o = Success (step n) /\ t = s.
 Proof.
   unfold step. repeat rewrite EvalFacts.bind_return.
@@ -85,7 +88,7 @@ Proof.
   change (Eval (@Body)
       (Traverse (fun x : nat =>
         Bind (Return x) (fun a => Bind (Return 1)
-          (fun b => Return (Nat.add a b)))) xs) s result final <->
+          (fun b => Return (S a)))) xs) s result final <->
       result = Success (map step xs) /\ final = s).
   apply eval_traverse_pure.
   intros; apply step_eval.

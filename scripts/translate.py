@@ -71,11 +71,12 @@ def prepare_backend(source, run):
     return target, backend
 
 
-def compile_generated(source, profile, run, manifest):
+def compile_generated(source, profile, run, manifest, namespace_override=None):
     """Compile only inside the ignored evidence run; retain every failed run."""
     support = run / 'support'
     shutil.copytree(ROOT / 'translator/coq', support)
-    namespace = {'p4': 'P4Spec', 'wasm': 'WasmSpec'}.get(profile, 'FixtureSpec')
+    namespace = namespace_override or {'p4': 'P4Spec', 'wasm': 'WasmSpec',
+                                       'candidate': 'CandidateSpec'}.get(profile, 'FixtureSpec')
     common = [support / 'Execution.v', support / 'Values.v']
     if profile in ['p4', 'wasm']:
         common += [support / 'Builtins/Common.v', support / 'Builtins/P4.v']
