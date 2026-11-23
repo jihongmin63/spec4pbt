@@ -102,6 +102,36 @@ class DirectRelationTests(unittest.TestCase):
         self.assertEqual((run / "FreshChecks.log").read_text().count(
             "Closed under the global context"), 3)
 
+    def test_builtin_unmatch_and_error_are_equivalent(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-builtin.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        source = run / "spec"
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "p4", "--input", str(SOURCE.parent / "builtin.watsup"),
+                   "--output", str(source), "--manifest", str(run / "manifest.json"),
+                   "--inductive-relations"]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        generated = direct_source(source)
+        self.assertIn("g_p4_dec_max_x5f_nat_execute", generated)
+        self.assertIn("g_p4_dec_text_x5f_to_x5f_int_execute", generated)
+        self.assertNotIn("Eval ", generated)
+        spec = importlib.util.spec_from_file_location("translate_driver_builtin", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        driver.compile_generated(source, "p4", run, {"commands": []})
+        destination = source / "BuiltinChecks.v"
+        shutil.copy2(SOURCE.parent / "BuiltinChecks.v", destination)
+        proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                 "-Q", str(run / "support"), "ALCoq",
+                 "-Q", str(source), "P4Spec", str(destination)]
+        checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+        (run / "BuiltinChecks.log").write_text(checked.stdout + checked.stderr)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual((run / "BuiltinChecks.log").read_text().count(
+            "Closed under the global context"), 2)
 
     def test_polymorphic_and_higher_order_calls_are_equivalent(self):
         state = ROOT / "_opam-testing-theorems/checks"

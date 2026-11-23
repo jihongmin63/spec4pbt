@@ -1,0 +1,9 @@
+var xs : nat*
+
+builtin dec $max_nat(nat*) : nat
+builtin dec $text_to_int(text) : int
+
+dec $fallback_max(nat*) : nat
+def $fallback_max(xs) = $max_nat(xs)
+def $fallback_max(xs) = 7
+  -- otherwise

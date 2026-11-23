@@ -445,7 +445,23 @@ let render ctx bodies =
             let value = "String.append \"FRESH__\" (print_nat " ^ parenthesize number ^ ")" in
             let next = "{| next_fresh := S " ^ parenthesize number ^ " |}" in
             success {path with state = next} value
-        | Primitive_action _ -> raise (Unsupported (body.call_name ^ ": Primitive_action direct rule is not supported")) in
+        | Primitive_action (helper, arguments) ->
+            if not (terminal_primitive ctx.Context.profile.name helper) then
+              raise (Unsupported (body.call_name ^
+                ": primitive helper has no terminal Action contract: " ^ helper));
+            let primitive = Render.apply (substitute path.environment helper)
+              (List.map (expression path) arguments) in
+            let result_type = type_string action.result in
+            let value = fresh "primitive_value_" in
+            let success_path = add_variable path value result_type in
+            success (add_premise success_path
+              (primitive ^ " = (@Return Call " ^ result_type ^ " " ^ value ^ ")")) value;
+            miss (add_premise path
+              (primitive ^ " = (@Unmatched Call " ^ result_type ^ ")"));
+            let err = fresh "primitive_error_" in
+            let fail_path = add_variable path err "ExecutionError" in
+            fail (add_premise fail_path
+              (primitive ^ " = (@Raise Call " ^ result_type ^ " " ^ err ^ ")")) err in
       Array.iteri (fun i clause ->
         let index = i + 1 in
         call_index := 0;
