@@ -21,6 +21,10 @@ Example empty_tail_slice : @slice_list nat [4%nat;8%nat] 2 0 = Some [].
 Proof. reflexivity. Qed.
 Example overflowing_slice : @slice_list nat [4%nat;8%nat] 1 2 = None.
 Proof. reflexivity. Qed.
+Example host_sum_wraps_list_slice : @slice_list_at_limit nat 3 [] 3 1 = Some [].
+Proof. reflexivity. Qed.
+Example host_sum_does_not_wrap_at_limit : @slice_list_at_limit nat 3 [4%nat;8%nat;9%nat] 1 2 = Some [8%nat;9%nat].
+Proof. reflexivity. Qed.
 Example splice_once : @splice_list nat [1%nat;2%nat;3%nat] 1 1 [8%nat] =
                      Some [1%nat;8%nat;3%nat].
 Proof. reflexivity. Qed.

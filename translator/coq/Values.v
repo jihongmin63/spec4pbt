@@ -51,9 +51,14 @@ Definition equal_option {A} (eqb : A -> A -> bool) (x y : option A) : bool :=
 Definition compare_option {A} (cmp : A -> A -> comparison) (x y : option A) : comparison :=
   match x, y with None, None => Eq | None, _ => Lt | _, None => Gt | Some a, Some b => cmp a b end.
 Definition index_list {A} (xs : list A) (n : nat) : option A := nth_error xs n.
+(* Once both indices fit OCaml int, an overflowing sum wraps below zero.
+   The native list branch then selects no elements and succeeds. *)
+Definition slice_list_at_limit {A} (limit : Z) (xs : list A) (start count : nat) : option (list A) :=
+  if Z.ltb limit (Z.add (Z.of_nat start) (Z.of_nat count)) then Some []
+  else if Nat.leb (start + count) (List.length xs)
+       then Some (firstn count (skipn start xs)) else None.
 Definition slice_list {A} (xs : list A) (start count : nat) : option (list A) :=
-  if Nat.leb (start + count) (List.length xs)
-  then Some (firstn count (skipn start xs)) else None.
+  slice_list_at_limit 4611686018427387903%Z xs start count.
 Definition splice_list {A} (xs : list A) (start count : nat) (replacement : list A) : option (list A) :=
   if andb (Nat.leb (start + count) (List.length xs)) (Nat.eqb (List.length replacement) count)
   then Some (List.app (firstn start xs) (List.app replacement (skipn (start + count) xs))) else None.
@@ -64,7 +69,11 @@ Fixpoint bytes_string (s : list ascii) : string :=
 Definition index_text (s : string) (n : nat) : option string :=
   match nth_error (string_bytes s) n with None => None | Some c => Some (String c EmptyString) end.
 Definition slice_text (s : string) (start count : nat) : option string :=
-  option_map bytes_string (slice_list (string_bytes s) start count).
+  (* Text overflow raises an uncaught OCaml exception; the translated
+     comparison contract requires start + count to fit OCaml int. *)
+  let bytes := string_bytes s in
+  if Nat.leb (start + count) (List.length bytes)
+  then Some (bytes_string (firstn count (skipn start bytes))) else None.
 Definition splice_text (s : string) (start count : nat) (replacement : string) : option string :=
   option_map bytes_string (splice_list (string_bytes s) start count (string_bytes replacement)).
 Definition print_nat (n : nat) : string := DecimalString.NilZero.string_of_uint (Nat.to_uint n).
