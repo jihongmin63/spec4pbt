@@ -14,7 +14,7 @@ environment/opam-switch.export. Use `bash environment/env.sh coqc` and
 `bash environment/env.sh check` after changing the example or environment.
 Keep installations, generated files, archived local data, and verification logs
 under ignored _opam-testing-theorems/. The approved AL-to-Coq workflow publishes
-its checked final .v sources in specification/p4/ and specification/wasm/; compile
+its checked final .v sources in specification/<spec-name>/; compile
 only ignored copies. Preserve _opam-popl18/ and previous verification evidence.
 
 Use Coq 8.20.0, OCaml 4.14.2, and the official Testing Theorems artifact fork
@@ -24,8 +24,10 @@ stock QuickChick 2.2.0. Frontend tools use a separate OCaml 5.1.1 switch via
 the target worktree's _opam-testing-theorems/. Do not modify global opam state or
 shell profiles. Default JOBS is 2.
 
-Generator soundness/completeness proofs and property/QuickChick connections are
-outside the AL-to-Coq experiment scope. Predicate equivalence proofs remain
+Generator soundness/completeness proofs are outside this experiment's scope.
+The property workflow derives Input generators with the pinned QuickChick tactic;
+that derivation is separate from the AL-to-Coq relation proof obligations.
+Predicate equivalence proofs remain
 mandatory and must be closed without extra axioms or admissions. Finite sampling
 is not a proof of generator correctness or completeness. Upstream Cedar tests
 contain external extraction bindings and Admitted; execute them only as tests,

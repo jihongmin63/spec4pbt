@@ -11,8 +11,8 @@ generator from a selected predicate in the sequence.
 `predicate-reformulation` is an independent branch. It contains the pinned
 Coq/QuickChick environment, an environment example, the AL-to-Coq translator,
 and the tools that check predicate reformulation sequences. P4 and Wasm inputs
-and their generated Coq specifications belong to this branch; properties and
-external implementation adapters are separate experiments. Do not merge this
+and their generated Coq specifications belong to this branch; the property
+workflow also uses this branch. Do not merge this
 branch wholesale into `P4-spectec-based` or `pbt-experiments`.
 
 ## Repository layout and responsibilities
@@ -56,9 +56,9 @@ _opam-popl18/                Preserved earlier installation and evidence (ignore
 | Execution conditions | Sample count, size, seed, and timeouts. |
 | Outputs to review | Candidate sequence, equivalence proofs, derived generator, samples, and execution results. |
 
-Users do not write candidates, proofs, or generators. An agent writes the
-candidate reformulations and their equivalence proofs, and QuickChick derives
-the generator and its correctness proof from the selected candidate.
+An agent writes candidate reformulations and their equivalence proofs.
+QuickChick's tactic derives an Input generator from the selected candidate.
+Generator soundness and completeness are not proved by this workflow.
 
 ## Setup
 
@@ -117,14 +117,9 @@ QuickChick result for each, and kernel-checks their compiled declarations with
 `coqchk`. It writes a fresh `_opam-testing-theorems/checks/verification.*/`
 directory and a log under `_opam-testing-theorems/logs/`, preserving previous
 runs. Sampling checks do not prove generator soundness or completeness.
-Generator proofs and property/QuickChick integration are outside the current
-AL-to-Coq experiment scope. Predicate equivalence proofs still require closed
-proofs without additional axioms or admissions.
-
-The existing property scripts below are maintained separately and retain
-legacy QuickChick proof-derivation assumptions; this environment migration does
-not establish their compatibility with the artifact fork. Do not weaken them
-to make an environment check pass.
+The property workflow uses the pinned tactic and checks predicate equivalence
+with closed proofs without additional axioms or admissions. Sampling does not
+prove generator soundness or completeness.
 
 ## Translate the complete P4 and Wasm specifications
 
@@ -188,8 +183,7 @@ Wasm suite covers scalar, floating, SIMD/relaxed and memory operations, with
 its donor/license provenance in `translator/tests/builtins/wasm/`. Native
 sampling and Coq compilation are regression evidence; they do not establish
 whole-translator semantic equivalence or generator correctness/completeness.
-Property/QuickChick integration, `Generator.v`, generator proofs, and the five
-Derive-success experiment are outside this translation task. Predicate
+`Generator.v` and generator proofs are outside this translation task. Predicate
 equivalence proofs in the separate property workflow remain mandatory.
 
 Implementation evidence is indexed in
@@ -200,8 +194,10 @@ successful `--check` manifest, rather than by an inventory or helper test.
 ## Reformulate, check, run
 
 1. Keep the specification and `Original.v` fixed. `Original.v` provides
-   `Input : Type` and `predicate : Input -> Prop`; if the input condition
-   involves several values, define `Input` as a record or a tuple.
+   `Input : Type`, `predicate : Input -> Prop`, and
+   `encode_input : Input -> string` that emits typed JSON. If the input
+   condition involves several values, define `Input` as a record. Provide a
+   `Show Input` instance for tactic diagnostics.
 2. The agent adds candidates `v001`, `v002`, … under `candidates/`. Each
    `Candidate.v` defines a `predicate` over the same input type, and each
    `Equivalence.v` proves `equivalent` against the immediately preceding
@@ -212,11 +208,13 @@ successful `--check` manifest, rather than by an inventory or helper test.
 3. `check.py` type-checks each link against its expected statement, composes
    the links into one equivalence between the original and the last candidate,
    and requires the result to be closed without additional axioms.
-4. `run.py --candidate vNNN` re-checks the chain up to `vNNN`, derives that
-   candidate's generator and correctness proof using the legacy workflow, and
-   transfers correctness to the original predicate through the chain. Later, incomplete candidates do
-   not block the run. Unless `--derive-only` is given, it then samples the
-   generator.
+4. `run.py --candidate vNNN` re-checks the chain up to `vNNN`, renames the
+   checked prefix in derivation-only copies, and applies the pinned `quickchick`
+   tactic to the selected predicate. The tactic generates only the theorem's
+   Input variable. The theorem, extracted generator, and supplied `encode_input`
+   function are checked; generator soundness and completeness are not proved.
+   Later incomplete candidates do not block the run. Unless `--derive-only` is
+   given, it samples the generator.
 
 Import the specification as `Specification.<spec-name>.Spec`, the original as
 `Property.Original`, and a candidate as, for example,
@@ -239,7 +237,7 @@ Qed.
 # Check the entire chain Original ↔ v001 ↔ v002 ↔ … without deriving generators
 python3 scripts/check.py properties/<name>
 
-# Check the chain up to v002, then derive and verify only its generator
+# Check the chain up to v002, then derive and verify its tactic generator
 python3 scripts/run.py properties/<name> --candidate v002 --derive-only
 
 # Perform the same verification for v001, then sample its generator
@@ -248,15 +246,17 @@ python3 scripts/run.py properties/<name> --candidate v001 --samples 100 --size 3
 
 Each run is stored in a new directory under the property's `.runs/`, containing
 source snapshots, the derived `Derived.v`, command logs with timings, and
-`result.json`. Sampling also writes `samples.json`: each value is the string
-rendered by `Show`, which requires a `Show Input` instance, and `null` records
-that the generator returned no value, which is distinct from a property
-counterexample. If the legacy extractor needs its integer type alias
+`result.json`. Sampling also writes `samples.json`: each value is typed JSON
+emitted by `Original.encode_input`, and `null` records that the generator
+returned no value, which is distinct from a property counterexample. A
+diagnostic `Show Input` instance may still be needed by the tactic. If the
+pinned extractor needs its integer type alias
 workaround, it is applied identically to the `.ml` and `.mli` files, and the
 unmodified files are kept.
 
-Generator correctness may depend only on QuickChick's declared random-model
-axioms. Authored sources may not contain execution commands, extraction
+The generator factory theorem is closed without assumptions; it does not state
+generator correctness. Authored sources may not contain axioms, admissions,
+execution commands, extraction
 directives, load-path overrides, or directives that disable checking. A run
 fails if any snapshotted source or tool changes while it is in progress, and
 `--timeout` (default: 120 seconds) limits each subcommand. These checks are
@@ -266,10 +266,8 @@ generator.
 
 ## Binding an implementation
 
-This branch does not yet bind external implementations. `adapters/` is
-reserved for adapters that pass generated inputs to an implementation and
-report its outcome. Currently, `run.py` ends after sampling the derived
-generator.
+The property replay adapter path is built separately from `run.py`; the latter
+ends after sampling Input values.
 
 ## Tool verification
 
