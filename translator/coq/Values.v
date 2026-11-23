@@ -51,6 +51,13 @@ Definition equal_option {A} (eqb : A -> A -> bool) (x y : option A) : bool :=
 Definition compare_option {A} (cmp : A -> A -> comparison) (x y : option A) : comparison :=
   match x, y with None, None => Eq | None, _ => Lt | _, None => Gt | Some a, Some b => cmp a b end.
 Definition index_list {A} (xs : list A) (n : nat) : option A := nth_error xs n.
+Definition host_int_max : Z := 4611686018427387903%Z.
+(* Both operands have passed Bigint.to_int_exn. On the pinned 63-bit OCaml
+   runtime their nonnegative sum either stays in range or wraps below zero. *)
+Definition host_sum_overflows (start count : Z) : bool :=
+  Z.ltb host_int_max (start + count).
+Definition slice_sum_overflows (start count : nat) : bool :=
+  host_sum_overflows (Z.of_nat start) (Z.of_nat count).
 (* Once both indices fit OCaml int, an overflowing sum wraps below zero.
    The native list branch then selects no elements and succeeds. *)
 Definition slice_list_at_limit {A} (limit : Z) (xs : list A) (start count : nat) : option (list A) :=
@@ -58,10 +65,12 @@ Definition slice_list_at_limit {A} (limit : Z) (xs : list A) (start count : nat)
   else if Nat.leb (start + count) (List.length xs)
        then Some (firstn count (skipn start xs)) else None.
 Definition slice_list {A} (xs : list A) (start count : nat) : option (list A) :=
-  slice_list_at_limit 4611686018427387903%Z xs start count.
+  slice_list_at_limit host_int_max xs start count.
 Definition splice_list {A} (xs : list A) (start count : nat) (replacement : list A) : option (list A) :=
-  if andb (Nat.leb (start + count) (List.length xs)) (Nat.eqb (List.length replacement) count)
-  then Some (List.app (firstn start xs) (List.app replacement (skipn (start + count) xs))) else None.
+  if slice_sum_overflows start count then
+    if Nat.eqb (List.length replacement) count then Some xs else None
+  else if andb (Nat.leb (start + count) (List.length xs)) (Nat.eqb (List.length replacement) count)
+       then Some (List.app (firstn start xs) (List.app replacement (skipn (start + count) xs))) else None.
 Fixpoint string_bytes (s : string) : list ascii :=
   match s with EmptyString => [] | String c rest => c :: string_bytes rest end.
 Fixpoint bytes_string (s : list ascii) : string :=
@@ -69,13 +78,22 @@ Fixpoint bytes_string (s : list ascii) : string :=
 Definition index_text (s : string) (n : nat) : option string :=
   match nth_error (string_bytes s) n with None => None | Some c => Some (String c EmptyString) end.
 Definition slice_text (s : string) (start count : nat) : option string :=
-  (* Text overflow raises an uncaught OCaml exception; the translated
-     comparison contract requires start + count to fit OCaml int. *)
+  (* The lowering checks slice_sum_overflows first and raises the native
+     Invalid_argument. This option handles the ordinary bounds/result branch. *)
   let bytes := string_bytes s in
-  if Nat.leb (start + count) (List.length bytes)
+  if slice_sum_overflows start count then None
+  else if Nat.leb (start + count) (List.length bytes)
   then Some (bytes_string (firstn count (skipn start bytes))) else None.
 Definition splice_text (s : string) (start count : nat) (replacement : string) : option string :=
-  option_map bytes_string (splice_list (string_bytes s) start count (string_bytes replacement)).
+  let bytes := string_bytes s in
+  if slice_sum_overflows start count then None
+  else if andb (Nat.leb (start + count) (List.length bytes)) (Nat.eqb (String.length replacement) count)
+  then Some (bytes_string (List.app (firstn start bytes)
+    (List.app (string_bytes replacement) (skipn (start + count) bytes)))) else None.
+(* Native text update checks replacement length before calling String.sub.
+   Do not turn a length mismatch into an uncaught host exception. *)
+Definition text_splice_host_error (start count : nat) (replacement : string) : bool :=
+  andb (slice_sum_overflows start count) (Nat.eqb (String.length replacement) count).
 Definition print_nat (n : nat) : string := DecimalString.NilZero.string_of_uint (Nat.to_uint n).
 Definition print_int (z : Z) : string :=
   String.append (if Z.ltb z 0 then "-" else "+")

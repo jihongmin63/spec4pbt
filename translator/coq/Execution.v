@@ -4,7 +4,7 @@ Set Implicit Arguments.
 Set Universe Polymorphism.
 
 Record State := { next_fresh : nat }.
-Inductive ErrorKind := ALAbort | ExternalAbort | HostConversion | StructureError | NumericTrap.
+Inductive ErrorKind := ALAbort | ExternalAbort | HostConversion | HostInvalidArgument | StructureError | NumericTrap.
 Record ExecutionError := { error_kind : ErrorKind; error_detail : string }.
 Inductive Outcome (A : Type) :=
 | Success : A -> Outcome A
