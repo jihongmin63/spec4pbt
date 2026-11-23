@@ -126,8 +126,20 @@ let write ~out_dir ~inductive ctx ~data ~bodies = try
     write_file(Filename.concat generated(name^".v"))(render_bodies ctx chunk);name::chunks(i+1)rest in
   let body_files=chunks 0 bodies in
   write_file(Filename.concat generated "Program.v")(render_program ctx bodies body_files);
-  Option.iter (fun source -> write_file(Filename.concat generated "InductiveRelations.v")
-    (header ctx ["Types_0000";"Casts";"References";"Calls"] ^ source)) direct;
+  Option.iter (fun chunks ->
+    let previous = ref [] in
+    List.iteri (fun index source ->
+      let name = Printf.sprintf "InductiveRelations_%04d" index in
+      write_file (Filename.concat generated (name ^ ".v"))
+        (header ctx (["Types_0000";"Casts";"References";"Calls"] @ !previous) ^
+         (match ctx.Context.profile.name with
+          | "p4" -> "From ALCoq.Builtins Require Import Common P4.\n"
+          | "wasm" -> "From ALCoq.Builtins Require Import Common P4 WasmScalar WasmFloat WasmVector WasmExecution.\n"
+          | _ -> "") ^ source);
+      previous := !previous @ [name]) chunks;
+    write_file (Filename.concat generated "InductiveRelations.v")
+      (header ctx [] ^ "From " ^ namespace ctx ^ ".Generated Require Export " ^
+       String.concat " " !previous ^ ".\n")) direct;
   write_file(Filename.concat generated "Relations_0000.v")(render_relations ctx ~inductive);
   write_file(Filename.concat out_dir "Spec.v")("From " ^ namespace ctx ^ ".Generated Require Export Types_0000 References Calls Program Relations_0000" ^
     (if inductive then " InductiveRelations" else "") ^ ".\n");

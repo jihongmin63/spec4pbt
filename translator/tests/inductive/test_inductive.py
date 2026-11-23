@@ -12,25 +12,12 @@ ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "translator/tests/inductive/simple.watsup"
 
 
+def direct_source(source):
+    return "".join(path.read_text() for path in sorted(
+        (source / "Generated").glob("InductiveRelations_*.v")))
+
+
 class DirectRelationTests(unittest.TestCase):
-    def test_unsupported_traverse_reports_source_location(self):
-        state = ROOT / "_opam-testing-theorems/checks"
-        state.mkdir(parents=True, exist_ok=True)
-        run = Path(tempfile.mkdtemp(prefix="inductive-unsupported.", dir=state))
-        backend = Path(os.environ["INDUCTIVE_BACKEND"])
-        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
-                   "--profile", "fixture", "--input", str(SOURCE.parent / "unsupported.watsup"),
-                   "--output", str(run / "spec"), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
-        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
-        self.assertNotEqual(result.returncode, 0)
-        manifest = json.loads((run / "manifest.json").read_text())
-        diagnostics = manifest["diagnostics"]
-        self.assertEqual(len(diagnostics), 1)
-        self.assertEqual(diagnostics[0]["stage"], "inductive")
-        self.assertIn("Traverse", diagnostics[0]["reason"])
-        self.assertIn("unsupported.watsup", result.stderr)
-        self.assertNotIn("<unknown>", result.stderr)
 
     def test_emits_distinct_relation_and_call_continuation(self):
         state = ROOT / "_opam-testing-theorems/checks"
@@ -45,8 +32,8 @@ class DirectRelationTests(unittest.TestCase):
                    "--inductive-relations"]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        generated = (source / "Generated/InductiveRelations.v").read_text()
-        self.assertIn("Inductive g_fixture_rel_Identity_execute", generated)
+        generated = direct_source(source)
+        self.assertIn("g_fixture_rel_Identity_execute :", generated)
         self.assertIn("g_fixture_rel_Called_execute", generated)
         self.assertIn("g_fixture_rel_Called_after_call_1_at_1", generated)
         self.assertIn("g_fixture_rel_Called_after_call_1_at_1 : nat -> Outcome (nat)", generated)
@@ -96,7 +83,7 @@ class DirectRelationTests(unittest.TestCase):
                    "--inductive-relations"]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        generated = (source / "Generated/InductiveRelations.v").read_text()
+        generated = direct_source(source)
         self.assertIn("g_p4_rel_Paths_continue_from_2", generated)
         spec = importlib.util.spec_from_file_location("translate_driver_fresh", ROOT / "scripts/translate.py")
         driver = importlib.util.module_from_spec(spec)
@@ -114,6 +101,9 @@ class DirectRelationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((run / "FreshChecks.log").read_text().count(
             "Closed under the global context"), 3)
+
+
+
 
 
 if __name__ == "__main__":

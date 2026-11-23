@@ -365,7 +365,73 @@ let render ctx bodies =
       String.concat " -> " (item.arguments @
         ["Outcome " ^ parenthesize (type_string item.output); "State"; "Prop"]) ^
       " :=\n" ^ String.concat "\n" item.constructors in
-    Ok (String.concat "\n" (List.mapi (fun i item -> render_relation (i = 0) item) !all) ^ ".\n")
+    let relations = Array.of_list !all in
+    let count = Array.length relations in
+    let by_name = Hashtbl.create count in
+    Array.iteri (fun index item -> Hashtbl.add by_name item.name index) relations;
+    let dependencies = Array.init count (fun index ->
+      let found = Hashtbl.create 8 in
+      let scan source =
+        let length = String.length source in
+        let rec loop start =
+          if start < length then
+            if is_word source.[start] then (
+              let stop = ref (start + 1) in
+              while !stop < length && is_word source.[!stop] do incr stop done;
+              let token = String.sub source start (!stop - start) in
+              (match Hashtbl.find_opt by_name token with
+               | Some dependency when dependency <> index ->
+                   Hashtbl.replace found dependency ()
+               | _ -> ());
+              loop !stop)
+            else loop (start + 1) in
+        loop 0 in
+      List.iter scan relations.(index).constructors;
+      Hashtbl.fold (fun dependency () result -> dependency :: result) found []
+      |> List.sort compare) in
+    let visit_number = ref 0 in
+    let visit = Array.make count (-1) in
+    let lowlink = Array.make count (-1) in
+    let in_stack = Array.make count false in
+    let stack = ref [] in
+    let components = ref [] in
+    let rec strong index =
+      visit.(index) <- !visit_number;
+      lowlink.(index) <- !visit_number;
+      incr visit_number;
+      stack := index :: !stack;
+      in_stack.(index) <- true;
+      List.iter (fun dependency ->
+        if visit.(dependency) = -1 then (
+          strong dependency;
+          lowlink.(index) <- min lowlink.(index) lowlink.(dependency))
+        else if in_stack.(dependency) then
+          lowlink.(index) <- min lowlink.(index) visit.(dependency))
+        dependencies.(index);
+      if lowlink.(index) = visit.(index) then (
+        let rec pop members =
+          match !stack with
+          | [] -> assert false
+          | head :: rest ->
+              stack := rest;
+              in_stack.(head) <- false;
+              let members = head :: members in
+              if head = index then members else pop members in
+        components := pop [] :: !components) in
+    for index = 0 to count - 1 do
+      if visit.(index) = -1 then strong index
+    done;
+    let blocks = List.rev !components |> List.map (fun members ->
+      let members = List.sort compare members in
+      String.concat "\n" (List.mapi (fun ordinal index ->
+        render_relation (ordinal = 0) relations.(index)) members) ^ ".") in
+    let rec chunk current size result = function
+      | [] -> List.rev (if current = [] then result else
+          (String.concat "\n\n" (List.rev current) ^ "\n") :: result)
+      | block :: rest when size + String.length block > 750_000 && current <> [] ->
+          chunk [block] (String.length block) ((String.concat "\n\n" (List.rev current) ^ "\n") :: result) rest
+      | block :: rest -> chunk (block :: current) (size + String.length block) result rest in
+    Ok (chunk [] 0 [] blocks)
   with Unsupported reason ->
     Error [{stage = "inductive"; location = !current_location;
             construct = "Action"; reason}]
