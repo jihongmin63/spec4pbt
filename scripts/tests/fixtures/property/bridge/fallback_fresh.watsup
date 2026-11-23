@@ -1,0 +1,22 @@
+syntax typeId = text
+var x : nat
+var y : nat
+var t : text
+
+builtin dec $fresh_typeId() : typeId
+extern relation E1: nat nat hint(input %0)
+
+relation Choice: nat text hint(input %0)
+rule Choice/first: x t
+  -- E1: x y
+  -- if t = $fresh_typeId()
+rule Choice/second: x t
+  -- if t = $fresh_typeId()
+
+relation Pre: nat text hint(input %0)
+rule Pre/main: x t
+  -- Choice: x t
+
+relation Goal: nat text hint(input %0 %1)
+rule Goal/main: x t
+  -- if t = "FRESH__1"

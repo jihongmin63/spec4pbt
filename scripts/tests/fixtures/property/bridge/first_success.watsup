@@ -1,0 +1,17 @@
+var x : nat
+var z : nat
+
+relation Choice: nat nat hint(input %0)
+rule Choice/zero: x z
+  -- if z = 0
+rule Choice/one: x z
+  -- if z = 1
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x z
+  -- Choice: x z
+  -- if z = 1
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x z
+  -- if z = 1

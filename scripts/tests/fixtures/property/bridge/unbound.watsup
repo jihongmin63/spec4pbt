@@ -1,0 +1,7 @@
+var x : nat
+var y : nat
+
+extern relation E: nat nat hint(input %0)
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x y
+  -- E: y x

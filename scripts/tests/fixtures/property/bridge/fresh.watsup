@@ -1,0 +1,16 @@
+syntax typeId = text
+var x : nat
+var a : text
+var b : text
+var c : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation Pre: nat text text hint(input %0)
+rule Pre/main: x a b
+  -- if a = $fresh_typeId()
+  -- if b = $fresh_typeId()
+
+relation Goal: nat text text text hint(input %0 %1 %2)
+rule Goal/main: x a b c
+  -- if c = $fresh_typeId()

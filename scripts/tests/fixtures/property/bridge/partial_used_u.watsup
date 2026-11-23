@@ -1,0 +1,17 @@
+var x : nat
+var y : nat
+var u : nat
+var z : nat
+
+extern relation E1: nat nat nat hint(input %0)
+extern relation E2: nat nat hint(input %0)
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x z
+  -- E1: x y u
+  -- if u = 99
+  -- E2: y z
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x z
+  -- if z = $(x + 3)
