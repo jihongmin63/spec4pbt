@@ -5,6 +5,8 @@ switch="$root/_opam-testing-theorems"
 context="$switch/testing-theorems-artifact-context"
 archive="$switch/testing-theorems-artifact-context.tar.gz"
 archive_sha=876e30bf41477f9a90077e3876df08555c77b624b35e11508500f4ae01e7035a
+coverage_toolchain=nightly-2026-11-21
+coverage_rust_commit=c7d5ba59d8e11ee2e2204b173458eec4cb41c973
 action=${1:-coqtop}
 if [[ $# -gt 0 ]]; then shift; fi
 
@@ -65,6 +67,27 @@ PY
     fi
     cd "$context/cedar-server"
     "$CARGO_HOME/bin/cargo" build --release --locked -j "${JOBS:-8}"
+    ;;
+  setup-cedar-coverage)
+    # Separate build: preserve the original artifact binary and all old evidence.
+    export CARGO_HOME="$switch/cargo" RUSTUP_HOME="$switch/rustup"
+    export PATH="$CARGO_HOME/bin:$PATH"
+    "$CARGO_HOME/bin/rustup" toolchain install "$coverage_toolchain" --profile minimal --component llvm-tools-preview
+    export RUSTUP_TOOLCHAIN="$coverage_toolchain"
+    actual_commit=$("$CARGO_HOME/bin/rustc" -Vv | sed -n 's/^commit-hash: //p')
+    [[ "$actual_commit" == "$coverage_rust_commit" ]] || { echo 'Coverage compiler commit mismatch' >&2; exit 1; }
+    export CARGO_TARGET_DIR="$switch/cedar-coverage-target"
+    export RUSTFLAGS='-C instrument-coverage -Z coverage-options=branch -C debuginfo=2'
+    cd "$context/cedar-server"
+    "$CARGO_HOME/bin/cargo" build --locked --offline -j "${JOBS:-8}"
+    ;;
+  cedar-rust)
+    export CARGO_HOME="$switch/cargo" RUSTUP_HOME="$switch/rustup"
+    export PATH="$CARGO_HOME/bin:$PATH"
+    export RUSTUP_TOOLCHAIN="$coverage_toolchain"
+    actual_commit=$("$CARGO_HOME/bin/rustc" -Vv | sed -n 's/^commit-hash: //p')
+    [[ "$actual_commit" == "$coverage_rust_commit" ]] || { echo 'Run setup-cedar-coverage: pinned compiler unavailable' >&2; exit 1; }
+    exec "$@"
     ;;
   check)
     mkdir -p "$switch/checks"
