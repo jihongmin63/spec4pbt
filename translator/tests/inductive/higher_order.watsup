@@ -1,0 +1,13 @@
+var n : nat
+
+dec $identity(nat) : nat
+def $identity(n) = n
+
+dec $poly_identity<X>(X) : X
+def $poly_identity<X>(X) = X
+
+dec $apply<X>(def $f(X) : X, X) : X
+def $apply<X>(def $f, X) = $f(X)
+
+dec $call_identity(nat) : nat
+def $call_identity(n) = $apply<nat>(def $identity, n)

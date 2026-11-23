@@ -103,6 +103,37 @@ class DirectRelationTests(unittest.TestCase):
             "Closed under the global context"), 3)
 
 
+    def test_polymorphic_and_higher_order_calls_are_equivalent(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-higher.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        source = run / "spec"
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "fixture", "--input", str(SOURCE.parent / "higher_order.watsup"),
+                   "--output", str(source), "--manifest", str(run / "manifest.json"),
+                   "--inductive-relations"]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        generated = direct_source(source)
+        self.assertIn("Inductive R_apply", generated)
+        self.assertIn("g_fixture_dec_poly_x5f_identity_execute", generated)
+        self.assertNotIn("Eval ", generated)
+        spec = importlib.util.spec_from_file_location("translate_driver_higher", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        driver.compile_generated(source, "fixture", run, {"commands": []})
+        for name in ["EvalFacts", "HigherOrderChecks"]:
+            destination = source / f"{name}.v"
+            shutil.copy2(SOURCE.parent / f"{name}.v", destination)
+            proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                     "-Q", str(run / "support"), "ALCoq",
+                     "-Q", str(source), "FixtureSpec", str(destination)]
+            checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+            (run / f"{name}.log").write_text(checked.stdout + checked.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual((run / "HigherOrderChecks.log").read_text().count(
+            "Closed under the global context"), 2)
 
 
 
