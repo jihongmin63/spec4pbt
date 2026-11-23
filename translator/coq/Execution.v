@@ -6,6 +6,11 @@ Set Universe Polymorphism.
 Record State := { next_fresh : nat }.
 Inductive ErrorKind := ALAbort | ExternalAbort | HostConversion | HostInvalidArgument | StructureError | NumericTrap.
 Record ExecutionError := { error_kind : ErrorKind; error_detail : string }.
+(* The Testing Theorems tactic cannot reify a universe-polymorphic Outcome
+   premise: it emits an undeclared universe for even a concrete Outcome nat.
+   Outcome has no need for universe polymorphism; keep the rest of this runtime
+   polymorphic for higher-order Action and Eval uses. *)
+Unset Universe Polymorphism.
 Inductive Outcome (A : Type) :=
 | Success : A -> Outcome A
 | Unmatch : Outcome A
@@ -13,6 +18,7 @@ Inductive Outcome (A : Type) :=
 Arguments Success {A} _.
 Arguments Unmatch {A}.
 Arguments Error {A} _.
+Set Universe Polymorphism.
 
 (* Recursive source calls are data. In particular, Call never contains an Eval
    proof, a fuel bound, or an arbitrary equality on Coq functions. *)
