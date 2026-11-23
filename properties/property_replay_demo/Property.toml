@@ -1,0 +1,8 @@
+precondition = "Pre"
+goal = "Goal"
+
+[[external]]
+relation = "External"
+adapter = "demo_external"
+conversion = "json-v1"
+observed_outputs = [0]

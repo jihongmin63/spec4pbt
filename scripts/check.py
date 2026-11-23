@@ -15,7 +15,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 ENV = ROOT / 'environment/env.sh'
 COQ_FLAGS = ['-Q', 'support', 'ALCoq', '-Q', 'specification', 'Specification',
-             '-Q', 'fixture', 'FixtureSpec', '-Q', 'p4', 'P4Spec',
+             '-Q', 'fixture', 'FixtureSpec', '-Q', 'candidate', 'CandidateSpec', '-Q', 'p4', 'P4Spec',
              '-Q', 'wasm', 'WasmSpec', '-R', 'property', 'Property']
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
 REQUIRE = re.compile(r'\b(?:From\s+([A-Za-z0-9_.]+)\s+)?Require'
@@ -118,6 +118,8 @@ def dependency_path(name, property_name, fixture_root=None):
         'WasmSpec': (ROOT / 'specification/wasm', Path('wasm')),
         'FixtureSpec': (fixture_root or ROOT / 'specification' / property_name,
                         Path('fixture')),
+        'CandidateSpec': (ROOT / 'specification' / property_name / 'candidates' / 'v002',
+                          Path('candidate')),
     }
     if parts[0] not in mapping:
         return None
@@ -209,7 +211,7 @@ class Session:
         self.directory = Path(tempfile.mkdtemp(prefix='check-' if selected is None else 'run-', dir=runs))
         self.sources = self.directory / 'sources'
         self.sources.mkdir()
-        for name in ['specification', 'support', 'p4', 'wasm', 'fixture']:
+        for name in ['specification', 'support', 'p4', 'wasm', 'fixture', 'candidate']:
             (self.sources / name).mkdir()
         self.originals = {}
         self.report = {'status': 'running', 'sequence': self.sequence, 'property': str(self.prop),
@@ -272,10 +274,51 @@ class Session:
                 dependency = dependency_path(name, self.prop.name, self.fixture_root)
                 if dependency is not None and dependency[1] not in seen:
                     pending.append(dependency)
+        # Preserve the semantic SpecTec inputs and both pass results alongside
+        # the selected Coq dependency closure. These are evidence, not Coq files.
+        fixture_source = ROOT / 'specification' / self.prop.name / 'source/Property.watsup'
+        extras = []
+        if fixture_source.is_file() and self.fixture_root is None:
+            extras.append((fixture_source, Path('fixture/source/Property.watsup')))
+            extras.append((ROOT / 'specification' / self.prop.name / 'PassEvidence.json',
+                           Path('fixture/PassEvidence.json')))
+        for name in self.sequence:
+            helper = self.prop / 'candidates' / name / 'Helper.watsup'
+            if helper.is_file():
+                extras.append((helper, Path('property/candidates') / name / 'Helper.watsup'))
+                extras.append((ROOT / 'specification' / self.prop.name /
+                               'candidates' / name / 'PassEvidence.json',
+                               Path('candidate/PassEvidence.json')))
+        for path, target in extras:
+            if not path.is_file() or path.is_symlink():
+                raise CheckError(f'Missing semantic pass evidence: {path}')
+            data = path.read_bytes()
+            destination = self.sources / target
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(data)
+            self.originals[path] = digest(data)
+            self.report['source_hashes'][str(target)] = digest(data)
+        translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
+        translator_hash = digest(b''.join(path.read_bytes() for path in translator_sources))
+        for path, _ in extras:
+            if path.name != 'PassEvidence.json':
+                continue
+            evidence = json.loads(path.read_text())
+            if evidence.get('translator_sha256') != translator_hash:
+                raise CheckError(f'Translator changed since semantic pass: {path}')
+            source = (fixture_source if path.parent.name == self.prop.name
+                      else self.prop / 'candidates' / path.parent.name / 'Helper.watsup')
+            if evidence.get('source_sha256') != digest(source.read_bytes()):
+                raise CheckError(f'SpecTec source changed since semantic pass: {source}')
+            for output in evidence.get('generated', []):
+                generated = path.parent / output['path']
+                if not generated.is_file() or digest(generated.read_bytes()) != output['sha256']:
+                    raise CheckError(f'Generated Coq changed since semantic pass: {generated}')
         self.report['dependency_modules'] = sorted(self.report['source_hashes'])
         for path in [ROOT / 'scripts/check.py', ROOT / 'scripts/run.py', ENV, ROOT / 'environment/opam-switch.export']:
             if path.exists():
                 self.report['tool_hashes'][str(path.relative_to(ROOT))] = digest(path.read_bytes())
+        self.report['tool_hashes']['translator/src/all.ml'] = translator_hash
         self.command(['coqc', '--version'], 'version')
         self.command(['opam', 'list', '--installed', '--columns=name,version'], 'packages')
         self.save()
@@ -290,7 +333,9 @@ class Session:
             if not path.is_file() or digest(path.read_bytes()) != old:
                 raise CheckError(f'Source changed during verification: {path}')
         for name, old in self.report['tool_hashes'].items():
-            if digest((ROOT / name).read_bytes()) != old:
+            current = (digest(b''.join(path.read_bytes() for path in sorted((ROOT / 'translator/src').glob('*.ml'))))
+                       if name == 'translator/src/all.ml' else digest((ROOT / name).read_bytes()))
+            if current != old:
                 raise CheckError(f'Tool changed during verification: {name}')
 
     def check(self):

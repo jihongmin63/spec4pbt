@@ -1,0 +1,20 @@
+var x : nat
+var b : nat
+var c : nat
+
+relation External: nat nat hint(input %0)
+rule External/main: x b
+  -- if b = 10
+
+relation B: nat nat hint(input %0)
+rule B/main: b c
+  -- if c = $(b + 1)
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x c
+  -- External: x b
+  -- B: b c
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x c
+  -- if c = $(x + 4)

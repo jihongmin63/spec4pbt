@@ -147,6 +147,23 @@ Proof. intros x; split; trivial. Qed.
         self.assertFalse(any(p.startswith('p4/') or p.startswith('wasm/')
                              for p in session.report['source_hashes']))
 
+    def test_record_input_candidate_derives_from_translated_relations(self):
+        """The fork's tactic needs the selected predicate in its own module."""
+        property_dir = ROOT / 'properties/property_replay_demo'
+        result = subprocess.run(
+            [sys.executable, str(ROOT / 'scripts/run.py'), str(property_dir),
+             '--candidate', 'v001', '--derive-only'], cwd=ROOT,
+            capture_output=True, text=True, timeout=240)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        reports = sorted((property_dir / '.runs').glob('run-*/result.json'),
+                         key=lambda p: p.stat().st_mtime_ns)
+        report = json.loads(reports[-1].read_text())
+        self.assertEqual(report['status'], 'passed')
+        self.assertEqual(report['generator_factory_assumptions'], [])
+        derived = (reports[-1].parent / 'sources/Derived.v').read_text()
+        self.assertIn('Inductive predicate_v001', derived)
+        self.assertIn('g_fixture_rel_B_execute', derived)
+
     def test_derive_only_selects_later_candidate_without_running_samples(self):
         result, run = self.invoke('run.py', '--candidate', 'v002', '--derive-only')
         self.assertEqual(result['status'], 'passed')

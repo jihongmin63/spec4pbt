@@ -1,0 +1,6 @@
+var x : nat
+var y : nat
+
+relation Helper: nat nat hint(input %0)
+rule Helper/main: x y
+  -- if y = x

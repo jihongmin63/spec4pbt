@@ -58,16 +58,15 @@ def validate_tactic_form(source, original_source):
         expression = conclusion.group(1)
         if expression:
             head = re.match(r'\s*([A-Za-z_][A-Za-z0-9_.]*)\s+', expression)
-            if head and ('.' in head.group(1) or
-                         head.group(1).split('.')[-1] not in constructors and
-                         not head.group(1)[0].isupper()):
+            if head and (head.group(1).split('.')[-1] not in constructors and
+                         ('.' in head.group(1) or not head.group(1)[0].isupper())):
                 raise CheckError(f'function call {head.group(1)} in predicate conclusion')
 
 
-def derivation(candidate):
+def derivation(candidate, selected_source):
     predicate = f'predicate_{candidate}'
     return PRELUDE + f'''Require Sequence.
-Require Import Property.DeriveCandidate_{candidate}.
+{selected_source}
 Theorem generator_factory : forall x : Property.Original.Input,
   {predicate} x -> true = true.
 Proof.
@@ -123,13 +122,17 @@ def execute(session, candidate, samples, size, seed, derive_only=False):
     session.report.update(candidate=candidate, samples=samples, size=size, seed=seed,
                           derive_only=derive_only, generator_proof='not_checked')
     session.check()
+    selected_source = None
     for name in session.sequence:
         source = (session.sources / 'property/candidates' / name / 'Candidate.v').read_text()
         validate_tactic_form(source, (session.sources / 'property/Original.v').read_text())
         renamed = session.sources / 'property' / f'DeriveCandidate_{name}.v'
-        renamed.write_text(renamed_candidate(source, name))
+        renamed_source = renamed_candidate(source, name)
+        renamed.write_text(renamed_source)
         session.compile(str(renamed.relative_to(session.sources)), f'candidate-derivation-copy-{name}')
-    (session.sources / 'Derived.v').write_text(derivation(candidate))
+        if name == candidate:
+            selected_source = renamed_source
+    (session.sources / 'Derived.v').write_text(derivation(candidate, selected_source))
     log = session.compile('Derived.v', 'derivation')
     session.report['schedule_variables'] = audit_schedule(log)
     found = assumptions(log)

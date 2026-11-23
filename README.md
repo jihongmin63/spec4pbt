@@ -266,8 +266,46 @@ generator.
 
 ## Binding an implementation
 
-The property replay adapter path is built separately from `run.py`; the latter
-ends after sampling Input values.
+The demo property is in `properties/property_replay_demo/`. Its fixed SpecTec
+source is published as checked Coq relations in
+`specification/property_replay_demo/`. Candidate v002 adds a separate SpecTec
+helper through the same frontend and translator passes. `PassEvidence.json`
+records the source, AL pass, translator, and generated Coq hashes.
+The fixed `Original.v` is checked against the source-derived renderer for this
+demo's one nat Input and variable-only relation premises. The renderer does
+not yet support multiple or non-nat Input fields, or the translated temporary
+relation needed for other premise forms. The typed JSON codec can validate
+nested constructors independently, but that does not provide an end-to-end
+Coq Input encoder for such fields.
+
+`scripts.property.cli` keeps generation, implementation replay, and
+specification debug as separate commands. The native bridge uses the pinned
+P4-SpecTec AL interpreter. Replay replaces only declared external relations
+with adapter callbacks, checks their typed observed output slots and fresh
+counter, and projects unused output slots in the AL execution copy. Debug runs
+the full specification and starts no adapter.
+
+```sh
+python3 -B -m scripts.property.cli properties/property_replay_demo prepare --target replay
+python3 -B -m scripts.property.cli properties/property_replay_demo prepare --target debug
+python3 -B -m scripts.property.cli properties/property_replay_demo sample --candidate v001 --count 12 --size 16 --seed 7
+python3 -B -m scripts.property.cli properties/property_replay_demo replay --samples-file properties/property_replay_demo/.runs/sample-<id>/samples.json
+python3 -B -m scripts.property.cli properties/property_replay_demo debug --samples-file properties/property_replay_demo/.runs/sample-<id>/samples.json
+```
+
+Each command writes a new property-local `.runs/` directory. `sample` saves
+only typed Input fields or `null`; the adapter is never run during generation.
+The replay and debug commands consume the same saved Inputs independently.
+Replay evidence includes adapter hashes and actual external calls. Debug
+evidence contains specification bindings and no adapter hash. Both passes
+record the exact instrumented AL's MD5 digest and reject a runtime digest
+that differs from the compiled pass. Replay traces identify a failing premise
+and its observed external dependencies; an independent unexpected premise
+failure is reported as `execution_error`. A fixed source
+or observation contract change invalidates saved batch evidence. The demo
+adapter returns `b=20`, so `x=7` produces `c=21` and a failed Goal; debug
+computes `b=10`, `c=11`, and a passing Goal. These are finite execution
+results, not proofs of generator or implementation correctness.
 
 ## Tool verification
 
