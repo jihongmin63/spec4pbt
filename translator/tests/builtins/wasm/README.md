@@ -29,6 +29,14 @@ the adapters. It also rejects profile, declaration-kind and signature mismatch.
 The other two Wasm builtins, union_set and diff_set, use the shared set adapter.
 This isolated check does not replace the complete specification translation.
 
+`python3 -B translator/tests/expressions/native_slices.py` runs the pinned AL
+interpreter and unchanged donor byte helpers at actual 63-bit sum boundaries.
+It is also part of the expressions suite. Byte helper sum overflow produces
+an uncaught `Invalid_argument`; an ordinary bounds error produces
+`BuiltinError` and permits AL backtracking. `WasmBuiltins.v` proves the overflow
+branch for every accepted overflowing pair, and the generated wrapper checks
+verify that the exception blocks fallback and propagates through negation.
+
 The pure numeric support uses binary `Z` internally; source aliases remain `nat`
 at the generated boundary. This preserves typing and values but evaluating huge
 unary source naturals inside Coq can consume substantial resources. Allocation

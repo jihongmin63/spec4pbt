@@ -75,23 +75,33 @@ Definition i32_of_bytes (bytes : list nat) : nat := Z.to_nat (wrap 32 (decode_by
 Definition i64_of_bytes (bytes : list nat) : nat := Z.to_nat (wrap 64 (decode_bytes bytes)).
 Definition v128_of_bytes (bytes : list nat) : Outcome nat :=
   checked (valid_bytes bytes) (Z.to_nat (decode_bytes bytes)).
-Definition machine_max : Z := 4611686018427387903.
+Definition machine_max : Z := host_int_max.
 Definition machine_nat (n : nat) := Z.of_nat n <=? machine_max.
+Definition machine_index (n : Z) := (0 <=? n) && (n <=? machine_max).
 Definition zero_bytes (n : nat) : Outcome (list nat) := checked (machine_nat n) (repeat 0%nat n).
 (* repeat_byte preserves its input byte value, including noncanonical natural aliases. *)
 Definition repeat_byte (b n : nat) : Outcome (list nat) := checked (machine_nat n) (repeat b n).
-Definition slice_bytes (bytes : list nat) (offset count : nat) : Outcome (list nat) :=
-  if machine_nat offset && machine_nat count then
-    if Nat.leb (offset + count) (List.length bytes)
-    then Success (firstn count (skipn offset bytes))
+Definition slice_bytes_z (bytes : list nat) (offset count : Z) : Outcome (list nat) :=
+  if machine_index offset && machine_index count then
+    if host_sum_overflows offset count then
+      failure HostInvalidArgument "Value_array.sub"
+    else if offset + count <=? Z.of_nat (List.length bytes)
+    then Success (firstn (Z.to_nat count) (skipn (Z.to_nat offset) bytes))
     else failure ExternalAbort "slice_bytes out of bounds"
   else failure HostConversion "slice_bytes machine integer overflow".
-Definition replace_bytes (bytes : list nat) (offset : nat) (replacement : list nat) : Outcome (list nat) :=
-  if machine_nat offset then
-    if Nat.leb (offset + List.length replacement) (List.length bytes)
-    then Success (List.app (firstn offset bytes) (List.app replacement (skipn (offset + List.length replacement) bytes)))
+Definition slice_bytes (bytes : list nat) (offset count : nat) : Outcome (list nat) :=
+  slice_bytes_z bytes (Z.of_nat offset) (Z.of_nat count).
+Definition replace_bytes_z (bytes : list nat) (offset : Z) (replacement : list nat) : Outcome (list nat) :=
+  if machine_index offset then
+    if host_sum_overflows offset (Z.of_nat (List.length replacement)) then
+      failure HostInvalidArgument "Value_array.replace_slice"
+    else if offset + Z.of_nat (List.length replacement) <=? Z.of_nat (List.length bytes)
+    then Success (List.app (firstn (Z.to_nat offset) bytes)
+      (List.app replacement (skipn (Z.to_nat offset + List.length replacement) bytes)))
     else failure ExternalAbort "replace_bytes out of bounds"
   else failure HostConversion "replace_bytes machine integer overflow".
+Definition replace_bytes (bytes : list nat) (offset : nat) (replacement : list nat) : Outcome (list nat) :=
+  replace_bytes_z bytes (Z.of_nat offset) replacement.
 (* Coq strings, like the donor OCaml strings, contain bytes already encoded as UTF-8. *)
 Definition bytes_of_text (text : string) : list nat := map nat_of_ascii (string_bytes text).
 Definition clamp (width : Z) (sign : bool) (x : Z) : Z :=

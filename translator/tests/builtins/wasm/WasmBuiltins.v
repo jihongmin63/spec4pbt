@@ -1,5 +1,5 @@
 From Coq Require Import ZArith List String.
-From ALCoq Require Import Execution.
+From ALCoq Require Import Execution Values.
 From ALCoq.Builtins Require Import WasmScalar WasmFloat WasmVector WasmExecution.
 Import ListNotations WasmScalar.
 Set Universe Polymorphism.
@@ -16,6 +16,54 @@ Example slice_good : slice_bytes [1%nat;2%nat;3%nat] 1 2 = Success [2%nat;3%nat]
 Example slice_bad : kind (slice_bytes [1%nat] 1 1) = Some ExternalAbort. Proof. vm_compute. reflexivity. Qed.
 Example replace_good : replace_bytes [1%nat;2%nat;3%nat] 1 [9%nat] = Success [1%nat;9%nat;3%nat]. Proof. vm_compute. reflexivity. Qed.
 Example replace_bad : kind (replace_bytes [] 1 []) = Some ExternalAbort. Proof. vm_compute. reflexivity. Qed.
+
+(* Binary Z boundaries avoid materialising max_int as a unary natural. The
+   public nat adapters delegate to these very computations without changing it. *)
+Example slice_sum_overflow_is_uncaught :
+ catch_bounds_builtin (slice_bytes_z [] 4611686018427387903 1) =
+ failure HostInvalidArgument "Value_array.sub".
+Proof. vm_compute. reflexivity. Qed.
+Example slice_count_overflow_is_uncaught :
+ catch_bounds_builtin (slice_bytes_z [] 1 4611686018427387903) =
+ failure HostInvalidArgument "Value_array.sub".
+Proof. vm_compute. reflexivity. Qed.
+Example replace_sum_overflow_is_uncaught :
+ catch_bounds_builtin (replace_bytes_z [] 4611686018427387903 [7%nat]) =
+ failure HostInvalidArgument "Value_array.replace_slice".
+Proof. vm_compute. reflexivity. Qed.
+Example slice_at_max_without_overflow_unmatches :
+ catch_bounds_builtin (slice_bytes_z [] 4611686018427387903 0) = Unmatch.
+Proof. vm_compute. reflexivity. Qed.
+Example replace_at_max_without_overflow_unmatches :
+ catch_bounds_builtin (replace_bytes_z [] 4611686018427387903 []) = Unmatch.
+Proof. vm_compute. reflexivity. Qed.
+Example slice_conversion_precedes_sum :
+ kind (catch_bounds_builtin (slice_bytes_z [] 4611686018427387904 1)) = Some HostConversion.
+Proof. vm_compute. reflexivity. Qed.
+Example slice_nat_adapter_overflow n : Z.of_nat n = 4611686018427387903 ->
+ catch_bounds_builtin (slice_bytes [] n 1) = failure HostInvalidArgument "Value_array.sub".
+Proof. intro H. unfold slice_bytes. rewrite H. reflexivity. Qed.
+Example replace_nat_adapter_overflow n : Z.of_nat n = 4611686018427387903 ->
+ catch_bounds_builtin (replace_bytes [] n [7%nat]) = failure HostInvalidArgument "Value_array.replace_slice".
+Proof. intro H. unfold replace_bytes. rewrite H. reflexivity. Qed.
+Theorem every_byte_slice_overflow bytes offset count :
+ machine_index offset = true -> machine_index count = true ->
+ (host_int_max < offset + count)%Z ->
+ catch_bounds_builtin (slice_bytes_z bytes offset count) = failure HostInvalidArgument "Value_array.sub".
+Proof.
+ intros Ho Hc Hsum. unfold slice_bytes_z, host_sum_overflows.
+ apply Z.ltb_lt in Hsum. rewrite Ho, Hc, Hsum. reflexivity.
+Qed.
+Theorem every_byte_replace_overflow bytes offset replacement :
+ machine_index offset = true ->
+ (host_int_max < offset + Z.of_nat (List.length replacement))%Z ->
+ catch_bounds_builtin (replace_bytes_z bytes offset replacement) = failure HostInvalidArgument "Value_array.replace_slice".
+Proof.
+ intros Ho Hsum. unfold replace_bytes_z, host_sum_overflows.
+ apply Z.ltb_lt in Hsum. rewrite Ho, Hsum. reflexivity.
+Qed.
+Print Assumptions every_byte_slice_overflow.
+Print Assumptions every_byte_replace_overflow.
 Example raw_string_bytes : bytes_of_text (String (Ascii.ascii_of_nat 195) (String (Ascii.ascii_of_nat 169) "")) = [195%nat;169%nat]. Proof. reflexivity. Qed.
 Example signed_min : signed 32 2147483648 = -2147483648. Proof. vm_compute. reflexivity. Qed.
 Example signed_modulus : signed 32 4294967297 = 1. Proof. vm_compute. reflexivity. Qed.

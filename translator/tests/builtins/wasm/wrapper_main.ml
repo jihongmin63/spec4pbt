@@ -44,7 +44,15 @@ let () =
   "Example wrapper_failure_allows_otherwise : Eval no_body (OrElse ("^failed_binary^") (Return "^trap^")) "^state^" (Success "^trap^") "^state^".\n"^
   "Proof. eapply eval_or_unmatch; [apply eval_unmatched|apply eval_return]. Qed.\n"^
   "Example wrapper_failure_satisfies_negation : Eval no_body (Negate ("^failed_binary^")) "^state^" (Success tt) "^state^".\n"^
-  "Proof. apply eval_negate_unmatch. apply eval_unmatched. Qed.\n" in
+  "Proof. apply eval_negate_unmatch. apply eval_unmatched. Qed.\n"^
+  "Example wrapper_slice_sum_overflow n : Z.of_nat n = 4611686018427387903%Z -> B_slice_bytes [] n 1%nat = Raise {| error_kind := HostInvalidArgument; error_detail := \"Value_array.sub\" |}.\n"^
+  "Proof. intro H. unfold B_slice_bytes, WasmScalar.slice_bytes. rewrite H. reflexivity. Qed.\n"^
+  "Example wrapper_replace_sum_overflow n : Z.of_nat n = 4611686018427387903%Z -> B_replace_bytes [] n [7%nat] = Raise {| error_kind := HostInvalidArgument; error_detail := \"Value_array.replace_slice\" |}.\n"^
+  "Proof. intro H. unfold B_replace_bytes, WasmScalar.replace_bytes. rewrite H. reflexivity. Qed.\n"^
+  "Example wrapper_overflow_blocks_fallback n : Z.of_nat n = 4611686018427387903%Z -> Eval no_body (OrElse (B_slice_bytes [] n 1%nat) (Return [])) "^state^" (Error {| error_kind := HostInvalidArgument; error_detail := \"Value_array.sub\" |}) "^state^".\n"^
+  "Proof. intro H. rewrite (wrapper_slice_sum_overflow n H). apply eval_or_error. apply eval_raise. Qed.\n"^
+  "Example wrapper_overflow_propagates_through_negation n : Z.of_nat n = 4611686018427387903%Z -> Eval no_body (Negate (B_replace_bytes [] n [7%nat])) "^state^" (Error {| error_kind := HostInvalidArgument; error_detail := \"Value_array.replace_slice\" |}) "^state^".\n"^
+  "Proof. intro H. rewrite (wrapper_replace_sum_overflow n H). apply eval_negate_error. apply eval_raise. Qed.\n" in
  let bad_profile={ctx with Context.profile={name="p4"}} in
  let d=List.hd ds in
  let rejects thunk = try ignore(thunk());failwith "invalid builtin dispatch accepted" with Wasm_bindings.Unsupported _->() in

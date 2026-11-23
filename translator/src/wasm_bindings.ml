@@ -299,5 +299,5 @@ let bindings ctx =
       "failure_policy",`String (if String.starts_with ~prefix:"eval_" d.source_name then
           "all caught exceptions unmatch; numeric traps become typed NumTrap"
         else if List.mem d.source_name ["slice_bytes";"replace_bytes"] then
-          "explicit bounds errors unmatch; host conversion remains fatal"
+          "explicit bounds errors unmatch; host conversion and Invalid_argument remain fatal"
         else "direct builtin; host conversion and abort remain distinct")]) else None)ctx.Context.declarations
