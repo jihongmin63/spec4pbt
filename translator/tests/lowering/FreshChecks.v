@@ -27,8 +27,10 @@ Example failed_path_consumes_fresh :
  Eval (@Body) (Invoke (C_g_p4_rel_Paths 0)) {| next_fresh := 0 |}
   (Success "FRESH__1") {| next_fresh := 2 |}.
 Proof. execute. Qed.
-Example public_paths_second_result : g_p4_rel_Paths 0 "FRESH__1".
-Proof. unfold g_p4_rel_Paths. eexists. execute. Qed.
+Example paths_second_result : exists final,
+ Eval (@Body) (Invoke (C_g_p4_rel_Paths 0)) {| next_fresh := 0 |}
+  (Success "FRESH__1") final.
+Proof. eexists. execute. Qed.
 Example independent_iteration_locals :
  Eval (@Body) (Invoke (C_g_p4_dec_twice [1;2] [3;4])) {| next_fresh := 0 |}
   (Success (["FRESH__0";"FRESH__1"],["FRESH__2";"FRESH__3"])) {| next_fresh := 4 |}.

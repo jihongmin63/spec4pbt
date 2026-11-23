@@ -25,8 +25,7 @@ class DirectRelationTests(unittest.TestCase):
         backend = Path(os.environ["INDUCTIVE_BACKEND"])
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "fixture", "--input", str(SOURCE.parent / "traverse.watsup"),
-                   "--output", str(run / "spec"), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(run / "spec"), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         generated = direct_source(run / "spec")
@@ -58,8 +57,7 @@ class DirectRelationTests(unittest.TestCase):
         source = run / "spec"
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "fixture", "--input", str(SOURCE),
-                   "--output", str(source), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         generated = direct_source(source)
@@ -75,6 +73,8 @@ class DirectRelationTests(unittest.TestCase):
         self.assertIn("g_fixture_rel_Negated_after_call_1_at_1", generated)
         self.assertIn("g_fixture_dec_arbitrary_execute", generated)
         self.assertNotIn("Eval ", generated)
+        self.assertIn("InductiveRelations", (source / "Spec.v").read_text())
+        self.assertNotIn("Eval ", (source / "Generated/Relations_0000.v").read_text())
         call_rule = next(line for line in generated.splitlines()
                          if "g_fixture_rel_Called_execute" in line
                          and "g_fixture_rel_Identity_execute" in line)
@@ -109,8 +109,7 @@ class DirectRelationTests(unittest.TestCase):
         source = run / "spec"
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "p4", "--input", str(SOURCE.parent / "fresh.watsup"),
-                   "--output", str(source), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         generated = direct_source(source)
@@ -140,8 +139,7 @@ class DirectRelationTests(unittest.TestCase):
         source = run / "spec"
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "p4", "--input", str(SOURCE.parent / "builtin.watsup"),
-                   "--output", str(source), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         generated = direct_source(source)
@@ -171,8 +169,7 @@ class DirectRelationTests(unittest.TestCase):
         source = run / "spec"
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "fixture", "--input", str(SOURCE.parent / "higher_order.watsup"),
-                   "--output", str(source), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         generated = direct_source(source)
@@ -203,8 +200,7 @@ class DirectRelationTests(unittest.TestCase):
         source = run / "spec"
         command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
                    "--profile", "p4", "--input", str(SOURCE.parent / "traverse_failure.watsup"),
-                   "--output", str(source), "--manifest", str(run / "manifest.json"),
-                   "--inductive-relations"]
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
         result = subprocess.run(command, cwd=run, text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         spec = importlib.util.spec_from_file_location("translate_driver_failure", ROOT / "scripts/translate.py")
