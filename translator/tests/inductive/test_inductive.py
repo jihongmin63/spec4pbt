@@ -18,6 +18,36 @@ def direct_source(source):
 
 
 class DirectRelationTests(unittest.TestCase):
+    def test_traverse_emits_recursive_relation(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-traverse.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "fixture", "--input", str(SOURCE.parent / "traverse.watsup"),
+                   "--output", str(run / "spec"), "--manifest", str(run / "manifest.json"),
+                   "--inductive-relations"]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        generated = direct_source(run / "spec")
+        self.assertIn("g_fixture_dec_each_traverse_1_at_1", generated)
+        self.assertNotIn("Eval ", generated)
+        spec = importlib.util.spec_from_file_location("translate_driver_traverse", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        compiled = {"commands": []}
+        driver.compile_generated(run / "spec", "fixture", run, compiled)
+        (run / "compile-report.json").write_text(json.dumps(compiled, indent=2) + "\n")
+        for name in ["EvalFacts", "TraverseChecks"]:
+            destination = run / "spec" / f"{name}.v"
+            shutil.copy2(SOURCE.parent / f"{name}.v", destination)
+            proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                     "-Q", str(run / "support"), "ALCoq",
+                     "-Q", str(run / "spec"), "FixtureSpec", str(destination)]
+            checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+            (run / f"{name}.log").write_text(checked.stdout + checked.stderr)
+            self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertIn("Closed under the global context", (run / "TraverseChecks.log").read_text())
 
     def test_emits_distinct_relation_and_call_continuation(self):
         state = ROOT / "_opam-testing-theorems/checks"
@@ -165,6 +195,32 @@ class DirectRelationTests(unittest.TestCase):
         self.assertEqual((run / "HigherOrderChecks.log").read_text().count(
             "Closed under the global context"), 2)
 
+    def test_traverse_first_failure_preserves_fresh_state(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-traverse-failure.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        source = run / "spec"
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "p4", "--input", str(SOURCE.parent / "traverse_failure.watsup"),
+                   "--output", str(source), "--manifest", str(run / "manifest.json"),
+                   "--inductive-relations"]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        spec = importlib.util.spec_from_file_location("translate_driver_failure", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        driver.compile_generated(source, "p4", run, {"commands": []})
+        destination = source / "TraverseFailureChecks.v"
+        shutil.copy2(SOURCE.parent / "TraverseFailureChecks.v", destination)
+        proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                 "-Q", str(run / "support"), "ALCoq",
+                 "-Q", str(source), "P4Spec", str(destination)]
+        checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+        (run / "TraverseFailureChecks.log").write_text(checked.stdout + checked.stderr)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual((run / "TraverseFailureChecks.log").read_text().count(
+            "Closed under the global context"), 3)
 
 
 if __name__ == "__main__":

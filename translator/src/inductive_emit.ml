@@ -439,7 +439,79 @@ let render ctx bodies =
                 add_premise branch_path (value ^ " = " ^ parenthesize pattern) in
               compile index live branch branch_path success miss fail;
               previous := !previous @ [pattern]) branches
-        | Traverse _ -> raise (Unsupported (body.call_name ^ ": Traverse direct rule is not supported"))
+        | Traverse (binding, values, inner) ->
+            let element_type = match Lower_expr.unfold_type ctx values.typ with
+              | List item -> item
+              | _ -> raise (Unsupported (body.call_name ^ ": Traverse expects a list")) in
+            incr traverse_index;
+            let traverse_name = Printf.sprintf "%s_traverse_%d_at_%d"
+                body.call_name !traverse_index index in
+            let captured = List.rev (List.filter (fun ((b : binding), _) ->
+              List.mem (variable b) (free_action inner)) path.environment) in
+            let captured_types = List.map (fun ((b : binding), _) -> type_string b.typ) captured in
+            let captured_values = List.map snd captured in
+            let aliases = List.mapi (fun ordinal ((b : binding), _) ->
+              {name = Printf.sprintf "#traverse-capture-%d-%d-%d"
+                  index !traverse_index ordinal; typ = b.typ}) captured in
+            let formal = List.map (fun b -> b, variable b) aliases in
+            let formal_values = List.map snd formal in
+            let inherited = List.map2 (fun ((source : binding), _) alias ->
+              source, variable alias) captured aliases in
+            let traverse = register (relation traverse_name parameters
+              (captured_types @ [type_string values.typ; "State"]) (List inner.result)) in
+            let start = fresh "traverse_start_" in
+            let base_variables = parameter_binders @
+              List.map (fun ((b : binding), _) -> variable b, type_string b.typ) formal @
+              [start, "State"] in
+            let base_path = {relation = traverse;
+              indices = parameter_values @ formal_values @ ["[]"; start];
+              state = start; variables = base_variables; premises = [];
+              environment = inherited @ formal} in
+            emit base_path "Success []" start;
+            let head = fresh "traverse_head_" in
+            let tail_binding = {name = Printf.sprintf "#traverse-tail-%d-%d" index !traverse_index;
+              typ = values.typ} in
+            let tail = variable tail_binding in
+            let cons_path = {base_path with
+              indices = parameter_values @ formal_values @
+                [head ^ " :: " ^ tail; start];
+              variables = base_variables @ [head, type_string element_type;
+                tail, type_string values.typ]} in
+            let cons_path = add_environment
+              (add_environment cons_path tail_binding tail) binding head in
+            let inner_success path value =
+              let rest = fresh "traverse_rest_" in
+              let final = fresh "traverse_final_" in
+              let rec_call outcome = applied traverse.name
+                (parameter_values @ formal_values @ [tail; path.state; outcome; final]) in
+              let success_path = path |> fun p ->
+                add_variable (add_variable p rest (type_string (List inner.result))) final "State" in
+              emit (add_premise success_path (rec_call ("Success " ^ rest)))
+                ("Success (" ^ value ^ " :: " ^ rest ^ ")") final;
+              let miss_path = add_variable path final "State" in
+              emit (add_premise miss_path (rec_call "Unmatch")) "Unmatch" final;
+              let err = fresh "traverse_error_" in
+              let error_path = add_variable (add_variable path err "ExecutionError") final "State" in
+              emit (add_premise error_path (rec_call ("Error " ^ err)))
+                ("Error " ^ err) final in
+            compile index (tail :: formal_values) inner cons_path inner_success
+              (fun path -> emit path "Unmatch" path.state)
+              (fun path err -> emit path ("Error " ^ parenthesize err) path.state);
+            let result = fresh "traverse_result_" in
+            let final = fresh "traverse_state_" in
+            let call outcome = applied traverse.name
+              (parameter_values @ captured_values @
+                [expression path values; path.state; outcome; final]) in
+            let success_path = add_variable (add_variable path result
+              (type_string (List inner.result))) final "State" in
+            success (add_premise {success_path with state = final}
+              (call ("Success " ^ result))) result;
+            let miss_path = add_variable path final "State" in
+            miss (add_premise {miss_path with state = final} (call "Unmatch"));
+            let err = fresh "traverse_error_" in
+            let error_path = add_variable (add_variable path err "ExecutionError") final "State" in
+            fail (add_premise {error_path with state = final}
+              (call ("Error " ^ err))) err
         | Primitive_action ("(@P4.fresh_typeId Call)", []) when ctx.Context.profile.name = "p4" ->
             let number = "next_fresh " ^ parenthesize path.state in
             let value = "String.append \"FRESH__\" (print_nat " ^ parenthesize number ^ ")" in

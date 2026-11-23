@@ -1,0 +1,13 @@
+syntax typeId = text
+var n : nat
+var ns : nat*
+
+builtin dec $fresh_typeId() : typeId
+
+dec $step(nat) : nat
+def $step(n) = n
+  -- if "FRESH__0" = $fresh_typeId()
+  -- if n = 0
+
+dec $each_step(nat*) : nat*
+def $each_step(n*) = $step(n)*
