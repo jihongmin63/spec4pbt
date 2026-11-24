@@ -65,3 +65,35 @@ def derive_and_sample(property_dir, candidate, fields, *, type_schema=None, coun
     samples = load_samples(json.loads((report.parent / 'samples.json').read_text()),
                            fields, type_schema)
     return GenerationBatch(candidate, tuple(samples), report, seed, size)
+
+
+def sample(args, prepared, evidence, tools):
+    """Verify the selected prefix, derive inputs, and record a reusable batch."""
+    from .context import CONTEXT, candidate_hashes, candidate_snapshot, file_hash
+    prop = Path(args.property).resolve()
+    runs = prop / '.runs'
+    model = prepared.model
+    candidate_inputs, snapshot = candidate_snapshot(prop, args.candidate)
+    batch = derive_and_sample(prop, args.candidate, model.inputs,
+                              type_schema=model.type_schema, count=args.count,
+                              size=args.size, seed=args.seed)
+    derivation = json.loads(batch.report.read_text())
+    if derivation['source_hashes'] != snapshot.report['source_hashes']:
+        raise ValueError('candidate sources changed between snapshot and derivation')
+    if candidate_inputs != candidate_hashes(prop, args.candidate):
+        raise ValueError('candidate changed during sampling')
+    path = evidence / 'samples.json'
+    path.write_text(json.dumps(list(batch.samples), indent=2) + '\n')
+    (evidence / 'batch.json').write_text(json.dumps({
+        'version': 2, 'candidate': args.candidate,
+        'candidate_hashes': candidate_inputs,
+        'semantic_hashes': prepared.context['semantic_hashes'],
+        'tool_hashes': tools, 'context_sha256': file_hash(runs / CONTEXT),
+        'samples_sha256': file_hash(path), 'derivation_report': str(batch.report),
+        'source_snapshot': str(snapshot.directory / 'result.json'),
+        'derivation_source_hashes': derivation['source_hashes'],
+        'seed': args.seed, 'size': args.size}, indent=2) + '\n')
+    return dict(attempts=len(batch.samples),
+                  generated=sum(item is not None for item in batch.samples),
+                  no_generation=sum(item is None for item in batch.samples),
+                  samples_file=str(path), derivation_report=str(batch.report))

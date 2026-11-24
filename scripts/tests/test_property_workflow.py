@@ -10,8 +10,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from scripts.property import cli
-from scripts.property.cli import fixed_hashes, read_inputs
+from scripts.property import legacy as cli
+from scripts.property.legacy import fixed_hashes, read_inputs
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -31,10 +31,10 @@ class FixedOriginalTests(unittest.TestCase):
             shutil.copytree(ROOT / 'specification/property_replay_demo',
                             root / 'specification/property_replay_demo',
                             ignore=shutil.ignore_patterns('candidates'))
-            bridge = root / 'property/bridge'
+            bridge = root / 'scripts/property/native'
             bridge.mkdir(parents=True)
             tool = root / 'scripts/property/tool.py'
-            tool.parent.mkdir(parents=True)
+            tool.parent.mkdir(parents=True, exist_ok=True)
             tool.write_text('# initial tool\n')
             with patch.object(cli, 'ROOT', root), patch.object(cli, 'BRIDGE', bridge):
                 yield root, prop, tool

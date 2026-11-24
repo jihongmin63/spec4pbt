@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from scripts import check
-from scripts.property import unified
+from scripts.property import commands, context, generation
+from scripts.property.prepare import prepare_property
 from scripts.property.bridge import ROOT
 from scripts.property.context import CONTEXT, file_hash
 
@@ -28,7 +29,7 @@ class UnifiedProvenanceTests(unittest.TestCase):
         manifest.write_text('id="demo"\nsources=["Spec.watsup"]\nprofile="fixture"\n')
         (self.prop / 'Property.spectec').write_text(
             'property [identity]:\n  (x : nat)\n  true\n')
-        self.prepared = unified.prepare_property(self.prop, manifest)
+        self.prepared = prepare_property(self.prop, manifest)
         candidate = self.prop / 'candidates/v001/Candidate.v'
         candidate.write_text('Require Import Specification.Helper.\n' + candidate.read_text())
         specification = self.work / 'specification'
@@ -55,7 +56,7 @@ class UnifiedProvenanceTests(unittest.TestCase):
         batch = {'version': 2, 'candidate': 'v001',
                  'semantic_hashes': self.prepared.context['semantic_hashes'], 'tool_hashes': {},
                  'context_sha256': file_hash(runs / CONTEXT),
-                 'candidate_hashes': unified.candidate_hashes(self.prop, 'v001'),
+                 'candidate_hashes': context.candidate_hashes(self.prop, 'v001'),
                  'samples_sha256': file_hash(samples)}
         (directory / 'batch.json').write_text(json.dumps(batch))
         return Namespace(input_json=None, samples_file=samples), SimpleNamespace(
@@ -63,7 +64,7 @@ class UnifiedProvenanceTests(unittest.TestCase):
 
     def test_transitive_import_change_rejected_by_public_load_inputs(self):
         args, prepared = self.batch()
-        self.assertEqual(unified.load_inputs(args, self.prop, prepared, {})[0],
+        self.assertEqual(context.load_inputs(args, self.prop, prepared, {})[0],
                          [{'x': {'type': 'nat', 'value': '7'}}])
         for path in (self.helper, self.leaf):
             with self.subTest(dependency=path.name):
@@ -71,7 +72,7 @@ class UnifiedProvenanceTests(unittest.TestCase):
                 path.write_text(before + '\n(* changed imported source *)\n')
                 try:
                     with self.assertRaisesRegex(ValueError, 'candidate changed'):
-                        unified.load_inputs(args, self.prop, prepared, {})
+                        context.load_inputs(args, self.prop, prepared, {})
                 finally:
                     path.write_text(before)
 
@@ -96,8 +97,8 @@ class UnifiedProvenanceTests(unittest.TestCase):
                 self.leaf.write_text(before)
         args = Namespace(property=self.prop, action='sample', spec=None,
                          candidate='v001', count=2, size=8, seed=7)
-        with patch.object(unified, 'derive_and_sample', derive):
-            path, ok = unified.execute(args)
+        with patch.object(generation, 'derive_and_sample', derive):
+            path, ok = commands.execute(args)
         self.assertFalse(ok)
         report = json.loads(path.read_text())
         self.assertIn('sources changed between snapshot and derivation', report['error'])
@@ -110,16 +111,16 @@ class UnifiedProvenanceTests(unittest.TestCase):
         # The batch fixture is independent of tool freshness; bind it to today's tools.
         batch_path = args.samples_file.parent / 'batch.json'
         batch = json.loads(batch_path.read_text())
-        batch['tool_hashes'] = unified.tool_hashes()
+        batch['tool_hashes'] = context.tool_hashes()
         batch_path.write_text(json.dumps(batch))
-        before, native_debug = self.leaf.read_text(), unified.debug
+        before, native_debug = self.leaf.read_text(), commands.debug
         def mutate_after_debug(*values, **options):
             result = native_debug(*values, **options)
             self.leaf.write_text(before + '\n(* changed during debug *)\n')
             return result
         try:
-            with patch.object(unified, 'debug', mutate_after_debug):
-                path, ok = unified.execute(args)
+            with patch.object(commands, 'debug', mutate_after_debug):
+                path, ok = commands.execute(args)
             self.assertFalse(ok)
             self.assertIn('candidate changed since sampling', json.loads(path.read_text())['error'])
         finally:
@@ -130,7 +131,7 @@ class UnifiedProvenanceTests(unittest.TestCase):
         session.check()
         session.finish()
         self.assertEqual(session.report['status'], 'passed')
-        identities = unified.candidate_hashes(self.prop, 'v001')
+        identities = context.candidate_hashes(self.prop, 'v001')
         for path in (self.helper, self.leaf):
             self.assertEqual(identities[str(path)], file_hash(path))
             snapshot = session.sources / 'specification' / path.name
@@ -148,13 +149,13 @@ class UnifiedProvenanceTests(unittest.TestCase):
         (selected / 'PassEvidence.json').write_text('{"artifacts": []}\n')
         candidate = selected / 'Candidate.v'
         candidate.write_text('Definition candidate := 1.\n')
-        baseline = unified.publication_hashes(publication)
-        candidate_before = unified.publication_hashes(selected)
+        baseline = context.publication_hashes(publication)
+        candidate_before = context.publication_hashes(selected)
         self.assertNotIn(str(candidate), baseline)
         self.assertIn(str(fixed), baseline)
         candidate.write_text('Definition candidate := 2.\n')
-        self.assertEqual(unified.publication_hashes(publication), baseline)
-        self.assertNotEqual(unified.publication_hashes(selected), candidate_before)
+        self.assertEqual(context.publication_hashes(publication), baseline)
+        self.assertNotEqual(context.publication_hashes(selected), candidate_before)
 
 
 if __name__ == '__main__':

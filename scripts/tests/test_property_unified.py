@@ -8,6 +8,10 @@ import sys
 import tempfile
 import unittest
 
+from scripts.property.context import candidate_hashes
+from scripts.property.prepare import prepare_property
+
+
 ROOT = Path(__file__).resolve().parents[2]
 INPUT = {'x': {'type': 'nat', 'value': '7'}}
 SPEC = '''var x : nat
@@ -79,10 +83,10 @@ class UnifiedWorkflowTests(unittest.TestCase):
         cls.temporary.cleanup()
 
     def module(self):
-        self.assertIsNotNone(importlib.util.find_spec('scripts.property.unified'),
+        self.assertIsNotNone(importlib.util.find_spec('scripts.property.commands'),
                              'unified declaration workflow is not implemented')
-        from scripts.property import unified
-        return unified
+        from scripts.property import commands
+        return commands
 
     def invoke(self, action, implementation=None, **options):
         args = Namespace(property=self.prop, action=action, spec=self.manifest,
@@ -95,6 +99,29 @@ class UnifiedWorkflowTests(unittest.TestCase):
         report = json.loads(path.read_text())
         self.assertTrue(ok, report.get('error', report))
         return report
+
+    def test_00_shared_specification_is_read_only_and_same_named_properties_are_independent(self):
+        from scripts.check import Session
+        before = {str(path.relative_to(self.specification)): path.read_bytes()
+                  for path in self.specification.rglob('*') if path.is_file()}
+        publications = []
+        for group, offset in [('first', 4), ('second', 5)]:
+            prop = self.directory / group / 'same_name'
+            prop.mkdir(parents=True)
+            (prop / 'Property.spectec').write_text(
+                DECLARATION.replace('x + 4', f'x + {offset}'))
+            prepared = prepare_property(prop, self.manifest)
+            self.assertTrue(prepared.publication.is_relative_to(prop / '.runs'),
+                            'property translation must be owned by its property')
+            publications.append(prepared.publication)
+            session = Session(prop)
+            session.check()
+            session.finish()
+            self.assertEqual(session.report['status'], 'passed')
+        self.assertNotEqual(*publications)
+        after = {str(path.relative_to(self.specification)): path.read_bytes()
+                 for path in self.specification.rglob('*') if path.is_file()}
+        self.assertEqual(after, before, 'preparation must not write into shared specification')
 
     def test_01_prepare_check_derive_and_same_inputs_two_implementations(self):
         prepared = self.invoke('prepare')
@@ -217,20 +244,20 @@ class UnifiedWorkflowTests(unittest.TestCase):
         helper = prop / 'Helper.watsup'
         helper.write_text('var n : nat\nrelation Helper: nat nat hint(input %0)\n'
                           'rule Helper/main: n n\n')
-        publication = self.specification / 'properties' / prop.name
+        publication = prop / '.runs/publication'
         selected = publication / 'candidates/v001'
         publish_demo(helper, selected, profile='candidate')
-        prepared = self.module().prepare_property(prop, self.manifest)
+        prepared = prepare_property(prop, self.manifest)
         self.assertFalse(any(Path(path).is_relative_to(selected)
                              for path in prepared.context['semantic_hashes']))
-        self.module().candidate_hashes(prop, 'v001')
+        candidate_hashes(prop, 'v001')
         generated = selected / 'Generated/InductiveRelations.v'
         before = generated.read_text()
         generated.write_text(before + '\n(* candidate exploration *)\n')
         try:
-            self.module().prepare_property(prop, self.manifest)
+            prepare_property(prop, self.manifest)
             with self.assertRaisesRegex(ValueError, 'Generated Coq changed'):
-                self.module().candidate_hashes(prop, 'v001')
+                candidate_hashes(prop, 'v001')
         finally:
             generated.write_text(before)
 

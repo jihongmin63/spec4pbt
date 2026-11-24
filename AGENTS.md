@@ -14,7 +14,9 @@ environment/opam-switch.export. Use `bash environment/env.sh coqc` and
 `bash environment/env.sh check` after changing the example or environment.
 Keep installations, generated files, archived local data, and verification logs
 under ignored _opam-testing-theorems/. The AL-to-Coq workflow regenerates ignored final .v sources in
-specification/<spec-name>/; compile only ignored copies. Keep input profiles
+specification/<spec-name>/. New property-specific translations belong in
+properties/<name>/.runs/publication/; existing fixed contexts keep their recorded
+paths. Compile only ignored copies. Keep input profiles
 immutable; generated bindings, publication registries and validation results
 belong under ignored _opam-testing-theorems/. Keep temporary design plans there too. Preserve _opam-popl18/ and previous verification evidence.
 
@@ -45,3 +47,8 @@ Do not author Generator.v.
 Keep property snapshots and evidence in ignored property-local .runs/ directories.
 The two scripts are maintained verification infrastructure; changes require the
 real Coq regressions in scripts/tests. No search configuration JSON is needed.
+
+Keep user-facing workflow documentation concise in the root README. Do not add
+separate design, plan, or verification reports. Property commands and native
+bridge sources belong under scripts/property/; translator semantics stay under
+translator/. Preserve existing evidence when reorganizing code or publications.

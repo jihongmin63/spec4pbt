@@ -9,7 +9,7 @@ import fcntl
 ROOT = Path(__file__).resolve().parents[2]
 STATE = ROOT / '_opam-testing-theorems'
 PINNED = STATE / 'sources/p4-spectec'
-BRIDGE = ROOT / 'property/bridge'
+BRIDGE = ROOT / 'scripts/property/native'
 
 
 def pinned_source_digest():
