@@ -1,0 +1,11 @@
+var x : text
+var n : nat
+var m : nat
+
+relation External: nat nat hint(input %0)
+rule External/main: n m
+  -- if m = $(n + 1)
+
+relation B: nat nat hint(input %0)
+rule B/main: n m
+  -- if m = $(n + 3)

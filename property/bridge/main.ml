@@ -213,6 +213,9 @@ let check spec =
     `Assoc(("missing_dependencies",`List(List.map(fun x->`String x)missing)) ::
       Yojson.Safe.Util.to_assoc json))definitions in
   emit (`Assoc ["relations", `List (List.map (fun x -> `String x) relations);
+                "call_graph", `List (List.map (fun (node : External_analysis.relation) ->
+                  `Assoc ["name", `String node.name;
+                          "calls", `List (List.map (fun name -> `String name) node.calls)]) graph);
                 "definitions", `List definitions;
                 "type_schema", Type_metadata.schema spec])
 
@@ -335,6 +338,13 @@ let () =
     if Array.length Sys.argv < 3 then failwith "usage: main check|debug spec.watsup";
     let mode = Sys.argv.(1) in
     let path = Sys.argv.(2) in
+    if mode = "declaration" then begin
+      let request = Yojson.Safe.from_string (read_line ()) in
+      let paths = List.map Yojson.Safe.Util.to_string (list_field request "sources") in
+      emit (if field request "operation" = `String "names" then Declaration.names path
+            else Declaration.run paths path);
+      exit 0
+    end;
     match P4spectec.algo [path] with
     | Error error ->
         let report = P4spectec.Error.to_report error in
