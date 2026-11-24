@@ -12,13 +12,11 @@ traversal, excluding directories named `include`. Pass this list unchanged to
 `Pass.algo`; its original `Frontend.Parse.parse_files` preserves explicit file
 order. Verify input hashes before invoking the frontend.
 
-`builtin_inventory` records static source declaration lines, not elaborated AL
-signatures or implemented Coq mappings. `builtin_bindings` now records the
-validated actual AL signatures and concrete implementations for all 47 P4 or
-76 Wasm declarations.
-Dispatch must distinguish declaration kind and profile as well as name.
-`validation` records only checks that have been performed. Source counts and
-source hashes are not evidence of AL conversion or Coq generation.
+Profiles retain the source revisions, ordered input hashes and authored execution
+policy. Derived inventories, validated AL signatures, builtin mappings and stage
+results are recorded in ignored run manifests and `profile-results.json`.
+Generation never rewrites these input profiles. Dispatch must distinguish the
+source declaration kind and profile as well as its name.
 
 To restore the P4 snapshot without using a mutable reference checkout, run
 `git archive --format=tar 2730cfd9e74048bb5439da0f8afcef124079a064` in an
@@ -32,7 +30,8 @@ The complete Wasm import is tracked under `specification/wasm/source/` with its
 original LICENSE, SHA256SUMS, upstream.json, README.md and observations.toml.
 `source/PROVENANCE.md` explains the donor layout and pinned import.
 
-Successful full checks record `publication.managed_files` hashes and the verified
-run in each profile. Only final .v sources are published; compiled artifacts
-and evidence remain under the ignored state. The final acceptance index is
-`_opam-testing-theorems/logs/al-to-coq-final-report.json`.
+Successful full checks record managed output hashes in
+`_opam-testing-theorems/publication/<profile>.json`. This local registry lets the
+driver archive previous managed bytes before replacement and reject unrelated
+files. New checkouts start without a registry and regenerate ignored `Spec.v`
+and `Generated/` sources. Compilation and run evidence remain in ignored state.

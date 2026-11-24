@@ -11,7 +11,7 @@ generator from a selected predicate in the sequence.
 `predicate-reformulation` is an independent branch. It contains the pinned
 Coq/QuickChick environment, an environment example, the AL-to-Coq translator,
 and the tools that check predicate reformulation sequences. P4 and Wasm inputs
-and their generated Coq specifications belong to this branch; the property
+and the tools that regenerate their Coq specifications belong to this branch; the property
 workflow also uses this branch. Do not merge this
 branch wholesale into `P4-spectec-based` or `pbt-experiments`.
 
@@ -21,14 +21,13 @@ branch wholesale into `P4-spectec-based` or `pbt-experiments`.
 environment/
   env.sh                     Setup, execution, and environment checks
   opam-switch.export         Pinned package versions, sources, and checksums
-example.v                    Environment example: derived generator and sampling
 specification/<spec-name>/
-  Spec.v                     Public specification imports, published after check
-  Generated/*.v              Generated types, calls, actions and Eval relations
+  Spec.v                     Generated public imports (ignored; created after check)
+  Generated/*.v              Generated Coq sources (ignored)
 translator/
   src/                       Typed AL lowering and Coq emission
   coq/                       Pure execution and builtin support
-  profiles/                  Pinned inputs and validated builtin mappings
+  profiles/                  Pinned inputs and authored execution policies
   tests/                     Real frontend, Coq and native comparison regressions
 properties/<name>/
   Original.v                 Input type and original predicate (fixed)
@@ -107,7 +106,7 @@ installations and verification evidence are preserved.
 
 ## Environment check
 
-`example.v` derives a generator for even natural numbers. The compatibility
+`environment/checks/Generating2018.v` derives a generator for even natural numbers. The compatibility
 examples in `environment/checks/` exercise generation, decision/enumeration,
 merge, and the artifact's theorem-testing tactic. The tactic example aborts its
 interactive theorem after testing; it does not provide a theorem proof.
@@ -135,7 +134,7 @@ The Wasm source copy and its provenance remain in `specification/wasm/source/`.
 python3 scripts/translate.py --profile p4 --inventory
 python3 scripts/translate.py --profile wasm --inventory
 
-# Generate, compile, then publish the verified source files
+# Regenerate, compile, then publish ignored local source files
 python3 scripts/translate.py --profile p4 --check
 python3 scripts/translate.py --profile wasm --check
 
@@ -146,7 +145,8 @@ python3 translator/tests/check.py --suite all
 Without `--inventory` or `--check`, the driver generates and audits all source
 files but leaves `coq_compiled` and `translation_complete` false. A successful
 `--check` requires every emitted Coq file to compile before it copies `Spec.v`
-and `Generated/*.v` into `specification/<profile>/`. Existing managed files are
+and `Generated/*.v` into `specification/<profile>/`. These outputs are ignored by Git and must be regenerated after a fresh checkout.
+Existing managed files are
 archived byte for byte under the ignored run before a changed copy is written;
 unrelated differing files stop publication. The Wasm `source/` directory and
 other unrelated files are preserved.
@@ -159,8 +159,9 @@ consumed variable metadata. Full generation requires no pending or skipped
 declarations, exactly one body for every callable signature, and validated
 bindings for all 47 P4 or 76 Wasm builtin declarations. The manifest separates
 `code_generation_complete` from `coq_compiled`; only successful compilation
-makes `translation_complete` true. Profile JSON files record the actual
-validated AL signatures and concrete source/runtime binding locations.
+makes `translation_complete` true. Run manifests record the validated AL signatures and concrete source/runtime
+binding locations. Input profiles remain unchanged by generation and checking.
+Managed output hashes are stored in `_opam-testing-theorems/publication/<profile>.json`.
 
 Source values and type parameters use Coq `Set`; source value dictionaries use
 `ValueOps@{Set}`. Function-reference codes preserve the pinned AL's named
@@ -186,9 +187,7 @@ whole-translator semantic equivalence or generator correctness/completeness.
 `Generator.v` and generator proofs are outside this translation task. Predicate
 equivalence proofs in the separate property workflow remain mandatory.
 
-Implementation evidence is indexed in
-`_opam-testing-theorems/logs/al-to-coq-final-report.json`; individual task and
-suite/run reports preserve all intermediate results. Full-profile success is established by the corresponding
+Each ignored suite/run report preserves its commands, results and source hashes. Full-profile success is established by the corresponding
 successful `--check` manifest, rather than by an inventory or helper test.
 
 ## Reformulate, check, run
@@ -426,6 +425,9 @@ counter, and projects unused output slots in the AL execution copy. Debug runs
 the full specification and starts no adapter.
 
 ```sh
+# Regenerate checked legacy demo relations and helper evidence after checkout
+python3 -B -m scripts.property.rocq
+python3 -B -m scripts.property.rocq --candidate-helper
 python3 -B -m scripts.property.cli properties/property_replay_demo prepare --target replay
 python3 -B -m scripts.property.cli properties/property_replay_demo prepare --target debug
 python3 -B -m scripts.property.cli properties/property_replay_demo sample --candidate v001 --count 12 --size 16 --seed 7
@@ -458,7 +460,9 @@ results, not proofs of generator or implementation correctness.
 
 ```sh
 bash environment/env.sh check
-python3 -m unittest discover -s scripts/tests -v
+python3 -B -m scripts.property.rocq
+python3 -B -m scripts.property.rocq --candidate-helper
+python3 -B -m unittest discover -s scripts/tests -v
 ```
 
 Run the environment check after changing the environment or the example. The

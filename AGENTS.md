@@ -3,7 +3,7 @@
 The project tests external implementations against properties of a formal
 specification, using input generators that QuickChick derives from Coq predicates.
 This independent branch contains the pinned Coq/QuickChick environment, an
-environment example, and the tools that check predicate reformulations and derive
+environment checks, and the tools that check predicate reformulations and derive
 generators. Experiments that add specifications, properties, and implementation
 adapters build on this branch. Do not merge it wholesale into P4-spectec-based or
 pbt-experiments.
@@ -13,9 +13,10 @@ environment/opam-switch.export. Use `bash environment/env.sh coqc` and
 `bash environment/env.sh coqtop` to select the local switch. Run
 `bash environment/env.sh check` after changing the example or environment.
 Keep installations, generated files, archived local data, and verification logs
-under ignored _opam-testing-theorems/. The approved AL-to-Coq workflow publishes
-its checked final .v sources in specification/<spec-name>/; compile
-only ignored copies. Preserve _opam-popl18/ and previous verification evidence.
+under ignored _opam-testing-theorems/. The AL-to-Coq workflow regenerates ignored final .v sources in
+specification/<spec-name>/; compile only ignored copies. Keep input profiles
+immutable; generated bindings, publication registries and validation results
+belong under ignored _opam-testing-theorems/. Keep temporary design plans there too. Preserve _opam-popl18/ and previous verification evidence.
 
 Use Coq 8.20.0, OCaml 4.14.2, and the official Testing Theorems artifact fork
 pinned by source-context archive hash in environment/env.sh. Do not substitute
