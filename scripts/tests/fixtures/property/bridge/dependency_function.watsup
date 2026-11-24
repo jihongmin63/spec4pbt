@@ -1,0 +1,61 @@
+var x : nat
+var b : nat
+var y : nat
+var n : int
+
+relation E: nat nat hint(input %0)
+rule E/spec: x b
+  -- if b = 10
+
+dec $read(nat) : nat
+def $read(x) = b
+  -- E: x b
+
+dec $zero(nat) : nat
+def $zero(x) = 0
+
+dec $controlled(nat) : nat
+def $controlled(x) = 0
+  -- E: x b
+  -- if b = 20
+
+dec $recursive(int, nat) : nat
+def $recursive(n, x) = $($recursive($(n - 1), x) + 0)
+  -- if $(n > 0)
+def $recursive(n, x) = x
+  -- if n = 0
+
+dec $independent(nat, nat) : nat
+def $independent(b, x) = x
+  -- if x = 8
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x y
+  -- if y = $($read(x) + 1)
+  -- if y = 11
+
+relation PreIgnored: nat nat hint(input %0)
+rule PreIgnored/main: x y
+  -- E: x b
+  -- if y = $($zero(b) + 1)
+  -- if y = 11
+
+relation PreControl: nat nat hint(input %0)
+rule PreControl/main: x y
+  -- if y = $($controlled(x) + 1)
+  -- if y = 11
+
+relation PreRecursive: nat nat hint(input %0)
+rule PreRecursive/main: x y
+  -- E: x b
+  -- if y = $($recursive(2, b) + 1)
+  -- if y = 11
+
+relation PreInnerIndependent: nat nat hint(input %0)
+rule PreInnerIndependent/main: x y
+  -- E: x b
+  -- if y = $($independent(b, x) + 1)
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x y
+  -- if y = 11

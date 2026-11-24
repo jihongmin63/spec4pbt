@@ -1,0 +1,31 @@
+var x : nat
+var n : nat
+var b : nat
+var u : nat
+var z : nat
+
+relation E: nat nat hint(input %0)
+rule E/spec: x b
+  -- if b = 1
+
+relation A: nat nat hint(input %0)
+relation B: nat nat hint(input %0)
+rule A/recursive: n z
+  -- if n = 2
+  -- E: n b
+  -- B: b u
+  -- if z = b
+rule A/base: n z
+  -- if z = n
+
+rule B/main: n z
+  -- A: n z
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x z
+  -- A: x z
+  -- if z = 1
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x z
+  -- if z = 1

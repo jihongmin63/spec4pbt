@@ -1,0 +1,34 @@
+syntax typeId = text
+var x : nat
+var b : nat
+var t : typeId
+
+builtin dec $fresh_typeId() : typeId
+
+relation E: nat nat hint(input %0)
+rule E/spec: x b
+  -- if b = 10
+
+dec $read(nat) : nat
+def $read(x) = b
+  -- E: x b
+
+dec $first(typeId, nat) : typeId
+def $first(t, x) = t
+
+dec $second(nat, typeId) : typeId
+def $second(x, t) = t
+
+relation Pre: nat typeId hint(input %0)
+rule Pre/main: x t
+  -- if t = $first($fresh_typeId(), $read(x))
+  -- if t = "FRESH__1"
+
+relation PreLater: nat typeId hint(input %0)
+rule PreLater/main: x t
+  -- if t = $second($read(x), $fresh_typeId())
+  -- if t = "FRESH__0"
+
+relation Goal: nat typeId hint(input %0 %1)
+rule Goal/main: x t
+  -- if x = x

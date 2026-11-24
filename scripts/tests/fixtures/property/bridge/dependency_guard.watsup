@@ -1,0 +1,33 @@
+var x : nat
+var b : nat
+
+relation E: nat nat hint(input %0)
+rule E/spec: x b
+  -- if b = 7
+
+relation Guard: nat nat hint(input %0 %1)
+rule Guard/main: b x
+  -- if b = 7
+
+relation Wrapper: nat nat hint(input %0 %1)
+rule Wrapper/main: b x
+  -- Guard: b x
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x b
+  -- E: x b
+  -- Wrapper: b x
+  -- if x = 8
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x b
+  -- if x = x
+
+relation Independent: nat nat hint(input %0 %1)
+rule Independent/main: b x
+  -- if x = 8
+
+relation PreIndependent: nat nat hint(input %0)
+rule PreIndependent/main: x b
+  -- E: x b
+  -- Independent: $(b + x) x

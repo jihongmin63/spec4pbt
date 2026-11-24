@@ -35,7 +35,6 @@ def failed_premise(trace):
                           if stack[i]['marker']['relation'] == event['relation'] and
                           stack[i]['marker']['kind'].startswith('path:')), None)
             recursive = prior is not None and any(
-                frame['marker']['relation'] == event['relation'] and
                 frame['marker']['kind'] == event['relation']
                 for frame in stack[prior + 1:])
             if prior is not None and not recursive:
@@ -46,11 +45,20 @@ def failed_premise(trace):
                            not frame['marker']['kind'].startswith('path:')), None)
             if caller is not None:
                 parent = caller['scope']
-                inherited = set(parent['control'])
-                for name in caller['marker']['inputs']:
-                    inherited.update(parent['bindings'].get(name, ()))
-                for name in event['inputs']:
-                    scope['bindings'][name] = set(inherited)
+                scope['control'].update(parent['control'])
+                actual_slots = caller['marker'].get('input_slots')
+                formal_slots = event.get('input_slots')
+                if actual_slots is None or formal_slots is None:
+                    # Older evidence flattened argument boundaries. Its only
+                    # available conservative mapping is the former union.
+                    actual_slots = [caller['marker']['inputs']]
+                    formal_slots = [event['inputs']]
+                for actual, formal in zip(actual_slots, formal_slots):
+                    inherited = set(parent['control'])
+                    for name in actual:
+                        inherited.update(parent['bindings'].get(name, ()))
+                    for name in formal:
+                        scope['bindings'][name] = set(inherited)
             stack.append({'key': key, 'marker': event, 'external': set(),
                           'scope': scope})
             continue
@@ -64,6 +72,7 @@ def failed_premise(trace):
                                not frame['marker']['kind'].startswith('path:')), None)
                 if caller is not None:
                     caller['child_returns'] = completed['scope']['returns']
+                    caller['child_control'] = set(completed['scope']['control'])
                 del stack[index:]
             continue
         if event['phase'] == 'return':
@@ -85,6 +94,9 @@ def failed_premise(trace):
         del stack[index:]
         relation = event['relation']
         scope = frame['scope']
+        # A successful helper's conditions select the continuation even when
+        # the helper has no return slots. Failed alternatives never reach here.
+        scope['control'].update(frame.get('child_control', ()))
         sources = set(scope['control'])
         direct_external = {seq for seq in frame['external']
                            if external_relations[seq] == event['kind']}
@@ -109,15 +121,17 @@ def failed_premise(trace):
         return {'reason': 'unexpected_internal_premise_failure',
                 'external_events': [], 'dependencies': edges}
     sources = set()
-    for frame in stack:
-        marker = frame['marker']
-        scope = frame['scope']
-        sources.update(seq for seq in frame['external']
-                       if external_relations[seq] == marker['kind'])
-        sources.update(scope['control'])
-        for name in marker['inputs']:
-            sources.update(scope['bindings'].get(name, ()))
-    failed = stack[-1]['marker']
+    # Each entered helper receives its caller's control and per-argument data
+    # dependencies. Classifying the actual failing premise avoids blaming an
+    # unrelated argument that merely appears in an enclosing helper call.
+    frame = stack[-1]
+    failed = frame['marker']
+    scope = frame['scope']
+    sources.update(seq for seq in frame['external']
+                   if external_relations[seq] == failed['kind'])
+    sources.update(scope['control'])
+    for name in failed['inputs']:
+        sources.update(scope['bindings'].get(name, ()))
     return {'relation': failed['relation'], 'premise': failed['kind'],
             'source': failed['source'], 'inputs': failed['inputs'],
             'external_events': sorted(sources), 'dependencies': edges,
