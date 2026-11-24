@@ -1,0 +1,6 @@
+property [seven_result]:
+  (x : nat)
+  c = $(x + 4)
+  -- if x = 7
+  -- External: x b u
+  -- B: b c

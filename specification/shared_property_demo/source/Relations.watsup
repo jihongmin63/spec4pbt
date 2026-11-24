@@ -1,0 +1,13 @@
+var x : nat
+var b : nat
+var c : nat
+var u : nat
+
+relation External: nat nat nat hint(input %0)
+rule External/main: x b u
+  -- if b = 10
+  -- if u = 99
+
+relation B: nat nat hint(input %0)
+rule B/main: b c
+  -- if c = $(b + 1)

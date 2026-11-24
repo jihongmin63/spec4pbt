@@ -264,7 +264,131 @@ intended for trusted local developments, not as a sandbox for malicious Coq
 code, and they do not verify the extraction runtime that executes the
 generator.
 
-## Binding an implementation
+## Authoring a property
+
+Write the inputs and goal on separate lines below the property header:
+
+```spectec
+property [external_result]:
+  (x : nat)
+  c = $(x + 4)
+  -- External: x b u
+  -- B: b c
+```
+
+The explicit binders define generated Input fields. The ordered conditions bind
+local witnesses, here `b`, `u`, and `c`. The goal may be a boolean expression or
+a relation judgment. Native SpecTec parsing, type checking, and binding analysis
+check the conditions and goal. Only goal-needed witnesses cross the internal
+Pre/Goal execution boundary; the example can observe `b` without observing `u`.
+Goal is excluded from the generation predicate.
+
+Shared setup belongs to the specification and implementation:
+
+```text
+specification/shared_property_demo/Specification.toml
+specification/shared_property_demo/source/Relations.watsup
+adapters/shared_demo_actual/Adapter.toml
+adapters/shared_demo_actual/external.py
+properties/unified_property_demo/Property.spectec
+```
+
+`Specification.toml` declares an `id`, ordered `sources`, and translation
+`profile` (`fixture`, `p4`, or `wasm`); `namespace` may explicitly name the
+profile's namespace. Paths are relative to the manifest. `Adapter.toml`
+references that specification ID and supplies reusable `[[external]]` entries:
+
+```toml
+specification = "shared_property_demo"
+
+[[external]]
+relation = "External"
+adapter = "external"
+command = ["python3", "external.py"]
+conversion = "json-v1"
+observed_outputs = [0]
+```
+
+Commands are argv arrays. Local script paths are resolved relative to the
+adapter manifest; explicit `dependencies` record additional implementation
+files. Observed positions index relation outputs, starting at zero. Each
+property's observation requirements are checked before execution. An unused
+catalog mapping does not activate an external replacement boundary.
+
+Prepare the property, check its equivalence chain, and generate inputs:
+
+```sh
+python3 -B -m scripts.property.cli properties/unified_property_demo prepare --spec specification/shared_property_demo/Specification.toml
+python3 scripts/check.py properties/unified_property_demo
+python3 scripts/run.py properties/unified_property_demo --candidate v001 --derive-only
+python3 -B -m scripts.property.cli properties/unified_property_demo sample --candidate v001 --count 12 --size 16 --seed 7
+```
+
+The first prepare publishes checked relations under the selected specification's
+`properties/<directory-name>/`, creates `Original.v` and an initial equivalent
+`candidates/v001`, and saves an automatic `.runs/property-context.json` connection.
+Authors do not supply a property TOML or Generator.v. Later commands validate
+the fixed property, specification, publication, and Original. `check.py` and
+`run.py` use the same validated publication connection.
+
+Replay a saved batch against either implementation, or debug it using the
+specification alone (replace `<id>` with the sample directory printed in the
+sample report):
+
+```sh
+python3 -B -m scripts.property.cli properties/unified_property_demo replay --implementation adapters/shared_demo_actual/Adapter.toml --samples-file properties/unified_property_demo/.runs/sample-<id>/samples.json
+python3 -B -m scripts.property.cli properties/unified_property_demo replay --implementation adapters/shared_demo_reference/Adapter.toml --samples-file properties/unified_property_demo/.runs/sample-<id>/samples.json
+python3 -B -m scripts.property.cli properties/unified_property_demo debug --samples-file properties/unified_property_demo/.runs/sample-<id>/samples.json
+```
+
+Generation and debug need no adapter. Samples record fixed semantic identities,
+the selected candidate's proof/publication dependencies, tools, and generation
+parameters. Replay separately records implementation identities. Changing an
+adapter permits another replay of the same semantic samples. A changed
+specification, property, or selected candidate publication invalidates them.
+
+For `x=7`, the actual adapter returns `b=20`, so `c=21` and the goal fails.
+The reference adapter and debug produce `b=10`, `c=11`, and a passing goal.
+The unused output `u` is never requested from either adapter. Source locations
+and variable labels in diagnostics/traces refer to the authored files. The
+top-level report status describes command completion; `status_counts` and each
+entry in `results.json` describe property results.
+
+`properties/unified_property_guard/` reuses the same setup and adds
+`-- if x = 7`. Non-relation conditions become temporary AL relations, then Coq
+inductive relations through the existing translator. Each successful premise is
+a separate constructor arrow; intermediate values and states stay witnesses.
+The ordinary demo permits every natural input and its goal is only true at 7;
+the guarded demo restricts generation to 7. Generation may return `no_generation`
+for an attempt; every generated input must still satisfy the predicate.
+
+For example, the ordinary demo's generated `Original.v` has this constructor
+structure (only generated variable names are shortened here):
+
+```coq
+Inductive predicate : Input -> Prop :=
+| precondition : forall (x b u c : nat) (s1 s2 : State),
+    g_fixture_rel_External_execute x {| next_fresh := 0 |}
+      (Success (b, u)) s1 ->
+    g_fixture_rel_B_execute b s1 (Success c) s2 ->
+    predicate (mkInput x).
+```
+
+Both premises must hold to construct `predicate (mkInput x)`. They appear as
+separate `->` arguments. The goal `c = x + 4` is checked during replay/debug.
+Adding `-- if x = 7` inserts another constructor argument for the translated
+temporary relation, before `External`, and threads its resulting state onward.
+The encoded sample contains just `{"x":{"type":"nat","value":"7"}}`;
+`b`, `u`, `c`, and states are predicate witnesses.
+
+The current declaration supports one property per file and one line of typed
+input binders. Iteration, negation, otherwise, and higher-order property forms
+retain the existing explicit unsupported diagnostics. `()` supports zero-arity
+properties, but the pinned grammar cannot represent zero explicit inputs with
+witness outputs required by the goal. Predicate equivalence is checked without
+additional axioms; generator soundness/completeness remain `not_checked`.
+
+## Legacy Pre/Goal example
 
 The demo property is in `properties/property_replay_demo/`. Its fixed SpecTec
 source is published as checked Coq relations in

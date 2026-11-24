@@ -1,0 +1,8 @@
+specification = "shared_property_demo"
+
+[[external]]
+relation = "External"
+adapter = "external"
+command = ["python3", "external.py"]
+conversion = "json-v1"
+observed_outputs = [0]

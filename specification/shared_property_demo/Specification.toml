@@ -1,0 +1,4 @@
+id = "shared_property_demo"
+sources = ["source/Relations.watsup"]
+profile = "fixture"
+namespace = "FixtureSpec"

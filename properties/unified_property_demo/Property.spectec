@@ -1,0 +1,5 @@
+property [external_result]:
+  (x : nat)
+  c = $(x + 4)
+  -- External: x b u
+  -- B: b c
