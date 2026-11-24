@@ -1,0 +1,22 @@
+var x : nat
+var y : nat
+var z : nat
+
+relation E: nat nat hint(input %0)
+rule E/spec: x y
+  -- if y = x
+
+dec $inner(nat) : nat
+def $inner(x) = y
+  -- E: x y
+
+dec $outer(nat) : nat
+def $outer(x) = $inner(x)
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x z
+  -- if z = $outer(x)
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x z
+  -- if z = x

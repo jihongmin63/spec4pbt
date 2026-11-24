@@ -5,7 +5,9 @@ var z : nat
 var t : text
 
 builtin dec $fresh_typeId() : typeId
-extern relation E1: nat nat hint(input %0)
+relation E1: nat nat hint(input %0)
+rule E1/spec: x y
+  -- if y = 7
 
 relation H: nat nat hint(input %0)
 rule H/main: x z

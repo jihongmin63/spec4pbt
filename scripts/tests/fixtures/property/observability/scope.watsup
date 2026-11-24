@@ -1,0 +1,38 @@
+var x : nat
+var y : nat
+
+dec $identity(nat) : nat
+def $identity(x) = x
+dec $apply<X>(def $f(X) : X, X) : X
+def $apply<X>(def $f, X) = $f(X)
+
+relation Test: nat nat hint(input %0 %1)
+rule Test/main: x y
+  -- if x = y
+
+relation Negation: nat nat hint(input %0)
+rule Negation/main: x y
+  -- if y = x
+  -- Test :/ x y
+
+relation Iteration: nat* nat hint(input %0)
+rule Iteration/main: x* 0
+  -- (if x = 0)*
+
+relation HigherOrder: nat nat hint(input %0)
+rule HigherOrder/main: x y
+  -- if y = $apply<nat>(def $identity, x)
+
+relation Fallback: nat nat hint(input %0 %1)
+rule Fallback/one: x y
+  -- if x = y
+rule Fallback/fallback: x y
+  -- otherwise
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x y
+  -- Negation: x y
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x y
+  -- Fallback: x y

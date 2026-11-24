@@ -1,0 +1,94 @@
+syntax typeId = text
+var t : typeId
+var x : nat
+var y : nat
+var u : nat
+var z : nat
+builtin dec $fresh_typeId() : typeId
+
+relation I: nat nat hint(input %0)
+rule I/main: x y
+  -- if y = x
+
+relation E: nat nat hint(input %0)
+rule E/main: x y
+  -- I: x y
+
+relation H: nat nat hint(input %0)
+rule H/main: x y
+  -- E: x y
+
+relation Mixed: nat nat hint(input %0)
+rule Mixed/main: x z
+  -- E: x y
+  -- I: y z
+
+relation Outer: nat nat hint(input %0)
+rule Outer/main: x z
+  -- Mixed: x z
+
+relation PureA: nat nat hint(input %0)
+relation PureB: nat nat hint(input %0)
+rule PureA/base: x y
+  -- if y = x
+rule PureA/recur: x y
+  -- PureB: x y
+rule PureB/recur: x y
+  -- PureA: x y
+
+relation ExternalA: nat nat hint(input %0)
+relation ExternalB: nat nat hint(input %0)
+rule ExternalA/base: x y
+  -- E: x y
+rule ExternalA/recur: x y
+  -- ExternalB: x u
+  -- if y = x
+rule ExternalB/recur: x y
+  -- ExternalA: x u
+  -- if y = x
+
+relation CycleA: nat nat hint(input %0)
+relation CycleB: nat nat hint(input %0)
+rule CycleA/recur: x y
+  -- E: x u
+  -- CycleB: u y
+rule CycleB/recur: x y
+  -- CycleA: x y
+
+relation FreshHelper: nat nat hint(input %0)
+rule FreshHelper/main: x y
+  -- E: x y
+  -- if t = $fresh_typeId()
+
+relation PureFresh: nat nat hint(input %0)
+rule PureFresh/main: x y
+  -- if t = $fresh_typeId()
+  -- if y = $(x + 1)
+
+relation PreBoundary: nat nat hint(input %0)
+rule PreBoundary/main: x y
+  -- H: x y
+
+relation PreMixed: nat nat hint(input %0)
+rule PreMixed/main: x y
+  -- Mixed: x y
+
+relation PreOuter: nat nat hint(input %0)
+rule PreOuter/main: x y
+  -- Outer: x y
+
+relation PrePure: nat nat hint(input %0)
+rule PrePure/main: x y
+  -- PureA: x y
+
+relation PreExternal: nat nat hint(input %0)
+rule PreExternal/main: x y
+  -- ExternalA: x y
+
+relation PreCycle: nat nat hint(input %0)
+rule PreCycle/main: x y
+  -- CycleA: x y
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x y
+  -- if y = x

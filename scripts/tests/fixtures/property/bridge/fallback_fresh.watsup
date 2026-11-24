@@ -4,7 +4,9 @@ var y : nat
 var t : text
 
 builtin dec $fresh_typeId() : typeId
-extern relation E1: nat nat hint(input %0)
+relation E1: nat nat hint(input %0)
+rule E1/spec: x y
+  -- if y = 7
 
 relation Choice: nat text hint(input %0)
 rule Choice/first: x t

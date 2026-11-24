@@ -1,0 +1,25 @@
+syntax typeId = text
+var n : nat
+var m : nat
+var y : nat
+var a : text
+var b : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation Helper: nat nat hint(input %0)
+rule Helper/main: n $(n + 1)
+
+dec $nested(nat) : nat
+def $nested(n) = $(m + 1)
+  -- Helper: n m
+
+dec $outer(nat) : nat
+def $outer(n) = $nested(n)
+
+relation Pre: nat nat text text hint(input %0)
+rule Pre/main: n $outer(n) $fresh_typeId() $fresh_typeId()
+
+relation Goal: nat nat text text text hint(input %0 %1 %2 %3)
+rule Goal/main: n y a b $fresh_typeId()
+  -- if y = $(n + 2)

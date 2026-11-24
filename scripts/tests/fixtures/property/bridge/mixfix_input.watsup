@@ -1,0 +1,35 @@
+syntax token
+syntax token =
+  | BOX nat END
+  | BOX nat LEFT
+  | BOX nat RIGHT
+  | BOX nat
+  | BOX nat nat
+  | BAG `[ nat `] ';'
+  | PLAIN nat
+  | WRAP token
+  | OTHER
+
+var t : token
+var n : nat
+var m : nat
+
+relation E: token nat hint(input %0)
+rule E/end: (BOX n END) 10
+rule E/left: (BOX n LEFT) 11
+rule E/right: (BOX n RIGHT) 12
+rule E/box: (BOX n) 13
+rule E/pair: (BOX n m) 14
+rule E/bag: (BAG `[ n `] ';') 15
+rule E/plain: (PLAIN n) 16
+rule E/wrap: (WRAP t) n
+  -- E: t n
+rule E/other: OTHER 99
+
+relation Pre: token nat hint(input %0)
+rule Pre/main: t n
+  -- E: t n
+
+relation Goal: token nat hint(input %0 %1)
+rule Goal/main: t n
+  -- E: t n

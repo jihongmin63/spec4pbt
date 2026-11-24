@@ -11,13 +11,17 @@ module Interface_ = struct
   let call_builtin add id targs values =
     if id.it = Instrumentation.marker_name then
       (match values with
-       | [phase; relation; kind; source; inputs; outputs] ->
+       | [phase; relation; kind; source; inputs; outputs; input_slots] ->
            Instrumentation.record_marker (Value.Get.text phase)
              (Value.Get.text relation) (Value.Get.text kind)
              (Value.Get.text source) (Value.Get.text inputs)
-             (Value.Get.text outputs);
+             (Value.Get.text outputs) (Value.Get.text input_slots);
            Value.Make.bool true
        | _ -> failwith "invalid trace marker arguments")
+    else if String.starts_with ~prefix:Instrumentation.identity_prefix id.it then
+      (match values with
+       | [_; value; _] -> value
+       | _ -> failwith "invalid trace identity arguments")
     else if String.starts_with ~prefix:"property_observe_" id.it then
       (match values with
        | [name; value] ->
@@ -46,8 +50,12 @@ let rec value_of_json json =
   | name, `Null when field json "constructor" <> `Null ->
       let constructor = string_field json "constructor" in
       let args = List.map value_of_json (list_field json "args") in
-      let pattern = constructor ^ String.concat "" (List.map (fun _ -> " _") args) in
-      let mixop = Value.Mixops.of_string pattern in
+      let mixop = match Type_metadata.mixop_of_constructor name constructor with
+        | Some mixop -> mixop
+        | None ->
+            (* The standalone codec probe also accepts undeclared prefix types. *)
+            let pattern = constructor ^ String.concat "" (List.map (fun _ -> " _") args) in
+            Value.Mixops.of_string pattern in
       let typ = Runtime.Type.Typ.Make.var (name $ no_region) [] in
       Value.Make.case typ (Domain.Mixfix.fill mixop args)
   | _ -> failwith ("invalid typed value: " ^ Yojson.Safe.to_string json)
@@ -60,11 +68,8 @@ let rec json_of_value value =
   | TextV s -> `Assoc ["type", `String "text"; "value", `String s]
   | CaseV valuecase ->
       let mixop, args = Domain.Mixfix.split valuecase in
-      let printed = Lang.Al.Print.string_of_mixop mixop in
-      let token = List.hd (String.split_on_char ' ' printed) in
-      let constructor = if String.starts_with ~prefix:"`" token
-        then String.sub token 1 (String.length token - 1) else token in
-      let typ = Lang.Al.Print.string_of_typ (value.note.typ $ value.at) in
+      let typ = Type_metadata.wire_type (value.note.typ $ value.at) in
+      let constructor = Type_metadata.constructor_of_mixop typ mixop in
       `Assoc ["type", `String typ;
               "constructor", `String constructor;
               "args", `List (List.map json_of_value args)]
@@ -128,11 +133,50 @@ let relation_name = function
   | { it = ExternRelD (id, _, _, _); _ } -> Some id.it
   | _ -> None
 
+let unsupported_constructs def =
+  let module C = Lang.Al.Walk.Collect in
+  let item kind at = `Assoc ["kind", `String kind;
+                             "source", `String (string_of_region at)] in
+  let collector = { (C.make_base ~default:[] ~compose:( @ )) with
+    collect_exp = (fun collector exp ->
+      let nested = C.default_collect_exp collector exp in
+      match exp.it with
+      | IterE _ -> item "iteration" exp.at :: nested
+      | _ -> nested);
+    collect_arg = (fun collector arg ->
+      match arg.it with
+      | DefA _ -> [item "higher_order" arg.at]
+      | _ -> C.default_collect_arg collector arg);
+    collect_prem = (fun collector prem ->
+      let nested = C.default_collect_prem collector prem in
+      match prem.it with
+      | IfNotHoldPr _ -> item "negation" prem.at :: nested
+      | IterPr _ -> item "iteration" prem.at :: nested
+      | _ -> nested) } in
+  let path path =
+    let _, prems, outputs = path in
+    C.collect_prems collector prems @ C.collect_exps collector outputs in
+  let group group =
+    let _, (_, inputs, match_prems), paths = group.it in
+    C.collect_exps collector inputs @ C.collect_prems collector match_prems @
+    List.concat_map path paths in
+  match def.it with
+  | RelD (_, _, _, groups, elsegroup, _) ->
+      let fallback = match elsegroup with
+        | None -> []
+        | Some elsegroup ->
+            let _, (_, inputs, match_prems), fallback_path = elsegroup.it in
+            item "otherwise" elsegroup.at ::
+            (C.collect_exps collector inputs @ C.collect_prems collector match_prems @
+             path fallback_path) in
+      List.concat_map group groups @ fallback
+  | _ -> []
+
 let relation_metadata def =
   let details id nottyp inputs rule_count rule_inputs defined =
     let typs = Domain.Mixfix.args nottyp.it in
     let input_typs, output_typs = Hints.Input.split inputs typs in
-    let typ_json typ = `String (Lang.Al.Print.string_of_typ typ) in
+    let typ_json typ = `String (Type_metadata.wire_type typ) in
     let name_json exp = match exp.it with
       | VarE id -> `String id.it
       | _ -> `Null in
@@ -142,7 +186,8 @@ let relation_metadata def =
             "input_types", `List (List.map typ_json input_typs);
             "output_types", `List (List.map typ_json output_typs);
             "rule_count", `Int rule_count;
-            "rule_inputs", `List (List.map name_json rule_inputs)]
+            "rule_inputs", `List (List.map name_json rule_inputs);
+            "unsupported_constructs", `List (unsupported_constructs def)]
   in
   match def.it with
   | ExternRelD (id, nottyp, inputs, _) ->
@@ -160,8 +205,16 @@ let relation_metadata def =
 let check spec =
   let relations = List.filter_map relation_name spec in
   let definitions = List.filter_map relation_metadata spec in
+  let graph = External_analysis.relations spec in
+  let definitions = List.map(fun json ->
+    let name = string_field json "name" in
+    let missing = External_analysis.reachable graph name |> List.filter(fun name ->
+      not (External_analysis.find graph name).External_analysis.defined) in
+    `Assoc(("missing_dependencies",`List(List.map(fun x->`String x)missing)) ::
+      Yojson.Safe.Util.to_assoc json))definitions in
   emit (`Assoc ["relations", `List (List.map (fun x -> `String x) relations);
-                "definitions", `List definitions])
+                "definitions", `List definitions;
+                "type_schema", Type_metadata.schema spec])
 
 let codec () =
   let input = Yojson.Safe.from_string (read_line ()) |> Yojson.Safe.Util.to_list in
@@ -179,7 +232,9 @@ let al_md5 spec =
 let execute spec request =
   Instrumentation.reset ();
   external_events := [];
-  let spec = Instrumentation.instrument spec in
+  let spec = match field request "instrument" with
+    | `Bool false -> spec
+    | _ -> Instrumentation.instrument spec in
   let al_hash = Digest.to_hex (Digest.string (Lang.Al.Print.string_of_spec spec)) in
   let pre = string_field request "pre" in
   let goal = string_field request "goal" in
@@ -214,6 +269,8 @@ let execute spec request =
                           "kind", `String event.kind;
                           "source", `String event.source;
                           "inputs", `List (List.map (fun x -> `String x) event.inputs);
+                          "input_slots", `List (List.map (fun slot ->
+                            `List (List.map (fun x -> `String x) slot)) event.input_slots);
                           "outputs", `List (List.map (fun x -> `String x) event.outputs)])
                   (Instrumentation.marker_snapshot ()));
                 "external_calls", `List (List.rev !external_events);
@@ -285,10 +342,21 @@ let () =
           ~ansi:Diagnostic.Ansi.plain report);
         exit 2
     | Ok spec ->
+        Type_metadata.active := spec;
         (match mode with
         | "check" -> check spec
         | "codec" -> codec ()
-        | "analyze" -> analyze spec
+        | "analyze" ->
+            (try analyze spec with Failure message as error ->
+              (match Observability.failure_evidence () with
+               | None -> ()
+               | Some evidence ->
+                   let fields = Yojson.Safe.Util.to_assoc evidence in
+                   emit (`Assoc ["status", `String "compile_error";
+                                 "error", `String message;
+                                 "analysis", `Assoc (
+                                   ("spec_al_md5", `String (al_md5 spec)) :: fields)]));
+              raise error)
         | "debug-check" -> debug_check spec
         | "dump" -> print_string (Lang.Al.Print.string_of_spec spec)
         | "debug" -> debug spec

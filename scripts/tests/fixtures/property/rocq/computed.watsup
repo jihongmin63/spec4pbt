@@ -1,0 +1,8 @@
+var x : nat
+var y : nat
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x $(x + 1)
+  -- if x = 7
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x y
+  -- if y = 0

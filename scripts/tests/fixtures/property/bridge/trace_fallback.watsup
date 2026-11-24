@@ -1,0 +1,21 @@
+syntax typeId = text
+var n : nat
+var a : text
+var b : text
+
+builtin dec $fresh_typeId() : typeId
+
+dec $recover() : text
+def $recover() = a
+  -- if a = $fresh_typeId()
+  -- if false
+def $recover() = $fresh_typeId()
+  -- otherwise
+
+relation Pre: nat text text hint(input %0)
+rule Pre/main: n $recover() $fresh_typeId()
+
+relation Goal: nat text text hint(input %0 %1 %2)
+rule Goal/main: n a b
+  -- if a = "FRESH__1"
+  -- if b = "FRESH__2"

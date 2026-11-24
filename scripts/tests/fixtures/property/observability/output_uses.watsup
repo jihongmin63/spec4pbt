@@ -1,0 +1,29 @@
+syntax color = RED | BLUE
+var c : color
+var x : nat
+var y : nat
+var u : nat
+var z : nat
+
+relation Pair: nat nat nat hint(input %0)
+rule Pair/main: x y u
+  -- if y = x
+  -- if u = x
+
+relation Tagged: nat color hint(input %0)
+rule Tagged/main: x c
+  -- if c = RED
+
+relation I: nat nat hint(input %0)
+rule I/main: x y
+  -- if y = x
+
+relation Pre: nat nat hint(input %0)
+rule Pre/main: x z
+  -- Pair: x y u
+  -- Tagged: x c
+  -- if z = y
+
+relation Goal: nat nat hint(input %0 %1)
+rule Goal/main: x z
+  -- if z = x

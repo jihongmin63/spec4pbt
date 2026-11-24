@@ -1,0 +1,15 @@
+syntax token = | BOX nat | OTHER
+var t : token
+var n : nat
+var y : nat
+
+relation OnlyBox: token nat hint(input %0)
+rule OnlyBox/box: (BOX n) $(n + 1)
+
+relation Pre: token nat hint(input %0)
+rule Pre/main: t y
+  -- OnlyBox: t y
+
+relation Goal: token nat hint(input %0 %1)
+rule Goal/main: t y
+  -- if true

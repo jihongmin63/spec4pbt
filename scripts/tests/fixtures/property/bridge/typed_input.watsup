@@ -1,0 +1,20 @@
+syntax tree
+syntax tree = | EMPTY | LEAF nat text | NODE tree tree
+
+var t : tree
+var u : tree
+var n : nat
+var i : int
+var s : text
+var b : bool
+
+relation E: tree tree hint(input %0)
+rule E/identity: t t
+
+relation Pre: tree nat int text bool tree hint(input %0 %1 %2 %3 %4)
+rule Pre/main: t n i s b u
+  -- E: t u
+
+relation Goal: tree nat int text bool tree hint(input %0 %1 %2 %3 %4 %5)
+rule Goal/main: t n i s b u
+  -- if u = t

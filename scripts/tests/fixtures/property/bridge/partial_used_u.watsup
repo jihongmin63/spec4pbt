@@ -3,8 +3,13 @@ var y : nat
 var u : nat
 var z : nat
 
-extern relation E1: nat nat nat hint(input %0)
-extern relation E2: nat nat hint(input %0)
+relation E1: nat nat nat hint(input %0)
+rule E1/spec: x y u
+  -- if y = 7
+  -- if u = 99
+relation E2: nat nat hint(input %0)
+rule E2/spec: y z
+  -- if z = $(y + 1)
 
 relation Pre: nat nat hint(input %0)
 rule Pre/main: x z

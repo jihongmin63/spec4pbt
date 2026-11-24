@@ -1,0 +1,23 @@
+syntax typeId = text
+var x : nat
+var y : nat
+var z : nat
+var a : text
+var b : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation Step: nat nat hint(input %0)
+rule Step/main: x y
+  -- if y = $(x + 1)
+
+relation Pre: nat nat text text hint(input %0)
+rule Pre/main: x z a b
+  -- Step: x y
+  -- if a = $fresh_typeId()
+  -- Step: $(y + 1) z
+  -- if b = $fresh_typeId()
+
+relation Goal: nat nat text text hint(input %0 %1 %2 %3)
+rule Goal/main: x z a b
+  -- if z = 999

@@ -1,0 +1,20 @@
+syntax typeId = text
+var n : nat
+var m : nat
+var t : text
+
+builtin dec $fresh_typeId() : typeId
+
+relation E: nat nat hint(input %0)
+rule E/spec: n n
+
+dec $later(nat) : text
+def $later(n) = $fresh_typeId()
+  -- E: n m
+
+relation Pre: nat text hint(input %0)
+rule Pre/main: n $("x"[n] ++ $later(n))
+
+relation Goal: nat text hint(input %0 %1)
+rule Goal/main: n t
+  -- if true

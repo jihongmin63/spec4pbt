@@ -3,6 +3,7 @@ from pathlib import Path
 import hashlib
 import shutil
 import subprocess
+import fcntl
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,6 +24,14 @@ def pinned_source_digest():
 
 
 def build_bridge():
+    parent = STATE / 'build'
+    parent.mkdir(parents=True, exist_ok=True)
+    with (parent / 'property-bridge.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _build_bridge()
+
+
+def _build_bridge():
     sources = sorted(BRIDGE.glob('*.ml'))
     source_hash = pinned_source_digest()
     digest = hashlib.sha256(b''.join(p.read_bytes() for p in sources) +
