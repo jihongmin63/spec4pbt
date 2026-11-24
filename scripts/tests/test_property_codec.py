@@ -37,6 +37,12 @@ class CodecTests(unittest.TestCase):
             decode_input({'x': {'type': 'nat', 'value': '7'}, 'b': 10},
                          ({'name': 'x', 'type': 'nat'},))
 
+    def test_non_string_constructor_is_a_codec_error(self):
+        for constructor in ([], {}, None, False):
+            with self.subTest(constructor=constructor), self.assertRaises(CodecError):
+                decode_value({'type': 'Tree', 'constructor': constructor, 'args': []},
+                             'Tree', {'Tree': {'Leaf': ()}})
+
     def test_native_bridge_uses_same_nested_typed_json(self):
         wire = [
             {'type': 'Tree', 'constructor': 'Node', 'args': [

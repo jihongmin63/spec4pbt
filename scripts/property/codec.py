@@ -41,7 +41,7 @@ def decode_value(wire, expected_type, constructors=None):
         raise CodecError(f'invalid {expected_type} constructor fields')
     cases = constructors.get(expected_type, {})
     name = wire['constructor']
-    if name not in cases or not isinstance(wire['args'], list):
+    if not isinstance(name, str) or name not in cases or not isinstance(wire['args'], list):
         raise CodecError(f'unknown {expected_type} constructor: {name}')
     arg_types = cases[name]
     if len(wire['args']) != len(arg_types):

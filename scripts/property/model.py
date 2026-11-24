@@ -1,5 +1,5 @@
 """Typed property metadata from the pinned SpecTec frontend."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
@@ -15,10 +15,14 @@ class SpecProperty:
     goal_inputs: tuple[str, ...]
     external: tuple[dict, ...]
     definitions: tuple[dict, ...]
+    type_schema: dict = field(default_factory=dict)
 
 
 class CompileError(ValueError):
-    pass
+    def __init__(self, message, *, details=None, code="compile_error"):
+        super().__init__(message)
+        self.details = details
+        self.code = code
 
 
 @dataclass(frozen=True)
