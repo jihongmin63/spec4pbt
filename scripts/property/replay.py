@@ -1,6 +1,7 @@
 """Execute the original property against actual external observations."""
 from .adapters import AdapterProtocolError, AdapterSession, AdapterTimeout
 from .codec import CodecError, decode_input
+from .coq_codec import constructor_schema
 from .compiler import digest
 from .dependency import failed_premise
 from .engine import BridgeError, BridgeTimeout, run_bridge
@@ -14,7 +15,8 @@ def replay(program: ReplayProgram, input_value, commands, *, timeout=10):
     if digest(model.source) != model.source_sha256 or digest(model.config) != model.config_sha256:
         return ReplayResult('execution_error', {}, 0, 'fixed source or Property.toml changed')
     try:
-        input_value = decode_input(input_value, model.inputs)
+        input_value = decode_input(input_value, model.inputs,
+                                   constructor_schema(model.type_schema))
     except CodecError as error:
         return ReplayResult('execution_error', {}, 0, str(error))
     request = {'input': [input_value[field['name']] for field in model.inputs],

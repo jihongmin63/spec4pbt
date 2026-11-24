@@ -139,7 +139,7 @@ def execute(session, candidate, samples, size, seed, derive_only=False):
     session.report['generator_factory_assumptions'] = found
     if found:
         raise CheckError(f'Generator factory has unsupported assumptions: {", ".join(found)}')
-    session.command(['coqchk', '-silent', *COQ_FLAGS, 'Derived'], 'generator-kernel')
+    session.command(['coqchk', '-silent', *session.coq_flags, 'Derived'], 'generator-kernel')
     session.report['normalized_extraction_files'] = normalize_extraction(session.sources, 'generator')
     session.fresh()
     if derive_only:

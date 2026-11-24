@@ -29,6 +29,11 @@ class DebugTests(unittest.TestCase):
         result = debug(self.program, {'x': {'type': 'nat', 'value': '8'}})
         self.assertEqual(result.status, 'failed')
         self.assertEqual(result.external_call_count, 0)
+        self.assertIn('failure', result.trace)
+        self.assertEqual(result.trace['failure']['stage'], 'goal')
+        self.assertEqual(result.trace['failure']['reason'], 'specification_goal_failed')
+        self.assertEqual(result.trace['failure']['relation'], 'Goal')
+        self.assertIn('Property.watsup', result.trace['failure']['source'])
 
     def test_debug_survives_normal_observation_failure(self):
         fixture = ROOT / 'scripts/tests/fixtures/property/bridge'

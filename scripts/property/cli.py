@@ -4,6 +4,7 @@ from collections import Counter
 from dataclasses import asdict
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -19,20 +20,80 @@ def file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def fixed_files(property_dir):
-    name = property_dir.name
-    specification = ROOT / 'specification' / name
+def original_files(property_dir):
+    """Sources that define the fixed original, excluding candidate additions."""
+    specification = ROOT / 'specification' / property_dir.name
     files = [property_dir / filename for filename in
              ('Property.spectec', 'Property.toml', 'Original.v')]
-    files += sorted((property_dir / 'candidates').glob('v*/Helper.watsup'))
     files += [specification / 'source/Property.watsup']
+    files += [path for path in specification.rglob('*')
+              if path.is_file()
+              and path.relative_to(specification).parts[0] != 'candidates'
+              and path.suffix in ('.v', '.watsup', '.spectec')]
+    return sorted(set(files))
+
+
+def original_hashes(property_dir):
+    return {str(path.relative_to(ROOT)): file_hash(path)
+            for path in original_files(property_dir)}
+
+
+def ensure_fixed_original(property_dir, hashes, *, create=False):
+    """Validate or atomically establish the immutable original-source manifest."""
+    baseline = property_dir / '.runs/fixed-original.json'
+    if not baseline.exists():
+        if not create:
+            return None
+        if original_hashes(property_dir) != hashes:
+            raise ValueError('fixed original changed during preparation')
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8',
+                prefix='.fixed-original-', dir=baseline.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump({'version': 1, 'hashes': hashes}, stream, indent=2, sort_keys=True)
+            stream.write('\n')
+        try:
+            temporary.chmod(0o444)
+            try:
+                os.link(temporary, baseline)
+            except FileExistsError:
+                pass
+        finally:
+            temporary.unlink()
+    manifest = json.loads(baseline.read_text())
+    if (not isinstance(manifest, dict) or manifest.get('version') != 1
+            or not isinstance(manifest.get('hashes'), dict)):
+        raise ValueError(f'invalid fixed original manifest: {baseline}')
+    expected = manifest['hashes']
+    changed = sorted(path for path in expected.keys() | hashes.keys()
+                     if expected.get(path) != hashes.get(path))
+    if changed:
+        raise ValueError('fixed original changed: ' + ', '.join(changed))
+    return baseline
+
+
+def fixed_files(property_dir):
+    specification = ROOT / 'specification' / property_dir.name
+    files = original_files(property_dir)
+    files += sorted((property_dir / 'candidates').glob('v*/Helper.watsup'))
     files += sorted(specification.rglob('*.v'))
     files += sorted(specification.rglob('PassEvidence.json'))
+    for manifest in specification.rglob('PassEvidence.json'):
+        evidence = json.loads(manifest.read_text())
+        dependencies = [entry['path'] for entry in evidence.get('artifacts', [])]
+        if 'source' in evidence:
+            dependencies.append(evidence['source'])
+        for relative in dependencies:
+            path = (manifest.parent / relative).resolve()
+            if not path.is_relative_to(ROOT):
+                raise ValueError(f'semantic pass dependency escapes worktree: {path}')
+            if not path.is_file():
+                raise ValueError(f'missing semantic pass dependency: {path}')
+            files.append(path)
     files += sorted(BRIDGE.glob('*.ml'))
     files += sorted((ROOT / 'scripts/property').glob('*.py'))
     files += sorted((ROOT / 'translator/src').glob('*.ml'))
     files += [ROOT / 'environment/env.sh', ROOT / 'environment/opam-switch.export']
-    return [path for path in files if path.is_file()]
+    return sorted({path for path in files if path.is_file()})
 
 
 def fixed_hashes(property_dir):
@@ -88,7 +149,12 @@ def execute(args):
               'property': str(property_dir), 'fixed_hashes': fixed_hashes(property_dir),
               'generator_proof': 'not_checked'}
     try:
+        originals = original_hashes(property_dir)
+        ensure_fixed_original(property_dir, originals)
         model = model_for(property_dir)
+        baseline = ensure_fixed_original(property_dir, originals, create=True)
+        report['fixed_original'] = {'manifest': str(baseline),
+                                    'sha256': file_hash(baseline)}
         report['input_fields'] = list(model.inputs)
         if args.action == 'prepare':
             if args.target == 'replay':
@@ -102,7 +168,8 @@ def execute(args):
             report['target'] = args.target
         elif args.action == 'sample':
             batch = derive_and_sample(property_dir, args.candidate, model.inputs,
-                                      count=args.count, size=args.size, seed=args.seed)
+                                      count=args.count, size=args.size, seed=args.seed,
+                                      type_schema=model.type_schema)
             samples = list(batch.samples)
             sample_path = evidence / 'samples.json'
             sample_path.write_text(json.dumps(samples, indent=2) + '\n')
@@ -160,6 +227,10 @@ def execute(args):
     except (CompileError, GenerationError, OSError, ValueError) as error:
         report['status'] = 'failed'
         report['error'] = str(error)
+        if isinstance(error, CompileError):
+            report['compile_error_code'] = error.code
+        if isinstance(error, CompileError) and error.details is not None:
+            report['analysis_failure'] = error.details
     (evidence / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
     return evidence / 'result.json', report['status'] == 'passed'
 

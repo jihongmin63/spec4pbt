@@ -2,6 +2,7 @@
 from pathlib import Path
 import sys
 import tempfile
+import time
 import unittest
 
 from scripts.property.adapters import AdapterProtocolError, AdapterSession, AdapterTimeout
@@ -37,6 +38,8 @@ class AdapterTests(unittest.TestCase):
         for response in (
             '{"status":"returned","outputs":[{"position":0,"value":{"type":"nat","value":"20"}}]}',
             '{"status":"returned","fresh_id":0,"outputs":[{"position":1,"value":{"type":"nat","value":"20"}}]}',
+            '{"status":"returned","fresh_id":0,"outputs":[{"position":0.0,"value":{"type":"nat","value":"20"}}]}',
+            '{"status":"returned","fresh_id":0,"outputs":[{"position":false,"value":{"type":"nat","value":"20"}}]}',
         ):
             with tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems') as temp:
                 script = Path(temp) / 'bad.py'
@@ -67,6 +70,53 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual([value['outputs'][0]['value']['value'] for value in values],
                          ['1', '1'])
         self.assertEqual([value['fresh_id'] for value in values], [0, 1])
+
+    def test_partial_json_line_still_obeys_timeout(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems') as temp:
+            script = Path(temp) / 'partial.py'
+            script.write_text(
+                'import sys,time\n'
+                'sys.stdin.readline()\n'
+                'sys.stdout.write(\'{"status":\'); sys.stdout.flush()\n'
+                'time.sleep(0.7)\n'
+                'print(\'"no_match","fresh_id":0}\',flush=True)\n')
+            started = time.monotonic()
+            with self.session(script, timeout=0.2) as session:
+                with self.assertRaises(AdapterTimeout):
+                    session.call('External', [{'type': 'nat', 'value': '7'}], 0)
+            self.assertLess(time.monotonic() - started, 0.5)
+
+    def test_callbacks_share_one_input_deadline(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems') as temp:
+            script = Path(temp) / 'delayed.py'
+            script.write_text(
+                'import sys,time\n'
+                'sys.stdin.readline()\n'
+                'time.sleep(0.3)\n'
+                'print(\'{"status":"no_match","fresh_id":0}\',flush=True)\n')
+            started = time.monotonic()
+            with self.session(script, timeout=0.45) as session:
+                self.assertEqual(session.call('External',
+                    [{'type': 'nat', 'value': '7'}], 0)['status'], 'no_match')
+                with self.assertRaises(AdapterTimeout):
+                    session.call('External', [{'type': 'nat', 'value': '7'}], 0)
+            self.assertLess(time.monotonic() - started, 0.6)
+
+    def test_request_write_obeys_deadline_when_adapter_does_not_read(self):
+        from types import SimpleNamespace
+        model = SimpleNamespace(
+            type_schema={},
+            external=[{'relation': 'E', 'adapter': 'test', 'observed_outputs': []}],
+            definitions=[{'name': 'E', 'input_types': ['text'], 'output_types': []}])
+        with tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems') as temp:
+            script = Path(temp) / 'blocked.py'
+            script.write_text('import time\ntime.sleep(0.7)\n')
+            started = time.monotonic()
+            with AdapterSession(SimpleNamespace(model=model),
+                    {'test': [sys.executable, str(script)]}, timeout=0.2) as session:
+                with self.assertRaises(AdapterTimeout):
+                    session.call('E', [{'type': 'text', 'value': 'x' * 1000000}], 0)
+            self.assertLess(time.monotonic() - started, 0.5)
 
 
 if __name__ == '__main__':

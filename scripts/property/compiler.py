@@ -19,7 +19,7 @@ def frontend_check(source):
                str(executable), 'check', str(source)]
     result = subprocess.run(command, capture_output=True, text=True, timeout=120)
     if result.returncode:
-        raise CompileError(result.stderr or result.stdout)
+        raise CompileError(result.stderr or result.stdout, code='frontend_error')
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:
@@ -44,8 +44,18 @@ def compile_spec(source, config):
     pre, goal = get_unique(pre_name), get_unique(goal_name)
     if not pre['defined'] or pre['rule_count'] != 1:
         raise CompileError(f'{pre_name}: Pre must have exactly one defined rule')
+    if pre.get('missing_dependencies'):
+        raise CompileError(f'{pre_name}: generation requires specification definitions for ' +
+                           ', '.join(pre['missing_dependencies']))
     if not goal['defined']:
         raise CompileError(f'{goal_name}: Goal must have a definition')
+    for definition in (pre, goal):
+        unsupported = definition.get('unsupported_constructs', [])
+        if unsupported:
+            form = unsupported[0]
+            raise CompileError(f"{definition['name']}: {form['kind']} is outside property scope at "
+                               f"{form['source']}", details={'unsupported_constructs': unsupported},
+                               code='unsupported_property_construct')
     names = pre['rule_inputs']
     if len(names) != len(pre['input_types']) or None in names or len(set(names)) != len(names):
         raise CompileError(f'{pre_name}: inputs must be distinct rule variables')
@@ -80,7 +90,7 @@ def compile_spec(source, config):
         precondition=pre_name, goal=goal_name, inputs=inputs,
         pre_outputs=tuple(pre['output_types']),
         goal_inputs=tuple(goal['input_types']), external=tuple(external),
-        definitions=tuple(definitions))
+        definitions=tuple(definitions), type_schema=report.get('type_schema', {}))
 
 
 def analyze_replay(model):
@@ -92,7 +102,12 @@ def analyze_replay(model):
     result = subprocess.run(command, input=json.dumps(request) + '\n',
                             capture_output=True, text=True, timeout=120)
     if result.returncode:
-        raise CompileError(result.stderr or result.stdout)
+        try:
+            details = json.loads(result.stdout).get('analysis')
+        except (json.JSONDecodeError, AttributeError):
+            details = None
+        raise CompileError(result.stderr or result.stdout, details=details,
+                           code='replay_observability_error')
     try:
         return json.loads(result.stdout)
     except json.JSONDecodeError as error:

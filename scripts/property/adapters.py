@@ -1,9 +1,11 @@
 """One JSON-lines adapter session per Input, with strict typed responses."""
 import json
-import select
 import subprocess
+import time
 
 from .codec import CodecError, decode_value, encode_value
+from .coq_codec import constructor_schema
+from .engine import JsonLineReader, input_deadline, write_json_line
 
 
 class AdapterProtocolError(RuntimeError):
@@ -22,10 +24,13 @@ class AdapterSession:
         self.processes = []
         self.call_count = 0
         self.failed = False
+        self.deadline = None
         self.contracts = {item['relation']: item for item in program.model.external}
         self.definitions = {item['name']: item for item in program.model.definitions}
+        self.constructors = constructor_schema(program.model.type_schema)
 
     def __enter__(self):
+        self.deadline = time.monotonic() + self.timeout
         return self
 
     def __exit__(self, *_):
@@ -58,6 +63,15 @@ class AdapterSession:
     def call(self, relation, inputs, fresh_id):
         if self.failed:
             raise AdapterProtocolError('adapter session stopped after an error')
+        if self.deadline is None:
+            self.deadline = time.monotonic() + self.timeout
+        deadline = self.deadline
+        native_deadline = input_deadline.get()
+        if native_deadline is not None:
+            deadline = min(deadline, native_deadline)
+        if time.monotonic() >= deadline:
+            self.failed = True
+            raise AdapterTimeout(f'{relation}: input timed out')
         if type(fresh_id) is not int or fresh_id < 0:
             raise AdapterProtocolError('request fresh_id must be a natural number')
         contract = self.contracts.get(relation)
@@ -67,7 +81,7 @@ class AdapterSession:
         if len(inputs) != len(definition['input_types']):
             raise AdapterProtocolError(f'{relation}: input arity mismatch')
         try:
-            inputs = [encode_value(decode_value(value, typ)) for value, typ
+            inputs = [encode_value(decode_value(value, typ, self.constructors)) for value, typ
                       in zip(inputs, definition['input_types'])]
         except CodecError as error:
             raise AdapterProtocolError(str(error)) from error
@@ -76,14 +90,13 @@ class AdapterSession:
                    'fresh_id': fresh_id,
                    'observed_outputs': contract['observed_outputs']}
         try:
-            process.stdin.write(json.dumps(request) + '\n')
-            process.stdin.flush()
-            self.call_count += 1
-            ready, _, _ = select.select([process.stdout], [], [], self.timeout)
-            if not ready:
+            try:
+                write_json_line(process.stdin, request, deadline)
+                self.call_count += 1
+                line = JsonLineReader(process.stdout).readline(deadline)
+            except TimeoutError as error:
                 self.failed = True
-                raise AdapterTimeout(f'{relation}: adapter timed out')
-            line = process.stdout.readline()
+                raise AdapterTimeout(f'{relation}: adapter timed out') from error
             if not line:
                 raise AdapterProtocolError(f'{relation}: adapter exited before response')
             response = json.loads(line)
@@ -92,8 +105,7 @@ class AdapterSession:
             self.failed = True
             raise
 
-    @staticmethod
-    def _validate(relation, response, contract, definition):
+    def _validate(self, relation, response, contract, definition):
         if not isinstance(response, dict) or response.get('status') not in ('returned', 'no_match'):
             raise AdapterProtocolError(f'{relation}: invalid status')
         fresh = response.get('fresh_id')
@@ -108,7 +120,8 @@ class AdapterSession:
         positions = contract['observed_outputs']
         found = [item.get('position') for item in response['outputs']
                  if isinstance(item, dict)]
-        if found != positions or len(found) != len(response['outputs']):
+        if (any(type(position) is not int for position in found) or
+                found != positions or len(found) != len(response['outputs'])):
             raise AdapterProtocolError(f'{relation}: output positions differ from contract')
         outputs = []
         for item in response['outputs']:
@@ -116,7 +129,8 @@ class AdapterSession:
                 raise AdapterProtocolError(f'{relation}: invalid output item')
             position = item['position']
             try:
-                value = decode_value(item['value'], definition['output_types'][position])
+                value = decode_value(item['value'], definition['output_types'][position],
+                                     self.constructors)
             except (CodecError, IndexError) as error:
                 raise AdapterProtocolError(f'{relation}: {error}') from error
             outputs.append({'position': position, 'value': encode_value(value)})
