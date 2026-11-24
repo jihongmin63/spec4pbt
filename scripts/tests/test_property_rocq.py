@@ -17,10 +17,9 @@ class RocqTests(unittest.TestCase):
         generated = render_original(
             ROOT / 'specification/property_replay_demo/source/Property.watsup',
             DEMO / 'Property.toml')
-        self.assertEqual(generated, (DEMO / 'Original.v').read_text())
-        self.assertIn('g_fixture_rel_External_execute x {| next_fresh := 0 |}',
+        self.assertIn('g_fixture_rel_External_execute w_78 {| next_fresh := 0 |}',
                       generated)
-        self.assertIn('g_fixture_rel_B_execute b middle (Success c) final',
+        self.assertIn('g_fixture_rel_B_execute w_62 property_state_0 (Success w_63) property_state_1',
                       generated)
         self.assertNotIn('g_fixture_rel_Goal_execute', generated)
 

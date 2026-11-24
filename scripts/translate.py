@@ -75,8 +75,11 @@ def compile_generated(source, profile, run, manifest, namespace_override=None):
     """Compile only inside the ignored evidence run; retain every failed run."""
     support = run / 'support'
     shutil.copytree(ROOT / 'translator/coq', support)
-    namespace = namespace_override or {'p4': 'P4Spec', 'wasm': 'WasmSpec',
-                                       'candidate': 'CandidateSpec'}.get(profile, 'FixtureSpec')
+    namespace = namespace_override or (
+        'CandidateV' + profile[len('candidate_v'):] + 'Spec'
+        if profile.startswith('candidate_v') else
+        {'p4': 'P4Spec', 'wasm': 'WasmSpec',
+         'candidate': 'CandidateSpec'}.get(profile, 'FixtureSpec'))
     common = [support / 'Execution.v', support / 'Values.v']
     if profile in ['p4', 'wasm']:
         common += [support / 'Builtins/Common.v', support / 'Builtins/P4.v']
@@ -277,9 +280,13 @@ def main(argv=None):
     parser.add_argument('--profile', required=True, choices=['p4', 'wasm'])
     parser.add_argument('--inventory', action='store_true', help='collect AL declarations without claiming translation')
     parser.add_argument('--check', action='store_true', help='require full translation and Coq compilation')
+    parser.add_argument('--no-publish', action='store_true',
+                        help='with --check, retain checked sources only in ignored evidence')
     args = parser.parse_args(argv)
     if args.inventory and args.check:
         parser.error('--inventory and --check are mutually exclusive')
+    if args.no_publish and not args.check:
+        parser.error('--no-publish requires --check')
     (STATE / 'logs').mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix=f'translate-{args.profile}-', dir=STATE / 'logs'))
     manifest = {'schema_version': 1, 'profile': args.profile, 'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'mode': 'inventory' if args.inventory else 'check' if args.check else 'translation', 'status': 'started', 'commands': [], 'coq_compiled': False, 'code_generation_complete': False, 'translation_complete': False, 'run': str(run)}
@@ -347,11 +354,14 @@ def main(argv=None):
                     if (hashlib.sha256(current.read_bytes()).hexdigest() != entry['sha256'] or
                             hashlib.sha256(copied.read_bytes()).hexdigest() != entry['sha256']):
                         raise ValueError(f'runtime source changed during compilation: {entry["path"]}')
-                publication_profile = publish_generated(output, args.profile, run, manifest)
+                publication_profile = None
+                if not args.no_publish:
+                    publication_profile = publish_generated(output, args.profile, run, manifest)
                 manifest['translation_complete'] = True
                 inventory.update({'coq_compiled': True, 'translation_complete': True, 'stage': 'Coq-compiled'})
                 write_json(output / 'inventory.json', inventory)
-                record_results(args.profile, backend_manifest, manifest, publication_profile)
+                if not args.no_publish:
+                    record_results(args.profile, backend_manifest, manifest, publication_profile)
             else:
                 record_results(args.profile, backend_manifest, manifest)
             manifest['status'] = 'checked' if args.check else 'coq-generated'

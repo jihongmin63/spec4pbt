@@ -130,6 +130,15 @@ class DirectRelationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual((run / "FreshChecks.log").read_text().count(
             "Closed under the global context"), 3)
+        generation = source / "FreshGeneration.v"
+        shutil.copy2(SOURCE.parent / generation.name, generation)
+        proof = command[:-1] + [str(generation)]
+        derived = subprocess.run(proof, cwd=run, text=True, capture_output=True, timeout=120)
+        (run / "FreshGeneration.log").write_text(derived.stdout + derived.stderr)
+        self.assertEqual(derived.returncode, 0, derived.stdout + derived.stderr)
+        self.assertIn("Closed under the global context", derived.stdout)
+        self.assertNotIn("Axioms:", derived.stdout)
+        self.assertTrue((run / "fresh_generator.ml").is_file())
 
     def test_builtin_unmatch_and_error_are_equivalent(self):
         state = ROOT / "_opam-testing-theorems/checks"
@@ -191,6 +200,33 @@ class DirectRelationTests(unittest.TestCase):
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         self.assertEqual((run / "HigherOrderChecks.log").read_text().count(
             "Closed under the global context"), 2)
+
+    def test_computation_closures_preserve_the_direct_relation(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-computed.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        source = run / "spec"
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "fixture", "--property-pre", "Pre", "--input",
+                   str(ROOT / "scripts/tests/fixtures/property/rocq/computed.watsup"),
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        spec = importlib.util.spec_from_file_location("translate_driver_computed", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        driver.compile_generated(source, "fixture", run, {"commands": []})
+        destination = source / "ComputedChecks.v"
+        shutil.copy2(SOURCE.parent / destination.name, destination)
+        proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                 "-Q", str(run / "support"), "ALCoq",
+                 "-Q", str(source), "FixtureSpec", str(destination)]
+        checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+        (run / "ComputedChecks.log").write_text(checked.stdout + checked.stderr)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertIn("Closed under the global context", checked.stdout)
+        self.assertNotIn("Axioms:", checked.stdout)
 
     def test_traverse_first_failure_preserves_fresh_state(self):
         state = ROOT / "_opam-testing-theorems/checks"

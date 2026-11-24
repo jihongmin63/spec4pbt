@@ -8,6 +8,7 @@ let output = ref ""
 let manifest_path = ref ""
 let inventory = ref false
 let data_only = ref false
+let property_pre = ref ""
 let options = [
   "--profile", Arg.Set_string profile_name, "NAME profile namespace";
   "--input", Arg.String (fun p -> inputs := p :: !inputs), "PATH ordered source input (repeatable)";
@@ -15,6 +16,7 @@ let options = [
   "--manifest", Arg.Set_string manifest_path, "FILE execution manifest";
   "--inventory", Arg.Set inventory, " collect AL inventory only";
   "--data-only", Arg.Set data_only, " generate all AL datatypes and structural support"
+  ; "--property-pre", Arg.Set_string property_pre, "NAME build typed property witness plan and temporary relations"
 ]
 
 let rec mkdir path =
@@ -139,6 +141,8 @@ let run () =
         | Ok raw_spec ->
           raw_definition_count := `Int (List.length raw_spec);
           let spec, recovered = Context.restore_empty_syntax source raw_spec in
+          let spec, property = if !property_pre = "" then spec, None else
+            let spec, plan = Property_plan.prepare spec !property_pre in spec, Some plan in
           normalizations := recovered;
           definition_count := `Int (List.length spec);
           match Context.build ~profile:{ Coq_ir.name = !profile_name } spec with
@@ -149,6 +153,8 @@ let run () =
               | `Assoc fields -> `Assoc (("source_declaration_count", !source_count) :: ("raw_al_declaration_count", !raw_definition_count) :: ("normalizations", `List !normalizations) :: fields)
               | _ -> assert false in
             write_json (Filename.concat !output "inventory.json") json;
+            Option.iter (fun plan -> write_json (Filename.concat !output "PropertyPlan.json")
+              (Property_plan.to_json context plan)) property;
             if !inventory then (status := "inventory-complete"; 0)
             else if !data_only then (
               match Data.lower context with
@@ -163,7 +169,8 @@ let run () =
               | Error ds -> diagnostics := ds; 1
               | Ok data -> match Lower_exec.lower context with
                 | Error ds -> diagnostics := ds; 1
-                | Ok bodies -> match Emit.write ~out_dir:!output context ~data ~bodies with
+                | Ok bodies -> match Emit.write ~normalize_computations:(!property_pre <> "")
+                    ~out_dir:!output context ~data ~bodies with
                   | Error ds -> diagnostics := ds; 1
                   | Ok () ->
                     let declarations,bindings,counts=audit_generation context data bodies in

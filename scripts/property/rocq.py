@@ -1,91 +1,241 @@
-"""Translate the fixed demo through the existing SpecTec to Coq backend."""
+"""Publish typed property premises through the existing SpecTec to Coq backend."""
 from pathlib import Path
 import hashlib
 import json
-import re
+import os
 import shutil
 import subprocess
 import tempfile
+import tomllib
+import fcntl
 
 from scripts import translate
-from .bridge import ROOT, PINNED, build_bridge
+from .bridge import ROOT, PINNED, build_bridge, pinned_source_digest
 
 
 STATE = ROOT / '_opam-testing-theorems'
 
 
-def render_original(source, config):
-    """Render the Input witness predicate from a direct-call Pre rule.
+def build_backend():
+    parent = STATE / 'build'
+    parent.mkdir(parents=True, exist_ok=True)
+    with (parent / 'property-translator.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return _build_backend()
 
-    The selected demo has a single nat Input and variable-only relation
-    premises. Other premise forms require a translated temporary relation.
-    """
-    from .compiler import CompileError, compile_spec
 
-    model = compile_spec(source, config)
-    if len(model.inputs) != 1 or model.inputs[0]['type'] != 'nat':
-        raise CompileError('property predicate renderer needs one nat Input')
-    text = Path(source).read_text()
-    variables = dict(re.findall(r'^var\s+(\w+)\s*:\s*(\w+)\s*$', text, re.M))
-    block = re.search(r'^rule\s+' + re.escape(model.precondition) +
-                      r'/\w+:\s*[^\n]*\n((?:\s+--[^\n]*\n)*)', text, re.M)
-    if block is None:
-        raise CompileError('Pre rule body is unavailable')
-    definitions = {item['name']: item for item in model.definitions}
-    calls = []
-    witnesses = [model.inputs[0]['name']]
-    for line in block.group(1).splitlines():
-        call = re.fullmatch(r'\s*--\s*(\w+)\s*:\s*([\w\s]+)', line)
-        if call is None:
-            raise CompileError('non-call premise needs a translated temporary relation')
-        name, args = call.group(1), call.group(2).split()
-        definition = definitions.get(name)
-        if definition is None or len(definition['output_types']) != 1 or \
-                len(args) != len(definition['input_types']) + 1:
-            raise CompileError(f'{name}: unsupported direct relation application')
-        for arg in args:
-            if arg not in variables:
-                raise CompileError(f'{arg}: no declared witness type')
-            if arg not in witnesses:
-                witnesses.append(arg)
-        calls.append((name, args, len(definition['input_types'])))
-    if not calls:
-        raise CompileError('Pre has no relation premise')
-    if any(variables[name] != 'nat' for name in witnesses):
-        raise CompileError('demo Coq renderer supports nat witnesses')
-    states = ['middle', 'final'] if len(calls) == 2 else \
-        [f'state_{i}' for i in range(1, len(calls) + 1)]
-    premises = []
-    for index, (name, args, count) in enumerate(calls):
-        start = '{| next_fresh := 0 |}' if index == 0 else states[index - 1]
-        prefix = f'    g_fixture_rel_{name}_execute ' + \
-                 ' '.join(args[:count]) + f' {start}'
-        if index == 0:
-            premises.append(prefix + f'\n      (Success {args[count]}) {states[index]} ->')
-        else:
-            premises.append(prefix + f' (Success {args[count]}) {states[index]} ->')
-    input_name = model.inputs[0]['name']
-    return ('''From QuickChick Require Import QuickChick.
-From Coq Require Import String.
-From ALCoq Require Import Execution.
-From FixtureSpec.Generated Require Import InductiveRelations_0000.
-Import QcDefaultNotation.
-Open Scope string_scope.
+def _build_backend():
+    sources = sorted((ROOT / 'translator/src').glob('*.ml')) + [ROOT / 'translator/src/dune']
+    key = hashlib.sha256(b''.join(p.read_bytes() for p in sources) +
+                         pinned_source_digest().encode()).hexdigest()[:20]
+    build = STATE / 'build' / ('property-translator-' + key)
+    pointer = build / 'executable.txt'
+    if pointer.is_file() and Path(pointer.read_text().strip()).is_file():
+        return Path(pointer.read_text().strip())
+    build.mkdir(parents=True, exist_ok=True)
+    copied, _ = translate.prepare_backend(PINNED, build)
+    executable = copied / '_build/default/p4spec/al_to_coq/main.exe'
+    result = subprocess.run(['bash', str(ROOT / 'environment/env.sh'), 'frontend',
+                             'dune', 'build', '--root', str(copied), '-j', '2',
+                             'p4spec/al_to_coq/main.exe'],
+                            capture_output=True, text=True, timeout=240)
+    (build / 'build.log').write_text(result.stdout + result.stderr)
+    if result.returncode:
+        raise RuntimeError(f'property backend build failed: {build / "build.log"}\n'
+                           + (result.stdout + result.stderr)[-6000:])
+    pointer.write_text(str(executable) + '\n')
+    return executable
 
-''' + f'Record Input := mkInput {{ input_{input_name} : nat }}.\n' +
-'''#[global] Instance showInput : Show Input :=
-''' + f'  {{| show := fun i => show (input_{input_name} i) |}}.\n' +
-'''
-(* Each premise applies the already translated relation.  The intermediate
-   state is a constructor witness and is passed to the next premise. *)
-Inductive predicate : Input -> Prop :=
-''' + f'| precondition : forall ({" ".join(witnesses)} : nat) '
-        f'({" ".join(states)} : State),\n' +
-        '\n'.join(premises) + '\n' +
-        f'    predicate (mkInput {input_name}).\n\n' +
-        f'Definition encode_input (i : Input) : string :=\n'
-        f'  "{{""{input_name}"":{{""type"":""nat"",""value"":""" ++\n'
-        f'  show (input_{input_name} i) ++ """}}}}".\n')
+
+def _hash(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _translator_hash(directory=None):
+    directory = ROOT / 'translator/src' if directory is None else directory
+    return hashlib.sha256(b''.join((directory / path.name).read_bytes()
+        for path in sorted((ROOT / 'translator/src').glob('*.ml')))).hexdigest()
+
+
+def _snapshot_generation(run, source, config=None):
+    """Both passes read the same private source bytes throughout compilation."""
+    source = Path(source).resolve()
+    captured = run / 'source' / source.name
+    captured.parent.mkdir()
+    captured.write_bytes(source.read_bytes())
+    executable = build_backend()
+    inputs = {'source': str(source), 'source_sha256': _hash(captured),
+              'snapshot': str(captured),
+              'translator_sha256': _translator_hash(executable.parent)}
+    if config is not None:
+        config = Path(config).resolve()
+        copied_config = run / 'Property.toml'
+        copied_config.write_bytes(config.read_bytes())
+        inputs.update(config=str(config), config_sha256=_hash(copied_config))
+    (run / 'generation-inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
+    return captured, executable
+
+
+def _validate_generation(run, source):
+    captured = json.loads((run / 'generation-inputs.json').read_text())
+    if str(Path(source).resolve()) != captured['source'] or _hash(source) != captured['source_sha256']:
+        raise ValueError('source changed during property translation')
+    if 'config' in captured and _hash(captured['config']) != captured['config_sha256']:
+        raise ValueError('configuration changed during property translation')
+    if _translator_hash() != captured['translator_sha256']:
+        raise ValueError('translator changed during property translation')
+    backend = json.loads((run / 'backend.json').read_text())
+    if [item['sha256'] for item in backend['inputs']] != [captured['source_sha256']]:
+        raise ValueError('backend source mismatch')
+    return captured
+
+
+def publication_plan(publication, source=None, config=None):
+    publication = Path(publication)
+    evidence = json.loads((publication / 'PassEvidence.json').read_text())
+    if source is not None and _hash(source) != evidence['source_sha256']:
+        raise ValueError('publication source mismatch')
+    if config is not None and _hash(config) != evidence.get('config_sha256'):
+        raise ValueError('publication configuration mismatch')
+    if _translator_hash() != evidence['translator_sha256']:
+        raise ValueError('translator changed since publication')
+    plan_path = evidence['property_plan']
+    entry = next((item for item in evidence['artifacts'] if item['path'] == plan_path), None)
+    path = (publication / plan_path).resolve()
+    if not path.is_relative_to(publication.resolve()) or entry is None or _hash(path) != entry['sha256']:
+        raise ValueError('publication plan artifact changed')
+    plan = json.loads(path.read_text())
+    if config is not None and plan['precondition'] != tomllib.loads(Path(config).read_text())['precondition']:
+        raise ValueError('publication precondition mismatch')
+    return plan
+
+
+def _generate_property(source, config, *, inventory=False, profile='fixture'):
+    from .compiler import compile_spec
+    run = Path(tempfile.mkdtemp(prefix='property-translation-', dir=STATE / 'checks'))
+    snapshot, executable = _snapshot_generation(run, source, config)
+    model = compile_spec(snapshot, run / 'Property.toml')
+    output = run / 'spec'
+    command = ['bash', str(ROOT / 'environment/env.sh'), 'frontend',
+               str(executable), '--profile', profile, '--input', str(snapshot),
+               '--property-pre', model.precondition, '--output', str(output),
+               '--manifest', str(run / 'backend.json')]
+    if inventory:
+        command.append('--inventory')
+    result = subprocess.run(command, capture_output=True, text=True, timeout=120)
+    (run / 'generation.log').write_text(result.stdout + result.stderr)
+    if result.returncode:
+        raise RuntimeError(f'property translation failed: {run / "generation.log"}\n'
+                           + result.stderr)
+    _validate_generation(run, source)
+    return run, output
+
+
+def translate_property(source, config, destination, *, profile='fixture'):
+    """Publish checked property relations without changing the source specification."""
+    destination = Path(destination).resolve()
+    if not destination.is_relative_to(ROOT):
+        raise ValueError('property publication must be inside this worktree')
+    run, output = _generate_property(source, config, profile=profile)
+    translate.compile_generated(output, profile, run, {'commands': []})
+    _publish(source, destination, profile, run, output)
+    # The compilation directory remains ignored evidence; callers can use it
+    # for further proofs without creating .vo files beside published sources.
+    (destination / '.runs' / run.name / 'Compilation.json').write_text(json.dumps({
+        'run': str(run), 'spec': str(output), 'support': str(run / 'support')}) + '\n')
+    return destination
+
+
+def render_original(source, config, *, publication=None):
+    from .coq_codec import render_input_codec, render_type_generators
+    if publication is None:
+        _, output = _generate_property(source, config, inventory=True)
+        plan = json.loads((output / 'PropertyPlan.json').read_text())
+    else:
+        plan = publication_plan(publication, source, config)
+    fields = [{**field, 'coq_projection': 'input_' + field['coq_name']}
+              for field in plan['inputs']]
+    record = '; '.join(f"{field['coq_projection']} : {field['coq_type']}" for field in fields)
+    text = ('From QuickChick Require Import QuickChick.\n'
+            'From Coq Require Import String Ascii ZArith.\n'
+            'From ALCoq Require Import Execution.\n'
+            f"From {plan['namespace']}.Generated Require Import Types_0000 InductiveRelations.\n"
+            'Import QcDefaultNotation.\nOpen Scope string_scope.\n\n'
+            + render_type_generators(plan['type_schema']) +
+            f'Record Input := mkInput {{ {record} }}.\n'
+            '#[global] Instance showInput : Show Input :=\n'
+            '  {| show := fun _ => "Input" |}.\n\n'
+            'Inductive predicate : Input -> Prop :=\n| precondition : ')
+    bindings = [f"({v['coq_name']} : {v['coq_type']})" for v in plan['variables']]
+    states = [f'property_state_{i}' for i in range(len(plan['calls']))]
+    bindings += [f'({state} : State)' for state in states]
+    if bindings:
+        text += 'forall ' + ' '.join(bindings) + ',\n'
+    for index, call in enumerate(plan['calls']):
+        state = '{| next_fresh := 0 |}' if index == 0 else states[index - 1]
+        values = call['outputs']
+        result = ('tt' if not values else values[0] if len(values) == 1 else
+                  '(' + ', '.join(values) + ')')
+        args = ' '.join(call['inputs'])
+        text += f"    {call['relation']} {args} {state} (Success {result}) {states[index]} ->\n"
+    text += '    predicate (mkInput ' + ' '.join(f['coq_name'] for f in fields) + ').\n\n'
+    return text + render_input_codec(fields, plan['type_schema'])
+
+
+def _publish(source, destination, profile, run, generated):
+    """Keep published semantics fixed and retain both pass outputs and their hashes."""
+    source, destination = Path(source).resolve(), Path(destination).resolve()
+    captured = _validate_generation(run, source)
+    al = subprocess.run(
+        ['bash', str(ROOT / 'environment/env.sh'), 'frontend',
+         str(build_bridge()), 'dump', captured['snapshot']],
+        capture_output=True, text=True, timeout=120)
+    (run / 'frontend-al.txt').write_text(al.stdout)
+    (run / 'frontend-al.log').write_text(al.stderr)
+    if al.returncode:
+        raise RuntimeError(f'frontend AL pass failed: {run / "frontend-al.log"}')
+    _validate_generation(run, source)
+    files = sorted(generated.rglob('*.v'))
+    for path in files:
+        target = destination / path.relative_to(generated)
+        if target.exists() and target.read_bytes() != path.read_bytes():
+            raise ValueError(f'fixed publication differs: {target}')
+    archived = run / 'previous-publication'
+    def copy(path, relative):
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() and target.read_bytes() != path.read_bytes():
+            archive = archived / relative
+            archive.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(target, archive)
+        shutil.copy2(path, target)
+        return {'path': str(relative), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    published = [copy(path, path.relative_to(generated)) for path in files]
+    evidence_dir = Path('.runs') / run.name
+    artifacts = [copy(run / name, evidence_dir / name) for name in ['frontend-al.txt', 'backend.json']]
+    if (generated / 'PropertyPlan.json').exists():
+        artifacts.append(copy(generated / 'PropertyPlan.json', evidence_dir / 'PropertyPlan.json'))
+    namespace = ('Candidate' + profile[10:].capitalize() + 'Spec'
+                 if profile.startswith('candidate_v') else
+                 {'p4': 'P4Spec', 'wasm': 'WasmSpec', 'candidate': 'CandidateSpec'}.get(profile, 'FixtureSpec'))
+    evidence = {
+        'namespace': namespace, 'source': os.path.relpath(source, destination),
+        'source_sha256': captured['source_sha256'],
+        'frontend_al_sha256': hashlib.sha256((run / 'frontend-al.txt').read_bytes()).hexdigest(),
+        'backend_manifest_sha256': hashlib.sha256((run / 'backend.json').read_bytes()).hexdigest(),
+        'translator_sha256': captured['translator_sha256'],
+        'evidence_dir': str(evidence_dir),
+        'profile': profile, 'generated': published, 'artifacts': artifacts,
+    }
+    if 'config_sha256' in captured:
+        evidence['config_sha256'] = captured['config_sha256']
+    if (generated / 'PropertyPlan.json').is_file():
+        evidence['property_plan'] = str(evidence_dir / 'PropertyPlan.json')
+    (run / 'PassEvidence.json').write_text(json.dumps(evidence, indent=2) + '\n')
+    copy(run / 'PassEvidence.json', Path('PassEvidence.json'))
+    (run / 'publication.json').write_text(json.dumps({
+        'destination': str(destination), 'source': str(source), 'pass_evidence': evidence},
+        indent=2) + '\n')
 
 
 def publish_demo(source=None, destination=None, profile='fixture'):
@@ -94,70 +244,18 @@ def publish_demo(source=None, destination=None, profile='fixture'):
     if not destination.is_relative_to(ROOT):
         raise ValueError('publication destination must be inside this worktree')
     run = Path(tempfile.mkdtemp(prefix='property-rocq.', dir=STATE / 'checks'))
-    copied, _ = translate.prepare_backend(PINNED, run)
-    build = subprocess.run(
-        ['bash', str(ROOT / 'environment/env.sh'), 'frontend', 'dune',
-         'build', '--root', str(copied), '-j', '2', 'p4spec/al_to_coq/main.exe'],
-        capture_output=True, text=True, timeout=240)
-    (run / 'backend-build.log').write_text(build.stdout + build.stderr)
-    if build.returncode:
-        raise RuntimeError(f'backend build failed: {run / "backend-build.log"}')
+    snapshot, executable = _snapshot_generation(run, source)
     generated = run / 'generated'
-    command = ['bash', str(ROOT / 'environment/env.sh'), 'frontend',
-               str(copied / '_build/default/p4spec/al_to_coq/main.exe'),
-               '--profile', profile, '--input', str(source),
-               '--output', str(generated), '--manifest', str(run / 'backend.json')]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(
+        ['bash', str(ROOT / 'environment/env.sh'), 'frontend', str(executable),
+         '--profile', profile, '--input', str(snapshot), '--output', str(generated),
+         '--manifest', str(run / 'backend.json')],
+        capture_output=True, text=True, timeout=120)
     (run / 'generation.log').write_text(result.stdout + result.stderr)
     if result.returncode:
         raise RuntimeError(f'Coq generation failed: {run / "generation.log"}')
-    manifest = json.loads((run / 'backend.json').read_text())
     translate.compile_generated(generated, profile, run, {'commands': []})
-    al = subprocess.run(
-        ['bash', str(ROOT / 'environment/env.sh'), 'frontend',
-         str(build_bridge()), 'dump', str(source)],
-        capture_output=True, text=True, timeout=120)
-    (run / 'frontend-al.txt').write_text(al.stdout)
-    (run / 'frontend-al.log').write_text(al.stderr)
-    if al.returncode:
-        raise RuntimeError(f'frontend AL pass failed: {run / "frontend-al.log"}')
-    files = sorted(generated.rglob('*.v'))
-    archived = run / 'previous-publication'
-    copied_files = []
-    for path in files:
-        relative = path.relative_to(generated)
-        target = destination / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if target.exists() and target.read_bytes() != path.read_bytes():
-            archive = archived / relative
-            archive.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(target, archive)
-        shutil.copy2(path, target)
-        copied_files.append({'path': str(relative),
-                             'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
-    translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
-    translator_digest = hashlib.sha256(
-        b''.join(path.read_bytes() for path in translator_sources)).hexdigest()
-    pass_evidence = {
-        'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
-        'frontend_al_sha256': hashlib.sha256(al.stdout.encode()).hexdigest(),
-        'backend_manifest_sha256': hashlib.sha256((run / 'backend.json').read_bytes()).hexdigest(),
-        'translator_sha256': translator_digest,
-        'profile': profile,
-        'generated': copied_files,
-    }
-    evidence_path = destination / 'PassEvidence.json'
-    if evidence_path.exists() and evidence_path.read_text() != json.dumps(pass_evidence, indent=2) + '\n':
-        archived.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(evidence_path, archived / 'PassEvidence.json')
-    evidence_path.write_text(json.dumps(pass_evidence, indent=2) + '\n')
-    report = {'source': str(source),
-              'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
-              'pinned_frontend': str(PINNED),
-              'backend_manifest': manifest,
-              'published': copied_files,
-              'pass_evidence': pass_evidence}
-    (run / 'publication.json').write_text(json.dumps(report, indent=2) + '\n')
+    _publish(source, destination, profile, run, generated)
     return run
 
 

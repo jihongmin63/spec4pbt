@@ -11,7 +11,7 @@ Lemma first_step_succeeds :
   g_p4_dec_step_execute 0 (state 0) (Success 0) (state 1).
 Proof.
   eapply direct_case_8.
-  - apply direct_case_2.
+  - apply direct_case_2; reflexivity.
   - apply direct_case_10; reflexivity.
 Qed.
 
@@ -19,7 +19,7 @@ Lemma second_step_unmatches :
   g_p4_dec_step_execute 1 (state 1) Unmatch (state 2).
 Proof.
   eapply direct_case_8.
-  - apply direct_case_2.
+  - apply direct_case_2; reflexivity.
   - apply direct_case_12. reflexivity.
 Qed.
 
@@ -265,7 +265,7 @@ Lemma step_direct n s o t :
   g_p4_dec_step_execute n s o t <->
   o = step_result n s /\ t = state (S (next_fresh s)).
 Proof.
-  split.
+  destruct s as [counter]. split.
   - intro H. inversion H; subst; clear H.
     match goal with
     | F : g_p4_dec_fresh_x5f_typeId_execute _ _ _ |- _ =>
@@ -275,18 +275,19 @@ Proof.
     | A : g_p4_dec_step_after_call_1_at_1 _ _ _ _ _ _ |- _ =>
         inversion A; subst; clear A
     end;
-      unfold step_result; cbn [String.append];
+      unfold g_p4_dec_fresh_x5f_typeId_fresh_text in *;
+      unfold step_result; cbn [String.append next_fresh] in *;
       repeat match goal with
       | E : equal_value _ _ _ = _ |- _ => rewrite E
       end;
       cbn [andb]; split; reflexivity.
-  - intros [-> ->]. unfold step_result.
+  - intros [-> ->]. unfold step_result. cbn [next_fresh].
     destruct (equal_value text_ops "FRESH__0"
-      (String.append "FRESH__" (print_nat (next_fresh s)))) eqn:Etext;
+      (String.append "FRESH__" (print_nat counter))) eqn:Etext;
       destruct (equal_value nat_ops n 0%nat) eqn:Enum;
       cbn [andb].
     all: eapply direct_case_8.
-    all: try apply direct_case_2.
+    all: try solve [apply direct_case_2; reflexivity].
     all: first [apply direct_case_10; assumption
                | apply direct_case_11; assumption
                | apply direct_case_12; assumption].

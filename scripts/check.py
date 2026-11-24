@@ -15,7 +15,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 ENV = ROOT / 'environment/env.sh'
 COQ_FLAGS = ['-Q', 'support', 'ALCoq', '-Q', 'specification', 'Specification',
-             '-Q', 'fixture', 'FixtureSpec', '-Q', 'candidate', 'CandidateSpec', '-Q', 'p4', 'P4Spec',
+             '-Q', 'fixture', 'FixtureSpec', '-Q', 'p4', 'P4Spec',
              '-Q', 'wasm', 'WasmSpec', '-R', 'property', 'Property']
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
 REQUIRE = re.compile(r'\b(?:From\s+([A-Za-z0-9_.]+)\s+)?Require'
@@ -109,18 +109,20 @@ def dependencies(data):
             yield f'{prefix}.{name}' if prefix else name
 
 
-def dependency_path(name, property_name, fixture_root=None):
-    parts = name.split('.')
-    mapping = {
+def namespace_roots(property_name, fixture_root=None):
+    return {
         'ALCoq': (ROOT / 'translator/coq', Path('support')),
         'Specification': (ROOT / 'specification', Path('specification')),
         'P4Spec': (ROOT / 'specification/p4', Path('p4')),
         'WasmSpec': (ROOT / 'specification/wasm', Path('wasm')),
         'FixtureSpec': (fixture_root or ROOT / 'specification' / property_name,
                         Path('fixture')),
-        'CandidateSpec': (ROOT / 'specification' / property_name / 'candidates' / 'v002',
-                          Path('candidate')),
     }
+
+
+def dependency_path(name, property_name, fixture_root=None, namespaces=None):
+    parts = name.split('.')
+    mapping = namespaces if namespaces is not None else namespace_roots(property_name, fixture_root)
     if parts[0] not in mapping:
         return None
     source_root, target_root = mapping[parts[0]]
@@ -205,7 +207,10 @@ class Session:
         self.selected = selected
         self.sequence = discover(self.prop, selected)
         self.timeout = timeout
-        self.fixture_root = fixture_root
+        self.fixture_root = Path(fixture_root).resolve() if fixture_root is not None else None
+        self.namespaces = namespace_roots(self.prop.name, self.fixture_root)
+        self.coq_flags = list(COQ_FLAGS)
+        self.publications = []
         runs = self.prop / '.runs'
         runs.mkdir(exist_ok=True)
         self.directory = Path(tempfile.mkdtemp(prefix='check-' if selected is None else 'run-', dir=runs))
@@ -248,7 +253,132 @@ class Session:
             raise CheckError(f'{label}: command failed (exit {code}); see {log}\n{(log.read_text() + stderr_log.read_text())[-2500:]}')
         return log.read_text()
 
+    def preserve(self, path, target, *, coq=False):
+        if not path.is_file() or path.is_symlink():
+            raise CheckError(f'Missing source or unsupported symlink: {path}')
+        data = path.read_bytes()
+        if coq:
+            validate_source(path, data, authored=target.parts[0] == 'property')
+        recorded = self.report['source_hashes'].get(str(target))
+        if recorded is not None and recorded != digest(data):
+            raise CheckError(f'Conflicting snapshot sources: {target}')
+        destination = self.sources / target
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(data)
+        self.originals[path] = digest(data)
+        self.report['source_hashes'][str(target)] = digest(data)
+        return data
+
+    @staticmethod
+    def publication_relative(value, manifest):
+        if not isinstance(value, str):
+            raise CheckError(f'Invalid semantic pass path in {manifest}')
+        path = Path(value)
+        if not path.parts or path.is_absolute() or '..' in path.parts:
+            raise CheckError(f'Invalid semantic pass path in {manifest}: {value}')
+        return path
+
+    def register_publications(self, translator_hash):
+        root = self.fixture_root or ROOT / 'specification' / self.prop.name
+        selected = [(root, None)] + [(root / 'candidates' / name, name)
+                                     for name in self.sequence]
+        for directory, candidate in selected:
+            manifest = directory / 'PassEvidence.json'
+            legacy_source = (self.prop / 'candidates' / candidate / 'Helper.watsup'
+                             if candidate else directory / 'source/Property.watsup')
+            if not manifest.is_file():
+                if legacy_source.is_file():
+                    raise CheckError(f'Missing semantic pass evidence: {manifest}')
+                continue
+            try:
+                evidence = json.loads(manifest.read_text())
+            except (json.JSONDecodeError, UnicodeError) as error:
+                raise CheckError(f'Invalid semantic pass evidence: {manifest}: {error}') from error
+            if not isinstance(evidence, dict):
+                raise CheckError(f'Invalid semantic pass evidence: {manifest}')
+            namespace = evidence.get('namespace')
+            if namespace is None:
+                namespace = 'CandidateSpec' if candidate else 'FixtureSpec'
+            if not isinstance(namespace, str) or not IDENTIFIER.fullmatch(namespace):
+                raise CheckError(f'Invalid semantic pass namespace in {manifest}')
+            target = (Path('candidate') if namespace == 'CandidateSpec' else
+                      Path('candidate_' + candidate)) if candidate else Path('fixture')
+            if namespace in self.namespaces and not (
+                    candidate is None and namespace in {'FixtureSpec', 'P4Spec', 'WasmSpec'}):
+                raise CheckError(f'Conflicting semantic pass namespace: {namespace}')
+            self.namespaces[namespace] = (directory, target)
+            if candidate is None and namespace != 'FixtureSpec':
+                del self.namespaces['FixtureSpec']
+            source_name = evidence.get('source')
+            if source_name is not None:
+                if not isinstance(source_name, str):
+                    raise CheckError(f'Invalid semantic pass source in {manifest}')
+                source = (directory / source_name).resolve()
+                if not source.is_relative_to(ROOT):
+                    raise CheckError(f'Semantic pass source escapes worktree: {source}')
+            else:
+                source = legacy_source
+            if evidence.get('translator_sha256') != translator_hash:
+                raise CheckError(f'Translator changed since semantic pass: {manifest}')
+            if not source.is_file() or evidence.get('source_sha256') != digest(source.read_bytes()):
+                raise CheckError(f'SpecTec source changed since semantic pass: {source}')
+            source_target = (Path('property/candidates') / candidate / source.name
+                             if candidate else target / 'source' / source.name)
+            self.preserve(source, source_target)
+            self.preserve(manifest, target / manifest.name)
+            artifacts = evidence.get('artifacts', [])
+            if not isinstance(artifacts, list):
+                raise CheckError(f'Invalid semantic pass artifacts: {manifest}')
+            for entry in artifacts:
+                if not isinstance(entry, dict):
+                    raise CheckError(f'Invalid semantic pass artifact in {manifest}')
+                relative = self.publication_relative(entry.get('path'), manifest)
+                if relative.suffix not in {'.json', '.txt', '.log'}:
+                    raise CheckError(f'Invalid semantic pass artifact in {manifest}: {relative}')
+                artifact = directory / relative
+                if not artifact.is_file() or digest(artifact.read_bytes()) != entry.get('sha256'):
+                    raise CheckError(f'Semantic pass artifact changed: {artifact}')
+                self.preserve(artifact, target / relative)
+            if 'namespace' in evidence and not all(
+                    isinstance(evidence.get(field), str) and
+                    any(entry.get('sha256') == evidence[field] for entry in artifacts)
+                    for field in ['frontend_al_sha256', 'backend_manifest_sha256']):
+                raise CheckError(f'Missing semantic pass artifacts: {manifest}')
+            outputs = evidence.get('generated')
+            if not isinstance(outputs, list) or not outputs:
+                raise CheckError(f'Missing generated Coq manifest: {manifest}')
+            hashes = {}
+            for output in outputs:
+                if not isinstance(output, dict):
+                    raise CheckError(f'Invalid generated Coq entry: {manifest}')
+                relative = self.publication_relative(output.get('path'), manifest)
+                if relative.suffix != '.v' or relative in hashes:
+                    raise CheckError(f'Invalid generated Coq path in {manifest}: {relative}')
+                generated = directory / relative
+                if not generated.is_file() or generated.is_symlink() or \
+                        digest(generated.read_bytes()) != output.get('sha256'):
+                    raise CheckError(f'Generated Coq changed since semantic pass: {generated}')
+                hashes[relative] = output['sha256']
+                self.originals[generated] = output['sha256']
+            self.publications.append({'root': directory, 'target': target,
+                                      'namespace': namespace, 'hashes': hashes})
+            self.report.setdefault('semantic_publications', []).append({
+                'candidate': candidate, 'namespace': namespace,
+                'source': str(source_target), 'manifest': str(target / manifest.name),
+                'artifacts': [str(target / item['path']) for item in artifacts]})
+        self.coq_flags = []
+        for namespace, (source, target) in self.namespaces.items():
+            (self.sources / target).mkdir(parents=True, exist_ok=True)
+            self.coq_flags.extend(['-Q', str(target), namespace])
+        self.coq_flags.extend(['-R', 'property', 'Property'])
+        self.report['namespace_mapping'] = {
+            namespace: {'source': str(source), 'snapshot': str(target)}
+            for namespace, (source, target) in self.namespaces.items()}
+
     def snapshot(self):
+        translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
+        translator_hash = digest(b''.join(path.read_bytes() for path in translator_sources))
+        self.register_publications(translator_hash)
         paths = [(self.prop / 'Original.v', Path('property/Original.v'))]
         for name in self.sequence:
             for filename in ['Candidate.v', 'Equivalence.v']:
@@ -261,59 +391,22 @@ class Session:
             if target in seen:
                 continue
             seen.add(target)
-            if not path.is_file() or path.is_symlink():
-                raise CheckError(f'Missing source or unsupported symlink: {path}')
-            data = path.read_bytes()
-            validate_source(path, data, authored=target.parts[0] == 'property')
-            destination = self.sources / target
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(data)
-            self.originals[path] = digest(data)
-            self.report['source_hashes'][str(target)] = digest(data)
+            # Match physical publications even when an import uses the legacy
+            # Specification/FixtureSpec alias. Candidate roots are more specific
+            # than their enclosing fixed specification publication.
+            for publication in sorted(self.publications,
+                                      key=lambda item: len(item['root'].parts), reverse=True):
+                if path.is_relative_to(publication['root']):
+                    relative = path.relative_to(publication['root'])
+                    if relative not in publication['hashes']:
+                        raise CheckError(f'{path}: not listed in the semantic pass generated manifest')
+                    break
+            data = self.preserve(path, target, coq=True)
             for name in dependencies(data):
-                dependency = dependency_path(name, self.prop.name, self.fixture_root)
+                dependency = dependency_path(name, self.prop.name, self.fixture_root,
+                                             self.namespaces)
                 if dependency is not None and dependency[1] not in seen:
                     pending.append(dependency)
-        # Preserve the semantic SpecTec inputs and both pass results alongside
-        # the selected Coq dependency closure. These are evidence, not Coq files.
-        fixture_source = ROOT / 'specification' / self.prop.name / 'source/Property.watsup'
-        extras = []
-        if fixture_source.is_file() and self.fixture_root is None:
-            extras.append((fixture_source, Path('fixture/source/Property.watsup')))
-            extras.append((ROOT / 'specification' / self.prop.name / 'PassEvidence.json',
-                           Path('fixture/PassEvidence.json')))
-        for name in self.sequence:
-            helper = self.prop / 'candidates' / name / 'Helper.watsup'
-            if helper.is_file():
-                extras.append((helper, Path('property/candidates') / name / 'Helper.watsup'))
-                extras.append((ROOT / 'specification' / self.prop.name /
-                               'candidates' / name / 'PassEvidence.json',
-                               Path('candidate/PassEvidence.json')))
-        for path, target in extras:
-            if not path.is_file() or path.is_symlink():
-                raise CheckError(f'Missing semantic pass evidence: {path}')
-            data = path.read_bytes()
-            destination = self.sources / target
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(data)
-            self.originals[path] = digest(data)
-            self.report['source_hashes'][str(target)] = digest(data)
-        translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
-        translator_hash = digest(b''.join(path.read_bytes() for path in translator_sources))
-        for path, _ in extras:
-            if path.name != 'PassEvidence.json':
-                continue
-            evidence = json.loads(path.read_text())
-            if evidence.get('translator_sha256') != translator_hash:
-                raise CheckError(f'Translator changed since semantic pass: {path}')
-            source = (fixture_source if path.parent.name == self.prop.name
-                      else self.prop / 'candidates' / path.parent.name / 'Helper.watsup')
-            if evidence.get('source_sha256') != digest(source.read_bytes()):
-                raise CheckError(f'SpecTec source changed since semantic pass: {source}')
-            for output in evidence.get('generated', []):
-                generated = path.parent / output['path']
-                if not generated.is_file() or digest(generated.read_bytes()) != output['sha256']:
-                    raise CheckError(f'Generated Coq changed since semantic pass: {generated}')
         self.report['dependency_modules'] = sorted(self.report['source_hashes'])
         for path in [ROOT / 'scripts/check.py', ROOT / 'scripts/run.py', ENV, ROOT / 'environment/opam-switch.export']:
             if path.exists():
@@ -324,7 +417,7 @@ class Session:
         self.save()
 
     def compile(self, file, label):
-        return self.command(['coqc', '-q', *COQ_FLAGS, file], label)
+        return self.command(['coqc', '-q', *self.coq_flags, file], label)
 
     def fresh(self):
         if discover(self.prop, self.selected) != self.sequence:
@@ -341,7 +434,7 @@ class Session:
     def check(self):
         self.snapshot()
         files = sorted(str(p.relative_to(self.sources)) for p in self.sources.rglob('*.v'))
-        order = self.command(['coqdep', '-sort', *COQ_FLAGS, *files], 'dependencies')
+        order = self.command(['coqdep', '-sort', *self.coq_flags, *files], 'dependencies')
         # Paths are restricted to Coq identifiers and normalized snapshot directories.
         ordered = [str(Path(item).with_suffix('.v')) for item in order.split()]
         if len(ordered) != len(files) or set(ordered) != set(files):
@@ -353,7 +446,7 @@ class Session:
         self.report['assumptions'] = found
         if found:
             raise CheckError(f'Equivalence has unsupported assumptions: {", ".join(found)}')
-        self.command(['coqchk', '-silent', *COQ_FLAGS, 'Sequence'], 'equivalence-kernel')
+        self.command(['coqchk', '-silent', *self.coq_flags, 'Sequence'], 'equivalence-kernel')
         self.fresh()
         self.save()
 

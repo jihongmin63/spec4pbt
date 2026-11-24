@@ -8,6 +8,7 @@ import sys
 
 from .bridge import ROOT
 from .codec import CodecError, decode_input
+from .coq_codec import constructor_schema
 
 
 class GenerationError(RuntimeError):
@@ -23,22 +24,26 @@ class GenerationBatch:
     size: int
 
 
-def load_samples(samples, fields):
+def load_samples(samples, fields, type_schema=None):
     if not isinstance(samples, list):
         raise GenerationError('samples must be a list')
+    try:
+        constructors = constructor_schema({} if type_schema is None else type_schema)
+    except CodecError as error:
+        raise GenerationError(str(error)) from error
     output = []
     for index, sample in enumerate(samples):
         if sample is None:
             output.append(None)
             continue
         try:
-            output.append(decode_input(sample, fields))
+            output.append(decode_input(sample, fields, constructors))
         except CodecError as error:
             raise GenerationError(f'sample {index}: {error}') from error
     return output
 
 
-def derive_and_sample(property_dir, candidate, fields, *, count=100,
+def derive_and_sample(property_dir, candidate, fields, *, type_schema=None, count=100,
                       size=30, seed=0, timeout=360):
     property_dir = Path(property_dir).resolve()
     command = [sys.executable, str(ROOT / 'scripts/run.py'), str(property_dir),
@@ -57,5 +62,6 @@ def derive_and_sample(property_dir, candidate, fields, *, count=100,
     evidence = json.loads(report.read_text())
     if evidence.get('status') != 'passed' or evidence.get('candidate') != candidate:
         raise GenerationError('candidate derivation did not pass')
-    samples = load_samples(json.loads((report.parent / 'samples.json').read_text()), fields)
+    samples = load_samples(json.loads((report.parent / 'samples.json').read_text()),
+                           fields, type_schema)
     return GenerationBatch(candidate, tuple(samples), report, seed, size)

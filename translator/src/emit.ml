@@ -6,6 +6,8 @@ let namespace ctx =
   | "p4" -> "P4Spec"
   | "wasm" -> "WasmSpec"
   | "candidate" -> "CandidateSpec"
+  | name when String.starts_with ~prefix:"candidate_v" name ->
+      "CandidateV" ^ String.sub name 11 (String.length name - 11) ^ "Spec"
   | _ -> "FixtureSpec"
 let type_parameters ctx (signature:Context.signature) = List.map(fun p->Data.parameter_name ctx p.Util.Source.it)signature.type_parameters
 let param_binders ps = String.concat " " (List.map(fun p->par(p^" : Set"))ps @ List.map(fun p->par("ops_"^p^" : ValueOps@{Set} "^p))ps)
@@ -107,8 +109,8 @@ let render_relations ctx =
 let rec mkdir path = if not(Sys.file_exists path)then(mkdir(Filename.dirname path);Unix.mkdir path 0o755)
 let write_file path text = let file=open_out path in Fun.protect ~finally:(fun()->close_out file)(fun()->output_string file text)
 exception Direct_unsupported of Coq_ir.diagnostic list
-let write ~out_dir ctx ~data ~bodies = try
-  let direct = match Inductive_emit.render ctx bodies with
+let write ?(normalize_computations = false) ~out_dir ctx ~data ~bodies = try
+  let direct = match Inductive_emit.render ~normalize_computations ctx bodies with
     | Ok source -> source
     | Error diagnostics -> raise (Direct_unsupported diagnostics) in
   let generated=Filename.concat out_dir "Generated" in mkdir generated;

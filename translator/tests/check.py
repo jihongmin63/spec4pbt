@@ -230,6 +230,14 @@ def inductive(backend=None):
 def all_suites(backend=None):
     run = SuiteRun('all')
     try:
+        import hashlib
+        def publication_hashes():
+            files = [ROOT / f'translator/profiles/{name}.json' for name in ['p4', 'wasm']]
+            for name in ['p4', 'wasm']:
+                files.extend((ROOT / 'specification' / name).rglob('*.v'))
+            return {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                    for path in sorted(files)}
+        fixed_publications = publication_hashes()
         executable, _ = prepare_backend(run, backend)
         names = ['runtime', 'frontend', 'data', 'expressions', 'lowering', 'inductive', 'builtin-p4', 'builtin-wasm']
         for name in names:
@@ -239,7 +247,8 @@ def all_suites(backend=None):
             run.execute(command, f'suites/{name}.log')
         checked = {}
         for name in ['p4', 'wasm']:
-            log = run.execute(['python3', '-B', ROOT / 'scripts/translate.py', '--profile', name, '--check'], f'full/{name}.log')
+            log = run.execute(['python3', '-B', ROOT / 'scripts/translate.py', '--profile', name,
+                               '--check', '--no-publish'], f'full/{name}.log')
             prefix = 'Coq source evidence: '
             results = [line[len(prefix):] for line in log.read_text().splitlines() if line.startswith(prefix)]
             if not results:
@@ -261,6 +270,9 @@ def all_suites(backend=None):
         run.execute(['bash', ROOT / 'environment/env.sh', 'coqc', '-q', '-Q', support, 'ALCoq',
                      '-Q', checked['p4'], 'P4Spec', '-Q', checked['wasm'], 'WasmSpec', both], 'both-namespaces.log', cwd=run.path)
         run.report['both_namespaces_compiled'] = True
+        if publication_hashes() != fixed_publications:
+            raise RuntimeError('verification changed fixed specification publications or profiles')
+        run.report['fixed_publications_preserved'] = True
         run.report['status'] = 'passed'
     finally:
         run.close()

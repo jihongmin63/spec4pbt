@@ -24,7 +24,6 @@ type path = {
 
 let parenthesize s = "(" ^ s ^ ")"
 let applied name values = String.concat " " (name :: List.map parenthesize values)
-let type_string = Emit_data.render_type
 let variable (binding : binding) = Render.identifier binding.name
 
 (* Each listed P4 helper reduces to Return, Unmatched, or Raise after its
@@ -79,7 +78,7 @@ let is_word = function
   | 'a'..'z' | 'A'..'Z' | '0'..'9' | '_' -> true
   | _ -> false
 
-let identifiers source =
+let identifiers ?(generated_only = true) source =
   let length = String.length source in
   let rec collect index quoted found =
     if index >= length then found else
@@ -91,7 +90,7 @@ let identifiers source =
       let stop = ref (index + 1) in
       while !stop < length && is_word source.[!stop] do incr stop done;
       let token = String.sub source index (!stop - index) in
-      collect !stop quoted (if String.starts_with ~prefix:"v_" token then token :: found else found)
+      collect !stop quoted (if not generated_only || String.starts_with ~prefix:"v_" token then token :: found else found)
     else collect (index + 1) quoted found
   in
   collect 0 false []
@@ -262,12 +261,43 @@ let parameter_binders parameters =
 
 let parameter_values parameters = parameters @ List.map (fun name -> "ops_" ^ name) parameters
 
-let render ctx bodies =
+let render ?(normalize_computations = false) ctx bodies =
+  (* Transparent source aliases are definitionally equal to their expansion.
+     The tactic reads binder types syntactically, so keep the declarations but
+     render relation indices and witnesses with their concrete type heads. *)
+  let rec concrete_type typ =
+    match Lower_expr.unfold_type ctx typ with
+    | Named (name, arguments) -> Named (name, List.map concrete_type arguments)
+    | Product fields -> Product (List.map concrete_type fields)
+    | List item -> List (concrete_type item)
+    | Option item -> Option (concrete_type item)
+    | Function_ref {parameters; inputs; output} ->
+        Function_ref {parameters; inputs = List.map concrete_type inputs;
+                      output = concrete_type output}
+    | typ -> typ in
+  let type_string typ = Emit_data.render_type (concrete_type typ) in
   let current_location = ref Util.Source.no_region in
   try
     counter := 0;
     let known = List.map (fun (body : body) -> body.call_name) bodies in
     let all = ref [] in
+    let computations = ref [] in
+    let normalization_counter = ref 0 in
+    let normalized_name prefix =
+      incr normalization_counter; prefix ^ string_of_int !normalization_counter in
+    let fresh_counter path =
+      let count = normalized_name "fresh_count_" in
+      let state = "{| next_fresh := " ^ count ^ " |}" in
+      let path = if path.premises = [] &&
+          List.assoc_opt path.state path.variables = Some "State" &&
+          List.mem path.state path.indices then
+        {path with state;
+          indices = List.map (fun value -> if value = path.state then state else value) path.indices;
+          variables = List.filter (fun (name, _) -> name <> path.state) path.variables @
+                      [count, "nat"]}
+      else add_premise (add_variable path count "nat")
+          (path.state ^ " = " ^ state) in
+      path, count in
     let register value = all := !all @ [value]; value in
     let apply_relation = register
       { (relation "R_apply" []
@@ -326,21 +356,64 @@ let render ctx bodies =
       let clause_relations = Array.init count (fun i -> make_clause (i + 1)) in
       let call_index = ref 0 in
       let traverse_index = ref 0 in
+      (* Lambda-close each computation over exactly the typed binders that it
+         uses. The transparent definition hides polymorphic implementation
+         constants from the tactic without changing its value. *)
+      let computation path value =
+        let code = expression path value in
+        let result_type = type_string value.typ in
+        let rec dependencies names =
+          let expanded = List.sort_uniq String.compare (names @
+            List.concat_map (fun (name, typ) ->
+              if List.mem name names then identifiers ~generated_only:false typ else [])
+              path.variables) in
+          if expanded = List.sort_uniq String.compare names then expanded
+          else dependencies expanded in
+        let needed = dependencies (identifiers ~generated_only:false code @
+                                   identifiers ~generated_only:false result_type) in
+        let captured = List.filter (fun (name, _) -> List.mem name needed) path.variables in
+        let helper = normalized_name (body.call_name ^ "_expression_") in
+        (* A closed term still needs a function application: the pinned tactic
+           otherwise mistakes a nullary transparent constant for a variable. *)
+        let binders = if captured = [] then "(computation_unit : unit)" else
+          String.concat " " (List.map (fun (name, typ) ->
+            "(" ^ name ^ " : " ^ typ ^ ")") captured) in
+        computations := !computations @ [helper,
+          "Definition " ^ helper ^ " " ^ binders ^ " : " ^ result_type ^
+          " := " ^ code ^ "."];
+        applied helper (if captured = [] then ["tt"] else List.map fst captured) in
+      let rec computed value = match value.term with
+        | Variable _ | Function _ -> false
+        | Constructor (_, values) | Tuple values -> List.exists computed values
+        | Literal code ->
+            String.contains code '(' && not (String.starts_with ~prefix:"\"" code)
+        | Primitive _ | Projection _ | Lambda _ | Apply _ | Match_term _ -> true in
+      let normalize path value =
+        if normalize_computations && computed value then
+          let term = computation path value in
+          let witness = normalized_name "computed_value_" in
+          let path = add_premise (add_variable path witness (type_string value.typ))
+            (term ^ " = " ^ witness) in
+          path, witness
+        else path, expression path value in
       let rec compile index live action path success miss fail =
         match action.node with
-        | Return value -> success path (expression path value)
+        | Return value ->
+            let path, value = normalize path value in success path value
         | Unmatch -> miss path
         | Error err -> fail path err
         | Fresh ->
-            let value = "next_fresh " ^ parenthesize path.state in
-            let next = "{| next_fresh := S " ^ parenthesize value ^ " |}" in
-            success {path with state = next} value
+            let path, count = fresh_counter path in
+            let next = "{| next_fresh := S " ^ count ^ " |}" in
+            success {path with state = next} count
         | Guard condition ->
-            let value = expression path condition in
+            let value = if normalize_computations then computation path condition
+              else expression path condition in
             success (add_premise path (value ^ " = true")) "tt";
             miss (add_premise path (value ^ " = false"))
         | Local (binding, value, right) ->
-            compile index live right (add_environment path binding (expression path value)) success miss fail
+            let path, value = normalize path value in
+            compile index live right (add_environment path binding value) success miss fail
         | Bind (binding, left, right) ->
             let needed_after_left = without_binding binding (free_action right) @ live in
             compile index needed_after_left left path
@@ -513,9 +586,16 @@ let render ctx bodies =
             fail (add_premise {error_path with state = final}
               (call ("Error " ^ err))) err
         | Primitive_action ("(@P4.fresh_typeId Call)", []) when ctx.Context.profile.name = "p4" ->
-            let number = "next_fresh " ^ parenthesize path.state in
-            let value = "String.append \"FRESH__\" (print_nat " ^ parenthesize number ^ ")" in
-            let next = "{| next_fresh := S " ^ parenthesize number ^ " |}" in
+            let helper = body.call_name ^ "_fresh_text" in
+            if not (List.mem_assoc helper !computations) then
+              computations := !computations @ [helper,
+                "Definition " ^ helper ^ " (n : nat) : string := " ^
+                "String.append \"FRESH__\" (print_nat n)."];
+            let path, count = fresh_counter path in
+            let value = normalized_name "fresh_text_" in
+            let path = add_premise (add_variable path value "string")
+                (helper ^ " " ^ count ^ " = " ^ value) in
+            let next = "{| next_fresh := S " ^ count ^ " |}" in
             success {path with state = next} value
         | Primitive_action (helper, arguments) ->
             if not (terminal_primitive ctx.Context.profile.name helper) then
@@ -635,6 +715,7 @@ let render ctx bodies =
       | block :: rest when size + String.length block > 750_000 && current <> [] ->
           chunk [block] (String.length block) ((String.concat "\n\n" (List.rev current) ^ "\n") :: result) rest
       | block :: rest -> chunk (block :: current) (size + String.length block) result rest in
+    let blocks = List.map snd !computations @ blocks in
     Ok (chunk [] 0 [] blocks)
   with Unsupported reason ->
     Error [{stage = "inductive"; location = !current_location;

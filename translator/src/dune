@@ -1,4 +1,4 @@
 (executable
  (name main)
- (modules main context coq_ir data emit_data casts render lower_expr wasm_bindings builtins lower_exec inductive_emit emit)
+ (modules main context coq_ir data emit_data casts render lower_expr wasm_bindings builtins lower_exec inductive_emit emit property_plan)
  (libraries pass lang domain util diagnostic yojson unix))

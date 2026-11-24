@@ -59,7 +59,7 @@ Lemma fresh_builtin_direct s o t :
 Proof.
   split.
   - intro H. inversion H; subst; auto.
-  - intros [-> ->]. constructor.
+  - destruct s as [counter]. intros [-> ->]. constructor. reflexivity.
 Qed.
 
 Lemma fresh_builtin_eval s o t :
@@ -88,11 +88,11 @@ Theorem failed_clause_consumes_fresh n s :
     (state (S (S s))).
 Proof.
   eapply direct_case_8.
-  - apply direct_case_2.
+  - apply direct_case_2; reflexivity.
   - eapply direct_case_13.
     + reflexivity.
     + eapply direct_case_24.
-      * apply direct_case_2.
+      * apply direct_case_2; reflexivity.
       * apply direct_case_26.
 Qed.
 
