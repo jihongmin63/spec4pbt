@@ -271,12 +271,28 @@ source is published as checked Coq relations in
 `specification/property_replay_demo/`. Candidate v002 adds a separate SpecTec
 helper through the same frontend and translator passes. `PassEvidence.json`
 records the source, AL pass, translator, and generated Coq hashes.
-The fixed `Original.v` is checked against the source-derived renderer for this
-demo's one nat Input and variable-only relation premises. The renderer does
-not yet support multiple or non-nat Input fields, or the translated temporary
-relation needed for other premise forms. The typed JSON codec can validate
-nested constructors independently, but that does not provide an end-to-end
-Coq Input encoder for such fields.
+`scripts.property.rocq.translate_property` lowers the typed single-rule `Pre`.
+Variable-only calls apply existing translated relations. Other premises and
+computed returns become temporary AL relations and use the same translation
+pipeline. `render_original` builds an Input record, existential constructor
+witnesses, and a typed JSON encoder; Goal is excluded from generation.
+Each premise receives the preceding final state, beginning with fresh_id 0.
+First order function calls participate in observation analysis and replay
+projection, including calls in computed returns. Trace wrappers retain native
+expression evaluation order and carry each function's output dependencies.
+
+Input transport supports nat, int, text, bool, and concrete constructor ADTs,
+including nested values. Encoders use the translator's type metadata, with
+exact decimal numbers and UTF-8 JSON text. Type generators supply valid UTF-8
+strings; the pinned tactic derives the predicate generator. Neither `Show`
+nor generator witnesses enter the wire format. The fixed demo sources and
+Original remain unchanged.
+
+Candidate helper publications can use separate `candidate_vNNN` profiles and
+`CandidateVNNNSpec` namespaces. Their manifests retain the SpecTec source,
+frontend AL output, backend manifest, generated Coq hashes, and translator hash.
+Only the selected candidate prefix and its imported dependency closure are
+compiled in ignored snapshots.
 
 `scripts.property.cli` keeps generation, implementation replay, and
 specification debug as separate commands. The native bridge uses the pinned
@@ -293,7 +309,10 @@ python3 -B -m scripts.property.cli properties/property_replay_demo replay --samp
 python3 -B -m scripts.property.cli properties/property_replay_demo debug --samples-file properties/property_replay_demo/.runs/sample-<id>/samples.json
 ```
 
-Each command writes a new property-local `.runs/` directory. `sample` saves
+Each command writes a new property-local `.runs/` directory. The first validated
+operation fixes the original sources in `.runs/fixed-original.json`; subsequent
+operations reject changes to the specification, Property.toml, or Original.v.
+Tool updates invalidate old batches but permit a new run with the same original. `sample` saves
 only typed Input fields or `null`; the adapter is never run during generation.
 The replay and debug commands consume the same saved Inputs independently.
 Replay evidence includes adapter hashes and actual external calls. Debug
@@ -301,7 +320,11 @@ evidence contains specification bindings and no adapter hash. Both passes
 record the exact instrumented AL's MD5 digest and reject a runtime digest
 that differs from the compiled pass. Replay traces identify a failing premise
 and its observed external dependencies; an independent unexpected premise
-failure is reported as `execution_error`. A fixed source
+failure is reported as `execution_error`. Dependency traces preserve helper
+control/status effects and distinguish each argument through mutual recursion.
+Timeouts bound the entire Input execution, including adapter reads and writes.
+Structured compile failures retain known variables, slot positions, source
+locations, helper paths, and projection evidence. A fixed source
 or observation contract change invalidates saved batch evidence. The demo
 adapter returns `b=20`, so `x=7` produces `c=21` and a failed Goal; debug
 computes `b=10`, `c=11`, and a passing Goal. These are finite execution
@@ -317,3 +340,7 @@ python3 -m unittest discover -s scripts/tests -v
 Run the environment check after changing the environment or the example. The
 scripts are maintained verification infrastructure; run the regressions after
 changing them.
+`python3 -B translator/tests/check.py --suite all` compiles P4 and Wasm in
+ignored evidence directories and checks that published specifications and
+profiles stay unchanged. For a direct compilation without publication, use
+`python3 scripts/translate.py --profile p4 --check --no-publish`.
