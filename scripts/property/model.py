@@ -16,6 +16,10 @@ class SpecProperty:
     external: tuple[dict, ...]
     definitions: tuple[dict, ...]
     type_schema: dict = field(default_factory=dict)
+    call_graph: tuple[dict, ...] = ()
+    source_map: dict = field(default_factory=dict)
+    semantic_hashes: dict = field(default_factory=dict)
+    implementation_hashes: dict = field(default_factory=dict)
 
 
 class CompileError(ValueError):
