@@ -2,7 +2,7 @@
 from .adapters import AdapterProtocolError, AdapterSession, AdapterTimeout
 from .codec import CodecError, decode_input
 from .coq_codec import constructor_schema
-from .compiler import digest
+from .compiler import validate_model_files
 from .dependency import failed_premise
 from .engine import BridgeError, BridgeTimeout, run_bridge
 from .model import ReplayProgram, ReplayResult
@@ -12,7 +12,7 @@ def replay(program: ReplayProgram, input_value, commands, *, timeout=10):
     if not isinstance(program, ReplayProgram):
         raise TypeError('replay requires a checked ReplayProgram')
     model = program.model
-    if digest(model.source) != model.source_sha256 or digest(model.config) != model.config_sha256:
+    if not validate_model_files(model, implementation=True):
         return ReplayResult('execution_error', {}, 0, 'fixed source or Property.toml changed')
     try:
         input_value = decode_input(input_value, model.inputs,
@@ -38,6 +38,9 @@ def replay(program: ReplayProgram, input_value, commands, *, timeout=10):
                           else 'execution_error')
             elif status not in ('passed', 'failed'):
                 status = 'execution_error'
+            if model.source_map:
+                from .declaration import remap_locations
+                trace = remap_locations(trace, model.source_map)
             return ReplayResult(status, trace, adapters.call_count,
                                 trace.get('failure', {}).get('reason', ''))
         except (AdapterTimeout, BridgeTimeout) as error:

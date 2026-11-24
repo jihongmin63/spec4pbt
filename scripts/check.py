@@ -19,7 +19,7 @@ COQ_FLAGS = ['-Q', 'support', 'ALCoq', '-Q', 'specification', 'Specification',
              '-Q', 'wasm', 'WasmSpec', '-R', 'property', 'Property']
 IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_']*\Z")
 REQUIRE = re.compile(r'\b(?:From\s+([A-Za-z0-9_.]+)\s+)?Require'
-                     r'(?:\s+(?:Import|Export))?\s+([A-Za-z0-9_.\s]+?)\s*\.')
+                     r'(?:\s+(?:Import|Export))?\s+([A-Za-z0-9_.\s]+?)\s*\.(?![A-Za-z0-9_])')
 
 
 class CheckError(Exception):
@@ -208,6 +208,20 @@ class Session:
         self.sequence = discover(self.prop, selected)
         self.timeout = timeout
         self.fixture_root = Path(fixture_root).resolve() if fixture_root is not None else None
+        if __package__:
+            from .property.context import load_context
+        else:
+            from property.context import load_context
+        self.load_property_context = load_context
+        try:
+            self.property_context = load_context(self.prop)
+        except (OSError, ValueError, KeyError) as error:
+            raise CheckError(str(error)) from error
+        if self.property_context:
+            publication = Path(self.property_context['publication'])
+            if self.fixture_root is not None and self.fixture_root != publication:
+                raise CheckError('explicit publication differs from fixed property context')
+            self.fixture_root = publication
         self.namespaces = namespace_roots(self.prop.name, self.fixture_root)
         self.coq_flags = list(COQ_FLAGS)
         self.publications = []
@@ -375,7 +389,8 @@ class Session:
             namespace: {'source': str(source), 'snapshot': str(target)}
             for namespace, (source, target) in self.namespaces.items()}
 
-    def snapshot(self):
+    def snapshot_inputs(self):
+        """Preserve the complete authoritative source closure without running Coq."""
         translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
         translator_hash = digest(b''.join(path.read_bytes() for path in translator_sources))
         self.register_publications(translator_hash)
@@ -408,7 +423,20 @@ class Session:
                 if dependency is not None and dependency[1] not in seen:
                     pending.append(dependency)
         self.report['dependency_modules'] = sorted(self.report['source_hashes'])
-        for path in [ROOT / 'scripts/check.py', ROOT / 'scripts/run.py', ENV, ROOT / 'environment/opam-switch.export']:
+        if self.property_context:
+            self.report['property_context'] = self.property_context
+            for name in ('property-context.json', 'fixed-original-v2.json'):
+                self.preserve(self.prop / '.runs' / name, Path('metadata') / name)
+        self.save()
+
+    def snapshot(self):
+        self.snapshot_inputs()
+        translator_sources = sorted((ROOT / 'translator/src').glob('*.ml'))
+        translator_hash = digest(b''.join(path.read_bytes() for path in translator_sources))
+        tools = [ROOT / 'scripts/check.py', ROOT / 'scripts/run.py', ENV, ROOT / 'environment/opam-switch.export']
+        if self.property_context:
+            tools.append(ROOT / 'scripts/property/context.py')
+        for path in tools:
             if path.exists():
                 self.report['tool_hashes'][str(path.relative_to(ROOT))] = digest(path.read_bytes())
         self.report['tool_hashes']['translator/src/all.ml'] = translator_hash
@@ -420,6 +448,12 @@ class Session:
         return self.command(['coqc', '-q', *self.coq_flags, file], label)
 
     def fresh(self):
+        if self.property_context:
+            try:
+                if self.load_property_context(self.prop) != self.property_context:
+                    raise CheckError('property context changed during verification')
+            except (OSError, ValueError, KeyError) as error:
+                raise CheckError(str(error)) from error
         if discover(self.prop, self.selected) != self.sequence:
             raise CheckError('Candidate sequence changed during verification')
         for path, old in self.originals.items():

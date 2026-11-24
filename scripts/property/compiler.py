@@ -90,7 +90,45 @@ def compile_spec(source, config):
         precondition=pre_name, goal=goal_name, inputs=inputs,
         pre_outputs=tuple(pre['output_types']),
         goal_inputs=tuple(goal['input_types']), external=tuple(external),
-        definitions=tuple(definitions), type_schema=report.get('type_schema', {}))
+        definitions=tuple(definitions), type_schema=report.get('type_schema', {}),
+        call_graph=tuple(report.get('call_graph', ())))
+
+
+def attach_implementation(model, setup):
+    """Select reachable replacement boundaries from a reusable adapter catalog."""
+    from dataclasses import replace
+    definitions = {definition['name']: definition for definition in model.definitions}
+    graph = {node['name']: node['calls'] for node in model.call_graph}
+    contracts = {item['relation']: item for item in setup.external}
+    for name, contract in contracts.items():
+        if name not in definitions:
+            raise CompileError(f'unknown adapter relation: {name}')
+        arity = len(definitions[name]['output_types'])
+        if any(position >= arity for position in contract['observed_outputs']):
+            raise CompileError(f'{name}: invalid observed_outputs')
+    seen, pending = set(), [model.precondition, model.goal]
+    while pending:
+        name = pending.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        if name not in contracts:
+            pending.extend(graph.get(name, ()))
+    return replace(model, external=tuple(dict(item) for item in setup.external
+                                         if item['relation'] in seen),
+                   implementation_hashes=dict(setup.hashes))
+
+
+def validate_model_files(model, *, implementation=False):
+    """Recheck semantic inputs, and implementation inputs only for replay."""
+    expected = {model.source: model.source_sha256, model.config: model.config_sha256,
+                **model.semantic_hashes}
+    if implementation:
+        expected.update(model.implementation_hashes)
+    try:
+        return all(digest(path) == old for path, old in expected.items())
+    except OSError:
+        return False
 
 
 def analyze_replay(model):

@@ -1,7 +1,7 @@
 """Re-evaluate the fixed specification with no external adapter process."""
 from .codec import CodecError, decode_input
 from .coq_codec import constructor_schema
-from .compiler import digest
+from .compiler import validate_model_files
 from .dependency import failed_premise
 from .engine import BridgeError, BridgeTimeout, run_bridge
 from .model import DebugProgram, DebugResult
@@ -11,7 +11,7 @@ def debug(program: DebugProgram, input_value, *, timeout=10):
     if not isinstance(program, DebugProgram):
         raise TypeError('debug requires a DebugProgram')
     model = program.model
-    if digest(model.source) != model.source_sha256 or digest(model.config) != model.config_sha256:
+    if not validate_model_files(model):
         return DebugResult('execution_error', {}, reason='fixed source or Property.toml changed')
     if not program.available:
         return DebugResult('unavailable', {}, reason='missing definitions: ' +
@@ -36,6 +36,9 @@ def debug(program: DebugProgram, input_value, *, timeout=10):
             trace['failure'] = failure
         if status not in ('passed', 'failed', 'precondition_failed'):
             status = 'execution_error'
+        if model.source_map:
+            from .declaration import remap_locations
+            trace = remap_locations(trace, model.source_map)
         return DebugResult(status, trace)
     except BridgeTimeout as error:
         return DebugResult('unknown', {}, reason=str(error))

@@ -146,7 +146,7 @@ def translate_property(source, config, destination, *, profile='fixture'):
     return destination
 
 
-def render_original(source, config, *, publication=None):
+def render_original(source, config, *, publication=None, public_input_names=None):
     from .coq_codec import render_input_codec, render_type_generators
     if publication is None:
         _, output = _generate_property(source, config, inventory=True)
@@ -155,6 +155,9 @@ def render_original(source, config, *, publication=None):
         plan = publication_plan(publication, source, config)
     fields = [{**field, 'coq_projection': 'input_' + field['coq_name']}
               for field in plan['inputs']]
+    if public_input_names:
+        fields = [{**field, 'name': public_input_names.get(field['name'], field['name'])}
+                  for field in fields]
     record = '; '.join(f"{field['coq_projection']} : {field['coq_type']}" for field in fields)
     text = ('From QuickChick Require Import QuickChick.\n'
             'From Coq Require Import String Ascii ZArith.\n'

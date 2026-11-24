@@ -141,6 +141,12 @@ def read_inputs(args, property_dir, hashes):
 
 
 def execute(args):
+    if (getattr(args, 'spec', None) is not None or
+            (args.property / '.runs/property-context.json').exists() or
+            (args.property / '.runs/fixed-original-v2.json').exists() or
+            not (args.property / 'Property.toml').exists()):
+        from .unified import execute as execute_unified
+        return execute_unified(args)
     property_dir = args.property.resolve()
     if not property_dir.is_relative_to(ROOT / 'properties'):
         raise ValueError('property must be inside this worktree')
@@ -238,6 +244,8 @@ def execute(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('property', type=Path)
+    parser.add_argument('--spec', type=Path, help='shared Specification.toml (first prepare)')
+    parser.add_argument('--implementation', type=Path, help='shared Adapter.toml for replay')
     sub = parser.add_subparsers(dest='action', required=True)
     prepare = sub.add_parser('prepare')
     prepare.add_argument('--target', choices=('spec', 'replay', 'debug'), default='spec')
@@ -251,6 +259,9 @@ def main():
         command.add_argument('--samples-file', type=Path)
         command.add_argument('--input-json')
         command.add_argument('--timeout', type=float, default=10)
+    for command in sub.choices.values():
+        command.add_argument('--spec', type=Path, default=argparse.SUPPRESS)
+        command.add_argument('--implementation', type=Path, default=argparse.SUPPRESS)
     args = parser.parse_args()
     path, ok = execute(args)
     print(path)
