@@ -63,6 +63,17 @@ class FunctionObservabilityTests(unittest.TestCase):
             self.assertEqual(caught.exception.details['premise']['kind'], 'return:0')
             self.assertEqual(caught.exception.details['guaranteed_outputs']['$inner'], [])
 
+    def test_helper_callback_cannot_hide_external_observation_requirements(self):
+        with self.model([], replacements=[
+            ('dec $outer(nat) : nat',
+             'dec $apply<X>(def $f(X) : X, X) : X\n'
+             'def $apply<X>(def $f, X) = $f(X)\n'
+             'dec $outer(nat) : nat'),
+            ('def $outer(x) = $inner(x)', 'def $outer(x) = $apply<nat>(def $inner, x)'),
+        ]) as (model, _):
+            with self.assertRaisesRegex(CompileError, 'higher.order.*observation'):
+                compile_replay(model)
+
     def test_full_observation_reaches_function_calls_and_executes(self):
         with self.model([0]) as (model, directory):
             program = compile_replay(model)

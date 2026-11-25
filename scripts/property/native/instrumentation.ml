@@ -6,16 +6,20 @@ type observation = { seq : int; label : string; source : string; value : Runtime
 let events : observation list ref = ref []
 type marker = { seq : int; phase : string; relation : string;
                 kind : string; source : string; inputs : string list;
-                outputs : string list; input_slots : string list list }
+                outputs : string list; input_slots : string list list;
+                negated : bool; invocation : int }
 let markers : marker list ref = ref []
 let sequence = ref 0
 let tick () = incr sequence; !sequence
+let invocation_counter = ref 0
+let invocation_stack : int list ref = ref []
 
 let record label source value =
   events := {seq = tick (); label; source; value} :: !events
 
-let record_marker phase relation kind source inputs outputs input_slots =
-  markers := {seq = tick (); phase; relation; kind; source;
+let record_marker phase relation kind source inputs outputs input_slots negated =
+  markers := {seq = tick (); phase; relation; kind; source; negated;
+              invocation = (match !invocation_stack with id :: _ -> id | [] -> 0);
               inputs = String.split_on_char ',' inputs |> List.filter ((<>) "");
               outputs = String.split_on_char ',' outputs |> List.filter ((<>) "");
               input_slots = Yojson.Safe.from_string input_slots
@@ -24,7 +28,9 @@ let record_marker phase relation kind source inputs outputs input_slots =
                   |> List.map Yojson.Safe.Util.to_string)}
              :: !markers
 
-let reset () = events := []; markers := []; sequence := 0
+let reset () =
+  events := []; markers := []; sequence := 0;
+  invocation_counter := 0; invocation_stack := []
 let snapshot () = List.rev !events
 let marker_snapshot () = List.rev !markers
 
@@ -35,6 +41,22 @@ let identity_prefix = "property_trace_identity_"
 let function_names : string list ref = ref []
 let occupied_names : string list ref = ref []
 let temporary_counter = ref 0
+
+(* Native enter/exit hooks run even when a call returns Unmatch. They separate
+   recursive invocations that have identical relation, path and source names. *)
+module Invocations = struct
+  include Inst.Handler.Default
+  let enter () =
+    incr invocation_counter;
+    invocation_stack := !invocation_counter :: !invocation_stack
+  let leave () = match !invocation_stack with
+    | _ :: rest -> invocation_stack := rest
+    | [] -> failwith "unbalanced native invocation hooks"
+  let on_rel_enter _ _ = enter ()
+  let on_rel_exit _ = leave ()
+  let on_func_enter id _ = if List.mem id.it !function_names then enter ()
+  let on_func_exit id = if List.mem id.it !function_names then leave ()
+end
 
 let fresh_result exp =
   let rec choose () =
@@ -64,14 +86,14 @@ let names exp =
   Lang.Al.Free.free_exp exp |> Domain.Lib.IdSet.elements
   |> List.map (fun id -> id.it)
 
-let marker_call ?(input_slots = []) phase relation kind source inputs outputs at =
+let marker_call ?(input_slots = []) ?(negated = false) phase relation kind source inputs outputs at =
   let text_typ = Runtime.Type.Typ.Make.text in
   let bool_typ = Runtime.Type.Typ.Make.bool in
   let slots = `List (List.map (fun slot ->
     `List (List.map (fun name -> `String name) slot)) input_slots)
     |> Yojson.Safe.to_string in
   let args = [phase; relation; kind; source;
-              String.concat "," inputs; String.concat "," outputs; slots]
+              String.concat "," inputs; String.concat "," outputs; slots; string_of_bool negated]
     |> List.map (fun value -> ExpA (TextE value $$ (at, text_typ.it)) $ at) in
   IfPr (CallE (marker_name $ at, [], args) $$ (at, bool_typ.it)) $ at
 
@@ -104,7 +126,8 @@ let marker phase relation prem =
         id.it, List.concat_map names (Domain.Mixfix.args notexp), []
     | DebugPr exp -> "debug", names exp, []
     | IterPr _ -> "iter", [], [] in
-  marker_call ~input_slots phase relation kind (string_of_region prem.at)
+  let negated = match prem.it with IfNotHoldPr _ -> true | _ -> false in
+  marker_call ~input_slots ~negated phase relation kind (string_of_region prem.at)
     inputs outputs prem.at
 
 (* Traverse expressions in place. This only rebuilds their syntax: the native
@@ -298,7 +321,7 @@ let marker_def () =
   let text_typ = Runtime.Type.Typ.Make.text in
   let bool_typ = Runtime.Type.Typ.Make.bool in
   BuiltinDecD (marker_name $ at, [],
-    List.init 7 (fun _ -> ExpP text_typ $ at), bool_typ, []) $ at
+    List.init 8 (fun _ -> ExpP text_typ $ at), bool_typ, []) $ at
 
 let identity_def (name, typ) =
   let at = no_region in

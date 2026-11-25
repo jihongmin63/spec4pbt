@@ -3,7 +3,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.property.compiler import CompileError, compile_spec
+from scripts.property.compiler import CompileError, compile_spec, compile_debug
+from scripts.property.debug import debug
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -36,10 +37,8 @@ rule Goal/main: x y
 
     def test_direct_property_scope_forms_are_rejected_with_source(self):
         source = FIXTURE.parent / 'observability/scope.watsup'
-        cases = [('Negation', 'Test', 'negation'),
-                 ('Iteration', 'Test', 'iteration'),
-                 ('HigherOrder', 'Test', 'higher_order'),
-                 ('Pre', 'Fallback', 'otherwise')]
+        cases = [('Iteration', 'Test', 'iteration'),
+                 ('HigherOrder', 'Test', 'higher_order')]
         for pre, goal, construct in cases:
             with self.subTest(construct=construct):
                 directory = Path(tempfile.mkdtemp(dir=ROOT / '_opam-testing-theorems/checks',
@@ -48,6 +47,24 @@ rule Goal/main: x y
                 config.write_text(f'precondition = "{pre}"\ngoal = "{goal}"\n')
                 with self.assertRaisesRegex(CompileError, construct + '.*scope.watsup'):
                     compile_spec(source, config)
+
+    def test_native_valid_negation_and_fallback_are_not_property_scope_errors(self):
+        source = FIXTURE.parent / 'observability/scope.watsup'
+        directory = Path(tempfile.mkdtemp(dir=ROOT / '_opam-testing-theorems/checks',
+                                          prefix='property-native-scope-'))
+        config = directory / 'Property.toml'
+        config.write_text('precondition = "Negation"\ngoal = "Fallback"\n')
+        model = compile_spec(source, config)
+        self.assertEqual(debug(compile_debug(model), {'x': {'type': 'nat', 'value': '1'}}).status,
+                         'precondition_failed')
+        # A fallback is also executable as the goal when its first rule fails.
+        contents = source.read_text().replace('  -- Test :/ x y', '  -- if y = $(x + 1)')
+        contents = contents.replace('  -- if y = x\n', '')
+        local = directory / source.name
+        local.write_text(contents)
+        model = compile_spec(local, config)
+        self.assertEqual(debug(compile_debug(model), {'x': {'type': 'nat', 'value': '1'}}).status,
+                         'passed')
 
     def test_input_and_goal_abi_come_from_typed_frontend(self):
         model = compile_spec(FIXTURE / 'partial.watsup', FIXTURE / 'Property.toml')

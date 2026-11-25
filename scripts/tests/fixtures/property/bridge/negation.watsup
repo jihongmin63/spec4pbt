@@ -1,0 +1,62 @@
+var x : nat
+var y : nat
+var z : nat
+
+relation Zero: |- nat hint(input %0)
+rule Zero/value: |- x
+  -- if x = 0
+
+relation Run: nat ~> nat hint(input %0)
+rule Run/value: x ~> y
+  -- if y = x
+
+relation Exists: |- nat hint(input %0)
+rule Exists/value: |- x
+  -- Run: x ~> y
+
+relation Same: nat ~> nat hint(input %0 %1)
+rule Same/accepted: x ~> y
+  -- Exists: |- x
+  -- Exists: |- y
+rule Same/rejected: x ~> y
+  -- Exists:/ |- x
+  -- Exists:/ |- y
+
+relation Guard: |- nat hint(input %0)
+rule Guard/value: |- x
+  -- Run: x ~> y
+  -- if y = 0
+
+relation Ignore: |- nat hint(input %0)
+rule Ignore/value: |- x
+
+relation Never: |- nat hint(input %0)
+rule Never/value: |- x
+  -- if false
+
+relation Alternatives: |- nat hint(input %0)
+rule Alternatives/first: |- x
+  -- Guard: |- x
+rule Alternatives/second: |- x
+  -- if x = 0
+
+relation Recovered: |- nat hint(input %0)
+rule Recovered/first: |- x
+  -- Guard: |- x
+rule Recovered/fallback: |- x
+  -- otherwise
+
+relation RejectedRecovered: |- nat hint(input %0)
+rule RejectedRecovered/main: |- x
+  -- Recovered:/ |- x
+
+relation Status: |- nat hint(input %0)
+rule Status/value: |- x
+  -- Zero: |- x
+
+relation Recur: nat ~> nat hint(input %0 %1)
+rule Recur/recursive: x ~> y
+  -- if x = 1
+  -- Recur: y ~> 0
+rule Recur/fallback: x ~> y
+  -- if x = 1

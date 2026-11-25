@@ -226,13 +226,14 @@ class UnifiedWorkflowTests(unittest.TestCase):
         prop = self.directory / 'unsupported_property'
         prop.mkdir(exist_ok=True)
         source = prop / 'Property.spectec'
-        source.write_text('property [negative]:\n  (x : nat)\n  true\n  -- Test :/ x x\n')
+        source.write_text('property [negative]:\n  (x : nat)\n  true\n  -- External :/ x x x\n')
         args = Namespace(property=prop, action='prepare', target='spec',
                          spec=self.manifest, implementation=None)
         path, ok = self.module().execute(args)
         self.assertFalse(ok)
         report = json.loads(path.read_text())
-        self.assertIn(str(source) + ':4.', report['error'])
+        self.assertIn('elab/negated-premise-has-outputs', report['error'])
+        self.assertIn(str(source) + ':4:', report['error'])
         self.assertNotIn('Property.lowered.watsup', report['error'])
 
 

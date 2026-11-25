@@ -164,6 +164,18 @@ def render_original(source, config, *, publication=None, public_input_names=None
             'From ALCoq Require Import Execution.\n'
             f"From {plan['namespace']}.Generated Require Import Types_0000 InductiveRelations.\n"
             'Import QcDefaultNotation.\nOpen Scope string_scope.\n\n'
+            # Negated calls expose Unmatch branches to the derivation tactic.
+            # Its intermediate witnesses can include runtime state and unit,
+            # even though neither is a public Input wire type.
+            '#[global] Instance property_gen_sized_state : GenSized State :=\n'
+            '  {| arbitrarySized := fun size => bindGen (arbitrarySized size)\n'
+            '       (fun n => returnGen {| next_fresh := n |}) |}.\n'
+            '#[global] Instance property_gen_sized_unit : GenSized unit :=\n'
+            '  {| arbitrarySized := fun _ => returnGen tt |}.\n\n'
+            '#[global] Instance property_dec_eq_state : Dec_Eq State.\n'
+            'Proof. constructor; intros [n] [m].\n'
+            '  destruct (Nat.eq_dec n m); [left; subst; reflexivity | right; congruence].\n'
+            'Defined.\n\n'
             + render_type_generators(plan['type_schema']) +
             f'Record Input := mkInput {{ {record} }}.\n'
             '#[global] Instance showInput : Show Input :=\n'

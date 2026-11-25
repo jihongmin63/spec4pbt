@@ -59,7 +59,21 @@ let describe_missing state name source =
   detail ^ "; known before: " ^
     String.concat ", " (List.sort_uniq String.compare state.known)
 
+let check_callbacks exp =
+  (* Native type/binding passes accept function arguments, but our observation
+     summaries do not resolve callback dispatch. Diagnose it at the consumer,
+     including inside helpers, before an external dependency can be hidden. *)
+  let module C = Lang.Al.Walk.Collect in
+  let collector = { (C.make_base ~default:[] ~compose:( @ )) with
+    collect_arg = (fun collector arg -> match arg.it with
+      | DefA _ -> [arg.at]
+      | _ -> C.default_collect_arg collector arg) } in
+  List.iter (fun at -> failwith
+    ("higher-order callback observation analysis is not supported at " ^ string_of_region at))
+    (C.collect_exp collector exp)
+
 let require summaries state strict exp =
+  if strict then check_callbacks exp;
   let missing = List.filter (fun name -> not (List.mem name state.known))
     (names exp) in
   match missing with
@@ -153,6 +167,7 @@ let analyze_path summaries strict public_outputs initial match_prems (id, prems,
   let positions = List.filter_map (fun (index, exp) ->
     if strict then current_premise := Some (state_evidence state
       ("return:" ^ string_of_int index) (names exp) (string_of_region exp.at));
+    if strict then check_callbacks exp;
     if require summaries state false exp then Some index else begin
       if strict && public_outputs then begin
         let missing = List.filter (fun name -> not (List.mem name state.known))

@@ -15,14 +15,15 @@ class ObservabilityTests(unittest.TestCase):
     def test_scope_metadata_marks_direct_constructs_without_following_helpers(self):
         report = frontend_check(ANALYSIS_FIXTURE / 'scope.watsup')
         definitions = {item['name']: item for item in report['definitions']}
-        for relation, kind in (('Negation', 'negation'), ('Iteration', 'iteration'),
-                               ('HigherOrder', 'higher_order'), ('Fallback', 'otherwise')):
+        for relation, kind in (('Iteration', 'iteration'), ('HigherOrder', 'higher_order')):
             with self.subTest(relation=relation):
                 items = definitions[relation].get('unsupported_constructs', [])
                 self.assertIn(kind, [item['kind'] for item in items])
                 self.assertTrue(all('scope.watsup' in item['source'] for item in items))
         self.assertEqual(definitions['Pre']['unsupported_constructs'], [])
         self.assertEqual(definitions['Goal']['unsupported_constructs'], [])
+        self.assertEqual(definitions['Negation']['unsupported_constructs'], [])
+        self.assertEqual(definitions['Fallback']['unsupported_constructs'], [])
 
     def analysis_model(self, fixture, pre='Pre', external=None, replacements=()):
         directory = tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems')

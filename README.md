@@ -67,7 +67,15 @@ property [external_result]:
 Here only `x` is generated. The conditions define the input predicate; `b`, `u`,
 and `c` are witnesses. The goal is checked during replay/debug, not generation.
 The current syntax accepts one property and one line of typed binders per file.
-Unsupported iteration, negation, otherwise, and higher-order forms are diagnosed.
+Negated judgments such as `Exists:/ |- x` work in both the goal and conditions.
+P4-spectec's type, binding, and side-condition passes check them: the negated
+relation must have no output positions, and every argument must already be bound.
+To test whether an output-producing relation has a result, call it inside a
+zero-output helper such as `Exists`. Helpers may combine multiple calls, negation,
+and native-valid `otherwise` rules. Negation inverts success and `no_match`;
+adapter errors and timeouts retain their error status. Iteration and higher-order
+callback observation analysis still have property-workflow limitations and are
+diagnosed with source locations.
 
 Use the shared demo to follow the complete workflow:
 

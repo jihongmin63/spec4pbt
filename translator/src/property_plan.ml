@@ -58,7 +58,7 @@ let prepare spec pre =
     {name;inputs;outputs;temporary=true;source_at=at} in
   List.iteri (fun index prem ->
     (match prem.it with
-     | IterPr _ | IfNotHoldPr _ -> fail prem.at "iteration and negation are outside property scope"
+     | IterPr _ -> fail prem.at "iteration is outside property scope"
      | _ -> ());
     let vars = vars_prem prem in
     let ins, outs = List.partition (fun exp -> List.mem (variable exp) (names !known)) vars in

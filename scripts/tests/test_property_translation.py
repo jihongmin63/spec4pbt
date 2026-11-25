@@ -85,6 +85,30 @@ Qed.
                 self.assertEqual(sample['x']['value'], '7')
                 self.assertEqual(debug(compile_debug(model), sample).status, 'failed')
 
+    def test_negative_condition_derives_samples_with_closed_equivalence(self):
+        directory = Path(tempfile.mkdtemp(dir=ROOT / '_opam-testing-theorems/checks',
+                                         prefix='property-negative-generation-'))
+        source = directory / 'Negative.watsup'
+        source.write_text((ROOT / 'scripts/tests/fixtures/property/bridge/negation.watsup').read_text() + '''
+relation Pre: |- nat hint(input %0)
+rule Pre/main: |- x
+  -- Zero:/ |- x
+relation Goal: |- nat hint(input %0)
+rule Goal/main: |- x
+  -- Zero:/ |- x
+''')
+        config = directory / 'Property.toml'
+        config.write_text('precondition = "Pre"\ngoal = "Goal"\n')
+        publication = rocq.translate_property(source, config, directory / 'spec')
+        plan = rocq.publication_plan(publication)
+        self.assertEqual(len(plan['calls']), 1)
+        self.assertTrue(plan['calls'][0]['temporary'])
+        model, samples = self.derive(directory, source, config, publication, size=16)
+        for sample in samples:
+            if sample is not None:
+                self.assertNotEqual(sample['x']['value'], '0')
+                self.assertEqual(debug(compile_debug(model), sample).status, 'passed')
+
     def test_effectful_computed_return_keeps_fresh_state(self):
         directory = Path(tempfile.mkdtemp(dir=ROOT / '_opam-testing-theorems/checks',
                                          prefix='property-return-fresh-'))

@@ -11,11 +11,12 @@ module Interface_ = struct
   let call_builtin add id targs values =
     if id.it = Instrumentation.marker_name then
       (match values with
-       | [phase; relation; kind; source; inputs; outputs; input_slots] ->
+       | [phase; relation; kind; source; inputs; outputs; input_slots; negated] ->
            Instrumentation.record_marker (Value.Get.text phase)
              (Value.Get.text relation) (Value.Get.text kind)
              (Value.Get.text source) (Value.Get.text inputs)
-             (Value.Get.text outputs) (Value.Get.text input_slots);
+             (Value.Get.text outputs) (Value.Get.text input_slots)
+             (Value.Get.text negated = "true");
            Value.Make.bool true
        | _ -> failwith "invalid trace marker arguments")
     else if String.starts_with ~prefix:Instrumentation.identity_prefix id.it then
@@ -150,7 +151,6 @@ let unsupported_constructs def =
     collect_prem = (fun collector prem ->
       let nested = C.default_collect_prem collector prem in
       match prem.it with
-      | IfNotHoldPr _ -> item "negation" prem.at :: nested
       | IterPr _ -> item "iteration" prem.at :: nested
       | _ -> nested) } in
   let path path =
@@ -166,9 +166,8 @@ let unsupported_constructs def =
         | None -> []
         | Some elsegroup ->
             let _, (_, inputs, match_prems), fallback_path = elsegroup.it in
-            item "otherwise" elsegroup.at ::
-            (C.collect_exps collector inputs @ C.collect_prems collector match_prems @
-             path fallback_path) in
+            C.collect_exps collector inputs @ C.collect_prems collector match_prems @
+            path fallback_path in
       List.concat_map group groups @ fallback
   | _ -> []
 
@@ -236,8 +235,10 @@ let execute spec request =
   Instrumentation.reset ();
   external_events := [];
   let spec = match field request "instrument" with
-    | `Bool false -> spec
-    | _ -> Instrumentation.instrument spec in
+    | `Bool false -> Inst.Hook.register []; spec
+    | _ ->
+        Inst.Hook.register [(module Instrumentation.Invocations)];
+        Instrumentation.instrument spec in
   let al_hash = Digest.to_hex (Digest.string (Lang.Al.Print.string_of_spec spec)) in
   let pre = string_field request "pre" in
   let goal = string_field request "goal" in
@@ -270,6 +271,8 @@ let execute spec request =
                           "phase", `String event.phase;
                           "relation", `String event.relation;
                           "kind", `String event.kind;
+                          "negated", `Bool event.negated;
+                          "invocation", `Int event.invocation;
                           "source", `String event.source;
                           "inputs", `List (List.map (fun x -> `String x) event.inputs);
                           "input_slots", `List (List.map (fun slot ->
