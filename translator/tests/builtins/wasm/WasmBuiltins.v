@@ -129,27 +129,18 @@ Example mem_store_vector : eval_store_vec 0 0 0 = Success (repeat 0%nat 16). Pro
 Example mem_load_vector : eval_load_vec None 0 0 (1%nat::repeat 0%nat 15) = Success 1. Proof. vm_compute. reflexivity. Qed.
 Example mem_lane_valid : eval_load_vec_lane 8 0 0 0 [9%nat] 0 = Success 9. Proof. vm_compute. reflexivity. Qed.
 Example mem_lane_store_valid : eval_store_vec_lane 8 0 0 1 258 = Success [1%nat]. Proof. vm_compute. reflexivity. Qed.
-Inductive NoCall : Type -> Type := .
-Definition no_body A (c : NoCall A) : Action NoCall A := match c with end.
-Example caught_builtin_allows_fallback :
- Eval no_body
-   (OrElse (lift (catch_eval_builtin (eval_binop Int32 "Add" (num Int64 1) (num Int32 2))))
-           (Return NumTrap)) {| next_fresh := 0 |} (Success NumTrap) {| next_fresh := 0 |}.
-Proof. eapply eval_or_unmatch; [apply eval_unmatched|apply eval_return]. Qed.
-Example caught_builtin_satisfies_negation :
- Eval no_body (Negate (lift (catch_bounds_builtin (slice_bytes [] 0 1))))
-   {| next_fresh := 0 |} (Success tt) {| next_fresh := 0 |}.
-Proof. apply eval_negate_unmatch. apply eval_unmatched. Qed.
-Example uncaught_host_conversion_stops_fallback :
- Eval no_body
-   (OrElse (lift (catch_bounds_builtin (failure HostConversion "host integer overflow" : Outcome (list nat))))
-           (Return [])) {| next_fresh := 0 |}
-   (failure HostConversion "host integer overflow") {| next_fresh := 0 |}.
-Proof. apply eval_or_error. apply eval_raise. Qed.
-Example lifted_error_stops_alternative :
- Eval no_body (OrElse (lift (failure HostConversion "bad" : Outcome Z)) (Return 7)) {| next_fresh := 0 |}
-   (failure HostConversion "bad") {| next_fresh := 0 |}.
-Proof. apply eval_or_error. constructor. Qed.
-Print Assumptions lifted_error_stops_alternative.
+Example caught_wrong_operand_unmatches :
+  catch_eval_builtin (eval_binop Int32 "Add" (num Int64 1) (num Int32 2)) = Unmatch.
+Proof. vm_compute. reflexivity. Qed.
+Example caught_bounds_unmatches :
+  catch_bounds_builtin (slice_bytes [] 0 1) = Unmatch.
+Proof. vm_compute. reflexivity. Qed.
+Example host_conversion_is_uncaught :
+  catch_bounds_builtin (failure HostConversion "bad" : Outcome Z) =
+  failure HostConversion "bad".
+Proof. reflexivity. Qed.
+Print Assumptions caught_wrong_operand_unmatches.
+Print Assumptions caught_bounds_unmatches.
+Print Assumptions host_conversion_is_uncaught.
 Print Assumptions typed_conversion_trap.
 Print Assumptions float_ties_even.

@@ -89,8 +89,6 @@ def compile_generated(source, profile, run, manifest, namespace_override=None):
     generated = source / 'Generated'
     files = common + [generated / name for name in
                       ['Types_0000.v', 'Casts.v', 'References.v', 'Calls.v']]
-    files += sorted(generated.glob('Bodies_*.v'))
-    files.append(generated / 'Program.v')
     if (generated / 'InductiveRelations.v').is_file():
         files += sorted(generated.glob('InductiveRelations_*.v'))
         files.append(generated / 'InductiveRelations.v')

@@ -44,7 +44,9 @@ def check(backend, run_dir):
     # Inventory and complete translation have distinct recorded stages.
     completed = subprocess.run(command, capture_output=True, text=True)
     assert completed.returncode == 0, completed.stderr
-    assert (run_dir / 'Generated/Program.v').is_file()
+    assert (run_dir / 'Generated/InductiveRelations.v').is_file()
+    assert not list((run_dir / 'Generated').glob('Bodies_*.v'))
+    assert not (run_dir / 'Generated/Program.v').exists()
     assert json.loads((run_dir / 'manifest.json').read_text())['status'] == 'coq-generated'
     (run_dir / 'translation-manifest.json').write_text((run_dir / 'manifest.json').read_text())
     (run_dir / 'translation.log').write_text(completed.stdout + completed.stderr)

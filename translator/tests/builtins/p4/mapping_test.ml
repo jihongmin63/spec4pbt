@@ -1,5 +1,12 @@
 open Coq_ir
 let get = function Ok x -> x | Error ds -> failwith (String.concat "\n" (List.map (fun d -> d.reason) ds))
+let rec render_builtin_action action = match action.node with
+  | Primitive_action(name,args) -> Render.apply name (List.map Render.expression args)
+  | Return value -> Render.apply "(@Return Call _)" [Render.expression value]
+  | Bind (name,left,right) -> Render.apply "Bind"
+      [render_builtin_action left;
+       Render.par ("fun " ^ Render.binding name ^ " => " ^ render_builtin_action right)]
+  | _ -> failwith "unexpected P4 builtin adapter action"
 let () =
   let spec = match Pass.algo [Sys.argv.(1)] with Ok spec -> spec | Error d -> failwith d.Diagnostic.message in
   let ctx = Context.build ~profile:{name="p4"} spec |> get in
@@ -15,7 +22,7 @@ let () =
     List.mapi (fun i t -> {name="#arg"^string_of_int i;typ=Lower_expr.typ ctx t}) signature.argument_types in
   List.iter (fun d ->
     let action=Builtins.lower ctx d (parameters d) |> get in
-    let rendered=Render.action action in
+    let rendered=render_builtin_action action in
     assert (String.length rendered>0);
     let signature=Option.get d.Context.signature in
     let type_parameters=List.map(fun p->Data.parameter_name ctx p.Util.Source.it)signature.type_parameters in

@@ -19,24 +19,3 @@ let rec expression e =
       String.concat " " (List.map (fun (pattern,e)->"| " ^ pattern ^ " => " ^ expression e) branches) ^ " end")
   | Function name -> reference_constructor name
 and binding (b:binding) = par(identifier b.name ^ " : " ^ Emit_data.render_type b.typ)
-let call c =
-  if c.target="#apply" then apply "ApplyReference" (List.map expression c.arguments)
-  else apply (call_constructor c.target)
-    (List.map Emit_data.render_type c.type_arguments @ List.map Emit_data.ops_expr c.type_arguments @ List.map expression c.arguments)
-let rec action a = match a.node with
-  | Primitive_action (name,args) -> apply name (List.map expression args)
-  | Return e -> apply "(@Return Call _)" [expression e]
-  | Invoke c -> apply "Invoke" [call c]
-  | Bind (name,left,right) -> apply "Bind" [action left;par("fun " ^ binding name ^ " => " ^ action right)]
-  | Guard e -> apply "(@Guard Call)" [expression e]
-  | Alternatives alternatives -> apply "Alternatives" ["[" ^ String.concat "; " (List.map action alternatives) ^ "]"]
-  | Unmatch -> "(@Unmatched Call " ^ Emit_data.render_type a.result ^ ")"
-  | Error e -> apply "(@Raise Call _)" [e]
-  | Fresh -> "(@Fresh Call)"
-  | Choose t -> "(@Choose Call " ^ Emit_data.render_type t ^ ")"
-  | Negate a -> apply "Negate" [action a]
-  | Match (scrutinee,branches) -> par("match " ^ expression scrutinee ^ " with " ^
-      String.concat " " (List.map(fun(pattern,a)->"| "^pattern^" => "^action a) branches) ^ " end")
-  | Local (name,value,body) -> par("let " ^ identifier name.name ^ " := " ^ expression value ^ " in " ^ action body)
-  | Traverse (name,values,body) -> apply "Traverse" [par("fun " ^ binding name ^ " => " ^ action body); expression values]
-

@@ -263,7 +263,8 @@ def all_suites(backend=None):
         run.report['full_specifications'] = {name: str(path) for name, path in checked.items()}
         both = run.path / 'BothSpecifications.v'
         both.write_text('From P4Spec Require Import Spec.\nFrom WasmSpec Require Import Spec.\n'
-                        'Check P4Spec.Generated.Program.Body.\nCheck WasmSpec.Generated.Program.Body.\n')
+                        'Check P4Spec.Generated.InductiveRelations_0000.g_p4_dec_parameterListIR_x5f_of_x5f_callableTypeDefIR_after_call_1_at_3.\n'
+                        'Check WasmSpec.Generated.InductiveRelations_0000.g_wasm_dec_s_x5f_roll_execute.\n')
         # Wasm's support directory includes both common/P4 and Wasm support.
         # Both profile compiles above must have succeeded before this import.
         support = checked['wasm'].parent / 'support'

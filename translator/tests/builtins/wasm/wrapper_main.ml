@@ -14,14 +14,16 @@ let () =
   let s=Option.get d.signature in
   let parameters=List.mapi(fun i t->{name="arg"^string_of_int i;typ=Lower_expr.typ ctx t})s.argument_types in
   let body=Wasm_bindings.lower_exn ctx d parameters in
-  "Definition B_"^d.source_name^" "^String.concat " " (List.map Render.binding parameters)^" : Action Call "^Emit_data.render_type body.result^" := "^Render.action body^".\n")ds in
+  let action_code=match body.node with
+    | Primitive_action(code,[]) -> code
+    | _ -> failwith("non-primitive Wasm builtin adapter: "^d.source_name) in
+  "Definition B_"^d.source_name^" "^String.concat " " (List.map Render.binding parameters)^" : Action Call "^Emit_data.render_type body.result^" := "^action_code^".\n")ds in
  let c typ name xs=Render.apply (Wasm_bindings.ctor ctx typ name) xs in
  let num tag x=c "op" tag [x] and vec x=c "vecop" "V128" [x] in
  let lane shape op=c "vecop" "V128" [c "laneop" shape [op]] in
  let i32op family op=c "op" "I32" [c family op []] in
  let source_float_zero=c "f32" "POS" [c "fmag" "SUBNORM" ["0%nat"]] in
  let failed_binary="B_eval_binop "^i32op "ibinop" "IAdd"^" "^num "I64" "1%nat"^" "^num "I32" "2%nat" in
- let trap=c "numresult" "NumTrap" [] in
  let examples=[
   "wrapper_scalar", "B_i32_add 1 2", "Return 3%nat";
   "wrapper_shift_clamp", "B_lsl_ 1%Z (-1)%Z", "Return 1%Z";
@@ -39,20 +41,11 @@ let () =
   "wrapper_memory_store", "B_eval_store_vec "^Render.apply(Data.record_constructor ctx "memop")[c "vectype" "V128T" [];"0%nat";"0%nat";c "void" "VOID" []]^" "^vec "0%nat", "Return (repeat 0%nat 16)";
  ] in
  let proofs=List.map(fun(n,l,r)->"Example "^n^" : ("^l^") = ("^r^"). Proof. vm_compute. reflexivity. Qed.\n")examples in
- let state="{| next_fresh := 0 |}" in
- let boundary_proofs="Definition no_body A (call : Call A) : Action Call A := match call with end.\n"^
-  "Example wrapper_failure_allows_otherwise : Eval no_body (OrElse ("^failed_binary^") (Return "^trap^")) "^state^" (Success "^trap^") "^state^".\n"^
-  "Proof. eapply eval_or_unmatch; [apply eval_unmatched|apply eval_return]. Qed.\n"^
-  "Example wrapper_failure_satisfies_negation : Eval no_body (Negate ("^failed_binary^")) "^state^" (Success tt) "^state^".\n"^
-  "Proof. apply eval_negate_unmatch. apply eval_unmatched. Qed.\n"^
+ let boundary_proofs=
   "Example wrapper_slice_sum_overflow n : Z.of_nat n = 4611686018427387903%Z -> B_slice_bytes [] n 1%nat = Raise {| error_kind := HostInvalidArgument; error_detail := \"Value_array.sub\" |}.\n"^
   "Proof. intro H. unfold B_slice_bytes, WasmScalar.slice_bytes. rewrite H. reflexivity. Qed.\n"^
   "Example wrapper_replace_sum_overflow n : Z.of_nat n = 4611686018427387903%Z -> B_replace_bytes [] n [7%nat] = Raise {| error_kind := HostInvalidArgument; error_detail := \"Value_array.replace_slice\" |}.\n"^
-  "Proof. intro H. unfold B_replace_bytes, WasmScalar.replace_bytes. rewrite H. reflexivity. Qed.\n"^
-  "Example wrapper_overflow_blocks_fallback n : Z.of_nat n = 4611686018427387903%Z -> Eval no_body (OrElse (B_slice_bytes [] n 1%nat) (Return [])) "^state^" (Error {| error_kind := HostInvalidArgument; error_detail := \"Value_array.sub\" |}) "^state^".\n"^
-  "Proof. intro H. rewrite (wrapper_slice_sum_overflow n H). apply eval_or_error. apply eval_raise. Qed.\n"^
-  "Example wrapper_overflow_propagates_through_negation n : Z.of_nat n = 4611686018427387903%Z -> Eval no_body (Negate (B_replace_bytes [] n [7%nat])) "^state^" (Error {| error_kind := HostInvalidArgument; error_detail := \"Value_array.replace_slice\" |}) "^state^".\n"^
-  "Proof. intro H. rewrite (wrapper_replace_sum_overflow n H). apply eval_negate_error. apply eval_raise. Qed.\n" in
+  "Proof. intro H. unfold B_replace_bytes, WasmScalar.replace_bytes. rewrite H. reflexivity. Qed.\n" in
  let bad_profile={ctx with Context.profile={name="p4"}} in
  let d=List.hd ds in
  let rejects thunk = try ignore(thunk());failwith "invalid builtin dispatch accepted" with Wasm_bindings.Unsupported _->() in
@@ -60,6 +53,6 @@ let () =
  rejects(fun()->Wasm_bindings.validate ctx {d with kind="FuncDecD"});
  let signature=Option.get d.signature in
  rejects(fun()->Wasm_bindings.validate ctx {d with signature=Some{signature with argument_types=[]}});
- write "WasmWrappers.v" ("From Coq Require Import ZArith List String.\nFrom ALCoq Require Import Execution Values.\nFrom ALCoq.Builtins Require Import WasmScalar WasmFloat WasmVector WasmExecution.\nFrom WasmSpec.Generated Require Import Types_0000.\nImport ListNotations.\nOpen Scope string_scope.\nSet Universe Polymorphism.\nInductive Call : Type -> Type := .\n"^String.concat "\n" defs^String.concat "\n" proofs^boundary_proofs^"\nPrint Assumptions wrapper_num_trap.\n");
+ write "WasmWrappers.v" ("From Coq Require Import ZArith List String.\nFrom ALCoq Require Import Execution Values.\nFrom ALCoq.Builtins Require Import WasmScalar WasmFloat WasmVector WasmExecution.\nFrom WasmSpec.Generated Require Import Types_0000.\nImport ListNotations.\nOpen Scope string_scope.\nSet Universe Polymorphism.\nInductive Call : Type -> Type := .\n"^String.concat "\n" defs^String.concat "\n" proofs^boundary_proofs^"\nPrint Assumptions wrapper_num_trap.\nPrint Assumptions wrapper_slice_sum_overflow.\nPrint Assumptions wrapper_replace_sum_overflow.\n");
  write "bindings.json"(Yojson.Safe.pretty_to_string(`List(Wasm_bindings.bindings ctx)));
  Printf.printf "Generated %d Wasm builtin adapters\n%!" (List.length ds)

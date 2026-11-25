@@ -25,6 +25,11 @@ specification + Property.spectec
 | `<property>/.runs/` | Fixed context, property-specific Coq publication, samples, and execution evidence (ignored). |
 | `_opam-testing-theorems/` | Local installations, builds, archives, and tool logs (ignored). |
 
+AL-to-Coq emits direct `Generated/InductiveRelations_*.v` relations. Public
+predicates in `Relations_0000.v` use `*_execute` with input, `State`,
+`Outcome`, and final `State`; `Spec.v` exports these modules. Common Coq
+`Action` remains the result type of builtin functions.
+
 Within `scripts/property/`, `cli.py` selects commands, `prepare.py` prepares a
 property, `generation.py` derives and samples, and `commands.py` coordinates
 replay/debug. `context.py` validates fixed identities. `legacy.py` preserves the

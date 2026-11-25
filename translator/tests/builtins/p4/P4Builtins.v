@@ -66,6 +66,3 @@ Example equality_order_separation :
   run (P4.assoc_ differing_ops 1%nat [(1%nat,"a")]) = Return (Some "a") /\
   run (P4.find_map differing_ops [(1%nat,"a")] 1%nat) = Return None.
 Proof. repeat split; reflexivity. Qed.
-Definition empty_body A (c : NoCall A) : Action NoCall A := match c with end.
-Example fresh_text : Eval empty_body P4.fresh_typeId {| next_fresh := 3 |} (Success "FRESH__3") {| next_fresh := 4 |}.
-Proof. unfold P4.fresh_typeId. econstructor. constructor. constructor. Qed.

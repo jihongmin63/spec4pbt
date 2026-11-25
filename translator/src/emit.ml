@@ -53,38 +53,8 @@ let render_calls ctx =
   line "| ApplyReference : forall A B, FunctionRef A B -> A -> Call B.";
   line "Arguments ApplyReference {A B} _ _.";
   Buffer.contents b
-let render_reference_body ctx =
-  let b=Buffer.create 20000 in let line s=Buffer.add_string b(s^"\n") in
-  line "Definition reference_body {A B} (r : FunctionRef A B) : A -> Action Call B :=";
-  line "match r in FunctionRef input_type output_type return input_type -> Action Call output_type with";
-  List.iter(fun(d:Context.declaration)->let s=Option.get d.signature in let ps=type_parameters ctx s in
-    let args=List.mapi(fun i _->"a"^string_of_int i)(signature_inputs ctx s) in
-    line("| " ^ String.concat " " (reference_constructor d.generated_name::parameter_values ps) ^ " => fun input => match input with " ^ tuple args ^ " => Invoke " ^
-        apply(call_constructor d.generated_name)(parameter_values ps@args) ^ " end"))(references ctx);
-  line "end.";Buffer.contents b
-let render_bodies ctx bodies =
-  header ctx ["Types_0000";"Casts";"References";"Calls"] ^
-  (match ctx.Context.profile.name with
-   | "p4" -> "From ALCoq.Builtins Require Import Common P4.\n"
-   | "wasm" -> "From ALCoq.Builtins Require Import Common P4 WasmScalar WasmFloat WasmVector WasmExecution.\n"
-   | _ -> "") ^ String.concat "\n" (List.map(fun body->
-    let d=Context.String_map.find body.call_name ctx.Context.by_generated_name in
-    let s=Option.get d.signature in let ps=type_parameters ctx s in
-    "Definition B_" ^ body.call_name ^ " " ^ param_binders ps ^ " " ^ String.concat " " (List.map binding body.parameters) ^
-    " : Action Call " ^ Emit_data.render_type body.result ^ " :=\n" ^ action body.action ^ ".\n")bodies)
-let render_program ctx bodies body_files =
-  let b=Buffer.create 40000 in let line s=Buffer.add_string b(s^"\n") in
-  line(header ctx (["Types_0000";"References";"Calls"]@body_files));line(render_reference_body ctx);
-  line "Definition Body {A} (call : Call A) : Action Call A :=";
-  line "match call in Call T return Action Call T with";
-  List.iter(fun body -> let d=Context.String_map.find body.call_name ctx.Context.by_generated_name in
-    let ps=type_parameters ctx(Option.get d.signature) in let args=List.map(fun(b:binding)->identifier b.name)body.parameters in
-    let all=parameter_values ps@args in
-    line("| " ^ String.concat " " (call_constructor body.call_name::all) ^ " => " ^ apply("B_"^body.call_name)all))bodies;
-  line "| ApplyReference reference input => reference_body reference input";
-  line "end.";Buffer.contents b
 let render_relations ctx =
-  header ctx ["Types_0000";"References";"Calls";"Program";"InductiveRelations"] ^ String.concat "\n"(List.map(fun(d:Context.declaration)->
+  header ctx ["Types_0000";"References";"Calls";"InductiveRelations"] ^ String.concat "\n"(List.map(fun(d:Context.declaration)->
     let s=Option.get d.signature in let ps=type_parameters ctx s in
     let arguments=List.mapi(fun i typ->{name="#public"^string_of_int i;typ=Lower_expr.typ ctx typ})s.argument_types in
     let outputs=if d.namespace="rel" then List.map(List.nth arguments)s.output_positions else [{name="#result";typ=result_type ctx s}] in
@@ -118,12 +88,6 @@ let write ?(normalize_computations = false) ~out_dir ctx ~data ~bodies = try
   write_file(Filename.concat generated "Casts.v")(header ctx ["Types_0000"] ^ Casts.render ctx data);
   write_file(Filename.concat generated "References.v")(render_references ctx);
   write_file(Filename.concat generated "Calls.v")(render_calls ctx);
-  let rec chunks i= function []->[]|bodies->
-    let rec take n xs=if n=0 then[],xs else match xs with []->[],[]|x::xs->let a,b=take(n-1)xs in x::a,b in
-    let chunk,rest=take 40 bodies in let name=Printf.sprintf "Bodies_%04d" i in
-    write_file(Filename.concat generated(name^".v"))(render_bodies ctx chunk);name::chunks(i+1)rest in
-  let body_files=chunks 0 bodies in
-  write_file(Filename.concat generated "Program.v")(render_program ctx bodies body_files);
   (fun chunks ->
     let previous = ref [] in
     List.iteri (fun index source ->
@@ -139,7 +103,7 @@ let write ?(normalize_computations = false) ~out_dir ctx ~data ~bodies = try
       (header ctx [] ^ "From " ^ namespace ctx ^ ".Generated Require Export " ^
        String.concat " " !previous ^ ".\n")) direct;
   write_file(Filename.concat generated "Relations_0000.v")(render_relations ctx);
-  write_file(Filename.concat out_dir "Spec.v")("From " ^ namespace ctx ^ ".Generated Require Export Types_0000 References Calls Program Relations_0000 InductiveRelations.\n");
+  write_file(Filename.concat out_dir "Spec.v")("From " ^ namespace ctx ^ ".Generated Require Export Types_0000 References Calls Relations_0000 InductiveRelations.\n");
   Ok()
 with Data.Unsupported d->Error[d]
    | Direct_unsupported diagnostics -> Error diagnostics

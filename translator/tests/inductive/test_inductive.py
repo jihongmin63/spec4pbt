@@ -37,7 +37,7 @@ class DirectRelationTests(unittest.TestCase):
         compiled = {"commands": []}
         driver.compile_generated(run / "spec", "fixture", run, compiled)
         (run / "compile-report.json").write_text(json.dumps(compiled, indent=2) + "\n")
-        for name in ["EvalFacts", "TraverseChecks"]:
+        for name in ["TraverseChecks"]:
             destination = run / "spec" / f"{name}.v"
             shutil.copy2(SOURCE.parent / f"{name}.v", destination)
             proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
@@ -88,7 +88,7 @@ class DirectRelationTests(unittest.TestCase):
         compiled = {"commands": []}
         driver.compile_generated(source, "fixture", run, compiled)
         (run / "compile-report.json").write_text(json.dumps(compiled, indent=2) + "\n")
-        for name in ["EvalFacts", "InductiveChecks"]:
+        for name in ["InductiveChecks"]:
             destination = source / f"{name}.v"
             shutil.copy2(SOURCE.parent / f"{name}.v", destination)
             command = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
@@ -98,7 +98,7 @@ class DirectRelationTests(unittest.TestCase):
             (run / f"{name}.log").write_text(result.stdout + result.stderr)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         proof_log = (run / "InductiveChecks.log").read_text()
-        self.assertEqual(proof_log.count("Closed under the global context"), 9)
+        self.assertEqual(proof_log.count("Closed under the global context"), 10)
         self.assertNotIn("Axioms:", proof_log)
 
     def test_fresh_state_is_carried_into_next_clause(self):
@@ -140,7 +140,7 @@ class DirectRelationTests(unittest.TestCase):
         self.assertNotIn("Axioms:", derived.stdout)
         self.assertTrue((run / "fresh_generator.ml").is_file())
 
-    def test_builtin_unmatch_and_error_are_equivalent(self):
+    def test_builtin_unmatch_and_error_are_direct(self):
         state = ROOT / "_opam-testing-theorems/checks"
         state.mkdir(parents=True, exist_ok=True)
         run = Path(tempfile.mkdtemp(prefix="inductive-builtin.", dir=state))
@@ -168,9 +168,9 @@ class DirectRelationTests(unittest.TestCase):
         (run / "BuiltinChecks.log").write_text(checked.stdout + checked.stderr)
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         self.assertEqual((run / "BuiltinChecks.log").read_text().count(
-            "Closed under the global context"), 2)
+            "Closed under the global context"), 4)
 
-    def test_polymorphic_and_higher_order_calls_are_equivalent(self):
+    def test_polymorphic_and_higher_order_calls_are_direct(self):
         state = ROOT / "_opam-testing-theorems/checks"
         state.mkdir(parents=True, exist_ok=True)
         run = Path(tempfile.mkdtemp(prefix="inductive-higher.", dir=state))
@@ -189,7 +189,7 @@ class DirectRelationTests(unittest.TestCase):
         driver = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(driver)
         driver.compile_generated(source, "fixture", run, {"commands": []})
-        for name in ["EvalFacts", "HigherOrderChecks"]:
+        for name in ["HigherOrderChecks"]:
             destination = source / f"{name}.v"
             shutil.copy2(SOURCE.parent / f"{name}.v", destination)
             proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
@@ -199,7 +199,7 @@ class DirectRelationTests(unittest.TestCase):
             (run / f"{name}.log").write_text(checked.stdout + checked.stderr)
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         self.assertEqual((run / "HigherOrderChecks.log").read_text().count(
-            "Closed under the global context"), 2)
+            "Closed under the global context"), 7)
 
     def test_computation_closures_preserve_the_direct_relation(self):
         state = ROOT / "_opam-testing-theorems/checks"
@@ -252,7 +252,7 @@ class DirectRelationTests(unittest.TestCase):
         (run / "TraverseFailureChecks.log").write_text(checked.stdout + checked.stderr)
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
         self.assertEqual((run / "TraverseFailureChecks.log").read_text().count(
-            "Closed under the global context"), 3)
+            "Closed under the global context"), 6)
 
 
 if __name__ == "__main__":
