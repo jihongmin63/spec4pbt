@@ -361,6 +361,14 @@ Proof. intro x; split; trivial. Qed.
         result, _ = self.invoke('check.py', success=False)
         self.assertIn('admitted', result['error'].lower())
 
+    def test_rejects_axiom_hidden_by_a_string_inside_a_comment(self):
+        p = self.prop / 'candidates/v001/Equivalence.v'
+        p.write_text('(* "(*" *)\nAxiom hidden : False.\n(* "*)" *)\n' +
+                     p.read_text().split('Proof.')[0] + 'Proof. destruct hidden. Qed.\n')
+        result, _ = self.invoke('check.py', success=False)
+        self.assertIn('Axiom is not allowed', result['error'])
+        self.assertEqual(result['commands'], [], 'the source policy must reject before Coq runs')
+
     def test_rejects_missing_step(self):
         (self.prop / 'candidates/v002').rename(self.prop / 'candidates/v003')
         process = subprocess.run([sys.executable, str(ROOT / 'scripts/check.py'), str(self.prop)],
@@ -382,6 +390,95 @@ Proof. intro x; split; trivial. Qed.
         self.assertFalse((self.prop / 'candidates/v001/Generator.v').exists())
         rerun = subprocess.run([str(run / 'sources/sampler')], capture_output=True, text=True, check=True)
         self.assertEqual(json.loads(rerun.stdout), values)
+
+
+# Each source makes Coq execute an unsafe command; the audited name and the
+# expected Print Assumptions text show that Coq read it as code, not text.
+UNSAFE_SOURCES = [
+    ('string inside a comment hides Axiom',
+     '(* "(*" *)\nAxiom hidden : False.\n(* "*)" *)\n', 'hidden', 'hidden : False'),
+    ('string inside a comment hides a guard flag',
+     '(* "(*" *)\nUnset Guard Checking.\n(* "*)" *)\n'
+     'Fixpoint loop (n : nat) : False := loop n.\n', 'loop', 'assumed to be guarded'),
+    ('guard bypass attribute',
+     '#[bypass_check(guard)] Fixpoint loop (n : nat) : False := loop n.\n',
+     'loop', 'assumed to be guarded'),
+    ('positivity bypass attribute',
+     '#[ bypass_check ( positivity ) ] Inductive bad : Prop := mk : (bad -> False) -> bad.\n',
+     'bad', 'assumed to be positive'),
+    ('definitional UIP',
+     'Set Definitional UIP.\nInductive seq {A} (a : A) : A -> SProp := srefl : seq a a.\n',
+     'seq', 'definitional UIP'),
+    ('redirected Axiom', 'Redirect "redirected" Axiom hidden : False.\n', 'hidden', 'hidden : False'),
+    ('measured Axiom', 'Instructions Axiom hidden : False.\n', 'hidden', 'hidden : False'),
+    ('polymorphic Axiom', 'Polymorphic Axiom hidden : False.\n', 'hidden', 'hidden : False'),
+    ('Axiom after a proof brace',
+     'Lemma t : True. Proof. { exact I. } Axiom hidden : False. Qed.\n', 'hidden', 'hidden : False'),
+    ('Axiom after an unspaced bullet',
+     'Lemma t : True /\\ True. Proof. split. -Axiom hidden : False. exact I. - exact I. Qed.\n',
+     'hidden', 'hidden : False'),
+    ('Admitted after a proof brace', 'Lemma t : True. Proof. { exact I. } Admitted.\n', 't', 't : True'),
+    ('Admitted after a bullet',
+     'Lemma t : True /\\ True. Proof. split. - exact I. - Admitted.\n', 't', 't : True /\\ True'),
+    ('Parameters after a bullet',
+     'Lemma t : True /\\ True. Proof. split. + Parameters (a b : False). exact I. + exact I. Qed.\n',
+     'a', 'a : False'),
+    ('Context after a proof brace',
+     'Section S. Lemma t : True. Proof. { exact I. } Context (hidden : False). Qed. End S.\n',
+     None, None),
+]
+
+# Comment delimiters and keywords that Coq reads as comment, string, or identifier text.
+SAFE_SOURCES = [
+    ('quoted terminator in a comment', '(* a quoted "*)" stays in this comment *)\nDefinition ok := 0.\n'),
+    ('quoted opener in a comment', '(* "(*" *)\nDefinition ok := 0.\n'),
+    ('Axiom inside a comment opened by (*)', '(*) Axiom hidden : False. *)\nDefinition ok := 0.\n'),
+    ('keywords inside a string',
+     'From Coq Require Import String.\nOpen Scope string_scope.\n'
+     'Definition s := "Axiom ""(*"" *) Admitted.".\n'),
+    ('keyword-like identifiers',
+     "Definition Axiom' := 0.\nDefinition Admitted_count := Axiom'.\n"
+     'Record R := { Context_free : nat }.\nDefinition r := {| Context_free := Admitted_count |}.\n'),
+    ('braces and bullets in a proof', 'Lemma t : True /\\ True. Proof. split. - exact I. - { exact I. } Qed.\n'),
+]
+
+
+class SourcePolicyTests(unittest.TestCase):
+    """Compare the source policy with what the pinned Coq lexer and parser execute."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(dir=ROOT / '_opam-testing-theorems')
+        self.addCleanup(self.temp.cleanup)
+        self.directory = Path(self.temp.name)
+
+    def coqc(self, name, source):
+        (self.directory / f'{name}.v').write_text(source)
+        compiled = subprocess.run(['bash', str(ROOT / 'environment/env.sh'), 'coqc', '-q', f'{name}.v'],
+                                  cwd=self.directory, capture_output=True, text=True, timeout=60)
+        self.assertEqual(compiled.returncode, 0, compiled.stdout + compiled.stderr)
+        return compiled.stdout + compiled.stderr
+
+    def test_rejects_unsafe_commands_that_coq_executes(self):
+        for index, (label, source, audited, evidence) in enumerate(UNSAFE_SOURCES):
+            with self.subTest(label):
+                audit = f'Print Assumptions {audited}.\n' if audited else ''
+                output = self.coqc(f'Unsafe{index:02d}', source + audit)
+                if evidence:
+                    self.assertIn(evidence, output)
+                    try:
+                        self.assertTrue(assumptions(output), output)
+                    except CheckError:
+                        pass  # The final audit also fails closed on these entries.
+                with self.assertRaises(CheckError):
+                    validate_source(Path('Candidate.v'), source.encode())
+
+    def test_accepts_comments_strings_and_identifiers_that_coq_reads_as_text(self):
+        for index, (label, source) in enumerate(SAFE_SOURCES):
+            with self.subTest(label):
+                output = self.coqc(f'Safe{index:02d}', source + 'Print Assumptions ok.\n'
+                                   if 'Definition ok' in source else source)
+                self.assertNotIn('Axioms:', output)
+                validate_source(Path('Candidate.v'), source.encode())
 
 
 if __name__ == '__main__':

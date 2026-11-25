@@ -45,12 +45,24 @@ def nonnegative(value):
 
 
 def code_only(source):
-    """Remove nested Coq comments and strings before checking unsafe directives."""
+    """Blank nested Coq comments and strings before checking unsafe directives.
+
+    Like the Coq lexer, strings are also lexed inside comments, so a quoted
+    "(*" or "*)" in a comment neither opens nor closes a comment.
+    """
     output, index, depth, quoted = [], 0, 0, False
     while index < len(source):
         pair = source[index:index + 2]
         char = source[index]
-        if depth:
+        if quoted:
+            # A doubled quote is an escaped quote, inside or outside comments.
+            if pair == '""':
+                index += 2
+            else:
+                quoted = char != '"'
+                index += 1
+            output.append(' ')
+        elif depth:
             if pair == '(*':
                 depth += 1
                 index += 2
@@ -58,13 +70,7 @@ def code_only(source):
                 depth -= 1
                 index += 2
             else:
-                index += 1
-            output.append(' ')
-        elif quoted:
-            if pair == '""':
-                index += 2
-            else:
-                quoted = char != '"'
+                quoted = char == '"'
                 index += 1
             output.append(' ')
         elif pair == '(*':
@@ -83,21 +89,32 @@ def code_only(source):
     return ''.join(output)
 
 
+# A command starts at the beginning, after a terminating period, or after a
+# proof brace or bullet, optionally behind control commands and attributes.
+SENTENCE = (r'(?:\A|\.(?=\s)|[{}])(?:\s*(?:[-+*]+(?![-+*])|[{}]))*\s*'
+            r'(?:(?:#\[[^]]*\]|Timeout\s+\d+|(?:Local|Global|Export|Time|Instructions|'
+            r'Fail|Succeed|Redirect|Polymorphic|Monomorphic|Cumulative|NonCumulative|'
+            r'Private|Program)(?![\w\']))\s*)*')
+
+
 def validate_source(path, data, *, authored=True):
     text = code_only(data.decode('utf-8'))
-    declarations = (r'Axiom|Axioms|Parameter|Parameters|Conjecture|Conjectures|'
-                    r'Admitted|Admit')
+    # Coq reserves these keywords, so every occurrence in code is a declaration.
+    reserved = r'Axiom|Parameter' + (r'|Hypothesis|Variable' if authored else '')
+    declarations = r'Axioms|Parameters|Conjecture|Conjectures|Admitted|Admit'
     if authored:
-        declarations += r'|Hypothesis|Hypotheses|Variable|Variables|Context|Contexts|Assumption|Assumptions'
-    declaration = re.search(r'(?:\A|\.\s+)\s*(?:#\[[^]]*\]\s*|'
-                            r'(?:Local|Global|Export|Time|Fail|Succeed)\s+|'
-                            r'Timeout\s+\d+\s+)*(?P<keyword>' + declarations + r')\b', text)
+        declarations += r'|Hypotheses|Variables|Context|Contexts|Assumption|Assumptions'
+    declaration = (re.search(r"(?<![\w'])(?P<keyword>" + reserved + r")(?![\w'])", text) or
+                   re.search(SENTENCE + r'(?P<keyword>' + declarations + r")(?![\w'])", text))
     if declaration:
         raise CheckError(f'{path}: {declaration.group("keyword")} is not allowed in sources')
     if re.search(r'(?<!\.)\badmit\b', text):
         raise CheckError(f'{path}: admit is not allowed in sources')
-    forbidden = r'\b(?:Extract|Extraction|Load)\b|\bDeclare\s+ML\b|\b(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)\b|\bUnset\s+(?:Guard|Positivity|Universe)\s+Checking\b'
-    execution = r'(?:^|\.\s)\s*(?:(?:Time|Fail|Timeout\s+\d+)\s+)*(?:QuickChick|QuickChickWith|QuickCheck|QuickCheckWith|Sample)\b'
+    forbidden = (r'\b(?:Extract|Extraction|Load)\b|\bDeclare\s+ML\b|'
+                 r'\b(?:Add|Remove)\s+(?:Rec\s+)?(?:LoadPath|ML\s+Path)\b|'
+                 r'\bUnset\s+(?:Guard|Positivity|Universe)\s+Checking\b|'
+                 r'\bSet\s+Definitional\s+UIP\b|\bbypass_check\b')
+    execution = SENTENCE + r'(?:QuickChick|QuickChickWith|QuickCheck|QuickCheckWith|Sample)\b'
     if re.search(forbidden, text) or re.search(execution, text):
         raise CheckError(f'{path}: execution, extraction, load-path overrides, and unsafe checking directives are not allowed in authored sources')
 
