@@ -98,8 +98,39 @@ class DirectRelationTests(unittest.TestCase):
             (run / f"{name}.log").write_text(result.stdout + result.stderr)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         proof_log = (run / "InductiveChecks.log").read_text()
-        self.assertEqual(proof_log.count("Closed under the global context"), 10)
+        self.assertEqual(proof_log.count("Closed under the global context"), 11)
         self.assertNotIn("Axioms:", proof_log)
+
+    def test_negation_and_mutual_calls_propagate_outcomes(self):
+        state = ROOT / "_opam-testing-theorems/checks"
+        state.mkdir(parents=True, exist_ok=True)
+        run = Path(tempfile.mkdtemp(prefix="inductive-control.", dir=state))
+        backend = Path(os.environ["INDUCTIVE_BACKEND"])
+        source = run / "spec"
+        command = ["bash", str(ROOT / "environment/env.sh"), "frontend", str(backend),
+                   "--profile", "fixture", "--input", str(SOURCE.parent / "control.watsup"),
+                   "--output", str(source), "--manifest", str(run / "manifest.json")]
+        result = subprocess.run(command, cwd=run, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        generated = direct_source(source)
+        self.assertIn("with g_fixture_dec_right_execute", generated)
+        self.assertIn("g_fixture_rel_Refuted_after_call_1_at_1", generated)
+        self.assertIn("g_fixture_rel_Shielded_continue_from_2", generated)
+        self.assertNotIn("Eval ", generated)
+        spec = importlib.util.spec_from_file_location("translate_driver_control", ROOT / "scripts/translate.py")
+        driver = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(driver)
+        driver.compile_generated(source, "fixture", run, {"commands": []})
+        destination = source / "ControlChecks.v"
+        shutil.copy2(SOURCE.parent / destination.name, destination)
+        proof = ["bash", str(ROOT / "environment/env.sh"), "coqc", "-q",
+                 "-Q", str(run / "support"), "ALCoq",
+                 "-Q", str(source), "FixtureSpec", str(destination)]
+        checked = subprocess.run(proof, cwd=run, text=True, capture_output=True)
+        (run / "ControlChecks.log").write_text(checked.stdout + checked.stderr)
+        self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
+        self.assertEqual(checked.stdout.count("Closed under the global context"), 6)
+        self.assertNotIn("Axioms:", checked.stdout)
 
     def test_fresh_state_is_carried_into_next_clause(self):
         state = ROOT / "_opam-testing-theorems/checks"

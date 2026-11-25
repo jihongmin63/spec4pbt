@@ -25,6 +25,13 @@ Proof.
     + apply direct_case_10.
 Qed.
 
+(* Once the first rule succeeds, the later fallback rule is not selected. *)
+Theorem first_success_excludes_fallback s t :
+  ~ g_fixture_rel_Called_execute 1 s (Success 9) t.
+Proof.
+  intro H. apply called_direct in H. destruct H as [H _]. discriminate H.
+Qed.
+
 Definition division_error : ExecutionError :=
   {| error_kind := HostConversion; error_detail := "partial expression failed" |}.
 
@@ -111,6 +118,7 @@ Qed.
 
 Print Assumptions identity_direct.
 Print Assumptions called_direct.
+Print Assumptions first_success_excludes_fallback.
 Print Assumptions error_direct.
 Print Assumptions public_identity_uses_direct.
 Print Assumptions sink_direct.

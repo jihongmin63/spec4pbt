@@ -1,0 +1,37 @@
+var n : nat
+
+dec $error() : nat
+def $error() = $(1 / 0)
+
+relation Always: ALWAYS nat hint(input %0)
+rule Always/yes: ALWAYS n
+
+relation Refuted: REFUTED nat hint(input %0)
+rule Refuted/no: REFUTED n
+  -- Always:/ ALWAYS n
+
+relation Faulty: FAULTY nat hint(input %0)
+rule Faulty/error: FAULTY n
+  -- if $error() = n
+
+relation Shielded: SHIELDED nat hint(input %0)
+rule Shielded/negated: SHIELDED n
+  -- Faulty:/ FAULTY n
+rule Shielded/fallback: SHIELDED n
+
+dec $left(nat) : nat
+dec $right(nat) : nat
+def $left(0) = 10
+def $left(n) = $right(n')
+  -- if n =/= 0
+  -- if n' = $(n - 1)
+def $right(0) = 20
+def $right(n) = $left(n')
+  -- if n =/= 0
+  -- if n' = $(n - 1)
+
+dec $apply_nat(def $f(nat) : nat, nat) : nat
+def $apply_nat(def $f, n) = $f(n)
+
+dec $through_left(nat) : nat
+def $through_left(n) = $apply_nat(def $left, n)
